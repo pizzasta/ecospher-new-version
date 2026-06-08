@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import FeedScreen from './FeedScreen'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'capsules' | 'relics' | 'pod' | 'zones' | 'frequencies' | 'anomalies' | 'settings'
@@ -608,7 +609,7 @@ export default function App() {
 
   const screenMap: Record<Screen, React.ReactNode> = {
     home: <HomeScreen />,
-    signals: <SignalsScreen />,
+    signals: <FeedScreen />,
     drift: <DriftScreen />,
     rooms: <RoomsScreen />,
     capsules: <CapsulesScreen />,
