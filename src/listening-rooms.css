@@ -1,0 +1,54 @@
+.bottom-nav { grid-template-columns: repeat(9, minmax(0, 1fr)); max-width: 1160px; }
+.rooms-page { display: flex; flex: 1; flex-direction: column; gap: 14px; isolation: isolate; position: relative; }
+.rooms-ambient { background: radial-gradient(circle at 48% 18%, rgba(34, 211, 238, 0.18), transparent 25%), radial-gradient(circle at 17% 72%, rgba(244, 114, 182, 0.16), transparent 31%), radial-gradient(circle at 86% 48%, rgba(168, 85, 247, 0.2), transparent 29%), linear-gradient(145deg, rgba(2, 2, 10, 0.98), rgba(14, 6, 31, 0.94) 52%, rgba(4, 8, 18, 0.96)); border-radius: 8px; inset: 0; overflow: hidden; pointer-events: none; position: absolute; z-index: -1; }
+.rooms-ambient::before { animation: roomFog 16s ease-in-out infinite alternate; background: radial-gradient(ellipse at 46% 42%, rgba(255, 255, 255, 0.08), transparent 30%), linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.08), transparent); content: ""; filter: blur(18px); inset: 0; position: absolute; }
+.rooms-ambient span { --room-delay: 0ms; animation: roomParticle 7.5s ease-in-out infinite; animation-delay: var(--room-delay); background: rgba(165, 243, 252, 0.72); border-radius: 999px; box-shadow: 0 0 20px rgba(244, 114, 182, 0.5); height: 3px; position: absolute; width: 3px; }
+.rooms-header, .featured-room, .room-card, .room-list, .room-live-panel, .room-signal-meter { background: rgba(7, 5, 22, 0.6); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 12px; backdrop-filter: blur(18px); }
+.rooms-header { align-items: flex-start; display: flex; gap: 16px; justify-content: space-between; overflow: hidden; padding: 18px; position: relative; }
+.rooms-header::after, .featured-room::after { animation: roomScan 4.8s ease-in-out infinite; background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.25), rgba(244, 114, 182, 0.18), transparent); content: ""; height: 1px; left: -35%; position: absolute; right: -35%; top: 0; }
+.rooms-kicker { color: #a5f3fc; font-size: 11px; font-weight: 850; letter-spacing: 0.18em; margin: 0 0 10px; text-transform: uppercase; }
+.rooms-header h2 { font-size: clamp(34px, 9vw, 76px); line-height: 0.9; margin: 0; }
+.rooms-header span { color: #e9d5ff; display: block; font-size: 14px; line-height: 1.6; margin-top: 12px; max-width: 590px; }
+.room-signal-meter { display: grid; flex: 0 0 180px; gap: 8px; padding: 14px; }
+.room-signal-meter span, .room-card > span, .room-live-panel span, .room-list span { color: #d8b4fe; font-size: 10px; font-weight: 850; letter-spacing: 0.16em; text-transform: uppercase; }
+.room-signal-meter strong { color: #a5f3fc; font-size: 34px; line-height: 1; }
+.room-signal-meter i { background: rgba(255, 255, 255, 0.09); border-radius: 999px; height: 8px; overflow: hidden; }
+.room-signal-meter b { animation: roomMeterGlow 3.2s ease-in-out infinite; background: linear-gradient(90deg, #67e8f9, #f0abfc, #fb7185); border-radius: inherit; display: block; height: 100%; }
+.featured-room { display: grid; gap: 18px; min-height: 440px; overflow: hidden; padding: 18px; position: relative; }
+.room-orb { align-self: center; aspect-ratio: 1; justify-self: center; max-width: 360px; position: relative; width: min(72vw, 44vh); }
+.room-orb::before, .room-orb::after, .room-orb i { border-radius: 999px; content: ""; inset: 0; position: absolute; }
+.room-orb::before { animation: spin 22s linear infinite; border: 1px solid rgba(165, 243, 252, 0.24); transform: rotate(18deg) scaleY(0.58); }
+.room-orb::after { animation: ringPulse 3.4s ease-out infinite; border: 1px solid rgba(244, 114, 182, 0.46); margin: 16%; }
+.room-orb i { animation: roomOrbFloat 5.4s ease-in-out infinite; background: radial-gradient(circle at 42% 36%, rgba(255, 255, 255, 0.95), transparent 9%), radial-gradient(circle, rgba(34, 211, 238, 0.82), rgba(168, 85, 247, 0.5) 34%, rgba(244, 114, 182, 0.22) 62%, transparent 74%); box-shadow: 0 0 76px rgba(34, 211, 238, 0.42), 0 0 130px rgba(244, 114, 182, 0.22); margin: 20%; }
+.featured-room-copy { align-self: center; display: grid; gap: 12px; position: relative; z-index: 1; }
+.featured-room-copy h3 { font-size: clamp(32px, 7vw, 58px); line-height: 0.94; margin: 0; }
+.featured-room-copy p, .room-card p { color: #e9d5ff; font-size: 13px; line-height: 1.6; margin: 0; }
+.featured-room-copy button, .room-card button { background: rgba(34, 211, 238, 0.13); border: 1px solid rgba(165, 243, 252, 0.46); border-radius: 999px; color: #cffafe; cursor: pointer; font-size: 13px; font-weight: 850; justify-self: start; padding: 10px 14px; transition: box-shadow 200ms ease, transform 200ms ease; }
+.featured-room-copy button:hover, .room-card button:hover { box-shadow: 0 0 26px rgba(34, 211, 238, 0.18); transform: translateY(-1px); }
+.room-live-panel { align-self: end; display: grid; gap: 8px; padding: 14px; position: relative; z-index: 1; }
+.room-live-panel strong { color: #f0abfc; font-size: 40px; line-height: 1; }
+.room-live-panel small { color: #a5f3fc; font-size: 12px; }
+.room-categories { display: flex; gap: 8px; overflow-x: auto; }
+.room-categories button { background: rgba(7, 5, 22, 0.66); border: 1px solid rgba(255, 255, 255, 0.13); border-radius: 999px; color: #e9d5ff; cursor: pointer; flex: 0 0 auto; font-size: 12px; font-weight: 750; padding: 9px 12px; }
+.room-categories button.active { border-color: rgba(165, 243, 252, 0.65); box-shadow: 0 0 22px rgba(34, 211, 238, 0.15); }
+.rooms-layout, .room-grid, .rooms-side { display: grid; gap: 14px; }
+.room-card { color: #f8fafc; display: grid; gap: 10px; overflow: hidden; padding: 15px; position: relative; transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease; }
+.room-card::after { background: radial-gradient(circle at 84% 10%, rgba(34, 211, 238, 0.15), transparent 48%); content: ""; inset: 0; opacity: 0.74; pointer-events: none; position: absolute; }
+.room-card:hover, .room-card.active { border-color: rgba(165, 243, 252, 0.56); box-shadow: 0 0 38px rgba(34, 211, 238, 0.14); transform: translateY(-3px); }
+.room-card header { align-items: center; display: flex; justify-content: space-between; position: relative; z-index: 1; }
+.room-live-dot { animation: roomLivePulse 1.8s ease-out infinite; background: #67e8f9; border-radius: 999px; box-shadow: 0 0 24px rgba(103, 232, 249, 0.62); height: 12px; width: 12px; }
+.room-card h3 { font-size: 22px; line-height: 1.04; margin: 0; position: relative; z-index: 1; }
+.room-card footer { display: flex; flex-wrap: wrap; gap: 7px; position: relative; z-index: 1; }
+.room-card footer b, .room-card footer small { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; color: #cffafe; font-size: 12px; padding: 6px 9px; }
+.room-status { border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px; font-size: 11px; padding: 6px 9px; position: relative; text-transform: uppercase; z-index: 1; }
+.status-live { color: #86efac; } .status-quiet { color: #a5f3fc; } .status-tuning { color: #f0abfc; } .status-deep { color: #fde68a; }
+.room-list { display: grid; gap: 9px; padding: 15px; }
+.room-list button { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #f8fafc; cursor: pointer; padding: 11px; text-align: left; }
+@media (min-width: 760px) { .featured-room { grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1fr) 230px; } .rooms-layout { grid-template-columns: minmax(0, 1fr) 310px; } .room-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .bottom-nav button { font-size: 6.5px; } .rooms-header { display: grid; } .room-signal-meter { width: 100%; } .featured-room { min-height: 640px; } }
+@keyframes roomFog { to { transform: translate3d(-3%, 3%, 0) scale(1.08); } }
+@keyframes roomParticle { 50% { opacity: 0.95; transform: translate3d(12px, -18px, 0) scale(1.55); } }
+@keyframes roomScan { 50% { transform: translateX(26%); } }
+@keyframes roomMeterGlow { 50% { filter: brightness(1.35); } }
+@keyframes roomOrbFloat { 50% { transform: translateY(-12px) scale(1.03); } }
+@keyframes roomLivePulse { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0.32; transform: scale(1.8); } }
