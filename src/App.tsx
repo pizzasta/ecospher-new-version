@@ -226,43 +226,6 @@ function HomeScreen() {
     </div>
   )
 }
-
-function SignalsScreen() {
-  const [filter, setFilter] = useState<Mood | 'all'>('all')
-  const moods: (Mood | 'all')[] = ['all', 'nocturne', 'drift', 'bloom', 'static', 'lost']
-  const filtered = filter === 'all' ? signals : signals.filter(s => s.mood === filter)
-  return (
-    <div className="screen">
-      <div className="screen-header">
-        <div className="screen-kicker">SIGNAL STREAM</div>
-        <h2 className="screen-title">Anonymous Voices</h2>
-        <p className="screen-sub">every signal carries something unsaid</p>
-      </div>
-      <div className="filter-row">
-        {moods.map(m => (
-          <button key={m} className={`filter-chip ${filter === m ? 'active' : ''}`} onClick={() => setFilter(m)}>{m}</button>
-        ))}
-      </div>
-      <div className="feed-stack">
-        {filtered.map(s => (
-          <div key={s.id} className="feed-card glass">
-            <div className="feed-meta">
-              <span className="feed-handle">{s.anonymous ? '◉ anonymous' : s.handle}</span>
-              <span className="feed-time">{s.time}</span>
-            </div>
-            <p className="feed-body">{s.content}</p>
-            <div className="feed-footer">
-              <MoodBadge mood={s.mood} />
-              <div className="resonance-label">{s.resonance}%</div>
-              <SignalBar value={s.resonance} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 function DriftScreen() {
   return (
     <div className="screen">
