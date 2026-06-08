@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import FeedScreen from './FeedScreen'
+import { getOptionalSupabaseClient } from './lib/supabase'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'capsules' | 'relics' | 'pod' | 'zones' | 'frequencies' | 'anomalies' | 'settings'
@@ -422,13 +423,107 @@ function FrequenciesScreen() {
   )
 }
 
-function SoulPodScreen() {
+function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string } | null; onSignOut: () => void }) {
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [signalName, setSignalName] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+
+  const supabase = getOptionalSupabaseClient()
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!supabase) { setError('Supabase not configured yet.'); return }
+    setLoading(true); setError(null); setMessage(null)
+    try {
+      if (authMode === 'signup') {
+        const { data, error: err } = await supabase.auth.signUp({ email, password })
+        if (err) throw err
+        if (data.user) {
+          await supabase.from('profiles').upsert({ id: data.user.id, signal_name: signalName || email.split('@')[0], updated_at: new Date().toISOString() })
+        }
+        setMessage('Check your email to confirm your signal.')
+      } else {
+        const { error: err } = await supabase.auth.signInWithPassword({ email, password })
+        if (err) throw err
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Auth failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!user) {
+    return (
+      <div className="screen">
+        <div className="screen-header">
+          <div className="screen-kicker">SOUL POD</div>
+          <h2 className="screen-title">Enter Your Pod</h2>
+          <p className="screen-sub">authenticate to access your private signal chamber</p>
+        </div>
+        <div className="glass" style={{ padding: '24px', borderRadius: '16px', maxWidth: '380px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+            {(['login', 'signup'] as const).map(mode => (
+              <button key={mode} onClick={() => { setAuthMode(mode); setError(null); setMessage(null) }}
+                style={{ flex: 1, padding: '8px', borderRadius: '10px', border: '1px solid', cursor: 'pointer', fontSize: '12px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'all 0.2s ease', background: authMode === mode ? 'rgba(255,45,120,0.18)' : 'rgba(255,255,255,0.04)', borderColor: authMode === mode ? '#ff2d7888' : 'rgba(255,255,255,0.08)', color: authMode === mode ? '#ff2d78' : 'rgba(180,190,220,0.5)' }}>
+                {mode === 'login' ? 'Sign In' : 'Sign Up'}
+              </button>
+            ))}
+          </div>
+          <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {authMode === 'signup' && (
+              <div>
+                <label style={{ fontSize: '10px', color: 'rgba(180,190,220,0.45)', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Signal Name</label>
+                <input type="text" value={signalName} onChange={e => setSignalName(e.target.value)} placeholder="how the ecosystem knows you"
+                  style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#f0f4ff', fontSize: '13px', outline: 'none' }} />
+              </div>
+            )}
+            <div>
+              <label style={{ fontSize: '10px', color: 'rgba(180,190,220,0.45)', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Email</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="your signal address"
+                style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#f0f4ff', fontSize: '13px', outline: 'none' }} />
+            </div>
+            <div>
+              <label style={{ fontSize: '10px', color: 'rgba(180,190,220,0.45)', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Password</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="minimum 6 characters"
+                style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#f0f4ff', fontSize: '13px', outline: 'none' }} />
+            </div>
+            {error && <div style={{ fontSize: '12px', color: '#ff2d78', padding: '8px 12px', background: 'rgba(255,45,120,0.1)', borderRadius: '8px', border: '1px solid rgba(255,45,120,0.25)' }}>{error}</div>}
+            {message && <div style={{ fontSize: '12px', color: '#00d4ff', padding: '8px 12px', background: 'rgba(0,212,255,0.1)', borderRadius: '8px', border: '1px solid rgba(0,212,255,0.25)' }}>{message}</div>}
+            <button type="submit" disabled={loading}
+              style={{ padding: '12px', background: loading ? 'rgba(255,45,120,0.25)' : 'rgba(255,45,120,0.18)', border: '1px solid #ff2d7866', borderRadius: '12px', color: '#ff2d78', fontSize: '13px', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s ease', letterSpacing: '0.05em' }}>
+              {loading ? 'transmitting...' : authMode === 'login' ? 'Enter Pod' : 'Create Signal'}
+            </button>
+          </form>
+          {!supabase && (
+            <div style={{ marginTop: '16px', fontSize: '11px', color: 'rgba(180,190,220,0.35)', textAlign: 'center', fontStyle: 'italic' }}>
+              ⚡ Supabase not yet configured — add env vars to enable auth
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="screen">
       <div className="screen-header">
         <div className="screen-kicker">SOUL POD</div>
         <h2 className="screen-title">Your Pod</h2>
-        <p className="screen-sub">a private chamber for everything you've felt</p>
+        <p className="screen-sub">a private chamber for everything you have felt</p>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: '12px', marginBottom: '4px' }}>
+        <div>
+          <div style={{ fontSize: '10px', color: 'rgba(180,190,220,0.45)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '2px' }}>authenticated signal</div>
+          <div style={{ fontSize: '12px', color: '#00d4ff' }}>{user.email}</div>
+        </div>
+        <button onClick={onSignOut} style={{ fontSize: '11px', color: 'rgba(180,190,220,0.4)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+          sign out
+        </button>
       </div>
       <div className="pod-orb-container">
         <div className="pod-orb">
@@ -442,12 +537,12 @@ function SoulPodScreen() {
           { type: 'Saved Echo', title: 'Late Night Signal', detail: 'A soft thought preserved from the quiet hours.', time: '01:42' },
           { type: 'Memory Fragment', title: 'Static Bloom Memory', detail: 'Pink noise wrapped around an old feeling.', time: 'archived' },
           { type: 'Private Note', title: 'Quiet Frequency', detail: 'A small reminder to move gently today.', time: 'private' },
-        ].map(p => (
-          <div key={p.title} className="pod-card glass">
-            <div className="pod-card-type">{p.type}</div>
-            <div className="pod-card-title">{p.title}</div>
-            <p className="pod-card-detail">{p.detail}</p>
-            <span className="pod-card-time">{p.time}</span>
+        ].map((item, i) => (
+          <div key={i} className="pod-card glass">
+            <div className="pod-card-type">{item.type}</div>
+            <div className="pod-card-title">{item.title}</div>
+            <p className="pod-card-detail">{item.detail}</p>
+            <div className="pod-card-time">{item.time}</div>
           </div>
         ))}
       </div>
@@ -569,6 +664,26 @@ function Nav({ active, onNav }: { active: Screen; onNav: (s: Screen) => void }) 
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [screen, setScreen] = useState<Screen>('home')
+  const [user, setUser] = useState<{ email?: string; id: string } | null>(null)
+
+  useEffect(() => {
+    const supabase = getOptionalSupabaseClient()
+    if (!supabase) return
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) setUser({ id: data.session.user.id, email: data.session.user.email })
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ? { id: session.user.id, email: session.user.email } : null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleSignOut = async () => {
+    const supabase = getOptionalSupabaseClient()
+    if (supabase) await supabase.auth.signOut()
+    setUser(null)
+  }
+
 
   const screenMap: Record<Screen, React.ReactNode> = {
     home: <HomeScreen />,
@@ -580,7 +695,7 @@ export default function App() {
     zones: <DeadZonesScreen />,
     frequencies: <FrequenciesScreen />,
     anomalies: <AnomaliesScreen />,
-    pod: <SoulPodScreen />,
+    pod: <SoulPodScreen user={user} onSignOut={handleSignOut} />,
     settings: <SettingsScreen />,
   }
 
