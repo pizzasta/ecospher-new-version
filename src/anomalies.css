@@ -1,0 +1,62 @@
+.bottom-nav { grid-template-columns: repeat(10, minmax(0, 1fr)); max-width: 1240px; }
+.anomalies-page { display: flex; flex: 1; flex-direction: column; gap: 14px; isolation: isolate; position: relative; }
+.anomaly-ambient { background: radial-gradient(circle at 48% 18%, rgba(34, 211, 238, 0.16), transparent 24%), radial-gradient(circle at 16% 74%, rgba(244, 114, 182, 0.16), transparent 30%), radial-gradient(circle at 86% 50%, rgba(168, 85, 247, 0.2), transparent 29%), linear-gradient(145deg, rgba(1, 1, 8, 0.99), rgba(14, 6, 31, 0.94) 52%, rgba(4, 7, 18, 0.98)); border-radius: 8px; inset: 0; overflow: hidden; pointer-events: none; position: absolute; z-index: -1; }
+.anomaly-ambient::before, .anomaly-ambient::after { content: ""; inset: 0; position: absolute; }
+.anomaly-ambient::before { animation: anomalyFog 16s ease-in-out infinite alternate; background: radial-gradient(ellipse at 48% 42%, rgba(255, 255, 255, 0.075), transparent 30%), linear-gradient(90deg, transparent, rgba(244, 114, 182, 0.08), transparent); filter: blur(18px); }
+.anomaly-ambient::after { animation: anomalyFlicker 3.2s steps(2, end) infinite; background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px); background-size: 100% 13px; opacity: 0.18; }
+.anomaly-ambient span { --anomaly-delay: 0ms; animation: anomalyParticle 7.5s ease-in-out infinite; animation-delay: var(--anomaly-delay); background: rgba(165, 243, 252, 0.68); border-radius: 999px; box-shadow: 0 0 20px rgba(244, 114, 182, 0.48); height: 3px; position: absolute; width: 3px; }
+.anomalies-header, .active-scanner, .anomaly-card, .scanner-brief, .observatory-alert, .investigation-panel, .anomaly-timeline, .distortion-meter { background: rgba(7, 5, 22, 0.62); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 12px; backdrop-filter: blur(18px); }
+.anomalies-header { align-items: flex-start; display: flex; gap: 16px; justify-content: space-between; overflow: hidden; padding: 18px; position: relative; }
+.anomalies-header::after, .active-scanner::after { animation: anomalyScan 4.8s ease-in-out infinite; background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.22), rgba(244, 114, 182, 0.18), transparent); content: ""; height: 1px; left: -35%; position: absolute; right: -35%; top: 0; }
+.anomalies-kicker { color: #fda4af; font-size: 11px; font-weight: 850; letter-spacing: 0.18em; margin: 0 0 10px; text-transform: uppercase; }
+.anomalies-header h2 { font-size: clamp(34px, 9vw, 76px); line-height: 0.9; margin: 0; }
+.anomalies-header span { color: #e9d5ff; display: block; font-size: 14px; line-height: 1.6; margin-top: 12px; max-width: 620px; }
+.active-scanner { display: grid; gap: 18px; min-height: 460px; overflow: hidden; padding: 18px; position: relative; }
+.radar-scanner { align-self: center; aspect-ratio: 1; justify-self: center; max-width: 380px; position: relative; width: min(76vw, 46vh); }
+.radar-ring, .radar-sweep, .radar-core { border-radius: 999px; inset: 0; position: absolute; }
+.radar-ring { border: 1px solid rgba(165, 243, 252, 0.24); }
+.radar-ring-one { animation: radarPulse 3.4s ease-out infinite; }
+.radar-ring-two { animation: spin 18s linear infinite; margin: 17%; transform: rotate(26deg) scaleY(0.64); }
+.radar-sweep { animation: radarSweep 4s linear infinite; background: conic-gradient(from 0deg, rgba(34, 211, 238, 0.42), transparent 22%, transparent); clip-path: circle(50%); opacity: 0.52; }
+.radar-core { align-items: center; background: radial-gradient(circle at 42% 35%, rgba(255, 255, 255, 0.95), transparent 8%), radial-gradient(circle, rgba(244, 114, 182, 0.82), rgba(168, 85, 247, 0.45) 34%, rgba(34, 211, 238, 0.18) 62%, transparent 74%); box-shadow: 0 0 70px rgba(244, 114, 182, 0.38), 0 0 130px rgba(34, 211, 238, 0.22); display: flex; flex-direction: column; justify-content: center; margin: 30%; }
+.radar-core span { color: #ffe4e6; font-size: 10px; font-weight: 850; letter-spacing: 0.18em; text-transform: uppercase; }
+.radar-core strong { font-size: clamp(34px, 8vw, 58px); line-height: 1; }
+.radar-scanner > i { --radar-x: 50%; --radar-y: 50%; --radar-delay: 0ms; animation: anomalyBeacon 2.4s ease-out infinite; animation-delay: var(--radar-delay); background: #67e8f9; border-radius: 999px; box-shadow: 0 0 24px rgba(103, 232, 249, 0.7); height: 9px; left: var(--radar-x); position: absolute; top: var(--radar-y); width: 9px; }
+.scanner-brief { align-self: center; display: grid; gap: 12px; padding: 16px; position: relative; z-index: 1; }
+.scanner-brief h3 { font-size: clamp(30px, 7vw, 56px); line-height: 0.94; margin: 0; }
+.scanner-brief p, .anomaly-card p, .anomaly-timeline p { color: #e9d5ff; font-size: 13px; line-height: 1.6; margin: 0; }
+.scanner-brief button, .anomaly-card button { background: rgba(244, 114, 182, 0.12); border: 1px solid rgba(244, 114, 182, 0.44); border-radius: 999px; color: #ffe4e6; cursor: pointer; font-size: 13px; font-weight: 850; justify-self: start; padding: 10px 14px; }
+.observatory-alert { align-self: end; display: grid; gap: 8px; padding: 14px; position: relative; z-index: 1; }
+.observatory-alert span, .distortion-meter span, .anomaly-card header span, .anomaly-card dt, .investigation-panel span, .anomaly-timeline span { color: #c4b5fd; font-size: 10px; font-weight: 850; letter-spacing: 0.16em; text-transform: uppercase; }
+.observatory-alert strong { color: #f0abfc; font-size: 28px; line-height: 1; }
+.observatory-alert small { color: #a5f3fc; font-size: 12px; }
+.anomaly-layout, .anomaly-grid, .anomaly-side { display: grid; gap: 14px; }
+.anomaly-card { animation: anomalyGlitch 8s steps(1, end) infinite; display: grid; gap: 10px; overflow: hidden; padding: 15px; position: relative; transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease; }
+.anomaly-card::after { background: radial-gradient(circle at 86% 10%, rgba(244, 114, 182, 0.14), transparent 48%); content: ""; inset: 0; opacity: 0.74; pointer-events: none; position: absolute; }
+.anomaly-card:hover { border-color: rgba(244, 114, 182, 0.48); box-shadow: 0 0 38px rgba(244, 114, 182, 0.13); transform: translateY(-3px); }
+.anomaly-card header { align-items: center; display: flex; gap: 8px; justify-content: space-between; position: relative; z-index: 1; }
+.anomaly-card h3 { font-size: 22px; line-height: 1.04; margin: 0; position: relative; z-index: 1; }
+.anomaly-card dl { display: grid; gap: 7px; margin: 0; position: relative; z-index: 1; }
+.anomaly-card dl div { display: flex; gap: 10px; justify-content: space-between; }
+.anomaly-card dd { color: #f8fafc; font-size: 11px; margin: 0; text-align: right; }
+.severity-badge { border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px; font-size: 11px; padding: 6px 9px; position: relative; text-transform: uppercase; z-index: 1; }
+.severity-low { color: #a5f3fc; } .severity-unstable { color: #f0abfc; } .severity-elevated { color: #fde68a; } .severity-critical { color: #fb7185; } .severity-unknown { color: #c4b5fd; }
+.distortion-meter { display: grid; gap: 8px; min-width: 180px; padding: 12px; position: relative; z-index: 1; }
+.distortion-meter div { align-items: center; display: flex; justify-content: space-between; }
+.distortion-meter strong { color: #a5f3fc; font-size: 20px; line-height: 1; }
+.distortion-meter i { background: rgba(255, 255, 255, 0.08); border-radius: 999px; height: 8px; overflow: hidden; }
+.distortion-meter b { animation: distortionGlow 3.2s ease-in-out infinite; background: linear-gradient(90deg, #67e8f9, #f0abfc, #fb7185); border-radius: inherit; display: block; height: 100%; }
+.investigation-panel, .anomaly-timeline { display: grid; gap: 9px; padding: 15px; }
+.investigation-panel button { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #f8fafc; cursor: pointer; padding: 11px; text-align: left; }
+.anomaly-timeline p { border-left: 1px solid rgba(244, 114, 182, 0.3); padding-left: 10px; }
+@media (min-width: 760px) { .active-scanner { grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1fr) 230px; } .anomaly-layout { grid-template-columns: minmax(0, 1fr) 310px; } .anomaly-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .bottom-nav button { font-size: 6px; } .anomalies-header { display: grid; } .distortion-meter { width: 100%; } .active-scanner { min-height: 680px; } }
+@keyframes anomalyFog { to { transform: translate3d(3%, -3%, 0) scale(1.08); } }
+@keyframes anomalyParticle { 50% { opacity: 0.95; transform: translate3d(12px, -18px, 0) scale(1.55); } }
+@keyframes anomalyFlicker { 50% { opacity: 0.1; } }
+@keyframes anomalyScan { 50% { transform: translateX(26%); } }
+@keyframes radarPulse { 0% { opacity: 0.3; transform: scale(0.7); } 100% { opacity: 0.9; transform: scale(1.1); } }
+@keyframes radarSweep { to { rotate: 360deg; } }
+@keyframes anomalyBeacon { 0% { opacity: 1; transform: scale(0.8); } 100% { opacity: 0.32; transform: scale(1.9); } }
+@keyframes anomalyGlitch { 0%, 95%, 100% { transform: translate3d(0, 0, 0); } 96% { transform: translate3d(1px, 0, 0); } 97% { transform: translate3d(-1px, 0, 0); } }
+@keyframes distortionGlow { 50% { filter: brightness(1.32); } }
