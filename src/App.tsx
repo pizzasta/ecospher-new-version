@@ -443,7 +443,8 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
         const { data, error: err } = await supabase.auth.signUp({ email, password })
         if (err) throw err
         if (data.user) {
-          await supabase.from('profiles').upsert({ id: data.user.id, username: signalName || email.split('@')[0], updated_at: new Date().toISOString() } as { id: string; username: string; updated_at: string })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any).from('profiles').upsert({ id: data.user.id, username: signalName || email.split('@')[0], updated_at: new Date().toISOString() })
         }
         setMessage('Check your email to confirm your signal.')
       } else {
