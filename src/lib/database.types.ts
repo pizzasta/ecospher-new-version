@@ -78,6 +78,7 @@ export type Database = {
           session_id: string | null
           source_page: string | null
           replayed_at: string
+          dedupe_key: string | null
         }
         Insert: {
           id?: string
@@ -86,9 +87,39 @@ export type Database = {
           session_id?: string | null
           source_page?: string | null
           replayed_at?: string
+          dedupe_key?: string | null
         }
         Update: {
           source_page?: string | null
+        }
+      }
+      audio_files: {
+        Row: {
+          id: string
+          signal_id: string | null
+          uploader_id: string | null
+          storage_path: string
+          mime_type: string
+          size_bytes: number | null
+          duration_seconds: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          signal_id?: string | null
+          uploader_id?: string | null
+          storage_path: string
+          mime_type: string
+          size_bytes?: number | null
+          duration_seconds?: number | null
+          created_at?: string
+        }
+        Update: {
+          signal_id?: string | null
+          storage_path?: string
+          mime_type?: string
+          size_bytes?: number | null
+          duration_seconds?: number | null
         }
       }
       capsules: {
