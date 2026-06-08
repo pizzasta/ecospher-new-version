@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'capsules' | 'relics' | 'pod' | 'zones' | 'frequencies' | 'anomalies' | 'settings'
@@ -634,6 +635,7 @@ export default function App() {
       </main>
 
       <Nav active={screen} onNav={setScreen} />
+      <SpeedInsights />
     </div>
   )
 }
