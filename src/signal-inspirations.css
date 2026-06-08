@@ -1,0 +1,347 @@
+.signal-memory-map,
+.unsent-echo-strip,
+.signal-room-strip {
+  background: rgba(7, 5, 22, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  backdrop-filter: blur(18px);
+  overflow: hidden;
+  position: relative;
+}
+
+.signal-memory-map::before,
+.unsent-echo-strip::before,
+.signal-room-strip::before {
+  animation: signalInspirationSweep 5.2s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.18), rgba(255, 122, 184, 0.16), transparent);
+  content: "";
+  height: 1px;
+  left: -35%;
+  position: absolute;
+  right: -35%;
+  top: 0;
+}
+
+.signal-memory-map {
+  min-height: 360px;
+  padding: 18px;
+}
+
+.signal-memory-map::after {
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.58) 0.5px, transparent 1px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.5px, transparent 1px),
+    radial-gradient(ellipse at 80% 58%, rgba(125, 211, 252, 0.12), transparent 54%),
+    radial-gradient(ellipse at 20% 32%, rgba(255, 42, 116, 0.1), transparent 54%);
+  background-position: 0 0, 30px 50px, 0 0, 0 0;
+  background-size: 80px 80px, 140px 140px, auto, auto;
+  content: "";
+  inset: 0;
+  opacity: 0.72;
+  pointer-events: none;
+  position: absolute;
+}
+
+.memory-map-copy {
+  max-width: 390px;
+  position: relative;
+  z-index: 3;
+}
+
+.memory-map-copy span,
+.unsent-echo-strip header span,
+.signal-room-strip header span {
+  color: #ff7ab8;
+  display: block;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.28em;
+  text-shadow: 0 0 14px rgba(255, 122, 184, 0.42);
+}
+
+.memory-map-copy h3 {
+  font-size: clamp(28px, 7vw, 52px);
+  line-height: 0.96;
+  margin: 10px 0 10px;
+}
+
+.memory-map-copy p,
+.unsent-echo-strip header p,
+.signal-room-strip header p {
+  color: #d8c7e8;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.memory-map-lines {
+  inset: 0;
+  position: absolute;
+  z-index: 1;
+}
+
+.memory-map-lines path {
+  animation: memoryLineDrift 5.2s linear infinite;
+  fill: none;
+  opacity: 0.74;
+  stroke: rgba(165, 243, 252, 0.28);
+  stroke-dasharray: 1.6 4.8;
+  stroke-linecap: round;
+  stroke-width: 0.34;
+}
+
+.memory-map-orbit {
+  animation: memoryOrbitFloat 8s ease-in-out infinite;
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 122, 184, 0.22);
+  border-radius: 999px;
+  filter: blur(0.2px);
+  left: 50%;
+  max-width: 290px;
+  position: absolute;
+  top: 55%;
+  transform: translate(-50%, -50%) rotate(18deg) scaleY(0.58);
+  width: 52vw;
+  z-index: 1;
+}
+
+.memory-node {
+  --memory-strength: 0.8;
+  align-items: center;
+  background: rgba(2, 2, 10, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: #f8fafc;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+  z-index: 4;
+}
+
+.memory-node:hover {
+  border-color: rgba(165, 243, 252, 0.62);
+  box-shadow: 0 0 calc(34px * var(--memory-strength)) rgba(34, 211, 238, 0.16);
+  transform: translate(-50%, -50%) scale(1.05);
+}
+
+.memory-node i {
+  animation: memoryNodePulse 2.6s ease-out infinite;
+  background: #00f0ff;
+  border-radius: 999px;
+  box-shadow: 0 0 calc(26px * var(--memory-strength)) rgba(0, 240, 255, 0.68);
+  height: 11px;
+  width: 11px;
+}
+
+.memory-node span {
+  display: grid;
+  gap: 1px;
+  text-align: left;
+}
+
+.memory-node strong {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.memory-node small {
+  color: #d8c7e8;
+  font-size: 9px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.unsent-echo-strip,
+.signal-room-strip {
+  display: grid;
+  gap: 12px;
+  padding: 15px;
+}
+
+.unsent-echo-strip > div,
+.signal-room-strip > div {
+  display: grid;
+  gap: 10px;
+}
+
+.unsent-echo-card {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025)),
+    radial-gradient(circle at 84% 12%, rgba(255, 122, 184, 0.14), transparent 46%);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto 1fr;
+  overflow: hidden;
+  padding: 12px;
+  position: relative;
+  transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+}
+
+.unsent-echo-card:hover {
+  border-color: rgba(255, 122, 184, 0.48);
+  box-shadow: 0 0 34px rgba(255, 122, 184, 0.13);
+  transform: translateY(-2px);
+}
+
+.unsent-echo-card button {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  cursor: pointer;
+  display: flex;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.unsent-echo-card button i {
+  animation: unsentPulse 1.9s ease-out infinite;
+  border-left: 12px solid #f8fafc;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  display: block;
+  height: 0;
+  margin-left: 3px;
+  width: 0;
+}
+
+.unsent-echo-card span {
+  color: #a5f3fc;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+}
+
+.unsent-echo-card h3 {
+  font-size: 18px;
+  line-height: 1.05;
+  margin: 4px 0 5px;
+}
+
+.unsent-echo-card p {
+  color: #e9d5ff;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+
+.unsent-echo-card.hue-cyan { box-shadow: inset 0 0 44px rgba(0, 240, 255, 0.045); }
+.unsent-echo-card.hue-pink { box-shadow: inset 0 0 44px rgba(255, 42, 116, 0.055); }
+.unsent-echo-card.hue-violet { box-shadow: inset 0 0 44px rgba(155, 107, 255, 0.055); }
+.unsent-echo-card.hue-amber { box-shadow: inset 0 0 44px rgba(255, 184, 107, 0.055); }
+
+.signal-room-strip button {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 10px;
+  color: #f8fafc;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  min-height: 104px;
+  padding: 12px;
+  position: relative;
+  text-align: left;
+  transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+}
+
+.signal-room-strip button:hover {
+  border-color: rgba(165, 243, 252, 0.48);
+  box-shadow: 0 0 28px rgba(34, 211, 238, 0.12);
+  transform: translateY(-2px);
+}
+
+.signal-room-strip button i {
+  background: linear-gradient(135deg, #00f0ff, #ff7ab8);
+  border-radius: 999px;
+  box-shadow: 0 0 20px rgba(255, 122, 184, 0.38);
+  height: 18px;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 18px;
+}
+
+.signal-room-strip button strong {
+  font-size: 17px;
+  line-height: 1.05;
+}
+
+.signal-room-strip button span,
+.signal-room-strip button small {
+  color: #d8c7e8;
+  font-size: 11px;
+}
+
+.signal-room-strip button small {
+  color: #a5f3fc;
+  margin-top: auto;
+}
+
+@media (min-width: 760px) {
+  .unsent-echo-strip > div {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .signal-room-strip > div {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .signal-memory-map {
+    min-height: 500px;
+  }
+
+  .memory-node span {
+    display: none;
+  }
+}
+
+@keyframes signalInspirationSweep {
+  50% {
+    transform: translateX(26%);
+  }
+}
+
+@keyframes memoryLineDrift {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+
+@keyframes memoryOrbitFloat {
+  50% {
+    opacity: 0.7;
+    transform: translate(-50%, -52%) rotate(24deg) scaleY(0.62);
+  }
+}
+
+@keyframes memoryNodePulse {
+  0% {
+    opacity: 1;
+    transform: scale(0.9);
+  }
+
+  100% {
+    opacity: 0.34;
+    transform: scale(1.85);
+  }
+}
+
+@keyframes unsentPulse {
+  100% {
+    filter: drop-shadow(0 0 14px rgba(255, 122, 184, 0.58));
+    opacity: 0.58;
+    transform: scale(1.14);
+  }
+}
