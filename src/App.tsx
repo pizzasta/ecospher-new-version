@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'capsules' | 'relics' | 'pod' | 'zones' | 'frequencies' | 'anomalies' | 'settings'
@@ -634,6 +635,7 @@ export default function App() {
       </main>
 
       <Nav active={screen} onNav={setScreen} />
+      <Analytics />
     </div>
   )
 }
