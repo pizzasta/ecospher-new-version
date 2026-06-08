@@ -194,3 +194,79 @@ create policy "users can read their archived signals" on public.archived_signals
 create policy "users can manage their archived signals" on public.archived_signals for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "public activity is readable" on public.activity_events for select using (is_public = true or user_id = auth.uid());
 create policy "users can create their own activity" on public.activity_events for insert with check (user_id = auth.uid() or user_id is null);
+
+
+-- ─── Add dedupe_key to replays ──────────────────────────────────────────────
+alter table public.replays add column if not exists dedupe_key text;
+create unique index if not exists replays_dedupe_key_idx on public.replays(dedupe_key) where dedupe_key is not null;
+
+-- ─── Replay read policy for public signals ───────────────────────────────────
+create policy "anyone can read replays for public signals"
+  on public.replays for select
+  using (
+    exists (
+      select 1 from public.signals s
+      where s.id = signal_id
+        and s.visibility = 'public'
+    )
+  );
+
+-- ─── signal-audio storage bucket ────────────────────────────────────────────
+insert into storage.buckets (id, name, public)
+  values ('signal-audio', 'signal-audio', false)
+  on conflict (id) do nothing;
+
+-- Upload policy: authenticated users can upload to their own path
+create policy "authenticated users upload to own path"
+  on storage.objects for insert
+  to authenticated
+  with check (
+    bucket_id = 'signal-audio'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- Download policy: signed URL access (service role or owner)
+create policy "owner or service can download signal audio"
+  on storage.objects for select
+  to authenticated
+  using (
+    bucket_id = 'signal-audio'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- Delete policy: owner can delete their own uploads
+create policy "owner can delete own signal audio"
+  on storage.objects for delete
+  to authenticated
+  using (
+    bucket_id = 'signal-audio'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- ─── audio_files table ───────────────────────────────────────────────────────
+create table if not exists public.audio_files (
+  id uuid primary key default gen_random_uuid(),
+  signal_id uuid references public.signals(id) on delete set null,
+  uploader_id uuid references public.profiles(id) on delete set null,
+  storage_path text not null,
+  mime_type text not null default 'audio/webm',
+  size_bytes bigint,
+  duration_seconds numeric,
+  created_at timestamptz not null default now()
+);
+
+alter table public.audio_files enable row level security;
+
+create policy "uploader can manage own audio files"
+  on public.audio_files
+  using (uploader_id = auth.uid());
+
+create policy "anyone can read audio files for public signals"
+  on public.audio_files for select
+  using (
+    exists (
+      select 1 from public.signals s
+      where s.id = signal_id
+        and s.visibility = 'public'
+    )
+  );
