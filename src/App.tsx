@@ -1,6 +1,20 @@
-import { useState, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
+import type { User } from '@supabase/supabase-js'
 import FeedScreen from './FeedScreen'
-import { getOptionalSupabaseClient } from './lib/supabase'
+import IntroSequence from './components/IntroSequence'
+import {
+  AtmosphereBackground,
+  CategoryTabs,
+  CinematicHeader,
+  FloatingDock,
+  LivePulseIndicator,
+  SignalMeter,
+  SimpleMeter,
+  StatusBadge,
+  WaveformPreview,
+} from './design-system'
+import { createSignedAudioUrl, getOptionalSupabaseClient, getStorageBucket, isSupabaseConfigured, supabaseEnv } from './lib'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'capsules' | 'relics' | 'pod' | 'zones' | 'frequencies' | 'anomalies' | 'settings'
