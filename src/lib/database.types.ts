@@ -10,6 +10,7 @@ export type Database = {
           signal_core: string | null
           profile_energy: string | null
           onboarding_complete: boolean
+          is_private: boolean
           created_at: string
           updated_at: string | null
         }
@@ -19,6 +20,7 @@ export type Database = {
           signal_core?: string | null
           profile_energy?: string | null
           onboarding_complete?: boolean
+          is_private?: boolean
           created_at?: string
           updated_at?: string | null
         }
@@ -27,6 +29,43 @@ export type Database = {
           signal_core?: string | null
           profile_energy?: string | null
           onboarding_complete?: boolean
+          is_private?: boolean
+          updated_at?: string | null
+        }
+      }
+      audio_files: {
+        Row: {
+          id: string
+          owner_id: string | null
+          bucket: string
+          path: string
+          duration_seconds: number | null
+          file_size_bytes: number | null
+          mime_type: string | null
+          waveform_data: Json
+          is_public: boolean
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          owner_id?: string | null
+          bucket: string
+          path: string
+          duration_seconds?: number | null
+          file_size_bytes?: number | null
+          mime_type?: string | null
+          waveform_data?: Json
+          is_public?: boolean
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          duration_seconds?: number | null
+          file_size_bytes?: number | null
+          mime_type?: string | null
+          waveform_data?: Json
+          is_public?: boolean
           updated_at?: string | null
         }
       }
@@ -34,101 +73,153 @@ export type Database = {
         Row: {
           id: string
           creator_id: string | null
+          audio_file_id: string | null
+          ai_moderation_checked_at: string | null
+          ai_moderation_flags: string[]
+          ai_moderation_status: 'not_checked' | 'passed' | 'flagged'
           type: string
           title: string
           caption: string | null
-          audio_path: string | null
           duration_seconds: number | null
+          emotional_tags: string[]
           mood: string | null
           frequency: string | null
           visibility: 'public' | 'private' | 'unlisted'
-          ai_moderation_status: 'not_checked' | 'passed' | 'flagged'
-          ai_moderation_flags: string[]
-          ai_moderation_checked_at: string | null
+          privacy_state: 'private' | 'public' | 'anonymous_public' | 'archived' | 'deleted'
+          deleted_at: string | null
+          moderation_state: 'active' | 'under_review' | 'hidden' | 'cleared'
+          hidden_at: string | null
+          report_count: number
+          replay_count: number
           is_anonymous: boolean
+          is_public: boolean
           created_at: string
+          updated_at: string | null
         }
         Insert: {
           id?: string
           creator_id?: string | null
+          audio_file_id?: string | null
+          ai_moderation_checked_at?: string | null
+          ai_moderation_flags?: string[]
+          ai_moderation_status?: 'not_checked' | 'passed' | 'flagged'
           type: string
           title: string
           caption?: string | null
-          audio_path?: string | null
           duration_seconds?: number | null
+          emotional_tags?: string[]
           mood?: string | null
           frequency?: string | null
           visibility?: 'public' | 'private' | 'unlisted'
-          ai_moderation_status?: 'not_checked' | 'passed' | 'flagged'
-          ai_moderation_flags?: string[]
-          ai_moderation_checked_at?: string | null
+          privacy_state?: 'private' | 'public' | 'anonymous_public' | 'archived' | 'deleted'
+          deleted_at?: string | null
+          moderation_state?: 'active' | 'under_review' | 'hidden' | 'cleared'
+          hidden_at?: string | null
+          report_count?: number
+          replay_count?: number
           is_anonymous?: boolean
           created_at?: string
+          updated_at?: string | null
         }
         Update: {
           title?: string
+          ai_moderation_checked_at?: string | null
+          ai_moderation_flags?: string[]
+          ai_moderation_status?: 'not_checked' | 'passed' | 'flagged'
           caption?: string | null
-          audio_path?: string | null
           duration_seconds?: number | null
+          emotional_tags?: string[]
           mood?: string | null
           frequency?: string | null
           visibility?: 'public' | 'private' | 'unlisted'
-          ai_moderation_status?: 'not_checked' | 'passed' | 'flagged'
-          ai_moderation_flags?: string[]
-          ai_moderation_checked_at?: string | null
+          privacy_state?: 'private' | 'public' | 'anonymous_public' | 'archived' | 'deleted'
+          deleted_at?: string | null
+          moderation_state?: 'active' | 'under_review' | 'hidden' | 'cleared'
+          hidden_at?: string | null
+          report_count?: number
+          replay_count?: number
           is_anonymous?: boolean
+          updated_at?: string | null
         }
       }
-      signal_replays: {
+      signal_reports: {
+        Row: {
+          id: string
+          signal_id: string
+          reporter_id: string
+          reason: 'harassment' | 'self_harm' | 'sexual_content' | 'violence' | 'spam' | 'privacy' | 'other'
+          details: string | null
+          status: 'open' | 'reviewed' | 'dismissed' | 'actioned'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          signal_id: string
+          reporter_id: string
+          reason?: 'harassment' | 'self_harm' | 'sexual_content' | 'violence' | 'spam' | 'privacy' | 'other'
+          details?: string | null
+          status?: 'open' | 'reviewed' | 'dismissed' | 'actioned'
+          created_at?: string
+        }
+        Update: {
+          reason?: 'harassment' | 'self_harm' | 'sexual_content' | 'violence' | 'spam' | 'privacy' | 'other'
+          details?: string | null
+          status?: 'open' | 'reviewed' | 'dismissed' | 'actioned'
+        }
+      }
+      moderation_reviews: {
+        Row: {
+          id: string
+          signal_id: string
+          report_id: string | null
+          status: 'queued' | 'reviewing' | 'resolved' | 'dismissed'
+          action: 'none' | 'hide_signal' | 'restore_signal' | 'delete_signal' | null
+          reviewer_id: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          signal_id: string
+          report_id?: string | null
+          status?: 'queued' | 'reviewing' | 'resolved' | 'dismissed'
+          action?: 'none' | 'hide_signal' | 'restore_signal' | 'delete_signal' | null
+          reviewer_id?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: 'queued' | 'reviewing' | 'resolved' | 'dismissed'
+          action?: 'none' | 'hide_signal' | 'restore_signal' | 'delete_signal' | null
+          reviewer_id?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+      }
+      replays: {
         Row: {
           id: string
           signal_id: string
           listener_id: string | null
           session_id: string | null
-          source_page: string | null
-          replayed_at: string
           dedupe_key: string | null
+          source_page: string | null
+          created_at: string
         }
         Insert: {
           id?: string
           signal_id: string
           listener_id?: string | null
           session_id?: string | null
-          source_page?: string | null
-          replayed_at?: string
           dedupe_key?: string | null
-        }
-        Update: {
           source_page?: string | null
-        }
-      }
-      audio_files: {
-        Row: {
-          id: string
-          signal_id: string | null
-          uploader_id: string | null
-          storage_path: string
-          mime_type: string
-          size_bytes: number | null
-          duration_seconds: number | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          signal_id?: string | null
-          uploader_id?: string | null
-          storage_path: string
-          mime_type: string
-          size_bytes?: number | null
-          duration_seconds?: number | null
           created_at?: string
         }
         Update: {
-          signal_id?: string | null
-          storage_path?: string
-          mime_type?: string
-          size_bytes?: number | null
-          duration_seconds?: number | null
+          dedupe_key?: string | null
+          source_page?: string | null
         }
       }
       capsules: {
@@ -167,7 +258,9 @@ export type Database = {
           rarity: 'common' | 'rare' | 'mythic' | 'forbidden'
           description: string
           unlock_condition: string | null
+          is_public: boolean
           created_at: string
+          updated_at: string | null
         }
         Insert: {
           id?: string
@@ -175,13 +268,17 @@ export type Database = {
           rarity: 'common' | 'rare' | 'mythic' | 'forbidden'
           description: string
           unlock_condition?: string | null
+          is_public?: boolean
           created_at?: string
+          updated_at?: string | null
         }
         Update: {
           name?: string
           rarity?: 'common' | 'rare' | 'mythic' | 'forbidden'
           description?: string
           unlock_condition?: string | null
+          is_public?: boolean
+          updated_at?: string | null
         }
       }
       user_relics: {
@@ -226,6 +323,28 @@ export type Database = {
         }
         Update: {
           note?: string | null
+        }
+      }
+      archived_signals: {
+        Row: {
+          id: string
+          user_id: string
+          signal_id: string
+          archive_reason: string | null
+          is_private: boolean
+          archived_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          signal_id: string
+          archive_reason?: string | null
+          is_private?: boolean
+          archived_at?: string
+        }
+        Update: {
+          archive_reason?: string | null
+          is_private?: boolean
         }
       }
       rooms: {
@@ -277,10 +396,10 @@ export type Database = {
           type: string
           user_id: string | null
           signal_id: string | null
-          capsule_id: string | null
+          audio_file_id: string | null
           relic_id: string | null
-          room_id: string | null
           metadata: Json | null
+          is_public: boolean
           created_at: string
         }
         Insert: {
@@ -288,19 +407,107 @@ export type Database = {
           type: string
           user_id?: string | null
           signal_id?: string | null
-          capsule_id?: string | null
+          audio_file_id?: string | null
           relic_id?: string | null
-          room_id?: string | null
           metadata?: Json | null
+          is_public?: boolean
           created_at?: string
         }
         Update: {
           metadata?: Json | null
+          is_public?: boolean
+        }
+      }
+      frequencies: {
+        Row: {
+          id: string
+          name: string
+          mood: string | null
+          frequency_label: string | null
+          description: string | null
+          signal_strength: number
+          color_accent: string | null
+          is_demo: boolean
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          name: string
+          mood?: string | null
+          frequency_label?: string | null
+          description?: string | null
+          signal_strength?: number
+          color_accent?: string | null
+          is_demo?: boolean
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          name?: string
+          mood?: string | null
+          frequency_label?: string | null
+          description?: string | null
+          signal_strength?: number
+          color_accent?: string | null
+          is_demo?: boolean
+          metadata?: Json
+          updated_at?: string
+        }
+      }
+      drift_nodes: {
+        Row: {
+          id: string
+          label: string
+          zone: string | null
+          x: number
+          y: number
+          intensity: number
+          description: string | null
+          is_demo: boolean
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          label: string
+          zone?: string | null
+          x: number
+          y: number
+          intensity?: number
+          description?: string | null
+          is_demo?: boolean
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          label?: string
+          zone?: string | null
+          x?: number
+          y?: number
+          intensity?: number
+          description?: string | null
+          is_demo?: boolean
+          metadata?: Json
+          updated_at?: string
         }
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      report_signal: {
+        Args: {
+          p_signal_id: string
+          p_reason?: 'harassment' | 'self_harm' | 'sexual_content' | 'violence' | 'spam' | 'privacy' | 'other'
+          p_details?: string | null
+        }
+        Returns: Json
+      }
+    }
     Enums: Record<string, never>
   }
 }
