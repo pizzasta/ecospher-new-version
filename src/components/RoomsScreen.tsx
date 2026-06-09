@@ -261,7 +261,7 @@ function RoomCanvas({ room, roomState, carrierCount }: { room: RoomDef; roomStat
     window.addEventListener('resize', resize)
 
     // Parse glow color to hue
-    const hueMatch = room.glowColor.match(/rgba?((d+),(d+),(d+)/)
+    const hueMatch = room.glowColor.match(/rgba?\((\d+),(\d+),(\d+)/))
     const glowR = hueMatch ? parseInt(hueMatch[1]) : 255
     const glowG = hueMatch ? parseInt(hueMatch[2]) : 20
     const glowB = hueMatch ? parseInt(hueMatch[3]) : 147
@@ -282,7 +282,7 @@ function RoomCanvas({ room, roomState, carrierCount }: { room: RoomDef; roomStat
       ctx.clearRect(0, 0, W, H)
 
       // Atmosphere glow
-      const isStorm = roomState === 'frequency-storm' || roomState === 'signal-storm' || room.type === 'signal-storm'
+      const isStorm = roomState === 'frequency-storm' || room.type === 'signal-storm'
       const isCorrupt = roomState === 'corrupted-broadcast' || room.type === 'dead-zone'
       const isQuiet = roomState === 'quiet-hour' || room.type === 'quiet'
       const isPulse = room.type === 'pulse'
@@ -476,7 +476,7 @@ function RoomView({ room, onBack }: { room: RoomDef; onBack: () => void }) {
         setEvents(prev => [{
           id: String(eventIdRef.current++),
           message: msg,
-          type: 'stable',
+          type: 'stable' as RoomState,
           timestamp: Date.now(),
         }, ...prev].slice(0, 5))
       }
