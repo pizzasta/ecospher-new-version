@@ -1477,3 +1477,123 @@ html, body, #root {
   border-color: rgba(255,45,120,0.3);
   color: rgba(255,45,120,0.7);
 }
+
+
+/* ─── Signal Reaction Bar ────────────────────────────────────────────────── */
+.signal-reaction-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 0 6px;
+  flex-wrap: wrap;
+}
+
+.reaction-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.02);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.reaction-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: var(--reaction-color, #ff2d78);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.reaction-btn:hover {
+  border-color: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+  transform: translateY(-1px);
+}
+
+.reaction-btn:hover::before {
+  opacity: 0.06;
+}
+
+.reaction-btn--active {
+  border-color: var(--reaction-color, #ff2d78) !important;
+  background: rgba(255,255,255,0.04);
+}
+
+.reaction-btn--active::before {
+  opacity: 0.08;
+}
+
+.reaction-btn--pop {
+  animation: reactionPop 0.5s ease;
+}
+
+@keyframes reactionPop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.18) translateY(-2px); }
+  60%  { transform: scale(0.95); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+.reaction-symbol {
+  font-size: 11px;
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+  transition: color 0.2s ease;
+}
+
+.reaction-btn--active .reaction-symbol {
+  color: var(--reaction-color, #ff2d78);
+  text-shadow: 0 0 6px var(--reaction-color, #ff2d78);
+}
+
+.reaction-label {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: rgba(140,155,195,0.45);
+  position: relative;
+  z-index: 1;
+  transition: color 0.2s ease;
+}
+
+.reaction-btn--active .reaction-label {
+  color: var(--reaction-color, #ff2d78);
+  opacity: 0.8;
+}
+
+/* Per-type active glow tints */
+.reaction-btn--drift.reaction-btn--active    { --reaction-color: #22d3ee; }
+.reaction-btn--bloom.reaction-btn--active    { --reaction-color: #f472b6; }
+.reaction-btn--echo.reaction-btn--active     { --reaction-color: #a78bfa; }
+.reaction-btn--static.reaction-btn--active   { --reaction-color: #94a3b8; }
+.reaction-btn--nocturne.reaction-btn--active { --reaction-color: #c084fc; }
+.reaction-btn--fracture.reaction-btn--active { --reaction-color: #fb923c; }
+
+/* Export row (now below reactions) */
+.card-export-row {
+  padding-top: 4px;
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.card-export-row--visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.action-btn--export {
+  font-size: 10px;
+}
