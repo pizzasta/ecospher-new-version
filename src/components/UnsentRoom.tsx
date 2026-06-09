@@ -34,7 +34,7 @@ const WHISPER_POOL: string[] = [
   'this was meant for someone who left.',
   'frequency: unresolved.',
   'archive still breathing.',
-  'you've played this 11 times now.',
+  "you've played this 11 times now.",
   'some signals outlive their senders.',
   'the room remembers.',
   'drift confirmed. no destination.',
