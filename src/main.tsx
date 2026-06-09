@@ -8,6 +8,7 @@ import './anomalies.css'
 import './signal-alerts.css'
 import './settings.css'
 import './signal-inspirations.css'
+import './capsules.css'
 import App from './App'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
