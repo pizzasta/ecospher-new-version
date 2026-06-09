@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import EcosphereLandingScreen from './EcosphereLandingScreen'
 import IntroSequence from './IntroSequence'
+import { useEcosystemState } from '../hooks/useEcosystemState'
+import type { EcosystemPage } from '../hooks/useEcosystemState'
 
 const introSeenStorageKey = 'introSeen'
 const signalIdentityStorageKey = 'signalIdentity'
@@ -156,6 +158,88 @@ function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, 
   )
 }
 
+const navLabelToPage: Record<string, EcosystemPage> = {
+  anomalies: 'anomalies',
+  capsules: 'capsules',
+  'dead zones': 'zones',
+  drift: 'drift',
+  frequencies: 'frequencies',
+  observatory: 'home',
+  relics: 'relics',
+  rooms: 'rooms',
+  settings: 'settings',
+  signals: 'signals',
+  'soul pod': 'pod',
+  unsent: 'unsent',
+}
+
+function readElementText(element: Element | null) {
+  return element?.textContent?.trim().replace(/\s+/g, ' ') || ''
+}
+
+function EcosystemLoopBridge() {
+  const { enterRoom, exploreDrift, playSignal, saveCapsule, unlockRelic, visitPage } = useEcosystemState()
+
+  useEffect(() => {
+    visitPage('home')
+  }, [visitPage])
+
+  useEffect(() => {
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+
+      const navButton = target.closest('.nav-item')
+      if (navButton) {
+        const label = readElementText(navButton.querySelector('.nav-label')).toLowerCase()
+        const nextPage = navLabelToPage[label]
+        if (nextPage) {
+          visitPage(nextPage)
+          if (nextPage === 'drift') exploreDrift('opened drift field')
+          if (nextPage === 'rooms') enterRoom('resonance-chambers')
+        }
+        return
+      }
+
+      const playButton = target.closest('.waveform-play-btn')
+      if (playButton) {
+        const card = playButton.closest('.signal-card')
+        const label = readElementText(card ? card.querySelector('.card-handle') : null) || 'feed-signal'
+        playSignal(normalizeSignalName(label) || 'feed-signal', 6)
+        return
+      }
+
+      const driftNode = target.closest('.drift-node')
+      if (driftNode) {
+        exploreDrift(`${readElementText(driftNode) || 'drift node'} explored`)
+        return
+      }
+
+      const capsuleCard = target.closest('.capsule-card')
+      if (capsuleCard) {
+        saveCapsule(normalizeSignalName(readElementText(capsuleCard.querySelector('.capsule-title'))) || 'capsule')
+        return
+      }
+
+      const relicCard = target.closest('.relic-card')
+      if (relicCard) {
+        unlockRelic(normalizeSignalName(readElementText(relicCard.querySelector('.relic-name'))) || 'relic')
+        return
+      }
+
+      const roomCard = target.closest('.room-card')
+      if (roomCard) {
+        enterRoom(normalizeSignalName(readElementText(roomCard.querySelector('.room-name'))) || 'room')
+      }
+    }
+
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
+  }, [enterRoom, exploreDrift, playSignal, saveCapsule, unlockRelic, visitPage])
+
+  return null
+}
+
 export default function IntroGate({ children }: { children: ReactNode }) {
   const [landingEntered, setLandingEntered] = useState(false)
   const [introSeen, setIntroSeen] = useState(() => window.localStorage.getItem(introSeenStorageKey) === 'true')
@@ -213,5 +297,10 @@ export default function IntroGate({ children }: { children: ReactNode }) {
     )
   }
 
-  return <>{children}</>
+  return (
+    <>
+      <EcosystemLoopBridge />
+      {children}
+    </>
+  )
 }
