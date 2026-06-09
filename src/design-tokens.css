@@ -1,0 +1,35 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ECOSPHERE DESIGN TOKENS
+   Global CSS custom properties for the entire design system.
+   Import this first in main.tsx before all other stylesheets.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─── Core palette ─────────────────────────────────────────────────────── */
+  --eco-black:        #050708;
+  --eco-deep-purple:  #0f061f;
+  --eco-cyan:         #67e8f9;
+  --eco-magenta:      #f472b6;
+  --eco-violet:       #a78bfa;
+  --eco-amber:        #fb923c;
+  --eco-text:         #f8fafc;
+  --eco-muted:        #e9d5ff;
+
+  /* ─── Glass & surface ──────────────────────────────────────────────────── */
+  --eco-glass:        rgba(7, 5, 22, 0.62);
+  --eco-border:       rgba(255, 255, 255, 0.14);
+
+  /* ─── Glow presets ─────────────────────────────────────────────────────── */
+  --eco-glow-cyan:    0 0 38px rgba(34, 211, 238, 0.14);
+  --eco-glow-magenta: 0 0 38px rgba(244, 114, 182, 0.14);
+  --eco-glow-warm:    0 0 44px rgba(251, 146, 60, 0.12);
+
+  /* ─── Border radius ────────────────────────────────────────────────────── */
+  --eco-radius-panel: 12px;
+  --eco-radius-card:  8px;
+
+  /* ─── Motion / easing ──────────────────────────────────────────────────── */
+  --eco-motion-fast:   180ms ease;
+  --eco-motion-normal: 220ms ease;
+  --eco-motion-slow:   520ms ease;
+}
