@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SignalStatus = 'live' | 'fading' | 'drifting' | 'archiving' | 'corrupted' | 'resonating'
 type SignalType = 'voice_note' | 'drifting_thought' | 'unresolved_echo' | 'static_bloom' | 'dead_zone' | 'memory_fragment' | 'nocturne_broadcast' | 'abandoned_carrier'
 type Mood = 'nocturne' | 'bloom' | 'drift' | 'static' | 'lost'
+type ExportType = 'tiktok' | 'story' | 'relic' | 'drift' | 'remix'
 
 type FeedSignal = {
   id: string
@@ -18,16 +19,37 @@ type FeedSignal = {
   status: SignalStatus
   emotionalBand: string
   waveformSeed: number
+  typewriterEffect?: boolean
+  expiresIn?: number
 }
 
+type EcosystemEvent = {
+  id: string
+  message: string
+  visible: boolean
+}
+
+type Particle = {
+  id: number
+  x: number
+  y: number
+  size: number
+  opacity: number
+  speedX: number
+  speedY: number
+  color: string
+}
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 const FEED_SIGNALS: FeedSignal[] = [
-  { id: 'f1', handle: 'anonymous_03:14', timeAgo: '2m ago', content: 'still awake. the quiet feels different tonight. like something is about to remember itself.', mood: 'nocturne', resonance: 94, anonymous: true, duration: '0:38', type: 'nocturne_broadcast', status: 'resonating', emotionalBand: 'nocturne-depth', waveformSeed: 42 },
+  { id: 'f1', handle: 'anonymous_03:14', timeAgo: '2m ago', content: 'still awake. the quiet feels different tonight. like something is about to remember itself.', mood: 'nocturne', resonance: 94, anonymous: true, duration: '0:38', type: 'nocturne_broadcast', status: 'resonating', emotionalBand: 'nocturne-depth', waveformSeed: 42, typewriterEffect: true },
   { id: 'f2', handle: 'signal_veil', timeAgo: 'currently resonating', content: 'replaying that moment again. the part before everything shifted. i keep landing in the same second.', mood: 'drift', resonance: 87, anonymous: false, duration: '1:04', type: 'unresolved_echo', status: 'live', emotionalBand: 'drift-loop', waveformSeed: 17 },
-  { id: 'f3', handle: 'anonymous_fade', timeAgo: 'fading', content: 'static bloom opened near the eastern band. something warm is inside the noise.', mood: 'static', resonance: 79, anonymous: true, duration: '0:22', type: 'static_bloom', status: 'fading', emotionalBand: 'static-warm', waveformSeed: 88 },
+  { id: 'f3', handle: 'anonymous_fade', timeAgo: 'fading', content: 'static bloom opened near the eastern band. something warm is inside the noise.', mood: 'static', resonance: 79, anonymous: true, duration: '0:22', type: 'static_bloom', status: 'fading', emotionalBand: 'static-warm', waveformSeed: 88, expiresIn: 180 },
   { id: 'f4', handle: 'lost_carrier_7', timeAgo: 'drifting', content: 'there are frequencies you only hear when no one else is listening. late night internet knows this.', mood: 'lost', resonance: 63, anonymous: false, duration: '0:51', type: 'abandoned_carrier', status: 'drifting', emotionalBand: 'lost-frequency', waveformSeed: 31 },
-  { id: 'f5', handle: 'anonymous_0:48', timeAgo: 'archiving soon', content: "the ecosystem held the channel open. like it was waiting.", mood: 'bloom', resonance: 91, anonymous: true, duration: '0:44', type: 'memory_fragment', status: 'archiving', emotionalBand: 'bloom-memory', waveformSeed: 65 },
+  { id: 'f5', handle: 'anonymous_0:48', timeAgo: 'archiving soon', content: 'the ecosystem held the channel open. like it was waiting.', mood: 'bloom', resonance: 91, anonymous: true, duration: '0:44', type: 'memory_fragment', status: 'archiving', emotionalBand: 'bloom-memory', waveformSeed: 65, expiresIn: 60, typewriterEffect: true },
   { id: 'f6', handle: 'echo_fragment_9', timeAgo: '14m ago', content: 'dead zone at the edge of the listening field. signal fragments still visible if you stay quiet.', mood: 'nocturne', resonance: 72, anonymous: true, duration: '0:29', type: 'dead_zone', status: 'drifting', emotionalBand: 'void-edge', waveformSeed: 53 },
   { id: 'f7', handle: 'drift_channel', timeAgo: '31m ago', content: 'something about 3am feels like the only honest hour. this is a voice note from inside that.', mood: 'drift', resonance: 85, anonymous: false, duration: '1:12', type: 'voice_note', status: 'live', emotionalBand: 'drift-honest', waveformSeed: 76 },
+  { id: 'f8', handle: 'corrupted_band_∅', timeAgo: '???', content: '̸̱͊s̶̯͌ì̸̲g̶̞̓n̴̬͑a̸͔̔l̷͈̑ ̶̰͝d̵̗̿e̷͚͒g̶͈͑r̶̞͐a̵̰͋d̶͙̃e̵̘̚d̷̝̈́...̵͓̂ ̸̯͊c̸͔̅o̸̰͊r̵̮̒r̴̲̐u̷͓͐p̵͉͑t̵̹̄ī̷̬o̷̮̓n̵̟͊ ̴͔̇a̸̩͗c̶͓̅t̶̼͋ī̷̭v̴̙͑e̴̼̓', mood: 'static', resonance: 33, anonymous: true, duration: '0:07', type: 'unresolved_echo', status: 'corrupted', emotionalBand: 'corrupted', waveformSeed: 99 },
 ]
 
 const ECOSYSTEM_EVENTS = [
@@ -36,312 +58,470 @@ const ECOSYSTEM_EVENTS = [
   'multiple users replaying this signal',
   'ecosystem interference detected',
   'signal bloom opened nearby',
-  'a memory fragment surfaced from the archive',
-  'carrier wave detected in dead zone 09',
-  'emotional resonance peaked in the nocturne band',
+  'carrier wave collapsed and reformed',
+  'deep frequency breach at 3:17am',
+  'a memory fragment surfaced from archive',
+  'new signal entering the drift field',
+  'emotional resonance peak: nocturne band',
 ]
 
-const EXPORT_ACTIONS = [
-  { id: 'tiktok', label: 'Export to TikTok', glyph: '▶', color: '#ff2d78' },
-  { id: 'story', label: 'Export as Story', glyph: '◈', color: '#00d4ff' },
-  { id: 'relic', label: 'Save to Relic', glyph: '◉', color: '#9b5de5' },
-  { id: 'drift', label: 'Drift Signal', glyph: '◌', color: '#00d4ff' },
-  { id: 'remix', label: 'Remix Frequency', glyph: '≋', color: '#ff2d78' },
-]
-
-function moodColor(mood: Mood): string {
-  const map: Record<Mood, string> = { nocturne: '#9b5de5', bloom: '#ff2d78', drift: '#00d4ff', static: '#ff9f1c', lost: 'rgba(140,155,195,0.7)' }
-  return map[mood]
+const SIGNAL_TYPE_LABELS: Record<SignalType, string> = {
+  voice_note: 'voice note',
+  drifting_thought: 'drifting thought',
+  unresolved_echo: 'unresolved echo',
+  static_bloom: 'static bloom',
+  dead_zone: 'dead zone discovery',
+  memory_fragment: 'memory fragment',
+  nocturne_broadcast: 'nocturne broadcast',
+  abandoned_carrier: 'abandoned carrier',
 }
 
-function statusInfo(status: SignalStatus): { text: string; color: string } {
-  const map: Record<SignalStatus, { text: string; color: string }> = {
-    live: { text: 'currently resonating', color: '#00d4ff' },
-    fading: { text: 'fading', color: 'rgba(180,190,220,0.5)' },
-    drifting: { text: 'drifting', color: '#9b5de5' },
-    archiving: { text: 'archiving soon', color: '#ff9f1c' },
-    corrupted: { text: 'corrupted signal', color: '#ff2d78' },
-    resonating: { text: 'resonating', color: '#00d4ff' },
+const MOOD_COLORS: Record<Mood, { primary: string; glow: string; dim: string }> = {
+  nocturne: { primary: '#c084fc', glow: 'rgba(192,132,252,0.4)', dim: 'rgba(192,132,252,0.1)' },
+  bloom:    { primary: '#f472b6', glow: 'rgba(244,114,182,0.4)', dim: 'rgba(244,114,182,0.1)' },
+  drift:    { primary: '#22d3ee', glow: 'rgba(34,211,238,0.4)',  dim: 'rgba(34,211,238,0.1)'  },
+  static:   { primary: '#a78bfa', glow: 'rgba(167,139,250,0.4)', dim: 'rgba(167,139,250,0.1)' },
+  lost:     { primary: '#64748b', glow: 'rgba(100,116,139,0.4)', dim: 'rgba(100,116,139,0.1)' },
+}
+
+const STATUS_LABELS: Record<SignalStatus, string> = {
+  live:       'currently resonating',
+  fading:     'fading',
+  drifting:   'drifting',
+  archiving:  'archiving soon',
+  corrupted:  'corrupted',
+  resonating: 'resonating',
+}
+// ─── Waveform Generator ───────────────────────────────────────────────────────
+function generateWaveform(seed: number, bars: number = 32): number[] {
+  const waveform: number[] = []
+  let s = seed
+  for (let i = 0; i < bars; i++) {
+    s = (s * 1664525 + 1013904223) & 0xffffffff
+    const val = Math.abs(s) / 0x7fffffff
+    // Create organic shape with peaks and valleys
+    const shape = Math.sin(i * 0.4 + seed * 0.1) * 0.3 + 0.5
+    waveform.push(Math.max(0.05, Math.min(1, val * shape + 0.1)))
   }
-  return map[status]
+  return waveform
 }
 
-const TYPE_LABELS: Record<SignalType, string> = {
-  voice_note: 'voice note', drifting_thought: 'drifting thought', unresolved_echo: 'unresolved echo',
-  static_bloom: 'static bloom', dead_zone: 'dead zone discovery', memory_fragment: 'memory fragment',
-  nocturne_broadcast: 'nocturne broadcast', abandoned_carrier: 'abandoned carrier',
+// ─── Particle System ──────────────────────────────────────────────────────────
+function generateParticles(count: number = 40): Particle[] {
+  const colors = ['#f472b6', '#22d3ee', '#c084fc', '#a78bfa', '#ffffff']
+  return Array.from({ length: count }, (_, i) => ({
+    id: i,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    size: Math.random() * 2 + 0.5,
+    opacity: Math.random() * 0.4 + 0.05,
+    speedX: (Math.random() - 0.5) * 0.015,
+    speedY: (Math.random() - 0.5) * 0.015 - 0.005,
+    color: colors[Math.floor(Math.random() * colors.length)],
+  }))
 }
 
-function Waveform({ seed, active, color, bars = 28, intensity = 0 }: { seed: number; active: boolean; color: string; bars?: number; intensity?: number }) {
-  const heights = Array.from({ length: bars }, (_, i) => {
-    const v = Math.sin(seed * 0.3 + i * 0.7) * 0.5 + Math.sin(seed * 0.11 + i * 1.3) * 0.3 + 0.2
-    return Math.max(0.08, Math.min(1, Math.abs(v)))
-  })
+// ─── Typewriter Hook ──────────────────────────────────────────────────────────
+function useTypewriter(text: string, enabled: boolean, speed: number = 28): string {
+  const [displayed, setDisplayed] = useState(enabled ? '' : text)
+  const [done, setDone] = useState(!enabled)
+  useEffect(() => {
+    if (!enabled || done) return
+    if (displayed.length >= text.length) { setDone(true); return }
+    const t = setTimeout(() => setDisplayed(text.slice(0, displayed.length + 1)), speed + Math.random() * 20)
+    return () => clearTimeout(t)
+  }, [displayed, text, enabled, done, speed])
+  return displayed
+}
+
+// ─── Waveform Card Component ──────────────────────────────────────────────────
+function WaveformBar({ height, active, color, animated, index }: {
+  height: number; active: boolean; color: string; animated: boolean; index: number
+}) {
+  const baseH = Math.round(height * 40) + 4
+  const animClass = animated ? 'waveform-animate' : ''
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '2px', height: '36px', flex: 1 }}>
-      {heights.map((h, i) => (
-        <div key={i} style={{
-          width: '2px', height: (Math.min(1, h + intensity * 0.28) * 100) + '%', background: color, borderRadius: '1px',
-          opacity: active ? Math.min(1, 0.9 + intensity * 0.1) : 0.4 + intensity * 0.35,
-          filter: intensity > 0.02 ? 'drop-shadow(0 0 ' + (4 + intensity * 12) + 'px ' + color + ')' : 'none',
-          transition: 'height 0.4s ease ' + (i * 0.018) + 's, opacity 0.3s ease, filter 0.3s ease',
-          animation: active ? 'waveBar ' + (1.2 - intensity * 0.35) + 's ease-in-out ' + (i * 0.06) + 's infinite alternate' : 'none',
-        }} />
-      ))}
-    </div>
+    <div
+      className={`waveform-bar ${animClass}`}
+      style={{
+        height: `${baseH}px`,
+        width: '3px',
+        borderRadius: '2px',
+        backgroundColor: active ? color : `${color}55`,
+        transition: 'height 0.3s ease, background-color 0.2s ease',
+        animationDelay: `${index * 0.04}s`,
+        flexShrink: 0,
+      }}
+    />
   )
 }
 
+// ─── Export Modal ─────────────────────────────────────────────────────────────
 function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => void }) {
-  const [exporting, setExporting] = useState<string | null>(null)
+  const [exporting, setExporting] = useState<ExportType | null>(null)
   const [done, setDone] = useState(false)
-  const color = moodColor(signal.mood)
-  const handleExport = (id: string) => { setExporting(id); setTimeout(() => setDone(true), 1800) }
+  const colors = MOOD_COLORS[signal.mood]
+  const waveform = generateWaveform(signal.waveformSeed, 20)
+
+  const handleExport = (type: ExportType) => {
+    setExporting(type)
+    setTimeout(() => { setDone(true) }, 2200)
+  }
+
+  const exports: { type: ExportType; label: string; icon: string }[] = [
+    { type: 'tiktok', label: 'Export to TikTok', icon: '▶' },
+    { type: 'story',  label: 'Export as Story',  icon: '◎' },
+    { type: 'relic',  label: 'Save to Relic',    icon: '◈' },
+    { type: 'drift',  label: 'Drift Signal',      icon: '∿' },
+    { type: 'remix',  label: 'Remix Frequency',   icon: '≋' },
+  ]
+
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(3,7,18,0.88)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'feedFadeIn 0.25s ease' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'rgba(8,18,36,0.97)', border: '1px solid ' + color + '44', borderRadius: '20px', padding: '28px 24px', width: '320px', maxWidth: '90vw', boxShadow: '0 0 60px ' + color + '22', animation: 'feedSlideUp 0.3s ease' }}>
-        {!done ? (
+    <div className="export-modal-overlay" onClick={onClose}>
+      <div className="export-modal" style={{ '--mood-glow': colors.glow, '--mood-color': colors.primary } as React.CSSProperties} onClick={e => e.stopPropagation()}>
+        {!exporting ? (
           <>
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ fontSize: '10px', letterSpacing: '0.15em', color: 'rgba(180,190,220,0.45)', textTransform: 'uppercase', marginBottom: '6px' }}>signal export</div>
-              <div style={{ fontSize: '12px', color: '#f0f4ff', opacity: 0.75, fontStyle: 'italic', lineHeight: 1.5 }}>"{signal.content.substring(0, 65)}..."</div>
+            <div className="export-preview">
+              <div className="export-tiktok-preview" style={{ background: `linear-gradient(180deg, #000 0%, ${colors.dim} 50%, #000 100%)` }}>
+                <div className="export-preview-handle">@{signal.handle}</div>
+                <div className="export-preview-waveform">
+                  {waveform.map((h, i) => (
+                    <div key={i} className="export-wave-bar" style={{ height: `${h * 50 + 4}px`, backgroundColor: colors.primary, opacity: 0.8 }} />
+                  ))}
+                </div>
+                <div className="export-preview-text">{signal.content.substring(0, 60)}...</div>
+                <div className="export-preview-band" style={{ color: colors.primary }}>{signal.emotionalBand}</div>
+                <div className="export-ecosphere-watermark">◈ ecosphere</div>
+              </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px' }}>
-              {EXPORT_ACTIONS.map(action => (
-                <button key={action.id} onClick={() => handleExport(action.id)} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: exporting === action.id ? action.color + '20' : 'rgba(255,255,255,0.04)', border: '1px solid ' + (exporting === action.id ? action.color : 'rgba(255,255,255,0.08)'), borderRadius: '12px', padding: '12px 16px', cursor: 'pointer', color: action.color, fontSize: '13px', fontWeight: 500, width: '100%', textAlign: 'left', transition: 'all 0.2s ease', boxShadow: exporting === action.id ? '0 0 20px ' + action.color + '30' : 'none' }}>
-                  <span style={{ fontSize: '15px' }}>{action.glyph}</span>
-                  <span style={{ animation: exporting === action.id ? 'feedPulse 0.8s ease infinite' : 'none' }}>{exporting === action.id ? 'packaging signal...' : action.label}</span>
+            <div className="export-title">package this signal</div>
+            <div className="export-buttons">
+              {exports.map(ex => (
+                <button key={ex.type} className="export-btn" style={{ '--btn-color': colors.primary } as React.CSSProperties} onClick={() => handleExport(ex.type)}>
+                  <span className="export-btn-icon">{ex.icon}</span>
+                  {ex.label}
                 </button>
               ))}
             </div>
-            <button onClick={onClose} style={{ width: '100%', padding: '10px', background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', color: 'rgba(180,190,220,0.35)', fontSize: '12px', cursor: 'pointer' }}>cancel</button>
           </>
+        ) : !done ? (
+          <div className="export-loading">
+            <div className="export-pulse" style={{ backgroundColor: colors.primary }} />
+            <div className="export-loading-text">packaging signal</div>
+            <div className="export-loading-sub" style={{ color: colors.primary }}>{exporting === 'tiktok' ? 'generating vertical preview...' : 'compressing signal data...'}</div>
+          </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '20px 0' }}>
-            <div style={{ fontSize: '32px', marginBottom: '14px', color, animation: 'feedGlow 1s ease infinite alternate' }}>◈</div>
-            <div style={{ color, fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>signal packaged successfully</div>
-            <div style={{ color: 'rgba(180,190,220,0.4)', fontSize: '12px' }}>drifting to destination...</div>
-            <button onClick={onClose} style={{ marginTop: '22px', padding: '10px 28px', background: color + '20', border: '1px solid ' + color + '55', borderRadius: '10px', color, fontSize: '12px', cursor: 'pointer' }}>close</button>
+          <div className="export-success">
+            <div className="export-success-icon" style={{ color: colors.primary }}>◈</div>
+            <div className="export-success-text">signal packaged successfully</div>
+            <div className="export-success-sub">ready for transmission</div>
+            <button className="export-close-btn" onClick={onClose}>close</button>
           </div>
         )}
+        <button className="export-modal-close" onClick={onClose}>✕</button>
       </div>
     </div>
   )
 }
+// ─── Signal Card Component ────────────────────────────────────────────────────
+function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
+  const [visible, setVisible] = useState(false)
+  const [waveformVisible, setWaveformVisible] = useState(false)
+  const [textVisible, setTextVisible] = useState(false)
+  const [hovered, setHovered] = useState(false)
+  const [playing, setPlaying] = useState(false)
+  const [showExport, setShowExport] = useState(false)
+  const colors = MOOD_COLORS[signal.mood]
+  const waveform = generateWaveform(signal.waveformSeed)
+  const displayText = useTypewriter(signal.content, !!(signal.typewriterEffect && textVisible))
 
-function EcosystemEvent({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  useEffect(() => {
+    const baseDelay = index * 350 + 200
+    const t1 = setTimeout(() => setVisible(true), baseDelay)
+    const t2 = setTimeout(() => setWaveformVisible(true), baseDelay + 300)
+    const t3 = setTimeout(() => setTextVisible(true), baseDelay + 700)
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+  }, [index])
+
+  const isCorrupted = signal.status === 'corrupted'
+  const isFading = signal.status === 'fading' || signal.status === 'archiving'
+
   return (
-    <div style={{ padding: '10px 16px', background: 'rgba(155,93,229,0.1)', border: '1px solid rgba(155,93,229,0.28)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px', animation: 'feedSlideDown 0.4s ease', marginBottom: '14px' }}>
-      <span style={{ fontSize: '13px', opacity: 0.7 }}>⚡</span>
-      <span style={{ fontSize: '11px', color: '#9b5de5', fontStyle: 'italic', flex: 1, letterSpacing: '0.02em' }}>{message}</span>
-      <button onClick={onDismiss} style={{ background: 'none', border: 'none', color: 'rgba(180,190,220,0.3)', fontSize: '11px', cursor: 'pointer', padding: '0 2px' }}>✕</button>
-    </div>
+    <>
+      <div
+        className={`signal-card ${visible ? 'signal-card--visible' : ''} ${hovered ? 'signal-card--hovered' : ''} ${isCorrupted ? 'signal-card--corrupted' : ''} ${isFading ? 'signal-card--fading' : ''}`}
+        style={{ '--mood-color': colors.primary, '--mood-glow': colors.glow, '--mood-dim': colors.dim, '--entry-delay': `${index * 350}ms` } as React.CSSProperties}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        {/* Breathing neon edge */}
+        <div className="card-neon-edge" style={{ boxShadow: `inset 0 0 0 1px ${hovered ? colors.glow : colors.dim}, 0 0 ${hovered ? '24px' : '8px'} ${hovered ? colors.glow : 'transparent'}` }} />
+
+        {/* Card Header */}
+        <div className="card-header">
+          <div className="card-handle-row">
+            <div className="card-handle" style={{ color: isCorrupted ? '#ff3366' : colors.primary }}>
+              {signal.anonymous ? '⬡' : '◈'} {signal.handle}
+            </div>
+            <div className="card-status" style={{ color: colors.primary, opacity: 0.7 }}>
+              {STATUS_LABELS[signal.status]}
+            </div>
+          </div>
+          <div className="card-meta-row">
+            <span className="card-type-label">{SIGNAL_TYPE_LABELS[signal.type]}</span>
+            <span className="card-band" style={{ color: colors.primary }}>{signal.emotionalBand}</span>
+            <span className="card-time">{signal.timeAgo}</span>
+          </div>
+        </div>
+
+        {/* Waveform Player */}
+        <div className={`card-waveform-section ${waveformVisible ? 'card-waveform--visible' : ''} ${hovered ? 'card-waveform--expanded' : ''}`}>
+          <button
+            className={`waveform-play-btn ${playing ? 'waveform-play-btn--active' : ''}`}
+            style={{ borderColor: colors.primary, color: colors.primary }}
+            onClick={() => setPlaying(p => !p)}
+          >
+            {playing ? '▐▐' : '▶'}
+          </button>
+          <div className="waveform-bars">
+            {waveform.map((h, i) => (
+              <WaveformBar key={i} height={h} active={playing && i < (waveform.length * 0.4)} color={colors.primary} animated={playing || hovered} index={i} />
+            ))}
+          </div>
+          <div className="waveform-right">
+            <span className="waveform-duration">{signal.duration}</span>
+            <span className="waveform-resonance" style={{ color: colors.primary }}>{signal.resonance}%</span>
+          </div>
+        </div>
+
+        {/* Resonance bars */}
+        <div className="card-resonance-bars">
+          <div className="resonance-track">
+            <div className="resonance-fill" style={{ width: `${signal.resonance}%`, background: `linear-gradient(90deg, ${colors.dim}, ${colors.primary})` }} />
+          </div>
+          <span className="resonance-label" style={{ color: colors.primary }}>resonance</span>
+        </div>
+
+        {/* Signal content text */}
+        <div className={`card-content ${textVisible ? 'card-content--visible' : ''}`}>
+          {isCorrupted ? (
+            <span className="corrupted-text">{signal.content}</span>
+          ) : (
+            <span>{displayText}</span>
+          )}
+        </div>
+
+        {/* Export Actions */}
+        <div className={`card-actions ${hovered ? 'card-actions--visible' : ''}`}>
+          <button className="action-btn" style={{ '--btn-color': colors.primary } as React.CSSProperties} onClick={() => setShowExport(true)}>
+            <span>⬡</span> export
+          </button>
+          <button className="action-btn" style={{ '--btn-color': colors.primary } as React.CSSProperties}>
+            <span>∿</span> drift
+          </button>
+          <button className="action-btn" style={{ '--btn-color': colors.primary } as React.CSSProperties}>
+            <span>◎</span> resonate
+          </button>
+        </div>
+
+        {/* Ambient glow pulse */}
+        {hovered && (
+          <div className="card-glow-pulse" style={{ background: `radial-gradient(ellipse at 50% 50%, ${colors.dim} 0%, transparent 70%)` }} />
+        )}
+      </div>
+      {showExport && <ExportModal signal={signal} onClose={() => setShowExport(false)} />}
+    </>
   )
 }
-
-function FeedParticles() {
+// ─── Particle Canvas ──────────────────────────────────────────────────────────
+function ParticleLayer() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const particlesRef = useRef<Particle[]>(generateParticles(50))
+  const animRef = useRef<number>(0)
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    let raf: number
-    canvas.width = canvas.offsetWidth
-    canvas.height = canvas.offsetHeight
-    type P = { x: number; y: number; vx: number; vy: number; r: number; o: number; hue: number }
-    const pts: P[] = Array.from({ length: 32 }, () => ({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, vx: (Math.random() - 0.5) * 0.22, vy: (Math.random() - 0.5) * 0.22, r: Math.random() * 1.2 + 0.3, o: Math.random() * 0.35 + 0.08, hue: Math.random() < 0.55 ? 330 : 190 }))
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      pts.forEach(p => { p.x += p.vx; p.y += p.vy; if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0; if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fillStyle = 'hsla(' + p.hue + ',100%,70%,' + p.o + ')'; ctx.fill() })
-      raf = requestAnimationFrame(draw)
+
+    const resize = () => {
+      canvas.width = canvas.offsetWidth
+      canvas.height = canvas.offsetHeight
     }
-    draw()
-    return () => cancelAnimationFrame(raf)
+    resize()
+    window.addEventListener('resize', resize)
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      particlesRef.current.forEach(p => {
+        p.x += p.speedX
+        p.y += p.speedY
+        if (p.x < -2) p.x = 102
+        if (p.x > 102) p.x = -2
+        if (p.y < -2) p.y = 102
+        if (p.y > 102) p.y = -2
+
+        const x = (p.x / 100) * canvas.width
+        const y = (p.y / 100) * canvas.height
+
+        ctx.beginPath()
+        ctx.arc(x, y, p.size, 0, Math.PI * 2)
+        ctx.fillStyle = p.color + Math.round(p.opacity * 255).toString(16).padStart(2, '0')
+        ctx.fill()
+      })
+      animRef.current = requestAnimationFrame(animate)
+    }
+
+    animate()
+    return () => {
+      window.removeEventListener('resize', resize)
+      cancelAnimationFrame(animRef.current)
+    }
   }, [])
-  return <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0, opacity: 0.8 }} />
+
+  return <canvas ref={canvasRef} className="feed-particle-canvas" />
 }
 
-function SignalCard({ signal, index, onExport }: { signal: FeedSignal; index: number; onExport: (s: FeedSignal) => void }) {
-  const [playing, setPlaying] = useState(false)
-  const [hovered, setHovered] = useState(false)
-  const [visible, setVisible] = useState(false)
-  const [textVisible, setTextVisible] = useState(false)
-  const [glitch, setGlitch] = useState(false)
-  const [tuneIntensity, setTuneIntensity] = useState(0)
-  const tuneFrameRef = useRef<number | null>(null)
-  const color = moodColor(signal.mood)
-  const status = statusInfo(signal.status)
+// ─── Scan Lines Overlay ───────────────────────────────────────────────────────
+function ScanLines() {
+  return <div className="feed-scan-lines" aria-hidden="true" />
+}
 
+// ─── Grain Overlay ────────────────────────────────────────────────────────────
+function GrainOverlay() {
+  return <div className="feed-grain" aria-hidden="true" />
+}
+
+// ─── Ecosystem Event Banner ───────────────────────────────────────────────────
+function EcosystemEventBanner({ event, onDismiss }: { event: EcosystemEvent; onDismiss: () => void }) {
   useEffect(() => {
-    const t1 = setTimeout(() => setVisible(true), index * 300 + 180)
-    const t2 = setTimeout(() => setTextVisible(true), index * 300 + 680)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [index])
-
-  useEffect(() => {
-    if (signal.status === 'corrupted' || signal.status === 'fading') {
-      const iv = setInterval(() => { if (Math.random() < 0.12) { setGlitch(true); setTimeout(() => setGlitch(false), 140) } }, 3500)
-      return () => clearInterval(iv)
-    }
-  }, [signal.status])
-
-  useEffect(() => {
-    return () => {
-      if (tuneFrameRef.current !== null) cancelAnimationFrame(tuneFrameRef.current)
-    }
-  }, [])
-
-  const animateTune = (target: number) => {
-    if (tuneFrameRef.current !== null) cancelAnimationFrame(tuneFrameRef.current)
-    const step = () => {
-      setTuneIntensity(current => {
-        const next = current + (target - current) * 0.08
-        if (Math.abs(target - next) < 0.015) {
-          tuneFrameRef.current = null
-          return target
-        }
-        tuneFrameRef.current = requestAnimationFrame(step)
-        return next
-      })
-    }
-    tuneFrameRef.current = requestAnimationFrame(step)
-  }
-
-  const startTune = () => animateTune(1)
-  const releaseTune = () => animateTune(0)
+    const t = setTimeout(onDismiss, 5500)
+    return () => clearTimeout(t)
+  }, [onDismiss])
 
   return (
-    <div
-      onPointerEnter={() => setHovered(true)}
-      onPointerDown={startTune}
-      onPointerUp={releaseTune}
-      onPointerCancel={releaseTune}
-      onPointerLeave={() => { setHovered(false); releaseTune() }}
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0px)' : 'translateY(20px)',
-        transition: 'opacity 0.7s ease, transform 0.7s ease',
-        position: 'relative', borderRadius: '16px',
-        background: tuneIntensity > 0.03 ? 'rgba(10,22,44,' + (0.62 + tuneIntensity * 0.22) + ')' : hovered ? 'rgba(10,22,44,0.82)' : 'rgba(8,18,36,0.55)',
-        border: '1px solid ' + (hovered || tuneIntensity > 0.03 ? color + '55' : 'rgba(255,255,255,0.07)'),
-        backdropFilter: 'blur(20px)', padding: '18px 18px 16px', cursor: 'pointer',
-        touchAction: 'manipulation', userSelect: 'none',
-        filter: glitch ? 'hue-rotate(35deg) brightness(1.35)' : 'none',
-        boxShadow: hovered || tuneIntensity > 0.03 ? '0 0 ' + (32 + tuneIntensity * 36) + 'px ' + color + '22, 0 0 ' + (64 + tuneIntensity * 72) + 'px ' + color + '10, inset 0 1px 0 ' + color + '18' : '0 0 16px rgba(0,0,0,0.5)',
-      }}
-    >
-      {(hovered || tuneIntensity > 0.03) && <div style={{ position: 'absolute', inset: 0, borderRadius: '16px', border: '1px solid ' + color + '66', animation: 'feedBreathe 2.2s ease-in-out infinite', opacity: 0.35 + tuneIntensity * 0.55, pointerEvents: 'none', zIndex: 1 }} />}
-      <div style={{ position: 'relative', zIndex: 2 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '13px' }}>
-          <div style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0, background: color + '1e', border: '1px solid ' + color + '55', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color, fontWeight: 700, boxShadow: '0 0 8px ' + color + '33' }}>
-            {signal.anonymous ? '∅' : signal.handle[0].toUpperCase()}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '12px', color: '#f0f4ff', fontWeight: 600 }}>{signal.anonymous ? 'anonymous signal' : signal.handle}</span>
-              {signal.anonymous && <span style={{ fontSize: '9px', color: 'rgba(180,190,220,0.3)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>anon</span>}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-              <span style={{ fontSize: '10px', color: status.color, fontWeight: 500 }}>{signal.timeAgo}</span>
-              <span style={{ fontSize: '9px', color: 'rgba(180,190,220,0.3)' }}>·</span>
-              <span style={{ fontSize: '10px', color, opacity: 0.65 }}>{TYPE_LABELS[signal.type]}</span>
-            </div>
-          </div>
-          <div style={{ fontSize: '9px', color, letterSpacing: '0.1em', textTransform: 'uppercase', background: color + '16', border: '1px solid ' + color + '30', padding: '3px 8px', borderRadius: '20px', flexShrink: 0, whiteSpace: 'nowrap' }}>{signal.emotionalBand}</div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '13px' }}>
-          <button onClick={() => setPlaying(p => !p)} style={{ width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0, background: playing ? color : color + '1e', border: '1px solid ' + color + '88', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: playing ? '#030712' : color, fontSize: '10px', fontWeight: 700, boxShadow: playing ? '0 0 18px ' + color + '66' : 'none', transition: 'all 0.25s ease' }}>
-            {playing ? '■' : '▶'}
-          </button>
-          <Waveform seed={signal.waveformSeed} active={playing || hovered || tuneIntensity > 0.05} color={color} intensity={tuneIntensity} />
-          <span style={{ fontSize: '11px', color: 'rgba(180,190,220,0.5)', flexShrink: 0 }}>{signal.duration}</span>
-        </div>
-        <div style={{ fontSize: '13px', lineHeight: 1.65, color: '#f0f4ff', opacity: textVisible ? 0.85 : 0, transform: textVisible ? 'translateY(0)' : 'translateY(8px)', transition: 'opacity 0.7s ease, transform 0.55s ease', marginBottom: '15px', fontStyle: 'italic', letterSpacing: '0.01em' }}>
-          "{signal.content}"
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '56px', height: '3px', borderRadius: '2px', background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: signal.resonance + '%', background: 'linear-gradient(90deg, ' + color + ', ' + color + '77)', borderRadius: '2px', transition: 'width 1.2s ease' }} />
-            </div>
-            <span style={{ fontSize: '10px', color, fontWeight: 700 }}>{signal.resonance}%</span>
-            <span style={{ fontSize: '10px', color: 'rgba(180,190,220,0.3)' }}>resonance</span>
-          </div>
-          <button onClick={() => onExport(signal)} style={{ fontSize: '10px', color: 'rgba(180,190,220,0.38)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '8px', padding: '5px 11px', cursor: 'pointer', transition: 'all 0.2s ease' }} onMouseEnter={e => { const el = e.currentTarget; el.style.color = color; el.style.borderColor = color + '55'; el.style.background = color + '14' }} onMouseLeave={e => { const el = e.currentTarget; el.style.color = 'rgba(180,190,220,0.38)'; el.style.borderColor = 'rgba(255,255,255,0.07)'; el.style.background = 'rgba(255,255,255,0.04)' }}>
-            ◈ export
-          </button>
-        </div>
-      </div>
+    <div className="ecosystem-event-banner">
+      <span className="ecosystem-event-icon">◈</span>
+      <span className="ecosystem-event-text">{event.message}</span>
+      <button className="ecosystem-event-dismiss" onClick={onDismiss}>✕</button>
     </div>
   )
 }
 
-export default function FeedScreen() {
-  const [exportSignal, setExportSignal] = useState<FeedSignal | null>(null)
-  const [ecoEvent, setEcoEvent] = useState<string | null>(null)
-  const [ambientOn, setAmbientOn] = useState(false)
+// ─── Feed Header ──────────────────────────────────────────────────────────────
+function FeedHeader() {
+  const [pulse, setPulse] = useState(false)
 
   useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>
-    const scheduleEvent = () => {
-      timeout = setTimeout(() => {
-        const msg = ECOSYSTEM_EVENTS[Math.floor(Math.random() * ECOSYSTEM_EVENTS.length)]
-        setEcoEvent(msg)
-        scheduleEvent()
-      }, 6000 + Math.random() * 14000)
-    }
-    scheduleEvent()
-    return () => clearTimeout(timeout)
+    const interval = setInterval(() => setPulse(p => !p), 2000)
+    return () => clearInterval(interval)
   }, [])
 
   return (
-    <>
-      <style>{`
-        @keyframes waveBar { 0% { transform: scaleY(0.35); } 100% { transform: scaleY(1.15); } }
-        @keyframes feedBreathe { 0%,100% { opacity: 0.35; } 50% { opacity: 0.9; } }
-        @keyframes feedFadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes feedSlideUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes feedSlideDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes feedPulse { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
-        @keyframes feedGlow { from { text-shadow: 0 0 8px currentColor; } to { text-shadow: 0 0 28px currentColor, 0 0 56px currentColor; } }
-        @keyframes fogDrift { 0%,100% { transform: translateX(0) scale(1); opacity: 0.06; } 50% { transform: translateX(18px) translateY(-12px) scale(1.04); opacity: 0.1; } }
-        @keyframes scanLine { from { transform: translateY(-100%); } to { transform: translateY(100vh); } }
-        @keyframes ambientPulse { 0%,100% { opacity: 0.07; } 50% { opacity: 0.13; } }
-        @keyframes signalFlicker { 0%,94%,100% { opacity: 1; } 96% { opacity: 0.4; } 98% { opacity: 0.9; } }
-      `}</style>
-      <div style={{ position: 'relative', minHeight: '100%' }}>
-        <div style={{ position: 'fixed', top: '-5%', left: '5%', width: '65%', height: '55%', background: 'radial-gradient(ellipse, rgba(255,45,120,0.13) 0%, transparent 70%)', animation: 'fogDrift 20s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
-        <div style={{ position: 'fixed', top: '35%', right: '0', width: '55%', height: '65%', background: 'radial-gradient(ellipse, rgba(0,212,255,0.09) 0%, transparent 70%)', animation: 'fogDrift 26s ease-in-out infinite 9s', pointerEvents: 'none', zIndex: 0 }} />
-        <div style={{ position: 'fixed', bottom: '10%', left: '20%', width: '60%', height: '40%', background: 'radial-gradient(ellipse, rgba(155,93,229,0.07) 0%, transparent 70%)', animation: 'fogDrift 32s ease-in-out infinite 4s', pointerEvents: 'none', zIndex: 0 }} />
-        <div style={{ position: 'fixed', left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent 0%, rgba(0,212,255,0.18) 40%, rgba(255,45,120,0.12) 60%, transparent 100%)', animation: 'scanLine 14s linear infinite', pointerEvents: 'none', zIndex: 3 }} />
-        <div style={{ position: 'fixed', inset: 0, background: 'radial-gradient(ellipse 75% 75% at 50% 50%, rgba(155,93,229,0.055) 0%, transparent 70%)', animation: 'ambientPulse 7s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none' }}><FeedParticles /></div>
-        <div style={{ position: 'relative', zIndex: 10 }}>
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontSize: '10px', letterSpacing: '0.22em', color: 'rgba(180,190,220,0.38)', textTransform: 'uppercase', marginBottom: '5px' }}>ecosphere / live signal feed</div>
-                <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#f0f4ff', letterSpacing: '-0.015em', lineHeight: 1.15, animation: 'signalFlicker 12s ease-in-out infinite' }}>Signal Feed</h2>
-                <div style={{ fontSize: '11px', color: '#00d4ff', marginTop: '5px', opacity: 0.65 }}>{FEED_SIGNALS.length} signals active · ecosystem breathing</div>
-              </div>
-              <button onClick={() => setAmbientOn(a => !a)} title={ambientOn ? 'ambient on' : 'ambient off'} style={{ fontSize: '16px', lineHeight: '1', background: ambientOn ? 'rgba(0,212,255,0.16)' : 'rgba(255,255,255,0.05)', border: '1px solid ' + (ambientOn ? '#00d4ff44' : 'rgba(255,255,255,0.08)'), borderRadius: '10px', padding: '9px 11px', cursor: 'pointer', color: ambientOn ? '#00d4ff' : 'rgba(180,190,220,0.4)', transition: 'all 0.3s ease', marginTop: '4px' }}>
-                {ambientOn ? '♪' : '♬'}
-              </button>
-            </div>
-          </div>
-          {ecoEvent && <EcosystemEvent message={ecoEvent} onDismiss={() => setEcoEvent(null)} />}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {FEED_SIGNALS.map((sig, i) => <SignalCard key={sig.id} signal={sig} index={i} onExport={setExportSignal} />)}
-          </div>
-          <div style={{ textAlign: 'center', paddingTop: '36px', paddingBottom: '12px', opacity: 0.25 }}>
-            <div style={{ fontSize: '10px', letterSpacing: '0.18em', color: 'rgba(180,190,220,0.5)', textTransform: 'uppercase', marginBottom: '8px' }}>end of active signal band</div>
-            <div style={{ fontSize: '20px' }}>∿</div>
-            <div style={{ fontSize: '9px', color: 'rgba(180,190,220,0.3)', marginTop: '6px', letterSpacing: '0.1em' }}>more drifting in</div>
-          </div>
+    <div className="feed-header">
+      <div className="feed-header-left">
+        <div className={`feed-live-dot ${pulse ? 'feed-live-dot--pulse' : ''}`} />
+        <span className="feed-header-title">signal feed</span>
+      </div>
+      <div className="feed-header-right">
+        <span className="feed-header-sub">emotional ecosystem · live</span>
+      </div>
+    </div>
+  )
+}
+// ─── Main FeedScreen ──────────────────────────────────────────────────────────
+export default function FeedScreen() {
+  const [activeEvent, setActiveEvent] = useState<EcosystemEvent | null>(null)
+  const [signals, setSignals] = useState<FeedSignal[]>([])
+  const [ambientEnabled, setAmbientEnabled] = useState(false)
+  const eventIndexRef = useRef(0)
+
+  // Stagger signal entry
+  useEffect(() => {
+    setSignals(FEED_SIGNALS)
+  }, [])
+
+  // Ecosystem events
+  useEffect(() => {
+    const scheduleNext = () => {
+      const delay = Math.random() * 18000 + 12000
+      return setTimeout(() => {
+        const msg = ECOSYSTEM_EVENTS[eventIndexRef.current % ECOSYSTEM_EVENTS.length]
+        eventIndexRef.current++
+        setActiveEvent({ id: Date.now().toString(), message: msg, visible: true })
+        scheduleNext()
+      }, delay)
+    }
+    // First event after a short delay
+    const t = setTimeout(() => {
+      setActiveEvent({ id: '0', message: ECOSYSTEM_EVENTS[0], visible: true })
+    }, 6000)
+    const recurring = scheduleNext()
+    return () => { clearTimeout(t); clearTimeout(recurring) }
+  }, [])
+
+  const dismissEvent = useCallback(() => setActiveEvent(null), [])
+
+  return (
+    <div className="feed-screen">
+      {/* Background atmosphere layers */}
+      <div className="feed-atmosphere">
+        <div className="feed-fog-layer feed-fog-1" />
+        <div className="feed-fog-layer feed-fog-2" />
+        <div className="feed-fog-layer feed-fog-3" />
+      </div>
+
+      {/* Particle system */}
+      <ParticleLayer />
+
+      {/* Scan lines */}
+      <ScanLines />
+
+      {/* Film grain */}
+      <GrainOverlay />
+
+      {/* Ambient glow orbs */}
+      <div className="feed-glow-orb feed-glow-orb--pink" />
+      <div className="feed-glow-orb feed-glow-orb--cyan" />
+      <div className="feed-glow-orb feed-glow-orb--purple" />
+
+      {/* Main content */}
+      <div className="feed-content">
+        {/* Header */}
+        <FeedHeader />
+
+        {/* Ambient toggle */}
+        <div className="feed-ambient-row">
+          <button
+            className={`ambient-toggle ${ambientEnabled ? 'ambient-toggle--active' : ''}`}
+            onClick={() => setAmbientEnabled(a => !a)}
+          >
+            <span className="ambient-icon">{ambientEnabled ? '◉' : '○'}</span>
+            ambient layer {ambientEnabled ? 'on' : 'off'}
+          </button>
+          <span className="feed-signal-count">{signals.length} signals active</span>
+        </div>
+
+        {/* Signal cards */}
+        <div className="feed-cards">
+          {signals.map((signal, i) => (
+            <SignalCard key={signal.id} signal={signal} index={i} />
+          ))}
+        </div>
+
+        {/* Bottom drift zone */}
+        <div className="feed-drift-zone">
+          <div className="drift-zone-line" />
+          <span className="drift-zone-text">signals drift beyond this point</span>
+          <div className="drift-zone-line" />
         </div>
       </div>
-      {exportSignal && <ExportModal signal={exportSignal} onClose={() => setExportSignal(null)} />}
-    </>
+
+      {/* Ecosystem event */}
+      {activeEvent && (
+        <EcosystemEventBanner event={activeEvent} onDismiss={dismissEvent} />
+      )}
+    </div>
   )
 }
