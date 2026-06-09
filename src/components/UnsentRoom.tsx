@@ -526,8 +526,8 @@ export const UnsentRoom: React.FC = () => {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
-  const whisperTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const decayTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const whisperTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const decayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Seed demo signals ────────────────────────────────────────────────────────
   useEffect(() => {
