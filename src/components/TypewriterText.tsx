@@ -1,78 +1,101 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 type TypewriterTextProps = {
-  lines: string[]
-  speedMs?: number
-  linePauseMs?: number
+  className?: string
   cursor?: boolean
   fadeOut?: boolean
   instant?: boolean
+  linePauseMs?: number
+  lines: string[]
+  speedMs?: number
 }
 
 export default function TypewriterText({
-  lines,
-  speedMs = 40,
-  linePauseMs = 800,
+  className = '',
   cursor = true,
   fadeOut = false,
   instant = false,
+  linePauseMs = 420,
+  lines,
+  speedMs = 42,
 }: TypewriterTextProps) {
-  const [displayed, setDisplayed] = useState<string[]>([])
-  const [currentLine, setCurrentLine] = useState(0)
-  const [charIndex, setCharIndex] = useState(0)
-  const [done, setDone] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const safeLines = useMemo(() => lines.filter((line) => line.length > 0), [lines])
+  const [visibleLines, setVisibleLines] = useState<string[]>(safeLines.length > 0 ? [''] : [])
+  const timerRef = useRef<number | null>(null)
 
   useEffect(() => {
+    if (safeLines.length === 0) {
+      setVisibleLines([])
+      return undefined
+    }
+
     if (instant) {
-      setDisplayed(lines)
-      setDone(true)
-      return
+      setVisibleLines(safeLines)
+      return undefined
     }
 
-    setDisplayed([])
-    setCurrentLine(0)
-    setCharIndex(0)
-    setDone(false)
-  }, [lines, instant])
+    let lineIndex = 0
+    let charIndex = 0
+    let cancelled = false
 
-  useEffect(() => {
-    if (instant || done) return
+    setVisibleLines([''])
 
-    const line = lines[currentLine]
-    if (!line) return
-
-    if (charIndex < line.length) {
-      timerRef.current = setTimeout(() => {
-        setDisplayed((prev) => {
-          const next = [...prev]
-          next[currentLine] = (next[currentLine] ?? '') + line[charIndex]
-          return next
-        })
-        setCharIndex((c) => c + 1)
-      }, speedMs)
-    } else if (currentLine < lines.length - 1) {
-      timerRef.current = setTimeout(() => {
-        setCurrentLine((l) => l + 1)
-        setCharIndex(0)
-      }, linePauseMs)
-    } else {
-      setDone(true)
-    }
-
-    return () => {
+    const clearTimer = () => {
       if (timerRef.current !== null) {
-        clearTimeout(timerRef.current)
+        window.clearTimeout(timerRef.current)
+        timerRef.current = null
       }
     }
-  }, [charIndex, currentLine, done, instant, linePauseMs, lines, speedMs])
+
+    const tick = () => {
+      if (cancelled) {
+        return
+      }
+
+      const currentLine = safeLines[lineIndex]
+      charIndex += 1
+
+      setVisibleLines((currentLines) => {
+        const nextLines = [...currentLines]
+        nextLines[lineIndex] = currentLine.slice(0, charIndex)
+        return nextLines
+      })
+
+      if (charIndex < currentLine.length) {
+        timerRef.current = window.setTimeout(tick, speedMs)
+        return
+      }
+
+      lineIndex += 1
+      charIndex = 0
+
+      if (lineIndex >= safeLines.length) {
+        timerRef.current = null
+        return
+      }
+
+      timerRef.current = window.setTimeout(() => {
+        if (!cancelled) {
+          setVisibleLines((currentLines) => [...currentLines, ''])
+          tick()
+        }
+      }, linePauseMs)
+    }
+
+    timerRef.current = window.setTimeout(tick, speedMs)
+
+    return () => {
+      cancelled = true
+      clearTimer()
+    }
+  }, [instant, linePauseMs, safeLines, speedMs])
 
   return (
-    <span className={`typewriter-text ${fadeOut && done ? 'fade-out' : ''}`}>
-      {displayed.map((text, index) => (
-        <span className="typewriter-line" key={index}>
-          {text}
-          {cursor && index === currentLine && !done ? <span className="typewriter-cursor">|</span> : null}
+    <span className={`typewriter-text ${fadeOut ? 'typewriter-fade-out' : ''} ${className}`}>
+      {visibleLines.map((line, index) => (
+        <span className="typewriter-line" key={`${index}-${safeLines[index] ?? ''}`}>
+          {line}
+          {cursor && index === visibleLines.length - 1 ? <i aria-hidden="true" /> : null}
         </span>
       ))}
     </span>
