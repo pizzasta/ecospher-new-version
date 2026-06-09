@@ -1597,3 +1597,808 @@ html, body, #root {
 .action-btn--export {
   font-size: 10px;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COLLECTIVE FREQUENCY — COLLABORATIVE EMOTIONAL AUDIO EXPERIENCE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Screen Base ────────────────────────────────────────────────────────── */
+.cf-screen {
+  position: relative;
+  min-height: 100vh;
+  background: #000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Particle Canvas ────────────────────────────────────────────────────── */
+.cf-particle-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+/* ─── Fog Layers ─────────────────────────────────────────────────────────── */
+.cf-fog {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 1;
+  animation: cfFogDrift 28s ease-in-out infinite alternate;
+}
+.cf-fog-1 {
+  width: 55vw; height: 45vh;
+  top: -10%; left: -15%;
+  background: radial-gradient(ellipse, rgba(244,114,182,0.07) 0%, transparent 70%);
+  animation-duration: 32s;
+}
+.cf-fog-2 {
+  width: 60vw; height: 50vh;
+  bottom: 0; right: -20%;
+  background: radial-gradient(ellipse, rgba(34,211,238,0.06) 0%, transparent 70%);
+  animation-duration: 40s;
+  animation-delay: -12s;
+}
+.cf-fog-3 {
+  width: 45vw; height: 55vh;
+  top: 30%; left: 25%;
+  background: radial-gradient(ellipse, rgba(192,132,252,0.05) 0%, transparent 70%);
+  animation-duration: 50s;
+  animation-delay: -22s;
+}
+@keyframes cfFogDrift {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(4%, 6%) scale(1.06); }
+  66%  { transform: translate(-5%, 3%) scale(0.94); }
+  100% { transform: translate(3%, -5%) scale(1.08); }
+}
+
+/* ─── Scanlines ──────────────────────────────────────────────────────────── */
+.cf-scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+  animation: cfScanMove 10s linear infinite;
+}
+@keyframes cfScanMove {
+  0%   { background-position: 0 0; }
+  100% { background-position: 0 120px; }
+}
+
+/* ─── Ambient Orb Backgrounds ────────────────────────────────────────────── */
+.cf-orb-bg {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 1.5s ease;
+  animation: cfOrbPulse 8s ease-in-out infinite alternate;
+}
+.cf-orb-bg--pink  { width: 400px; height: 400px; top: 5%;  right: 5%;  background: rgba(244,114,182,0.18); animation-duration: 9s; }
+.cf-orb-bg--cyan  { width: 350px; height: 350px; bottom: 10%; left: 5%;  background: rgba(34,211,238,0.14); animation-duration: 11s; animation-delay: -3s; }
+.cf-orb-bg--violet{ width: 300px; height: 300px; top: 45%; left: 45%;  background: rgba(192,132,252,0.12); animation-duration: 14s; animation-delay: -7s; }
+@keyframes cfOrbPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.12); }
+  100% { transform: scale(0.94); }
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+.cf-header {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 28px 24px 16px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.cf-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.cf-live-ring {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #f472b6;
+  box-shadow: 0 0 0 0 rgba(244,114,182,0.6);
+  margin-top: 6px;
+  flex-shrink: 0;
+  animation: cfLivePing 2s ease-in-out infinite;
+}
+@keyframes cfLivePing {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244,114,182,0.6); }
+  50%       { box-shadow: 0 0 0 8px rgba(244,114,182,0); }
+}
+
+.cf-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgba(240,244,255,0.95);
+  margin: 0 0 4px;
+  line-height: 1;
+}
+
+.cf-subtitle {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: rgba(140,155,195,0.5);
+  text-transform: lowercase;
+  margin: 0;
+}
+
+.cf-header-stats {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.cf-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.cf-stat-val {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.cf-stat-label {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: rgba(140,155,195,0.4);
+  text-transform: lowercase;
+}
+
+/* ─── Stage ──────────────────────────────────────────────────────────────── */
+.cf-stage {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─── Connection SVG ─────────────────────────────────────────────────────── */
+.cf-connection-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* ─── Orb Zone ───────────────────────────────────────────────────────────── */
+.cf-orb-zone {
+  position: relative;
+  width: 100%;
+  height: 420px;
+}
+
+/* ─── Central Orb ────────────────────────────────────────────────────────── */
+.cf-orb {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 35% 35%, rgba(244,114,182,0.15) 0%, rgba(34,211,238,0.08) 40%, rgba(0,0,0,0.6) 80%);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 8;
+  cursor: default;
+  transition: box-shadow 1.5s ease;
+}
+
+.cf-orb-wave {
+  position: absolute;
+  inset: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  overflow: hidden;
+  opacity: 0.6;
+}
+
+.cf-orb-bar {
+  width: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  transition: height 0.8s ease;
+  animation: cfOrbBarAnim 2s ease-in-out infinite alternate;
+}
+@keyframes cfOrbBarAnim {
+  0%   { transform: scaleY(0.8); }
+  100% { transform: scaleY(1.2); }
+}
+
+/* Orb rings */
+.cf-orb-ring {
+  position: absolute;
+  border-radius: 50%;
+  border-style: solid;
+  border-width: 1px;
+  pointer-events: none;
+  animation: cfRingPulse 4s ease-in-out infinite alternate;
+}
+.cf-orb-ring-1 { inset: -20px; animation-duration: 4s; }
+.cf-orb-ring-2 { inset: -40px; animation-duration: 6s; animation-delay: -1s; }
+.cf-orb-ring-3 { inset: -65px; animation-duration: 8s; animation-delay: -3s; }
+@keyframes cfRingPulse {
+  0%   { opacity: 0.4; transform: scale(1); }
+  100% { opacity: 0.8; transform: scale(1.02); }
+}
+
+.cf-orb-core {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.4), rgba(244,114,182,0.3));
+  animation: cfCorePulse 2s ease-in-out infinite alternate;
+}
+@keyframes cfCorePulse {
+  0%   { box-shadow: 0 0 8px rgba(244,114,182,0.6); }
+  100% { box-shadow: 0 0 20px rgba(244,114,182,1), 0 0 40px rgba(192,132,252,0.4); }
+}
+
+.cf-orb-label {
+  position: absolute;
+  bottom: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+.cf-orb-label-top { font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(140,155,195,0.4); }
+.cf-orb-label-res  { font-size: 22px; font-weight: 700; letter-spacing: 0.04em; transition: color 1s ease; }
+.cf-orb-label-bot  { font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(140,155,195,0.4); }
+
+/* ─── Carrier Nodes ──────────────────────────────────────────────────────── */
+.cf-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 7;
+  cursor: pointer;
+}
+
+.cf-node-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--node-color, #f472b6);
+  box-shadow: 0 0 6px var(--node-color, #f472b6);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.cf-node-pulse {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--node-color, #f472b6);
+  z-index: 1;
+  animation: cfNodePulse 3s ease-in-out infinite;
+}
+
+.cf-node--active .cf-node-pulse { animation-play-state: running; }
+.cf-node--idle .cf-node-dot { opacity: 0.3; box-shadow: none; }
+.cf-node--idle .cf-node-pulse { animation-play-state: paused; }
+
+@keyframes cfNodePulse {
+  0%   { transform: translate(-50%, -50%) scale(1);   opacity: 0.7; }
+  70%  { transform: translate(-50%, -50%) scale(3);   opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(1);   opacity: 0; }
+}
+
+.cf-node--hovered .cf-node-dot {
+  width: 12px; height: 12px;
+  box-shadow: 0 0 14px var(--node-color, #f472b6), 0 0 28px var(--node-color, #f472b6);
+}
+
+.cf-node-tooltip {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(6,8,20,0.95);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: cfTooltipIn 0.2s ease;
+  z-index: 20;
+}
+@keyframes cfTooltipIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.cf-node-handle { font-size: 11px; font-weight: 600; color: rgba(220,230,255,0.9); letter-spacing: 0.05em; }
+.cf-node-tag    { font-size: 9px; letter-spacing: 0.1em; text-transform: lowercase; }
+.cf-node-type   { font-size: 9px; color: rgba(140,155,195,0.5); letter-spacing: 0.06em; }
+.cf-node-reso   { font-size: 9px; color: rgba(140,155,195,0.4); }
+
+/* ─── Layer Waveforms ────────────────────────────────────────────────────── */
+.cf-layer-waves {
+  position: absolute;
+  bottom: 16px;
+  left: 0; right: 0;
+  display: flex;
+  gap: 12px;
+  padding: 0 24px;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.cf-layer-wave {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0.4;
+  transition: opacity 0.6s ease;
+}
+.cf-layer-wave--active { opacity: 1; }
+
+.cf-layer-label {
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  text-transform: lowercase;
+  color: rgba(140,155,195,0.4);
+}
+
+.cf-layer-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 36px;
+}
+
+.cf-layer-bar {
+  flex: 1;
+  border-radius: 1px;
+  transition: height 0.6s ease, opacity 0.6s ease;
+  min-height: 2px;
+}
+
+/* ─── Meters ─────────────────────────────────────────────────────────────── */
+.cf-meters {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  gap: 20px;
+  padding: 8px 24px 16px;
+  flex-wrap: wrap;
+}
+
+.cf-meter {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cf-meter-label {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: rgba(140,155,195,0.4);
+  flex-shrink: 0;
+  width: 120px;
+}
+
+.cf-meter-track {
+  flex: 1;
+  height: 2px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.cf-meter-fill {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 1.5s ease;
+  animation: cfMeterPulse 3s ease-in-out infinite alternate;
+}
+@keyframes cfMeterPulse {
+  0%   { filter: brightness(0.8); }
+  100% { filter: brightness(1.3); }
+}
+
+.cf-meter-val {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(180,190,220,0.6);
+  flex-shrink: 0;
+  width: 32px;
+  text-align: right;
+}
+
+/* ─── Contribute Panel ───────────────────────────────────────────────────── */
+.cf-contribute-panel {
+  position: relative;
+  z-index: 10;
+  padding: 0 24px 20px;
+}
+
+.cf-contribute-open {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 20px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(244,114,182,0.2);
+  border-radius: 14px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: rgba(244,114,182,0.7);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.cf-contribute-open:hover {
+  background: rgba(244,114,182,0.05);
+  border-color: rgba(244,114,182,0.4);
+  color: #f472b6;
+  box-shadow: 0 0 20px rgba(244,114,182,0.1);
+}
+.cf-contribute-open-icon { font-size: 14px; }
+
+.cf-contribute-form {
+  background: rgba(6,8,20,0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cf-contribute-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.cf-contribute-title {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: lowercase;
+  color: rgba(180,190,220,0.6);
+}
+.cf-contribute-close {
+  font-size: 10px;
+  color: rgba(140,155,195,0.4);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.cf-contribute-close:hover { color: #f472b6; }
+
+.cf-type-row, .cf-tag-row { display: flex; flex-direction: column; gap: 8px; }
+.cf-type-label { font-size: 9px; letter-spacing: 0.12em; text-transform: lowercase; color: rgba(140,155,195,0.4); }
+
+.cf-type-pills, .cf-tag-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cf-type-pill {
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: transparent;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  color: rgba(140,155,195,0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.cf-type-pill:hover { border-color: rgba(255,255,255,0.14); color: rgba(200,210,235,0.8); }
+.cf-type-pill--active {
+  border-color: rgba(34,211,238,0.4);
+  color: #22d3ee;
+  background: rgba(34,211,238,0.05);
+}
+
+.cf-tag-pill {
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: transparent;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  color: rgba(140,155,195,0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.cf-tag-pill:hover { border-color: rgba(255,255,255,0.14); }
+.cf-tag-pill--active {
+  border-color: var(--tag-color, #f472b6);
+  color: var(--tag-color, #f472b6);
+  background: rgba(255,255,255,0.03);
+  box-shadow: 0 0 8px rgba(244,114,182,0.12);
+}
+
+/* Record */
+.cf-record-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cf-recording-state, .cf-success-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+}
+
+.cf-rec-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: cfRecBlink 0.8s ease-in-out infinite;
+}
+@keyframes cfRecBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+.cf-rec-time { color: #ef4444; font-variant-numeric: tabular-nums; }
+.cf-rec-hint { color: rgba(140,155,195,0.4); }
+
+.cf-success-icon { color: #f472b6; font-size: 12px; }
+.cf-success-text { color: rgba(200,210,235,0.7); }
+
+.cf-record-btn {
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(244,114,182,0.3);
+  background: rgba(244,114,182,0.05);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: #f472b6;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.cf-record-btn:hover:not(:disabled) {
+  background: rgba(244,114,182,0.1);
+  box-shadow: 0 0 20px rgba(244,114,182,0.15);
+}
+.cf-record-btn--recording {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: rgba(239,68,68,0.05);
+  animation: cfRecordPulse 1s ease-in-out infinite alternate;
+}
+@keyframes cfRecordPulse {
+  0%   { box-shadow: 0 0 0 rgba(239,68,68,0.2); }
+  100% { box-shadow: 0 0 16px rgba(239,68,68,0.3); }
+}
+.cf-record-btn--done { border-color: rgba(34,211,238,0.3); color: #22d3ee; opacity: 0.7; cursor: default; }
+.cf-record-btn:disabled { cursor: default; }
+
+.cf-upload-btn {
+  padding: 8px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: transparent;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: rgba(140,155,195,0.4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.cf-upload-btn:hover { border-color: rgba(255,255,255,0.14); color: rgba(180,190,220,0.7); }
+
+/* ─── Carriers Strip ─────────────────────────────────────────────────────── */
+.cf-carriers-strip {
+  position: relative;
+  z-index: 10;
+  padding: 0 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cf-carriers-label {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: lowercase;
+  color: rgba(140,155,195,0.35);
+}
+
+.cf-carriers-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cf-carrier-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.02);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.cf-carrier-chip:hover,
+.cf-carrier-chip--hovered {
+  border-color: var(--chip-color, #f472b6);
+  background: rgba(255,255,255,0.04);
+}
+
+.cf-chip-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--chip-color, #f472b6);
+  box-shadow: 0 0 4px var(--chip-color, #f472b6);
+  animation: cfChipPulse 3s ease-in-out infinite;
+}
+@keyframes cfChipPulse {
+  0%, 100% { opacity: 0.7; }
+  50%       { opacity: 1; }
+}
+
+.cf-chip-handle {
+  font-size: 10px;
+  color: rgba(200,210,235,0.7);
+  letter-spacing: 0.04em;
+}
+.cf-chip-tag {
+  font-size: 9px;
+  color: rgba(140,155,195,0.4);
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+}
+
+.cf-carrier-more {
+  font-size: 10px;
+  color: rgba(140,155,195,0.3);
+  padding: 4px 10px;
+  letter-spacing: 0.06em;
+}
+
+/* ─── Ecosystem Event ────────────────────────────────────────────────────── */
+.cf-eco-event {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(6,8,20,0.95);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(244,114,182,0.3);
+  border-radius: 24px;
+  padding: 10px 20px;
+  box-shadow: 0 0 28px rgba(244,114,182,0.15), 0 8px 40px rgba(0,0,0,0.6);
+  white-space: nowrap;
+  animation: cfEcoIn 0.4s ease, cfEcoOut 0.4s ease 4.6s forwards;
+}
+@keyframes cfEcoIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes cfEcoOut {
+  from { opacity: 1; }
+  to   { opacity: 0; transform: translateX(-50%) translateY(8px); }
+}
+.cf-eco-icon {
+  font-size: 10px;
+  color: #f472b6;
+  animation: cfEcoIconGlow 2s ease-in-out infinite;
+}
+@keyframes cfEcoIconGlow {
+  0%, 100% { text-shadow: 0 0 6px rgba(244,114,182,0.5); }
+  50%       { text-shadow: 0 0 16px rgba(244,114,182,1); }
+}
+.cf-eco-msg {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: rgba(200,210,235,0.75);
+}
+
+/* ─── Carrier Isolation Bar ──────────────────────────────────────────────── */
+.cf-isolation-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0; right: 0;
+  z-index: 50;
+  background: rgba(4,6,16,0.97);
+  backdrop-filter: blur(28px);
+  border-top: 1px solid;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  animation: cfIsoIn 0.25s ease;
+}
+@keyframes cfIsoIn {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.cf-iso-handle {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+.cf-iso-tag {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: rgba(140,155,195,0.5);
+  flex-shrink: 0;
+}
+.cf-iso-wave {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 32px;
+}
+.cf-iso-bar {
+  flex: 1;
+  border-radius: 1px;
+  min-width: 2px;
+  transition: height 0.3s ease;
+}
+.cf-iso-reso {
+  font-size: 10px;
+  color: rgba(140,155,195,0.4);
+  flex-shrink: 0;
+}
