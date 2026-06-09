@@ -5617,8 +5617,6 @@ html, body, #root {
   100% { opacity: 0; }
 }
 
-  transform: translateY(0) scale(1);
-}
 
 .drift-node-card strong {
   font-size: 13px;
