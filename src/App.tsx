@@ -15,9 +15,13 @@ import {
   WaveformPreview,
 } from './design-system'
 import { createSignedAudioUrl, getOptionalSupabaseClient, getStorageBucket, isSupabaseConfigured, supabaseEnv } from './lib'
+import UnsentRoom from './components/UnsentRoom'
+import RoomsScreenComponent from './components/RoomsScreen'
+import './unsent-room.css'
+import './rooms.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'capsules' | 'relics' | 'pod' | 'zones' | 'frequencies' | 'anomalies' | 'settings'
+type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'unsent' | 'capsules' | 'relics' | 'pod' | 'zones' | 'frequencies' | 'anomalies' | 'settings'
 type Mood = 'nocturne' | 'bloom' | 'drift' | 'static' | 'lost'
 
 type SignalThread = {
@@ -111,6 +115,7 @@ const navItems: { id: Screen; label: string; glyph: string }[] = [
   { id: 'signals', label: 'Signals', glyph: '∿' },
   { id: 'drift', label: 'Drift', glyph: '◌' },
   { id: 'rooms', label: 'Rooms', glyph: '▣' },
+  { id: 'unsent', label: 'Unsent', glyph: '◎' },
   { id: 'frequencies', label: 'Frequencies', glyph: '≋' },
   { id: 'capsules', label: 'Capsules', glyph: '⬡' },
   { id: 'relics', label: 'Relics', glyph: '◈' },
@@ -283,35 +288,6 @@ function DriftScreen() {
   )
 }
 
-function RoomsScreen() {
-  return (
-    <div className="screen">
-      <div className="screen-header">
-        <div className="screen-kicker">LISTENING ROOMS</div>
-        <h2 className="screen-title">Rooms</h2>
-        <p className="screen-sub">shared silence with strangers who feel the same</p>
-      </div>
-      <div className="rooms-grid">
-        {rooms.map(r => (
-          <div key={r.id} className="room-card glass">
-            <div className="room-status-row">
-              <span className={`room-status-dot dot-${r.status}`} />
-              <span className="room-status-label">{r.status}</span>
-              <span className="room-freq">{r.frequency}</span>
-            </div>
-            <div className="room-name">{r.name}</div>
-            <MoodBadge mood={r.mood} />
-            <p className="room-desc">{r.description}</p>
-            <div className="room-footer">
-              <span className="room-listeners">{r.listeners} listening</span>
-              <SignalBar value={(r.listeners / 300) * 100} color="cyan" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 function CapsulesScreen() {
   const typeGlyph: Record<string, string> = { voice: '◎', memory: '◐', echo: '◑' }
@@ -1221,7 +1197,8 @@ export default function App() {
     home: <HomeScreen />,
     signals: <FeedScreen />,
     drift: <DriftScreen />,
-    rooms: <RoomsScreen />,
+    rooms: <RoomsScreenComponent />,
+    unsent: <UnsentRoom />,
     capsules: <CapsulesScreen />,
     relics: <RelicsScreen />,
     zones: <DeadZonesScreen />,
