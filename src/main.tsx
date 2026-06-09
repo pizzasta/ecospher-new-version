@@ -10,9 +10,12 @@ import './settings.css'
 import './signal-inspirations.css'
 import './capsules.css'
 import App from './App'
+import IntroGate from './components/IntroGate'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <IntroGate>
+      <App />
+    </IntroGate>
   </React.StrictMode>,
 )
