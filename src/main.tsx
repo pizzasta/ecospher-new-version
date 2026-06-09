@@ -11,10 +11,12 @@ import './signal-inspirations.css'
 import './capsules.css'
 import App from './App'
 import IntroGate from './components/IntroGate'
+import PageTransitionFlow from './components/PageTransitionFlow'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <IntroGate>
+      <PageTransitionFlow />
       <App />
     </IntroGate>
   </React.StrictMode>,
