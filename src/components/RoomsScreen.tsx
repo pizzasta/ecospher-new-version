@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import './rooms.css'
+import '../rooms.css'
 
 // ─── Room Types ────────────────────────────────────────────────
 type RoomType = 'quiet' | 'nocturne' | 'static-bloom' | 'drift' | 'dead-zone' | 'pulse' | 'signal-storm'
