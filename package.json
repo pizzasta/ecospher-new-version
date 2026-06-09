@@ -7,10 +7,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seed:demo": "supabase db reset",
+    "seed:demo:reset": "supabase db reset"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
+    "framer-motion": "^11.18.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
