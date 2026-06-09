@@ -42,6 +42,9 @@ export type Database = {
           mood: string | null
           frequency: string | null
           visibility: 'public' | 'private' | 'unlisted'
+          ai_moderation_status: 'not_checked' | 'passed' | 'flagged'
+          ai_moderation_flags: string[]
+          ai_moderation_checked_at: string | null
           is_anonymous: boolean
           created_at: string
         }
@@ -56,6 +59,9 @@ export type Database = {
           mood?: string | null
           frequency?: string | null
           visibility?: 'public' | 'private' | 'unlisted'
+          ai_moderation_status?: 'not_checked' | 'passed' | 'flagged'
+          ai_moderation_flags?: string[]
+          ai_moderation_checked_at?: string | null
           is_anonymous?: boolean
           created_at?: string
         }
@@ -67,6 +73,9 @@ export type Database = {
           mood?: string | null
           frequency?: string | null
           visibility?: 'public' | 'private' | 'unlisted'
+          ai_moderation_status?: 'not_checked' | 'passed' | 'flagged'
+          ai_moderation_flags?: string[]
+          ai_moderation_checked_at?: string | null
           is_anonymous?: boolean
         }
       }
