@@ -5,6 +5,12 @@ type SignalStatus = 'live' | 'fading' | 'drifting' | 'archiving' | 'corrupted' |
 type SignalType = 'voice_note' | 'drifting_thought' | 'unresolved_echo' | 'static_bloom' | 'dead_zone' | 'memory_fragment' | 'nocturne_broadcast' | 'abandoned_carrier'
 type Mood = 'nocturne' | 'bloom' | 'drift' | 'static' | 'lost'
 type ExportType = 'tiktok' | 'story' | 'relic' | 'drift' | 'remix'
+type ReactionType = 'drift' | 'bloom' | 'echo' | 'static' | 'nocturne' | 'fracture'
+
+type SignalReactions = {
+  [K in ReactionType]?: boolean
+}
+
 
 type FeedSignal = {
   id: string
@@ -223,6 +229,53 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
     </div>
   )
 }
+// ─── Reaction Config ─────────────────────────────────────────────────────────
+const REACTIONS: { type: ReactionType; symbol: string; label: string }[] = [
+  { type: 'drift',    symbol: '∿', label: 'drift'    },
+  { type: 'bloom',    symbol: '✦', label: 'bloom'    },
+  { type: 'echo',     symbol: '◌', label: 'echo'     },
+  { type: 'static',   symbol: '⋯', label: 'static'   },
+  { type: 'nocturne', symbol: '◑', label: 'nocturne' },
+  { type: 'fracture', symbol: '⌁', label: 'fracture' },
+]
+
+// ─── Signal Reaction Bar ──────────────────────────────────────────────────────
+function SignalReactionBar({ signalId, reactions, setReactions, reactionPop, setReactionPop, moodColor }: {
+  signalId: string
+  reactions: SignalReactions
+  setReactions: React.Dispatch<React.SetStateAction<SignalReactions>>
+  reactionPop: ReactionType | null
+  setReactionPop: React.Dispatch<React.SetStateAction<ReactionType | null>>
+  moodColor: string
+}) {
+  const toggle = (type: ReactionType) => {
+    setReactions(prev => {
+      const next = { ...prev, [type]: !prev[type] }
+      try { localStorage.setItem('ecosphere_reactions_' + signalId, JSON.stringify(next)) } catch {}
+      return next
+    })
+    setReactionPop(type)
+    setTimeout(() => setReactionPop(null), 600)
+  }
+
+  return (
+    <div className="signal-reaction-bar">
+      {REACTIONS.map(r => (
+        <button
+          key={r.type}
+          className={`reaction-btn reaction-btn--${r.type} ${reactions[r.type] ? 'reaction-btn--active' : ''} ${reactionPop === r.type ? 'reaction-btn--pop' : ''}`}
+          style={{ '--reaction-color': moodColor } as React.CSSProperties}
+          onClick={() => toggle(r.type)}
+          title={r.label}
+        >
+          <span className="reaction-symbol">{r.symbol}</span>
+          <span className="reaction-label">{r.label}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // ─── Signal Card Component ────────────────────────────────────────────────────
 function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
   const [visible, setVisible] = useState(false)
@@ -231,6 +284,13 @@ function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
   const [hovered, setHovered] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [showExport, setShowExport] = useState(false)
+  const [reactions, setReactions] = useState<SignalReactions>(() => {
+    try {
+      const stored = localStorage.getItem('ecosphere_reactions_' + signal.id)
+      return stored ? JSON.parse(stored) : {}
+    } catch { return {} }
+  })
+  const [reactionPop, setReactionPop] = useState<ReactionType | null>(null)
   const colors = MOOD_COLORS[signal.mood]
   const waveform = generateWaveform(signal.waveformSeed)
   const displayText = useTypewriter(signal.content, !!(signal.typewriterEffect && textVisible))
@@ -311,16 +371,20 @@ function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
           )}
         </div>
 
-        {/* Export Actions */}
-        <div className={`card-actions ${hovered ? 'card-actions--visible' : ''}`}>
-          <button className="action-btn" style={{ '--btn-color': colors.primary } as React.CSSProperties} onClick={() => setShowExport(true)}>
-            <span>⬡</span> export
-          </button>
-          <button className="action-btn" style={{ '--btn-color': colors.primary } as React.CSSProperties}>
-            <span>∿</span> drift
-          </button>
-          <button className="action-btn" style={{ '--btn-color': colors.primary } as React.CSSProperties}>
-            <span>◎</span> resonate
+        {/* Reaction Row */}
+        <SignalReactionBar
+          signalId={signal.id}
+          reactions={reactions}
+          setReactions={setReactions}
+          reactionPop={reactionPop}
+          setReactionPop={setReactionPop}
+          moodColor={colors.primary}
+        />
+
+        {/* Export action */}
+        <div className={`card-export-row ${hovered ? 'card-export-row--visible' : ''}`}>
+          <button className="action-btn action-btn--export" style={{ '--btn-color': colors.primary } as React.CSSProperties} onClick={() => setShowExport(true)}>
+            <span>⬡</span> export signal
           </button>
         </div>
 
