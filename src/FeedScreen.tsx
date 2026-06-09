@@ -72,7 +72,7 @@ const TYPE_LABELS: Record<SignalType, string> = {
   nocturne_broadcast: 'nocturne broadcast', abandoned_carrier: 'abandoned carrier',
 }
 
-function Waveform({ seed, active, color, bars = 28 }: { seed: number; active: boolean; color: string; bars?: number }) {
+function Waveform({ seed, active, color, bars = 28, intensity = 0 }: { seed: number; active: boolean; color: string; bars?: number; intensity?: number }) {
   const heights = Array.from({ length: bars }, (_, i) => {
     const v = Math.sin(seed * 0.3 + i * 0.7) * 0.5 + Math.sin(seed * 0.11 + i * 1.3) * 0.3 + 0.2
     return Math.max(0.08, Math.min(1, Math.abs(v)))
@@ -81,10 +81,11 @@ function Waveform({ seed, active, color, bars = 28 }: { seed: number; active: bo
     <div style={{ display: 'flex', alignItems: 'center', gap: '2px', height: '36px', flex: 1 }}>
       {heights.map((h, i) => (
         <div key={i} style={{
-          width: '2px', height: (h * 100) + '%', background: color, borderRadius: '1px',
-          opacity: active ? 0.9 : 0.4,
-          transition: 'height 0.4s ease ' + (i * 0.018) + 's, opacity 0.3s ease',
-          animation: active ? 'waveBar 1.2s ease-in-out ' + (i * 0.06) + 's infinite alternate' : 'none',
+          width: '2px', height: (Math.min(1, h + intensity * 0.28) * 100) + '%', background: color, borderRadius: '1px',
+          opacity: active ? Math.min(1, 0.9 + intensity * 0.1) : 0.4 + intensity * 0.35,
+          filter: intensity > 0.02 ? 'drop-shadow(0 0 ' + (4 + intensity * 12) + 'px ' + color + ')' : 'none',
+          transition: 'height 0.4s ease ' + (i * 0.018) + 's, opacity 0.3s ease, filter 0.3s ease',
+          animation: active ? 'waveBar ' + (1.2 - intensity * 0.35) + 's ease-in-out ' + (i * 0.06) + 's infinite alternate' : 'none',
         }} />
       ))}
     </div>
@@ -167,6 +168,8 @@ function SignalCard({ signal, index, onExport }: { signal: FeedSignal; index: nu
   const [visible, setVisible] = useState(false)
   const [textVisible, setTextVisible] = useState(false)
   const [glitch, setGlitch] = useState(false)
+  const [tuneIntensity, setTuneIntensity] = useState(0)
+  const tuneFrameRef = useRef<number | null>(null)
   const color = moodColor(signal.mood)
   const status = statusInfo(signal.status)
 
@@ -183,23 +186,52 @@ function SignalCard({ signal, index, onExport }: { signal: FeedSignal; index: nu
     }
   }, [signal.status])
 
+  useEffect(() => {
+    return () => {
+      if (tuneFrameRef.current !== null) cancelAnimationFrame(tuneFrameRef.current)
+    }
+  }, [])
+
+  const animateTune = (target: number) => {
+    if (tuneFrameRef.current !== null) cancelAnimationFrame(tuneFrameRef.current)
+    const step = () => {
+      setTuneIntensity(current => {
+        const next = current + (target - current) * 0.08
+        if (Math.abs(target - next) < 0.015) {
+          tuneFrameRef.current = null
+          return target
+        }
+        tuneFrameRef.current = requestAnimationFrame(step)
+        return next
+      })
+    }
+    tuneFrameRef.current = requestAnimationFrame(step)
+  }
+
+  const startTune = () => animateTune(1)
+  const releaseTune = () => animateTune(0)
+
   return (
     <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onPointerEnter={() => setHovered(true)}
+      onPointerDown={startTune}
+      onPointerUp={releaseTune}
+      onPointerCancel={releaseTune}
+      onPointerLeave={() => { setHovered(false); releaseTune() }}
       style={{
         opacity: visible ? 1 : 0,
         transform: visible ? 'translateY(0px)' : 'translateY(20px)',
         transition: 'opacity 0.7s ease, transform 0.7s ease',
         position: 'relative', borderRadius: '16px',
-        background: hovered ? 'rgba(10,22,44,0.82)' : 'rgba(8,18,36,0.55)',
-        border: '1px solid ' + (hovered ? color + '55' : 'rgba(255,255,255,0.07)'),
+        background: tuneIntensity > 0.03 ? 'rgba(10,22,44,' + (0.62 + tuneIntensity * 0.22) + ')' : hovered ? 'rgba(10,22,44,0.82)' : 'rgba(8,18,36,0.55)',
+        border: '1px solid ' + (hovered || tuneIntensity > 0.03 ? color + '55' : 'rgba(255,255,255,0.07)'),
         backdropFilter: 'blur(20px)', padding: '18px 18px 16px', cursor: 'pointer',
+        touchAction: 'manipulation', userSelect: 'none',
         filter: glitch ? 'hue-rotate(35deg) brightness(1.35)' : 'none',
-        boxShadow: hovered ? '0 0 32px ' + color + '22, 0 0 64px ' + color + '10, inset 0 1px 0 ' + color + '18' : '0 0 16px rgba(0,0,0,0.5)',
+        boxShadow: hovered || tuneIntensity > 0.03 ? '0 0 ' + (32 + tuneIntensity * 36) + 'px ' + color + '22, 0 0 ' + (64 + tuneIntensity * 72) + 'px ' + color + '10, inset 0 1px 0 ' + color + '18' : '0 0 16px rgba(0,0,0,0.5)',
       }}
     >
-      {hovered && <div style={{ position: 'absolute', inset: 0, borderRadius: '16px', border: '1px solid ' + color + '66', animation: 'feedBreathe 2.2s ease-in-out infinite', pointerEvents: 'none', zIndex: 1 }} />}
+      {(hovered || tuneIntensity > 0.03) && <div style={{ position: 'absolute', inset: 0, borderRadius: '16px', border: '1px solid ' + color + '66', animation: 'feedBreathe 2.2s ease-in-out infinite', opacity: 0.35 + tuneIntensity * 0.55, pointerEvents: 'none', zIndex: 1 }} />}
       <div style={{ position: 'relative', zIndex: 2 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '13px' }}>
           <div style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0, background: color + '1e', border: '1px solid ' + color + '55', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color, fontWeight: 700, boxShadow: '0 0 8px ' + color + '33' }}>
@@ -222,7 +254,7 @@ function SignalCard({ signal, index, onExport }: { signal: FeedSignal; index: nu
           <button onClick={() => setPlaying(p => !p)} style={{ width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0, background: playing ? color : color + '1e', border: '1px solid ' + color + '88', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: playing ? '#030712' : color, fontSize: '10px', fontWeight: 700, boxShadow: playing ? '0 0 18px ' + color + '66' : 'none', transition: 'all 0.25s ease' }}>
             {playing ? '■' : '▶'}
           </button>
-          <Waveform seed={signal.waveformSeed} active={playing || hovered} color={color} />
+          <Waveform seed={signal.waveformSeed} active={playing || hovered || tuneIntensity > 0.05} color={color} intensity={tuneIntensity} />
           <span style={{ fontSize: '11px', color: 'rgba(180,190,220,0.5)', flexShrink: 0 }}>{signal.duration}</span>
         </div>
         <div style={{ fontSize: '13px', lineHeight: 1.65, color: '#f0f4ff', opacity: textVisible ? 0.85 : 0, transform: textVisible ? 'translateY(0)' : 'translateY(8px)', transition: 'opacity 0.7s ease, transform 0.55s ease', marginBottom: '15px', fontStyle: 'italic', letterSpacing: '0.01em' }}>
