@@ -261,7 +261,7 @@ function RoomCanvas({ room, roomState, carrierCount }: { room: RoomDef; roomStat
     window.addEventListener('resize', resize)
 
     // Parse glow color to hue
-    const hueMatch = room.glowColor.match(/rgba?\((\d+),(\d+),(\d+)/))
+    const hueMatch = room.glowColor.match(/rgba?\((\d+),(\d+),(\d+)/)
     const glowR = hueMatch ? parseInt(hueMatch[1]) : 255
     const glowG = hueMatch ? parseInt(hueMatch[2]) : 20
     const glowB = hueMatch ? parseInt(hueMatch[3]) : 147
