@@ -4,6 +4,7 @@ import EcosphereLandingScreen from './EcosphereLandingScreen'
 import IntroSequence from './IntroSequence'
 import { useEcosystemState } from '../hooks/useEcosystemState'
 import type { EcosystemPage } from '../hooks/useEcosystemState'
+import { migrateLocalDataToBackend, syncProfile } from '../lib'
 
 const introSeenStorageKey = 'introSeen'
 const signalIdentityStorageKey = 'signalIdentity'
@@ -443,6 +444,12 @@ export default function IntroGate({ children }: { children: ReactNode }) {
   const [introSeen, setIntroSeen] = useState(() => window.localStorage.getItem(introSeenStorageKey) === 'true')
   const [signalIdentity, setSignalIdentity] = useState(() => window.localStorage.getItem(signalIdentityStorageKey) ?? '')
 
+  useEffect(() => {
+    if (signalIdentity) {
+      void migrateLocalDataToBackend()
+    }
+  }, [signalIdentity])
+
   const completeIntro = () => {
     window.localStorage.setItem(introSeenStorageKey, 'true')
     setIntroSeen(true)
@@ -459,6 +466,7 @@ export default function IntroGate({ children }: { children: ReactNode }) {
     window.localStorage.setItem(signalIdentityStorageKey, nextSignalIdentity)
     window.localStorage.setItem(signalProfileStorageKey, JSON.stringify(nextProfile))
     setSignalIdentity(nextSignalIdentity)
+    void syncProfile(nextSignalIdentity, signalCore)
   }
 
   const resetIntroForTesting = () => {

@@ -1,4 +1,43 @@
 export { getAuthClient, getCurrentSession, getCurrentUser } from './auth'
+export { ensureBackendSession, getBackendUserId } from './session'
+export { migrateLocalDataToBackend } from './localMigration'
+export {
+  archiveItem,
+  createCapsule,
+  deleteAudio,
+  deleteCapsule,
+  getAudioPlaybackUrl,
+  getProfile,
+  isCapsuleUnlocked,
+  listActivity,
+  listArchive,
+  listAudioLibrary,
+  listCapsules,
+  listSavedSignals,
+  listUserRelics,
+  logActivity,
+  openCapsule,
+  recordReplay,
+  renameAudio,
+  saveSignal,
+  setAudioArchived,
+  setAudioVisibility,
+  setRelicFavorite,
+  syncProfile,
+  unarchiveItem,
+  unlockUserRelic,
+  unsaveSignal,
+  uploadAudio,
+} from './library'
+export type {
+  ActivityEventType,
+  ArchiveItemType,
+  AudioFileRow,
+  CapsuleRow,
+  ProfileRow,
+  SavedSignalRow,
+  UserRelicRow,
+} from './library'
 export { fromTable, getDatabaseClient } from './database'
 export { getStorageBucket, getStorageClient, createSignedAudioUrl } from './storage'
 export { getOptionalSupabaseClient, getSupabaseClient } from './supabase'
