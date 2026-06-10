@@ -518,3 +518,26 @@
     animation: none;
   }
 }
+
+/* feed: keep + export action row */
+.card-export-row {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn--saved {
+  color: var(--btn-color, #ff2d78);
+  text-shadow: 0 0 10px var(--mood-glow, rgba(255, 45, 120, 0.5));
+}
+
+/* unsent room: delete button */
+.ur-signal-btn--delete {
+  border-color: rgba(255, 90, 90, 0.3);
+  color: rgba(255, 140, 140, 0.8);
+  padding: 0.3rem 0.6rem;
+}
+
+.ur-signal-btn--delete:hover {
+  border-color: rgba(255, 90, 90, 0.6);
+  background: rgba(255, 90, 90, 0.1);
+}

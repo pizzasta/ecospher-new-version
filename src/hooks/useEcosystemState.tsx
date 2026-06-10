@@ -44,6 +44,14 @@ export type ArchiveEntry = {
   archivedAt: string
 }
 
+export type LibraryEntry = {
+  id: string
+  itemType: 'signal' | 'audio' | 'capsule' | 'relic' | 'drift'
+  label: string
+  savedAt: string
+  favorite: boolean
+}
+
 export type ListeningEntry = {
   id: string
   label: string
@@ -74,6 +82,7 @@ export type EcosystemState = {
   openedCapsules: string[]
   driftDiscoveries: string[]
   savedRooms: string[]
+  library: LibraryEntry[]
   archiveHistory: ArchiveEntry[]
   listeningHistory: ListeningEntry[]
   recentInteractions: EcosystemInteraction[]
@@ -102,6 +111,7 @@ const defaultEcosystemState: EcosystemState = {
   openedCapsules: [],
   driftDiscoveries: [],
   savedRooms: [],
+  library: [],
   archiveHistory: [],
   listeningHistory: [],
   recentInteractions: [],
@@ -168,6 +178,7 @@ function readStoredState(): EcosystemState {
       openedCapsules: stringArray(parsed.openedCapsules),
       driftDiscoveries: stringArray(parsed.driftDiscoveries),
       savedRooms: stringArray(parsed.savedRooms),
+      library: Array.isArray(parsed.library) ? parsed.library.slice(0, 60) : [],
       archiveHistory: Array.isArray(parsed.archiveHistory) ? parsed.archiveHistory.slice(0, maxHistoryEntries) : [],
       listeningHistory: Array.isArray(parsed.listeningHistory) ? parsed.listeningHistory.slice(0, maxHistoryEntries) : [],
       recentInteractions: Array.isArray(parsed.recentInteractions) ? parsed.recentInteractions.slice(0, maxRecentInteractions) : [],
@@ -225,12 +236,40 @@ function useEcosystemStore() {
     }))
   }, [updateState])
 
+  const saveToLibrary = useCallback((itemType: LibraryEntry['itemType'], id: string, label: string) => {
+    updateState((current) => {
+      if (current.library.some((entry) => entry.itemType === itemType && entry.id === id)) return current
+      return {
+        ...current,
+        savedSignals: itemType === 'signal' ? addUnique(current.savedSignals, id) : current.savedSignals,
+        library: [
+          { id, itemType, label, savedAt: new Date().toISOString(), favorite: false },
+          ...current.library,
+        ].slice(0, 60),
+        resonanceLevel: clamp(current.resonanceLevel + 3),
+        recentInteractions: addInteraction(current, createInteraction('signal_saved', `kept ${label}`, current.currentPage)),
+      }
+    })
+  }, [updateState])
+
   const saveSignal = useCallback((signalId: string, label?: string) => {
+    saveToLibrary('signal', signalId, label ?? signalId)
+  }, [saveToLibrary])
+
+  const unsaveFromLibrary = useCallback((itemType: LibraryEntry['itemType'], id: string) => {
     updateState((current) => ({
       ...current,
-      savedSignals: addUnique(current.savedSignals, signalId),
-      resonanceLevel: clamp(current.resonanceLevel + 3),
-      recentInteractions: addInteraction(current, createInteraction('signal_saved', `kept ${label ?? signalId}`, current.currentPage)),
+      savedSignals: itemType === 'signal' ? current.savedSignals.filter((sid) => sid !== id) : current.savedSignals,
+      library: current.library.filter((entry) => !(entry.itemType === itemType && entry.id === id)),
+    }))
+  }, [updateState])
+
+  const toggleLibraryFavorite = useCallback((itemType: LibraryEntry['itemType'], id: string) => {
+    updateState((current) => ({
+      ...current,
+      library: current.library.map((entry) =>
+        entry.itemType === itemType && entry.id === id ? { ...entry, favorite: !entry.favorite } : entry,
+      ),
     }))
   }, [updateState])
 
@@ -273,6 +312,10 @@ function useEcosystemStore() {
       return {
         ...current,
         driftDiscoveries: addUnique(current.driftDiscoveries, discoveryId),
+        library: [
+          { id: discoveryId, itemType: 'drift' as const, label, savedAt: new Date().toISOString(), favorite: false },
+          ...current.library.filter((entry) => !(entry.itemType === 'drift' && entry.id === discoveryId)),
+        ].slice(0, 60),
         driftActivity: clamp(current.driftActivity + 10),
         resonanceLevel: clamp(current.resonanceLevel + 5),
         recentInteractions: addInteraction(current, createInteraction('drift_discovery', label, 'drift')),
@@ -367,10 +410,13 @@ function useEcosystemStore() {
     saveCapsule,
     saveRoom,
     saveSignal,
+    saveToLibrary,
     setActiveAudio,
     setAtmosphere,
     setRareEvent,
+    toggleLibraryFavorite,
     unlockRelic,
+    unsaveFromLibrary,
     visitPage,
   }), [
     state,
@@ -384,10 +430,13 @@ function useEcosystemStore() {
     saveCapsule,
     saveRoom,
     saveSignal,
+    saveToLibrary,
     setActiveAudio,
     setAtmosphere,
     setRareEvent,
+    toggleLibraryFavorite,
     unlockRelic,
+    unsaveFromLibrary,
     visitPage,
   ])
 }

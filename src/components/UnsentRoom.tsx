@@ -1,5 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useGlobalAudio } from '../hooks/useGlobalAudio';
+import { useEcosystemState } from '../hooks/useEcosystemState';
+import { deleteLocalRecording, listLocalRecordings, saveRecordingLocally } from '../lib/localAudioStore';
+import { downloadBlob, exportFilename, renderStoryImage } from '../lib/storyExport';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -249,8 +252,9 @@ const SignalCard: React.FC<{
   onDrift: (id: string) => void;
   onExport: (id: string) => void;
   onArchive: (id: string) => void;
+  onDelete: (id: string) => void;
   isPlaying: boolean;
-}> = ({ signal, onPlay, onSave, onDrift, onExport, onArchive, isPlaying }) => {
+}> = ({ signal, onPlay, onSave, onDrift, onExport, onArchive, onDelete, isPlaying }) => {
   const decay = signal.decayLevel;
   const glowIntensity = Math.min(1, signal.replayCount / 5);
 
@@ -326,6 +330,11 @@ const SignalCard: React.FC<{
         <button className="ur-signal-btn ur-signal-btn--archive" onClick={() => onArchive(signal.id)}>
           ARCHIVE
         </button>
+        {signal.blob && (
+          <button className="ur-signal-btn ur-signal-btn--delete" onClick={() => onDelete(signal.id)} aria-label="Delete recording">
+            ✕
+          </button>
+        )}
       </footer>
     </article>
   );
@@ -522,6 +531,7 @@ const soundEngine = new AtmosphericSound();
 
 export const UnsentRoom: React.FC = () => {
   const globalAudio = useGlobalAudio();
+  const { archiveEntry, saveToLibrary } = useEcosystemState();
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [signals, setSignals] = useState<UnsentSignal[]>([]);
   const playingId = globalAudio.current?.source === 'unsent' && globalAudio.playing ? globalAudio.current.id : null;
@@ -594,6 +604,27 @@ export const UnsentRoom: React.FC = () => {
       },
     ];
     setSignals(demo);
+
+    // restore real recordings persisted in IndexedDB
+    let cancelled = false;
+    void listLocalRecordings().then(stored => {
+      if (cancelled || stored.length === 0) return;
+      const restored: UnsentSignal[] = stored.map(r => ({
+        id: r.id,
+        signalId: r.label,
+        duration: r.durationMs,
+        timestamp: new Date(r.createdAt),
+        emotionalTag: (SIGNAL_TAGS.includes(r.emotionalTag as ResonanceState) ? r.emotionalTag : 'unresolved') as ResonanceState,
+        replayCount: 0,
+        blob: r.blob,
+        waveformData: generateWaveform(),
+        decayLevel: Math.min(0.9, (Date.now() - r.createdAt) / (1000 * 60 * 60 * 24 * 14)),
+        isDrifted: false,
+        isArchived: false,
+      }));
+      setSignals(prev => [...restored, ...prev.filter(p => !restored.some(r => r.id === p.id))]);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // ── Whisper engine ───────────────────────────────────────────────────────────
@@ -701,6 +732,14 @@ export const UnsentRoom: React.FC = () => {
       };
 
       setSignals(prev => [newSignal, ...prev]);
+      void saveRecordingLocally({
+        id: newSignal.id,
+        label: newSignal.signalId,
+        durationMs: duration,
+        emotionalTag: tag,
+        createdAt: Date.now(),
+        blob,
+      });
       setRecordingState('idle');
       setAnalyser(null);
 
@@ -738,7 +777,9 @@ export const UnsentRoom: React.FC = () => {
   // ── Actions ──────────────────────────────────────────────────────────────────
   const handleSave = useCallback((id: string) => {
     setSignals(prev => prev.map(s => s.id === id ? { ...s, isArchived: false } : s));
-  }, []);
+    const signal = signals.find(s => s.id === id);
+    if (signal) saveToLibrary('audio', id, `unsent ${signal.signalId.toLowerCase()}`);
+  }, [signals, saveToLibrary]);
 
   const handleDrift = useCallback((id: string) => {
     setSignals(prev => prev.map(s => s.id === id ? { ...s, isDrifted: true } : s));
@@ -752,12 +793,29 @@ export const UnsentRoom: React.FC = () => {
 
   const handleArchive = useCallback((id: string) => {
     setSignals(prev => prev.map(s => s.id === id ? { ...s, isArchived: true } : s));
-  }, []);
+    const signal = signals.find(s => s.id === id);
+    if (signal) archiveEntry('audio', `unsent ${signal.signalId}`);
+  }, [signals, archiveEntry]);
 
-  const handleExportDownload = useCallback(() => {
-    // In production this would render to canvas and download
+  const handleDelete = useCallback((id: string) => {
+    if (playingId === id) globalAudio.stop();
+    setSignals(prev => prev.filter(s => s.id !== id));
+    void deleteLocalRecording(id);
+  }, [playingId, globalAudio]);
+
+  const handleExportDownload = useCallback(async () => {
+    if (!exportTarget) return;
+    const blob = await renderStoryImage({
+      handle: exportTarget.signalId.toLowerCase(),
+      caption: 'messages that never found a destination.',
+      duration: formatDuration(exportTarget.duration),
+      typeLabel: `unsent room · ${exportTarget.emotionalTag.replace('-', ' ')}`,
+      accentColor: '#ff1493',
+      waveformSeed: Math.round((exportTarget.waveformData[0] ?? 0.5) * 9973),
+    });
+    if (blob) downloadBlob(blob, exportFilename(exportTarget.signalId, 'image'));
     setExportTarget(null);
-  }, []);
+  }, [exportTarget]);
 
   // ── Toggle recording ─────────────────────────────────────────────────────────
   const handleOrbClick = () => {
@@ -867,6 +925,7 @@ export const UnsentRoom: React.FC = () => {
                 onDrift={handleDrift}
                 onExport={handleExport}
                 onArchive={handleArchive}
+                onDelete={handleDelete}
                 isPlaying={playingId === signal.id}
               />
             ))}

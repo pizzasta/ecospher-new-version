@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import FeedScreen from './FeedScreen'
 import { getOptionalSupabaseClient } from './lib'
 import { useEcosystemState } from './hooks/useEcosystemState'
+import { useGlobalAudio } from './hooks/useGlobalAudio'
 import UnsentRoom from './components/UnsentRoom'
 import RoomsScreenComponent from './components/RoomsScreen'
 import EcosphereAmbience from './components/EcosphereAmbience'
@@ -605,7 +606,7 @@ const HIDDEN_SHARD_THRESHOLD = 4
 
 function RelicsScreen() {
   const [selected, setSelected] = useState<Relic | null>(null)
-  const { archiveEntry, unlockRelic: unlockEcosystemRelic } = useEcosystemState()
+  const { archiveEntry, saveToLibrary, unsaveFromLibrary, unlockRelic: unlockEcosystemRelic } = useEcosystemState()
   const [store, setStore] = usePersistentState<Record<string, RelicActivity>>('ecosphere:relicActivity', {})
   const [charge, setCharge] = useState<Record<string, number>>(() => Object.fromEntries(relics.map(r => [r.id, r.resonance])))
   const [stage, setStage] = useState(0)
@@ -734,7 +735,12 @@ function RelicsScreen() {
                 <button
                   className={`lp-action lp-keep${selectedActivity.saved ? ' on' : ''}`}
                   onClick={() => {
-                    if (!selectedActivity.saved) archiveEntry('relic', selected.name)
+                    if (!selectedActivity.saved) {
+                      archiveEntry('relic', selected.name)
+                      saveToLibrary('relic', selected.id, selected.name)
+                    } else {
+                      unsaveFromLibrary('relic', selected.id)
+                    }
                     updateActivity(selected.id, a => ({ ...a, saved: !a.saved }))
                   }}
                 >
@@ -1353,7 +1359,8 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const { ecosystemState } = useEcosystemState()
+  const { ecosystemState, toggleLibraryFavorite, unsaveFromLibrary } = useEcosystemState()
+  const podAudio = useGlobalAudio()
   const eco = ecosystemState
   const [podPulses, setPodPulses] = usePersistentState<number>('ecosphere:podPulses', 0)
   const [rippling, setRippling] = useState(false)
@@ -1393,7 +1400,8 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
     }
   }
 
-  if (!user) {
+  // without a configured backend the pod runs in local mode — never a dead end
+  if (!user && supabase) {
     return (
       <div className="screen">
         <div className="screen-header">
@@ -1454,12 +1462,18 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: '12px', marginBottom: '4px' }}>
         <div>
-          <div style={{ fontSize: '10px', color: 'rgba(180,190,220,0.45)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '2px' }}>authenticated signal</div>
-          <div style={{ fontSize: '12px', color: '#00d4ff' }}>{user.email}</div>
+          <div style={{ fontSize: '10px', color: 'rgba(180,190,220,0.45)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '2px' }}>
+            {user ? 'authenticated signal' : 'local signal'}
+          </div>
+          <div style={{ fontSize: '12px', color: '#00d4ff' }}>{user?.email ?? eco.userSignalIdentity ?? 'unclaimed frequency'}</div>
         </div>
-        <button onClick={onSignOut} style={{ fontSize: '11px', color: 'rgba(180,190,220,0.4)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', transition: 'all 0.2s ease' }}>
-          sign out
-        </button>
+        {user ? (
+          <button onClick={onSignOut} style={{ fontSize: '11px', color: 'rgba(180,190,220,0.4)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+            sign out
+          </button>
+        ) : (
+          <span style={{ fontSize: '10px', color: 'rgba(180,190,220,0.4)', letterSpacing: '0.08em' }}>stored on this device</span>
+        )}
       </div>
       <AmbientLine lines={POD_EVENTS} />
       <div className="pod-orb-container">
@@ -1502,6 +1516,60 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
           </div>
         ))}
       </div>
+      {eco.library.length > 0 && (
+        <div className="lp-library">
+          <div className="lp-library-head">
+            <span>SAVED LIBRARY</span>
+            <small>{eco.library.length} {eco.library.length === 1 ? 'item' : 'items'}</small>
+          </div>
+          {eco.library.map(entry => (
+            <div key={`${entry.itemType}-${entry.id}`} className={`lp-library-item glass${entry.favorite ? ' fav' : ''}`}>
+              <span className={`lp-library-type lp-library-type--${entry.itemType}`}>{entry.itemType}</span>
+              <div className="lp-library-body">
+                <strong>{entry.label}</strong>
+                <small>saved {lpTimeAgo(entry.savedAt)}</small>
+              </div>
+              <div className="lp-library-actions">
+                <button
+                  type="button"
+                  onClick={() => podAudio.playSimulated({ id: entry.id, label: entry.label, source: 'pod' }, 5000)}
+                  aria-label={`replay ${entry.label}`}
+                >
+                  ▶
+                </button>
+                <button
+                  type="button"
+                  className={entry.favorite ? 'on' : ''}
+                  onClick={() => toggleLibraryFavorite(entry.itemType, entry.id)}
+                  aria-label={entry.favorite ? 'unfavorite' : 'favorite'}
+                >
+                  ✶
+                </button>
+                <button type="button" onClick={() => unsaveFromLibrary(entry.itemType, entry.id)} aria-label="remove from library">
+                  ✕
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {eco.archiveHistory.length > 0 && (
+        <div className="lp-library lp-archive">
+          <div className="lp-library-head">
+            <span>ARCHIVE HISTORY</span>
+            <small>{eco.archiveHistory.length} entries</small>
+          </div>
+          {eco.archiveHistory.slice(0, 4).map(entry => (
+            <div key={entry.id} className="lp-library-item glass lp-archive-item">
+              <span className={`lp-library-type lp-library-type--${entry.itemType}`}>{entry.itemType}</span>
+              <div className="lp-library-body">
+                <strong>{entry.label}</strong>
+                <small>archived {lpTimeAgo(entry.archivedAt)}</small>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="pod-cards">
         {[
           { type: 'Saved Echo', title: 'Late Night Signal', detail: 'A soft thought preserved from the quiet hours.', time: '01:42' },

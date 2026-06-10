@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useEcosystemState } from './hooks/useEcosystemState'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
 import VoiceReactionStack from './components/VoiceReactions'
+import { downloadBlob, exportFilename, renderStoryImage, renderStoryVideo } from './lib/storyExport'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SignalStatus = 'live' | 'fading' | 'drifting' | 'archiving' | 'corrupted' | 'resonating'
@@ -169,12 +170,38 @@ function WaveformBar({ height, active, color, animated, index }: {
 function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => void }) {
   const [exporting, setExporting] = useState<ExportType | null>(null)
   const [done, setDone] = useState(false)
+  const [exportError, setExportError] = useState(false)
   const colors = MOOD_COLORS[signal.mood]
   const waveform = generateWaveform(signal.waveformSeed, 20)
 
-  const handleExport = (type: ExportType) => {
+  const handleExport = async (type: ExportType) => {
     setExporting(type)
-    setTimeout(() => { setDone(true) }, 2200)
+    setExportError(false)
+    const opts = {
+      handle: signal.handle,
+      caption: signal.content,
+      duration: signal.duration,
+      typeLabel: SIGNAL_TYPE_LABELS[signal.type],
+      accentColor: colors.primary,
+      waveformSeed: signal.waveformSeed,
+    }
+
+    // vertical clip when the browser can record canvas; story card otherwise
+    let kind: 'video' | 'image' = 'image'
+    let blob: Blob | null = null
+    if (type === 'tiktok' || type === 'story') {
+      blob = await renderStoryVideo(opts, 4500)
+      if (blob) kind = 'video'
+    }
+    if (!blob) blob = await renderStoryImage(opts)
+
+    if (blob) {
+      downloadBlob(blob, exportFilename(signal.handle, kind))
+      setDone(true)
+    } else {
+      setExportError(true)
+      setExporting(null)
+    }
   }
 
   const exports: { type: ExportType; label: string; icon: string }[] = [
@@ -203,7 +230,7 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
                 <div className="export-ecosphere-watermark">◈ ecosphere</div>
               </div>
             </div>
-            <div className="export-title">package this signal</div>
+            <div className="export-title">{exportError ? 'export failed — try again' : 'package this signal'}</div>
             <div className="export-buttons">
               {exports.map(ex => (
                 <button key={ex.type} className="export-btn" style={{ '--btn-color': colors.primary } as React.CSSProperties} onClick={() => handleExport(ex.type)}>
@@ -217,13 +244,13 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
           <div className="export-loading">
             <div className="export-pulse" style={{ backgroundColor: colors.primary }} />
             <div className="export-loading-text">packaging signal</div>
-            <div className="export-loading-sub" style={{ color: colors.primary }}>{exporting === 'tiktok' ? 'generating vertical preview...' : 'compressing signal data...'}</div>
+            <div className="export-loading-sub" style={{ color: colors.primary }}>{exporting === 'tiktok' || exporting === 'story' ? 'rendering vertical clip…' : 'rendering story card…'}</div>
           </div>
         ) : (
           <div className="export-success">
             <div className="export-success-icon" style={{ color: colors.primary }}>◈</div>
             <div className="export-success-text">signal packaged successfully</div>
-            <div className="export-success-sub">ready for transmission</div>
+            <div className="export-success-sub">saved to your downloads · ready for transmission</div>
             <button className="export-close-btn" onClick={onClose}>close</button>
           </div>
         )}
@@ -234,7 +261,7 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
 }
 // ─── Signal Card Component ────────────────────────────────────────────────────
 function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
-  const { ecosystemState, saveSignal } = useEcosystemState()
+  const { ecosystemState, saveSignal, unsaveFromLibrary } = useEcosystemState()
   const globalAudio = useGlobalAudio()
   const [visible, setVisible] = useState(false)
   const [waveformVisible, setWaveformVisible] = useState(false)
@@ -243,6 +270,7 @@ function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
   const [showExport, setShowExport] = useState(false)
   const playing = globalAudio.current?.id === signal.id && globalAudio.playing
   const wasReplayed = ecosystemState.playedSignals.includes(signal.id)
+  const isSaved = ecosystemState.savedSignals.includes(signal.id)
 
 
   const togglePlay = () => {
@@ -340,12 +368,16 @@ function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
         {/* Export action */}
         <div className={`card-export-row ${hovered ? 'card-export-row--visible' : ''}`}>
           <button
+            className={`action-btn action-btn--save ${isSaved ? 'action-btn--saved' : ''}`}
+            style={{ '--btn-color': colors.primary } as React.CSSProperties}
+            onClick={() => (isSaved ? unsaveFromLibrary('signal', signal.id) : saveSignal(signal.id, signal.handle))}
+          >
+            <span>{isSaved ? '✦' : '✧'}</span> {isSaved ? 'kept' : 'keep'}
+          </button>
+          <button
             className="action-btn action-btn--export"
             style={{ '--btn-color': colors.primary } as React.CSSProperties}
-            onClick={() => {
-              saveSignal(signal.id, signal.handle)
-              setShowExport(true)
-            }}
+            onClick={() => setShowExport(true)}
           >
             <span>⬡</span> export signal
           </button>
