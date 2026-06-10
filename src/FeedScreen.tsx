@@ -1,18 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useEcosystemState } from './hooks/useEcosystemState'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
+import VoiceReactionStack from './components/VoiceReactions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SignalStatus = 'live' | 'fading' | 'drifting' | 'archiving' | 'corrupted' | 'resonating'
 type SignalType = 'voice_note' | 'drifting_thought' | 'unresolved_echo' | 'static_bloom' | 'dead_zone' | 'memory_fragment' | 'nocturne_broadcast' | 'abandoned_carrier'
 type Mood = 'nocturne' | 'bloom' | 'drift' | 'static' | 'lost'
 type ExportType = 'tiktok' | 'story' | 'relic' | 'drift' | 'remix'
-type ReactionType = 'drift' | 'bloom' | 'echo' | 'static' | 'nocturne' | 'fracture'
-
-type SignalReactions = {
-  [K in ReactionType]?: boolean
-}
-
 
 type FeedSignal = {
   id: string
@@ -237,53 +232,6 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
     </div>
   )
 }
-// ─── Reaction Config ─────────────────────────────────────────────────────────
-const REACTIONS: { type: ReactionType; symbol: string; label: string }[] = [
-  { type: 'drift',    symbol: '∿', label: 'drift'    },
-  { type: 'bloom',    symbol: '✦', label: 'bloom'    },
-  { type: 'echo',     symbol: '◌', label: 'echo'     },
-  { type: 'static',   symbol: '⋯', label: 'static'   },
-  { type: 'nocturne', symbol: '◑', label: 'nocturne' },
-  { type: 'fracture', symbol: '⌁', label: 'fracture' },
-]
-
-// ─── Signal Reaction Bar ──────────────────────────────────────────────────────
-function SignalReactionBar({ signalId, reactions, setReactions, reactionPop, setReactionPop, moodColor }: {
-  signalId: string
-  reactions: SignalReactions
-  setReactions: React.Dispatch<React.SetStateAction<SignalReactions>>
-  reactionPop: ReactionType | null
-  setReactionPop: React.Dispatch<React.SetStateAction<ReactionType | null>>
-  moodColor: string
-}) {
-  const toggle = (type: ReactionType) => {
-    setReactions(prev => {
-      const next = { ...prev, [type]: !prev[type] }
-      try { localStorage.setItem('ecosphere_reactions_' + signalId, JSON.stringify(next)) } catch { /* storage unavailable */ }
-      return next
-    })
-    setReactionPop(type)
-    setTimeout(() => setReactionPop(null), 600)
-  }
-
-  return (
-    <div className="signal-reaction-bar">
-      {REACTIONS.map(r => (
-        <button
-          key={r.type}
-          className={`reaction-btn reaction-btn--${r.type} ${reactions[r.type] ? 'reaction-btn--active' : ''} ${reactionPop === r.type ? 'reaction-btn--pop' : ''}`}
-          style={{ '--reaction-color': moodColor } as React.CSSProperties}
-          onClick={() => toggle(r.type)}
-          title={r.label}
-        >
-          <span className="reaction-symbol">{r.symbol}</span>
-          <span className="reaction-label">{r.label}</span>
-        </button>
-      ))}
-    </div>
-  )
-}
-
 // ─── Signal Card Component ────────────────────────────────────────────────────
 function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
   const { ecosystemState, saveSignal } = useEcosystemState()
@@ -296,6 +244,7 @@ function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
   const playing = globalAudio.current?.id === signal.id && globalAudio.playing
   const wasReplayed = ecosystemState.playedSignals.includes(signal.id)
 
+
   const togglePlay = () => {
     if (playing) {
       globalAudio.stop()
@@ -303,13 +252,6 @@ function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
       globalAudio.playSimulated({ id: signal.id, label: signal.handle, source: 'signals' }, durationToMs(signal.duration))
     }
   }
-  const [reactions, setReactions] = useState<SignalReactions>(() => {
-    try {
-      const stored = localStorage.getItem('ecosphere_reactions_' + signal.id)
-      return stored ? JSON.parse(stored) : {}
-    } catch { return {} }
-  })
-  const [reactionPop, setReactionPop] = useState<ReactionType | null>(null)
   const colors = MOOD_COLORS[signal.mood]
   const waveform = generateWaveform(signal.waveformSeed)
   const displayText = useTypewriter(signal.content, !!(signal.typewriterEffect && textVisible))
@@ -392,15 +334,8 @@ function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
           )}
         </div>
 
-        {/* Reaction Row */}
-        <SignalReactionBar
-          signalId={signal.id}
-          reactions={reactions}
-          setReactions={setReactions}
-          reactionPop={reactionPop}
-          setReactionPop={setReactionPop}
-          moodColor={colors.primary}
-        />
+        {/* Voice reactions */}
+        <VoiceReactionStack signalId={signal.id} moodColor={colors.primary} />
 
         {/* Export action */}
         <div className={`card-export-row ${hovered ? 'card-export-row--visible' : ''}`}>

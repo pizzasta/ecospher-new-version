@@ -26,6 +26,7 @@ export type EcosystemInteractionType =
   | 'capsule_opened'
   | 'relic_unlocked'
   | 'archived'
+  | 'voice_reaction'
   | 'rare_event'
 
 export type EcosystemInteraction = {
@@ -332,6 +333,14 @@ function useEcosystemStore() {
     }))
   }, [updateState])
 
+  const reactToSignal = useCallback((signalId: string, label: string) => {
+    updateState((current) => ({
+      ...current,
+      resonanceLevel: clamp(current.resonanceLevel + 2),
+      recentInteractions: addInteraction(current, createInteraction('voice_reaction', label, current.currentPage)),
+    }))
+  }, [updateState])
+
   const setRareEvent = useCallback((event: string | null) => {
     updateState((current) => ({
       ...current,
@@ -354,6 +363,7 @@ function useEcosystemStore() {
     exploreDrift,
     openCapsule,
     playSignal,
+    reactToSignal,
     saveCapsule,
     saveRoom,
     saveSignal,
@@ -370,6 +380,7 @@ function useEcosystemStore() {
     exploreDrift,
     openCapsule,
     playSignal,
+    reactToSignal,
     saveCapsule,
     saveRoom,
     saveSignal,
