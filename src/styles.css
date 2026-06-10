@@ -3137,6 +3137,9 @@ html, body, #root {
 }
 
 .identity-orb-field .claim-signal-orb {
+  animation:
+    identityOrbDrift 8.6s ease-in-out infinite,
+    identityOrbGlow 5.8s ease-in-out infinite;
   filter: brightness(calc(0.92 + var(--claim-energy) * 0.24));
   transform: scale(calc(0.95 + var(--claim-energy) * 0.08));
 }
@@ -3287,6 +3290,180 @@ html, body, #root {
   line-height: 1.5;
   margin: 0;
   text-align: center;
+}
+
+/* ─── Identity Claim — Enhanced Motion Layer ─────────────────────────────── */
+
+.identity-claim-shell {
+  --resonance-ring-opacity: 0.42;
+  --resonance-ring-speed: 7.4s;
+}
+
+.identity-claim-shell .claim-atmosphere span {
+  animation: identityParticleDrift 12s ease-in-out infinite;
+}
+
+.identity-claim-shell .claim-atmosphere span:nth-child(2) { animation-delay: 900ms; animation-duration: 13.5s; }
+.identity-claim-shell .claim-atmosphere span:nth-child(3) { animation-delay: 1800ms; animation-duration: 11s; }
+.identity-claim-shell .claim-atmosphere span:nth-child(4) { animation-delay: 2600ms; animation-duration: 14s; }
+.identity-claim-shell .claim-atmosphere span:nth-child(5) { animation-delay: 3400ms; animation-duration: 12.5s; }
+.identity-claim-shell .claim-atmosphere span:nth-child(6) { animation-delay: 4400ms; animation-duration: 10.5s; }
+.identity-claim-shell .claim-atmosphere span:nth-child(7) { animation-delay: 1200ms; animation-duration: 15s; height: 2px; left: 12%; top: 58%; width: 2px; }
+.identity-claim-shell .claim-atmosphere span:nth-child(8) { animation-delay: 2100ms; animation-duration: 13s; background: rgba(103, 232, 249, 0.66); height: 2px; left: 58%; top: 84%; width: 2px; }
+.identity-claim-shell .claim-atmosphere span:nth-child(9) { animation-delay: 3000ms; animation-duration: 16s; left: 36%; top: 42%; }
+.identity-claim-shell .claim-atmosphere span:nth-child(10) { animation-delay: 3900ms; animation-duration: 12s; background: rgba(216, 180, 254, 0.7); height: 2px; left: 8%; top: 36%; width: 2px; }
+.identity-claim-shell .claim-atmosphere span:nth-child(11) { animation-delay: 5000ms; animation-duration: 14.5s; left: 82%; top: 82%; }
+.identity-claim-shell .claim-atmosphere span:nth-child(12) { animation-delay: 5800ms; animation-duration: 11.5s; background: rgba(103, 232, 249, 0.58); height: 2px; left: 64%; top: 30%; width: 2px; }
+
+.identity-orb-field .claim-orb-ripple {
+  animation-duration: 5.6s;
+  animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.claim-orb-ripple-three {
+  animation-delay: 2.9s;
+  border-color: rgba(216, 180, 254, 0.18);
+  inset: -5%;
+}
+
+.identity-orb-field .boot-resonance-rings span {
+  animation:
+    bootResonancePulse var(--resonance-ring-speed) ease-in-out infinite,
+    identityRingShimmer 11s ease-in-out infinite;
+}
+
+.identity-orb-field .boot-resonance-rings span:nth-child(2) {
+  animation-delay: 1.4s, 2.8s;
+}
+
+.identity-orb-field .boot-resonance-rings span:nth-child(3) {
+  animation-delay: 2.8s, 5.4s;
+}
+
+.identity-claim-panel > strong {
+  animation: identitySignalGlow 4.4s ease-in-out infinite;
+  color: #fff7fb;
+  font-size: clamp(24px, 5vw, 40px);
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.identity-suggestion-grid button {
+  transition: background 220ms ease, border-color 220ms ease, box-shadow 220ms ease, color 220ms ease, transform 220ms ease;
+}
+
+.identity-suggestion-grid button.active {
+  animation: identitySelectedPulse 2.8s ease-in-out infinite;
+  background:
+    linear-gradient(135deg, rgba(255, 42, 116, 0.26), rgba(0, 212, 255, 0.12)),
+    rgba(0, 0, 0, 0.32);
+  border-color: rgba(255, 122, 184, 0.85);
+  color: #ffffff;
+  text-shadow: 0 0 12px rgba(255, 42, 116, 0.55);
+  transform: translateY(-1px) scale(1.015);
+}
+
+@keyframes identityParticleDrift {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(0.5);
+  }
+  22% {
+    opacity: 0.78;
+  }
+  48% {
+    opacity: 0.52;
+    transform: translate3d(-9px, -24px, 0) scale(1.05);
+  }
+  72% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(12px, -54px, 0) scale(1.25);
+  }
+}
+
+@keyframes identityOrbDrift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(calc(0.95 + var(--claim-energy) * 0.08));
+  }
+  26% {
+    transform: translate3d(5px, -9px, 0) scale(calc(0.965 + var(--claim-energy) * 0.09));
+  }
+  52% {
+    transform: translate3d(-3px, -15px, 0) scale(calc(0.975 + var(--claim-energy) * 0.1));
+  }
+  78% {
+    transform: translate3d(-7px, -6px, 0) scale(calc(0.945 + var(--claim-energy) * 0.08));
+  }
+}
+
+@keyframes identityOrbGlow {
+  0%, 100% {
+    box-shadow:
+      0 0 70px rgba(244, 114, 182, 0.6),
+      0 0 140px rgba(236, 72, 153, 0.3),
+      0 0 215px rgba(103, 232, 249, 0.13);
+    filter: brightness(calc(0.92 + var(--claim-energy) * 0.24)) saturate(1);
+  }
+  50% {
+    box-shadow:
+      0 0 92px rgba(244, 114, 182, 0.78),
+      0 0 175px rgba(236, 72, 153, 0.42),
+      0 0 255px rgba(103, 232, 249, 0.22);
+    filter: brightness(calc(1.02 + var(--claim-energy) * 0.28)) saturate(1.12);
+  }
+}
+
+@keyframes identityRingShimmer {
+  0%, 100% {
+    filter: saturate(1) brightness(1);
+  }
+  50% {
+    filter: saturate(1.16) brightness(1.26);
+  }
+}
+
+@keyframes identitySignalGlow {
+  0%, 100% {
+    text-shadow:
+      0 0 22px rgba(255, 42, 116, 0.3),
+      0 0 44px rgba(0, 212, 255, 0.12);
+  }
+  50% {
+    text-shadow:
+      0 0 34px rgba(255, 42, 116, 0.52),
+      0 0 64px rgba(0, 212, 255, 0.2);
+  }
+}
+
+@keyframes identitySelectedPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 26px rgba(255, 42, 116, 0.3),
+      0 0 56px rgba(0, 212, 255, 0.08),
+      inset 0 0 18px rgba(255, 42, 116, 0.12);
+  }
+  50% {
+    box-shadow:
+      0 0 40px rgba(255, 42, 116, 0.46),
+      0 0 72px rgba(0, 212, 255, 0.14),
+      inset 0 0 26px rgba(255, 42, 116, 0.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .identity-claim-shell .claim-atmosphere span,
+  .identity-orb-field .claim-signal-orb,
+  .identity-orb-field .boot-resonance-rings span,
+  .identity-orb-field .claim-orb-ripple,
+  .identity-claim-panel > strong,
+  .identity-suggestion-grid button.active {
+    animation: none;
+  }
 }
 
 /* ─── Collective Frequency Page ───────────────────────────────────────────── */
@@ -9035,5 +9212,147 @@ html, body, #root {
   .mini-player-close {
     padding-left: 9px;
     padding-right: 9px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FEED — AUDIO IMMERSION ENHANCEMENTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.feed-atmosphere {
+  animation: feedAtmosphereSway 38s ease-in-out infinite alternate;
+}
+
+.feed-waveform-shards {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.feed-waveform-shards span {
+  position: absolute;
+  width: 110px;
+  height: 26px;
+  background: repeating-linear-gradient(90deg, rgba(255,45,120,0.55) 0 2px, transparent 2px 6px);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 28% 72%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 28% 72%, transparent);
+  opacity: 0;
+  filter: blur(0.4px);
+  animation: feedShardDrift 30s linear infinite, feedShardWobble 2.6s ease-in-out infinite alternate;
+}
+
+.feed-waveform-shards span:nth-child(1) { top: 16%; animation-delay: 0s, 0s; }
+.feed-waveform-shards span:nth-child(2) { top: 34%; width: 80px; height: 18px; background: repeating-linear-gradient(90deg, rgba(0,212,255,0.5) 0 2px, transparent 2px 6px); animation-delay: -9s, -0.6s; animation-duration: 38s, 3.1s; }
+.feed-waveform-shards span:nth-child(3) { top: 52%; width: 140px; animation-delay: -17s, -1.2s; animation-duration: 44s, 2.2s; }
+.feed-waveform-shards span:nth-child(4) { top: 66%; width: 70px; height: 14px; background: repeating-linear-gradient(90deg, rgba(155,93,229,0.5) 0 2px, transparent 2px 6px); animation-delay: -24s, -0.3s; animation-duration: 34s, 2.9s; }
+.feed-waveform-shards span:nth-child(5) { top: 80%; width: 95px; background: repeating-linear-gradient(90deg, rgba(0,212,255,0.42) 0 2px, transparent 2px 6px); animation-delay: -5s, -1.6s; animation-duration: 48s, 2.4s; }
+.feed-waveform-shards span:nth-child(6) { top: 8%; width: 60px; height: 12px; background: repeating-linear-gradient(90deg, rgba(255,45,120,0.4) 0 2px, transparent 2px 6px); animation-delay: -30s, -0.9s; animation-duration: 40s, 3.4s; }
+
+@keyframes feedShardDrift {
+  0% { opacity: 0; transform: translate3d(-12vw, 0, 0); }
+  12% { opacity: 0.16; }
+  55% { opacity: 0.1; transform: translate3d(52vw, -18px, 0); }
+  88% { opacity: 0.15; }
+  100% { opacity: 0; transform: translate3d(112vw, 8px, 0); }
+}
+
+@keyframes feedShardWobble {
+  0% { transform: scaleY(0.7); }
+  100% { transform: scaleY(1.25); }
+}
+
+@keyframes feedAtmosphereSway {
+  0% { transform: translate3d(-0.6%, 0, 0) scale(1); }
+  100% { transform: translate3d(0.8%, -0.8%, 0) scale(1.03); }
+}
+
+.feed-depth-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 45%, transparent 55%, rgba(0,0,0,0.5) 100%),
+    linear-gradient(180deg, rgba(0,0,0,0.35) 0%, transparent 12%, transparent 88%, rgba(0,0,0,0.45) 100%);
+}
+
+/* smoother card hover */
+.signal-card {
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1),
+    box-shadow 0.5s ease;
+  will-change: transform;
+}
+
+.signal-card--hovered {
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.45);
+  transform: translateY(-3px) scale(1.004);
+}
+
+.card-neon-edge {
+  transition: box-shadow 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.card-waveform-section {
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1),
+    padding 0.4s ease;
+}
+
+/* animated signal glow */
+.signal-card--visible::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 16px;
+  pointer-events: none;
+  box-shadow: inset 0 0 26px var(--mood-dim, rgba(255, 45, 120, 0.08));
+  animation: feedSignalGlowBreath 5.5s ease-in-out infinite;
+}
+
+.resonance-fill {
+  animation: feedResonanceShimmer 3.4s ease-in-out infinite;
+}
+
+.waveform-play-btn--active {
+  animation: feedPlayBtnGlow 1.7s ease-in-out infinite;
+}
+
+.feed-live-dot {
+  animation: feedLiveDotBreath 2s ease-in-out infinite;
+}
+
+@keyframes feedSignalGlowBreath {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.95; }
+}
+
+@keyframes feedResonanceShimmer {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.45); }
+}
+
+@keyframes feedPlayBtnGlow {
+  0%, 100% { box-shadow: 0 0 12px var(--mood-glow, rgba(255, 45, 120, 0.4)); }
+  50% { box-shadow: 0 0 24px var(--mood-glow, rgba(255, 45, 120, 0.4)), 0 0 40px var(--mood-dim, rgba(255, 45, 120, 0.1)); }
+}
+
+@keyframes feedLiveDotBreath {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feed-atmosphere,
+  .feed-waveform-shards span,
+  .signal-card--visible::after,
+  .resonance-fill,
+  .waveform-play-btn--active,
+  .feed-live-dot {
+    animation: none;
   }
 }

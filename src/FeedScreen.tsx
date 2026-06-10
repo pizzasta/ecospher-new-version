@@ -536,6 +536,19 @@ export default function FeedScreen() {
         <div className="feed-fog-layer feed-fog-3" />
       </div>
 
+      {/* Drifting waveform shards */}
+      <div className="feed-waveform-shards" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+      </div>
+
+      {/* Depth vignette */}
+      <div className="feed-depth-vignette" aria-hidden="true" />
+
       {/* Particle system */}
       <ParticleLayer />
 

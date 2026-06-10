@@ -914,3 +914,169 @@
   .ur-btn { min-width: 180px; padding: 0.65rem 1.5rem; }
   .ur-export-preview { width: 160px; height: 260px; }
 }
+
+/* ─── Immersion Enhancements ─────────────────────────────────── */
+
+/* ambient particles (give them physical size + drift sway) */
+.ur-particle {
+  width: 3px;
+  height: 3px;
+}
+
+.ur-particle:nth-child(3n) {
+  width: 2px;
+  height: 2px;
+}
+
+.ur-particle:nth-child(4n) {
+  width: 4px;
+  height: 4px;
+  filter: blur(0.5px);
+}
+
+@keyframes ur-particle-float {
+  0% { opacity: 0; transform: translate3d(0, 60vh, 0) scale(0.5); }
+  12% { opacity: 0.6; }
+  50% { transform: translate3d(-14px, 10vh, 0) scale(0.9); }
+  88% { opacity: 0.3; }
+  100% { opacity: 0; transform: translate3d(16px, -30vh, 0) scale(1.2); }
+}
+
+/* live waveform pulse + audio-reactive glow */
+.ur-live-waveform {
+  filter: drop-shadow(0 0 6px rgba(255, 20, 147, 0.22));
+  transition: filter 0.4s ease;
+}
+
+.ur-orb-stage--recording .ur-live-waveform {
+  animation: ur-live-pulse 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 calc(8px + var(--mic-level, 0) * 18px) rgba(255, 20, 147, calc(0.4 + var(--mic-level, 0) * 0.4)));
+}
+
+@keyframes ur-live-pulse {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.07); }
+}
+
+/* recording glow halo behind the orb */
+.ur-orb-stage::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 280px;
+  height: 280px;
+  margin-left: -140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 20, 147, 0.2) 0%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  filter: blur(18px);
+  transition: opacity 0.8s ease;
+}
+
+.ur-orb-stage--recording::before {
+  opacity: calc(0.7 + var(--mic-level, 0) * 0.3);
+  animation: ur-recording-halo 2.4s ease-in-out infinite;
+}
+
+@keyframes ur-recording-halo {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+.ur-orb-stage--recording .ur-orb-resonance-rings span {
+  animation-duration: 1.6s;
+  border-color: rgba(255, 20, 147, 0.35);
+}
+
+.ur-orb-stage--recording .ur-orb-aura {
+  animation-duration: 3.5s;
+  border-color: rgba(255, 20, 147, 0.45);
+  box-shadow: 0 0 calc(16px + var(--mic-level, 0) * 36px) rgba(255, 20, 147, calc(0.25 + var(--mic-level, 0) * 0.45));
+}
+
+/* card waveform previews (markup renders <i> bars) */
+.ur-waveform-preview i {
+  display: block;
+  width: 2.5px;
+  border-radius: 1px;
+  background: linear-gradient(to top, rgba(255, 20, 147, 0.35), rgba(255, 20, 147, 0.8));
+  transform-origin: center;
+  transition: background 0.5s ease;
+}
+
+.ur-waveform-preview.playing i {
+  animation: ur-waveform-bar 0.55s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+  background: linear-gradient(to top, rgba(255, 20, 147, 0.6), rgba(255, 120, 190, 1));
+}
+
+.ur-waveform-preview.decayed i {
+  background: linear-gradient(to top, rgba(150, 150, 150, 0.2), rgba(170, 160, 190, 0.45));
+}
+
+/* smoother playback + hover motion */
+.ur-signal-card {
+  transition:
+    border-color 0.45s ease,
+    background 0.45s ease,
+    box-shadow 0.55s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 0.6s ease;
+}
+
+.ur-signal-card--playing {
+  animation: ur-card-resonance 3s ease-in-out infinite;
+}
+
+.ur-signal-btn--play.active {
+  border-color: rgba(255, 20, 147, 0.6);
+  background: rgba(255, 20, 147, 0.15);
+  color: #ff80c0;
+  animation: ur-rec-blink 1.5s ease-in-out infinite;
+}
+
+.ur-filter-btn.active {
+  border-color: rgba(255, 20, 147, 0.5);
+  color: rgba(255, 100, 160, 0.9);
+  background: rgba(255, 20, 147, 0.08);
+}
+
+/* replay resonance artifact dots */
+.ur-resonance-artifact {
+  display: flex;
+  gap: 3px;
+  margin-top: 0.4rem;
+}
+
+.ur-resonance-artifact span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 20, 147, 0.55);
+  box-shadow: 0 0 6px rgba(255, 20, 147, 0.6);
+  animation: ur-rec-blink 2.2s ease-in-out infinite;
+}
+
+/* empty state orb */
+.ur-empty-orb {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 20, 147, 0.25) 0%, rgba(60, 0, 36, 0.5) 70%);
+  box-shadow: 0 0 24px rgba(255, 20, 147, 0.2);
+  animation: ur-orb-breathe 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ur-particle,
+  .ur-live-waveform,
+  .ur-orb-stage--recording::before,
+  .ur-waveform-preview.playing i,
+  .ur-signal-card--playing,
+  .ur-resonance-artifact span,
+  .ur-empty-orb {
+    animation: none;
+  }
+}

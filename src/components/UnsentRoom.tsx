@@ -142,6 +142,7 @@ const LiveWaveform: React.FC<{ analyser: AnalyserNode | null; active: boolean }>
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    const stage = canvas.closest('.ur-orb-stage') as HTMLElement | null;
 
     const draw = () => {
       rafRef.current = requestAnimationFrame(draw);
@@ -149,6 +150,7 @@ const LiveWaveform: React.FC<{ analyser: AnalyserNode | null; active: boolean }>
       ctx.clearRect(0, 0, W, H);
 
       if (!analyser || !active) {
+        stage?.style.setProperty('--mic-level', '0');
         // Idle breathing waveform
         const t = Date.now() / 1200;
         ctx.beginPath();
@@ -165,6 +167,11 @@ const LiveWaveform: React.FC<{ analyser: AnalyserNode | null; active: boolean }>
       const buf = new Uint8Array(analyser.fftSize);
       analyser.getByteTimeDomainData(buf);
       const sliceW = W / buf.length;
+
+      let sum = 0;
+      for (let i = 0; i < buf.length; i++) sum += Math.abs(buf[i] - 128);
+      const level = Math.min(1, (sum / buf.length) / 28);
+      stage?.style.setProperty('--mic-level', level.toFixed(3));
 
       const gradient = ctx.createLinearGradient(0, 0, W, 0);
       gradient.addColorStop(0, 'rgba(0,240,255,0.7)');
