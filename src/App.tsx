@@ -2,6 +2,8 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { getOptionalSupabaseClient } from './lib'
 import { useEcosystemState } from './hooks/useEcosystemState'
+import { deleteReactionAudio, listReactionAudio } from './lib/localAudioStore'
+import type { StoredReaction } from './lib/localAudioStore'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
 import EcosphereAmbience from './components/EcosphereAmbience'
 
@@ -341,6 +343,8 @@ const DRIFT_EVENTS = [
 
 function DriftScreen() {
   const { discoverDrift, unlockRelic } = useEcosystemState()
+  const driftAudio = useGlobalAudio()
+  const [driftReactions, setDriftReactions] = useState<StoredReaction[]>([])
   const [energy, setEnergy] = useState<Record<string, number>>({})
   const [offsets, setOffsets] = useState<Record<string, { dx: number; dy: number }>>({})
   const [found, setFound] = usePersistentState<string[]>('ecosphere:driftFound', [])
@@ -364,6 +368,30 @@ function DriftScreen() {
   const exciteNode = (id: string, label: string) => {
     setEnergy(e => ({ ...e, [id]: Math.min((e[id] ?? 0) + 1, 8) }))
     setPing(`${label.toLowerCase()} answered · the node is warming`)
+  }
+
+  // voice reactions released into the drift surface here as floating fragments
+  useEffect(() => {
+    let cancelled = false
+    void listReactionAudio('drift').then(stored => {
+      if (!cancelled) setDriftReactions(stored.slice(0, 4))
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  const playDriftReaction = (reaction: StoredReaction) => {
+    void driftAudio.playBlob(reaction.blob, {
+      id: `drift-reaction-${reaction.id}`,
+      label: 'a voice somebody released here',
+      source: 'drift',
+    })
+    setPing('a stray voice fragment, still warm')
+  }
+
+  const releaseDriftReaction = (reaction: StoredReaction) => {
+    setDriftReactions(prev => prev.filter(r => r.id !== reaction.id))
+    void deleteReactionAudio(reaction.id)
+    setPing('the fragment dissolved back into the fog')
   }
 
   const findHotspot = (h: DriftHotspot) => {
@@ -408,6 +436,30 @@ function DriftScreen() {
             </button>
           )
         })}
+        {driftReactions.map((r, i) => (
+          <div
+            key={r.id}
+            className="drift-voice-fragment"
+            style={{ left: `${22 + i * 19}%`, top: `${14 + (i % 2) * 62}%`, '--frag-delay': `${i * 1.3}s` } as CSSProperties}
+          >
+            <button
+              type="button"
+              className="drift-voice-play"
+              onClick={() => playDriftReaction(r)}
+              aria-label="play a stray voice fragment"
+            >
+              <span><i /><i /><i /><i /></span>
+            </button>
+            <button
+              type="button"
+              className="drift-voice-release"
+              onClick={() => releaseDriftReaction(r)}
+              aria-label="release this fragment"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
         {driftHotspots.map(h => (
           <button
             key={h.id}

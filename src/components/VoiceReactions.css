@@ -287,3 +287,76 @@
     animation: none;
   }
 }
+
+/* ─── Playback progress + pill tools ─────────────────────────── */
+.vr-pill-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vr-pill {
+  position: relative;
+  overflow: hidden;
+}
+
+.vr-pill-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: var(--vp, 0%);
+  background: linear-gradient(90deg, var(--vr-color, #ff2d78), rgba(0, 212, 255, 0.8));
+  transition: width 0.15s linear;
+  border-radius: 1px;
+}
+
+.vr-pill-tools {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.vr-pill-tools button {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 9px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(180, 190, 220, 0.5);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.vr-pill-tools button:hover {
+  color: var(--vr-color, #ff2d78);
+  border-color: color-mix(in srgb, var(--vr-color, #ff2d78) 45%, transparent);
+}
+
+/* ─── Drift send + notices ───────────────────────────────────── */
+.vr-rec-drift {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  cursor: pointer;
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  color: #67e8f9;
+  transition: box-shadow 0.25s ease;
+}
+
+.vr-rec-drift:hover {
+  box-shadow: 0 0 14px rgba(0, 212, 255, 0.25);
+}
+
+.vr-notice {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: rgba(120, 225, 250, 0.85);
+  animation: vrTranscriptIn 0.4s ease both;
+}

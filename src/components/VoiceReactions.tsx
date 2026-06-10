@@ -2,11 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useEcosystemState } from '../hooks/useEcosystemState'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
+import { deleteReactionAudio, listReactionAudio, saveReactionAudio } from '../lib/localAudioStore'
 import './VoiceReactions.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ReactionKind = 'voice' | 'laugh' | 'static' | 'whisper'
+type ReactionFilter = 'none' | 'slowed' | 'sped'
 
 type VoiceReaction = {
   id: string
@@ -18,7 +20,10 @@ type VoiceReaction = {
   waveformSeed: number
   replays: number
   createdAt: number
+  /** legacy small recordings stored inline */
   dataUrl?: string
+  filter?: ReactionFilter
+  /** legacy flag, mapped to filter: 'slowed' */
   distorted?: boolean
   yours?: boolean
 }
@@ -26,7 +31,10 @@ type VoiceReaction = {
 type RecorderPhase = 'idle' | 'recording' | 'preview' | 'denied'
 
 const MAX_REACTION_MS = 5000
-const MAX_STORED_BYTES = 220_000
+
+const FILTER_RATES: Record<ReactionFilter, number> = { none: 1, slowed: 0.82, sped: 1.32 }
+const FILTER_LABELS: Record<ReactionFilter, string> = { none: 'raw', slowed: 'slowed', sped: 'sped' }
+const FILTER_ORDER: ReactionFilter[] = ['none', 'slowed', 'sped']
 
 // ─── Mock reaction pool (seeded per signal) ──────────────────────────────────
 
@@ -94,49 +102,70 @@ function formatSecs(ms: number) {
   return `${(ms / 1000).toFixed(1).replace(/\.0$/, '')}s`
 }
 
-// ─── Persistence (metadata + small audio payloads only) ──────────────────────
+// ─── Metadata persistence (audio lives in IndexedDB) ─────────────────────────
 
 function storageKey(signalId: string) {
   return `ecosphere:voiceReactions:${signalId}`
 }
 
-function loadStoredReactions(signalId: string): VoiceReaction[] {
+function loadStoredMeta(signalId: string): VoiceReaction[] {
   try {
     const raw = window.localStorage.getItem(storageKey(signalId))
     if (!raw) return []
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    return parsed.map((r: VoiceReaction) => ({
+      ...r,
+      filter: r.filter ?? (r.distorted ? 'slowed' : 'none'),
+    }))
   } catch {
     return []
   }
 }
 
-function storeReactions(signalId: string, reactions: VoiceReaction[]) {
+function storeMeta(signalId: string, reactions: VoiceReaction[]) {
   try {
-    window.localStorage.setItem(storageKey(signalId), JSON.stringify(reactions.filter(r => r.yours)))
+    const yours = reactions.filter(r => r.yours).map(({ ...r }) => {
+      // dataUrl is legacy-only; never re-store large payloads
+      if (r.dataUrl && r.dataUrl.length > 80_000) delete r.dataUrl
+      return r
+    })
+    window.localStorage.setItem(storageKey(signalId), JSON.stringify(yours))
   } catch { /* storage unavailable — session-only reactions */ }
 }
 
 // Only one reaction audible anywhere in the app
 let stopActiveReaction: (() => void) | null = null
 
+function applyFilter(audio: HTMLAudioElement, filter: ReactionFilter | undefined) {
+  const rate = FILTER_RATES[filter ?? 'none']
+  if (rate !== 1) {
+    audio.playbackRate = rate
+    try {
+      ;(audio as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = false
+    } catch { /* not supported */ }
+  }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function VoiceReactionStack({ signalId, moodColor }: { signalId: string; moodColor: string }) {
-  const { reactToSignal } = useEcosystemState()
+  const { reactToSignal, saveToLibrary } = useEcosystemState()
   const globalAudio = useGlobalAudio()
 
   const [reactions, setReactions] = useState<VoiceReaction[]>(() => [
-    ...loadStoredReactions(signalId),
+    ...loadStoredMeta(signalId),
     ...buildMockReactions(signalId),
   ])
   const [expanded, setExpanded] = useState(false)
   const [sortBy, setSortBy] = useState<'newest' | 'replayed'>('newest')
   const [playingId, setPlayingId] = useState<string | null>(null)
+  const [progress, setProgress] = useState(0)
   const [phase, setPhase] = useState<RecorderPhase>('idle')
   const [elapsed, setElapsed] = useState(0)
   const [anonymous, setAnonymous] = useState(false)
-  const [distorted, setDistorted] = useState(false)
+  const [filter, setFilter] = useState<ReactionFilter>('none')
+  const [notice, setNotice] = useState<string | null>(null)
 
   const recorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -144,17 +173,53 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
   const draftRef = useRef<{ blob: Blob; durationMs: number } | null>(null)
   const timersRef = useRef<number[]>([])
   const playbackRef = useRef<HTMLAudioElement | null>(null)
+  const blobCacheRef = useRef<Map<string, Blob>>(new Map())
+  const objectUrlRef = useRef<string | null>(null)
+
+  // restore reaction audio blobs from IndexedDB
+  useEffect(() => {
+    let cancelled = false
+    void listReactionAudio(signalId).then(stored => {
+      if (cancelled || stored.length === 0) return
+      stored.forEach(r => blobCacheRef.current.set(r.id, r.blob))
+      setReactions(prev => {
+        const known = new Set(prev.map(p => p.id))
+        const restored: VoiceReaction[] = stored
+          .filter(r => !known.has(r.id))
+          .map(r => ({
+            id: r.id,
+            kind: 'voice' as const,
+            caption: null,
+            handle: r.anonymous ? 'anonymous' : 'you',
+            durationMs: r.durationMs,
+            waveformSeed: r.createdAt % 9973,
+            replays: 0,
+            createdAt: r.createdAt,
+            filter: r.filter,
+            yours: true,
+          }))
+        return restored.length ? [...restored, ...prev] : prev
+      })
+    })
+    return () => { cancelled = true }
+  }, [signalId])
+
+  // persist replay counts / list changes for your reactions
+  useEffect(() => {
+    storeMeta(signalId, reactions)
+  }, [signalId, reactions])
 
   useEffect(() => {
     const timers = timersRef.current
     return () => {
-      timers.forEach(t => window.clearTimeout(t))
+      timers.forEach(t => { window.clearTimeout(t); window.clearInterval(t) })
       if (recorderRef.current?.state === 'recording') recorderRef.current.stop()
       streamRef.current?.getTracks().forEach(t => t.stop())
       if (playbackRef.current) {
         playbackRef.current.pause()
         playbackRef.current = null
       }
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
     }
   }, [])
 
@@ -173,8 +238,13 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
       playbackRef.current.pause()
       playbackRef.current = null
     }
-    timersRef.current.forEach(t => window.clearTimeout(t))
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current)
+      objectUrlRef.current = null
+    }
+    timersRef.current.forEach(t => { window.clearTimeout(t); window.clearInterval(t) })
     setPlayingId(null)
+    setProgress(0)
   }
 
   const playReaction = (reaction: VoiceReaction) => {
@@ -191,23 +261,43 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
 
     setReactions(prev => prev.map(r => (r.id === reaction.id ? { ...r, replays: r.replays + 1 } : r)))
     setPlayingId(reaction.id)
+    setProgress(0)
 
-    if (reaction.dataUrl) {
-      const audio = new Audio(reaction.dataUrl)
+    const blob = blobCacheRef.current.get(reaction.id)
+    const src = blob ? URL.createObjectURL(blob) : reaction.dataUrl
+
+    if (src) {
+      if (blob) objectUrlRef.current = src
+      const audio = new Audio(src)
       playbackRef.current = audio
-      if (reaction.distorted) {
-        audio.playbackRate = 0.82
-        try {
-          ;(audio as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = false
-        } catch { /* not supported */ }
+      applyFilter(audio, reaction.filter)
+      audio.ontimeupdate = () => {
+        if (audio.duration > 0 && Number.isFinite(audio.duration)) {
+          setProgress(audio.currentTime / audio.duration)
+        }
       }
-      audio.onended = () => { setPlayingId(p => (p === reaction.id ? null : p)) }
-      audio.onerror = () => { setPlayingId(p => (p === reaction.id ? null : p)) }
-      audio.play().catch(() => setPlayingId(p => (p === reaction.id ? null : p)))
-    } else {
-      // mock reactions: simulated playback with transcript shimmer
-      timersRef.current.push(window.setTimeout(() => {
+      const finish = () => {
         setPlayingId(p => (p === reaction.id ? null : p))
+        setProgress(0)
+        if (objectUrlRef.current) {
+          URL.revokeObjectURL(objectUrlRef.current)
+          objectUrlRef.current = null
+        }
+      }
+      audio.onended = finish
+      audio.onerror = finish
+      audio.play().catch(finish)
+    } else {
+      // mock reactions: simulated playback with transcript shimmer + progress
+      const started = Date.now()
+      const interval = window.setInterval(() => {
+        setProgress(Math.min(1, (Date.now() - started) / reaction.durationMs))
+      }, 100)
+      timersRef.current.push(interval as unknown as number)
+      timersRef.current.push(window.setTimeout(() => {
+        window.clearInterval(interval)
+        setPlayingId(p => (p === reaction.id ? null : p))
+        setProgress(0)
       }, reaction.durationMs))
     }
   }
@@ -263,62 +353,79 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
   const discardDraft = () => {
     draftRef.current = null
     setPhase('idle')
-    setDistorted(false)
+    setFilter('none')
   }
 
   const replayDraft = () => {
     const draft = draftRef.current
     if (!draft) return
     stopActiveReaction?.()
-    const audio = new Audio(URL.createObjectURL(draft.blob))
+    const url = URL.createObjectURL(draft.blob)
+    const audio = new Audio(url)
     playbackRef.current = audio
-    if (distorted) {
-      audio.playbackRate = 0.82
-      try {
-        ;(audio as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = false
-      } catch { /* not supported */ }
-    }
-    audio.play().catch(() => { /* preview unavailable */ })
+    applyFilter(audio, filter)
+    audio.onended = () => URL.revokeObjectURL(url)
+    audio.play().catch(() => URL.revokeObjectURL(url))
   }
 
-  const sendDraft = async () => {
+  const cycleFilter = () => {
+    setFilter(f => FILTER_ORDER[(FILTER_ORDER.indexOf(f) + 1) % FILTER_ORDER.length])
+  }
+
+  const finalizeDraft = async (target: 'signal' | 'drift') => {
     const draft = draftRef.current
     if (!draft) return
 
-    let dataUrl: string | undefined
-    if (draft.blob.size <= MAX_STORED_BYTES) {
-      dataUrl = await new Promise<string | undefined>(resolve => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : undefined)
-        reader.onerror = () => resolve(undefined)
-        reader.readAsDataURL(draft.blob)
-      })
-    }
-
-    const reaction: VoiceReaction = {
-      id: `you-${Date.now()}`,
-      kind: 'voice',
-      caption: null,
-      handle: anonymous ? 'anonymous' : 'you',
+    const id = `you-${Date.now()}`
+    const stored = await saveReactionAudio({
+      id,
+      target: target === 'drift' ? 'drift' : signalId,
       durationMs: draft.durationMs,
-      waveformSeed: Date.now() % 9973,
-      replays: 0,
       createdAt: Date.now(),
-      dataUrl,
-      distorted,
-      yours: true,
+      anonymous,
+      filter,
+      blob: draft.blob,
+    })
+
+    if (target === 'drift') {
+      reactToSignal(signalId, 'sent a voice reaction into the drift')
+      setNotice(stored ? 'released into the drift · someone may find it' : 'the drift kept it for this session only')
+      timersRef.current.push(window.setTimeout(() => setNotice(null), 5000))
+    } else {
+      blobCacheRef.current.set(id, draft.blob)
+      const reaction: VoiceReaction = {
+        id,
+        kind: 'voice',
+        caption: null,
+        handle: anonymous ? 'anonymous' : 'you',
+        durationMs: draft.durationMs,
+        waveformSeed: Date.now() % 9973,
+        replays: 0,
+        createdAt: Date.now(),
+        filter,
+        yours: true,
+      }
+      setReactions(prev => [reaction, ...prev])
+      reactToSignal(signalId, anonymous ? 'left an anonymous voice reaction' : 'left a voice reaction')
+      setExpanded(true)
     }
 
-    setReactions(prev => {
-      const next = [reaction, ...prev]
-      storeReactions(signalId, next)
-      return next
-    })
-    reactToSignal(signalId, anonymous ? 'left an anonymous voice reaction' : 'left a voice reaction')
     draftRef.current = null
     setPhase('idle')
-    setDistorted(false)
-    setExpanded(true)
+    setFilter('none')
+  }
+
+  const deleteOwnReaction = (reaction: VoiceReaction) => {
+    if (playingId === reaction.id) stopReaction()
+    blobCacheRef.current.delete(reaction.id)
+    setReactions(prev => prev.filter(r => r.id !== reaction.id))
+    void deleteReactionAudio(reaction.id)
+  }
+
+  const favoriteReaction = (reaction: VoiceReaction) => {
+    saveToLibrary('audio', `reaction-${reaction.id}`, `voice reaction · ${reaction.handle} · ${formatSecs(reaction.durationMs)}`)
+    setNotice('kept in your pod library')
+    timersRef.current.push(window.setTimeout(() => setNotice(null), 3500))
   }
 
   // ── render ──────────────────────────────────────────────────────────────────
@@ -328,23 +435,34 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
         {visible.map(reaction => {
           const isPlaying = playingId === reaction.id
           return (
-            <button
-              key={reaction.id}
-              type="button"
-              className={`vr-pill ${isPlaying ? 'vr-pill--playing' : ''} ${reaction.yours ? 'vr-pill--yours' : ''} vr-pill--${reaction.kind}`}
-              onClick={() => playReaction(reaction)}
-              aria-label={isPlaying ? 'stop reaction' : `play ${reaction.durationMs / 1000}s voice reaction from ${reaction.handle}`}
-            >
-              <span className="vr-pill-bars" aria-hidden="true">
-                {reactionBars(reaction.waveformSeed).map((h, i) => (
-                  <i key={i} style={{ '--h': `${Math.round(h * 100)}%`, '--d': `${(i % 7) * 0.08}s` } as CSSProperties} />
-                ))}
-              </span>
-              <span className="vr-pill-meta">
-                {formatSecs(reaction.durationMs)}
-                {reaction.replays > 0 && <em> · {reaction.replays}↺</em>}
-              </span>
-            </button>
+            <span key={reaction.id} className="vr-pill-wrap">
+              <button
+                type="button"
+                className={`vr-pill ${isPlaying ? 'vr-pill--playing' : ''} ${reaction.yours ? 'vr-pill--yours' : ''} vr-pill--${reaction.kind}`}
+                style={isPlaying ? ({ '--vp': `${Math.round(progress * 100)}%` } as CSSProperties) : undefined}
+                onClick={() => playReaction(reaction)}
+                aria-label={isPlaying ? 'stop reaction' : `play ${reaction.durationMs / 1000}s voice reaction from ${reaction.handle}`}
+              >
+                <span className="vr-pill-bars" aria-hidden="true">
+                  {reactionBars(reaction.waveformSeed).map((h, i) => (
+                    <i key={i} style={{ '--h': `${Math.round(h * 100)}%`, '--d': `${(i % 7) * 0.08}s` } as CSSProperties} />
+                  ))}
+                </span>
+                <span className="vr-pill-meta">
+                  {formatSecs(reaction.durationMs)}
+                  {reaction.replays > 0 && <em> · {reaction.replays}↺</em>}
+                </span>
+                {isPlaying && <span className="vr-pill-progress" aria-hidden="true" />}
+              </button>
+              {expanded && (
+                <span className="vr-pill-tools">
+                  <button type="button" onClick={() => favoriteReaction(reaction)} aria-label="keep this reaction">✶</button>
+                  {reaction.yours && (
+                    <button type="button" onClick={() => deleteOwnReaction(reaction)} aria-label="delete your reaction">✕</button>
+                  )}
+                </span>
+              )}
+            </span>
           )
         })}
 
@@ -372,13 +490,16 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
       {playingId && (() => {
         const active = reactions.find(r => r.id === playingId)
         if (!active) return null
+        const filterNote = active.filter && active.filter !== 'none' ? ` · ${FILTER_LABELS[active.filter]}` : ''
         return (
           <div className="vr-transcript" key={playingId}>
             <span className="vr-transcript-handle">{active.handle}</span>
-            {active.caption ?? (active.distorted ? '(your voice, slowed and lower)' : '(your voice reaction)')}
+            {active.caption ?? `(your voice reaction${filterNote})`}
           </div>
         )
       })()}
+
+      {notice && <div className="vr-notice" key={notice}>{notice}</div>}
 
       {phase === 'recording' && (
         <div className="vr-recorder vr-recorder--live">
@@ -395,10 +516,11 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
           <button type="button" className={`vr-rec-toggle ${anonymous ? 'on' : ''}`} onClick={() => setAnonymous(a => !a)}>
             {anonymous ? '⬡ anon' : '◈ you'}
           </button>
-          <button type="button" className={`vr-rec-toggle ${distorted ? 'on' : ''}`} onClick={() => setDistorted(d => !d)}>
-            ∿ distort
+          <button type="button" className={`vr-rec-toggle ${filter !== 'none' ? 'on' : ''}`} onClick={cycleFilter}>
+            ∿ {FILTER_LABELS[filter]}
           </button>
-          <button type="button" className="vr-rec-send" onClick={() => { void sendDraft() }}>send</button>
+          <button type="button" className="vr-rec-send" onClick={() => { void finalizeDraft('signal') }}>send</button>
+          <button type="button" className="vr-rec-drift" onClick={() => { void finalizeDraft('drift') }}>→ drift</button>
           <button type="button" className="vr-rec-discard" onClick={discardDraft}>✕</button>
         </div>
       )}
