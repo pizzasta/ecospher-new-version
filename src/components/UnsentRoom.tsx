@@ -3,6 +3,7 @@ import { useGlobalAudio } from '../hooks/useGlobalAudio';
 import { useEcosystemState } from '../hooks/useEcosystemState';
 import { deleteLocalRecording, listLocalRecordings, saveRecordingLocally } from '../lib/localAudioStore';
 import { downloadBlob, exportFilename, renderStoryImage } from '../lib/storyExport';
+import { fetchRemoteRecordings, mirrorRecordingDelete, mirrorRecordingUpload, remotePlaybackUrl } from '../lib/backendBridge';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,6 +18,7 @@ interface UnsentSignal {
   emotionalTag: ResonanceState;
   replayCount: number;
   blob?: Blob;
+  remote?: { audioId: string; bucket: string; path: string };
   waveformData: number[];
   decayLevel: number; // 0–1, higher = more decayed
   isDrifted: boolean;
@@ -330,7 +332,7 @@ const SignalCard: React.FC<{
         <button className="ur-signal-btn ur-signal-btn--archive" onClick={() => onArchive(signal.id)}>
           ARCHIVE
         </button>
-        {signal.blob && (
+        {(signal.blob || signal.remote) && (
           <button className="ur-signal-btn ur-signal-btn--delete" onClick={() => onDelete(signal.id)} aria-label="Delete recording">
             ✕
           </button>
@@ -624,6 +626,30 @@ export const UnsentRoom: React.FC = () => {
       }));
       setSignals(prev => [...restored, ...prev.filter(p => !restored.some(r => r.id === p.id))]);
     });
+
+    // merge recordings synced to the backend audio library
+    void fetchRemoteRecordings().then(remote => {
+      if (cancelled || remote.length === 0) return;
+      setSignals(prev => {
+        const localLabels = new Set(prev.map(p => p.signalId));
+        const merged: UnsentSignal[] = remote
+          .filter(r => !localLabels.has(r.title))
+          .map(r => ({
+            id: `remote-${r.audioId}`,
+            signalId: r.title,
+            duration: r.durationMs,
+            timestamp: new Date(r.createdAt),
+            emotionalTag: 'replaying' as ResonanceState,
+            replayCount: 0,
+            remote: { audioId: r.audioId, bucket: r.bucket, path: r.path },
+            waveformData: generateWaveform(),
+            decayLevel: Math.min(0.9, (Date.now() - r.createdAt) / (1000 * 60 * 60 * 24 * 14)),
+            isDrifted: false,
+            isArchived: false,
+          }));
+        return merged.length ? [...merged, ...prev] : prev;
+      });
+    });
     return () => { cancelled = true; };
   }, []);
 
@@ -740,6 +766,7 @@ export const UnsentRoom: React.FC = () => {
         createdAt: Date.now(),
         blob,
       });
+      mirrorRecordingUpload(blob, newSignal.signalId, duration);
       setRecordingState('idle');
       setAnalyser(null);
 
@@ -766,12 +793,19 @@ export const UnsentRoom: React.FC = () => {
     if (soundEnabled) soundEngine.playResonancePulse();
 
     const meta = { id, label: `signal ${signal.signalId}`, source: 'unsent' as const };
-    if (!signal.blob) {
-      // demo fragments have no real audio — simulate the replay
-      globalAudio.playSimulated(meta, signal.duration || 3000);
+    if (signal.blob) {
+      void globalAudio.playBlob(signal.blob, meta);
       return;
     }
-    void globalAudio.playBlob(signal.blob, meta);
+    if (signal.remote) {
+      void remotePlaybackUrl(signal.remote).then(url => {
+        if (url) void globalAudio.playUrl(url, meta);
+        else globalAudio.playSimulated(meta, signal.duration || 3000);
+      });
+      return;
+    }
+    // demo fragments have no real audio — simulate the replay
+    globalAudio.playSimulated(meta, signal.duration || 3000);
   }, [playingId, signals, soundEnabled, globalAudio]);
 
   // ── Actions ──────────────────────────────────────────────────────────────────
@@ -799,9 +833,11 @@ export const UnsentRoom: React.FC = () => {
 
   const handleDelete = useCallback((id: string) => {
     if (playingId === id) globalAudio.stop();
+    const signal = signals.find(s => s.id === id);
+    if (signal?.remote) mirrorRecordingDelete({ id: signal.remote.audioId, bucket: signal.remote.bucket, path: signal.remote.path });
     setSignals(prev => prev.filter(s => s.id !== id));
     void deleteLocalRecording(id);
-  }, [playingId, globalAudio]);
+  }, [playingId, globalAudio, signals]);
 
   const handleExportDownload = useCallback(async () => {
     if (!exportTarget) return;

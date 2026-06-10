@@ -15,6 +15,8 @@ export type GlobalAudioStatus = {
 type GlobalAudioApi = GlobalAudioStatus & {
   /** Play a real audio blob. Returns false if playback could not start. */
   playBlob: (blob: Blob, meta: ActiveAudio) => Promise<boolean>
+  /** Play audio from a URL (e.g. a backend signed URL). */
+  playUrl: (url: string, meta: ActiveAudio) => Promise<boolean>
   /** Register a simulated playback (no real audio source). */
   playSimulated: (meta: ActiveAudio, durationMs?: number) => void
   stop: () => void
@@ -58,12 +60,7 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
     setActiveAudio(null)
   }, [setActiveAudio, teardown])
 
-  const playBlob = useCallback(async (blob: Blob, meta: ActiveAudio) => {
-    teardown()
-    const url = URL.createObjectURL(blob)
-    const audio = new Audio(url)
-    audioRef.current = audio
-    urlRef.current = url
+  const startAudio = useCallback(async (audio: HTMLAudioElement, meta: ActiveAudio) => {
 
     audio.ontimeupdate = () => {
       if (audio.duration > 0 && Number.isFinite(audio.duration)) {
@@ -91,6 +88,22 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
     return true
   }, [playSignal, setActiveAudio, stop, teardown])
 
+  const playBlob = useCallback(async (blob: Blob, meta: ActiveAudio) => {
+    teardown()
+    const url = URL.createObjectURL(blob)
+    const audio = new Audio(url)
+    audioRef.current = audio
+    urlRef.current = url
+    return startAudio(audio, meta)
+  }, [startAudio, teardown])
+
+  const playUrl = useCallback(async (url: string, meta: ActiveAudio) => {
+    teardown()
+    const audio = new Audio(url)
+    audioRef.current = audio
+    return startAudio(audio, meta)
+  }, [startAudio, teardown])
+
   const playSimulated = useCallback((meta: ActiveAudio, durationMs = 6000) => {
     teardown()
     setStatus({ current: meta, playing: true, progress: 0, notice: null })
@@ -115,8 +128,9 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
     ...status,
     playBlob,
     playSimulated,
+    playUrl,
     stop,
-  }), [status, playBlob, playSimulated, stop])
+  }), [status, playBlob, playSimulated, playUrl, stop])
 
   return <GlobalAudioContext.Provider value={value}>{children}</GlobalAudioContext.Provider>
 }

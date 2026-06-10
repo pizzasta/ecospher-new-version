@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+import { mirrorActivity } from '../lib/backendBridge'
 
 export type EcosystemPage =
   | 'home'
@@ -234,6 +235,7 @@ function useEcosystemStore() {
       rareEvent: current.resonanceLevel + resonanceBoost >= 92 ? 'quiet replay activity detected' : current.rareEvent,
       recentInteractions: addInteraction(current, createInteraction('signal_play', `played ${label ?? signalId}`, current.currentPage)),
     }))
+    mirrorActivity('signal_played', label ?? signalId, { signalId })
   }, [updateState])
 
   const saveToLibrary = useCallback((itemType: LibraryEntry['itemType'], id: string, label: string) => {
@@ -250,6 +252,7 @@ function useEcosystemStore() {
         recentInteractions: addInteraction(current, createInteraction('signal_saved', `kept ${label}`, current.currentPage)),
       }
     })
+    mirrorActivity('signal_saved', label, { itemType, itemId: id })
   }, [updateState])
 
   const saveSignal = useCallback((signalId: string, label?: string) => {
@@ -287,6 +290,7 @@ function useEcosystemStore() {
       resonanceLevel: clamp(current.resonanceLevel + 3),
       recentInteractions: addInteraction(current, createInteraction('room_enter', `entered chamber ${roomId}`, current.currentPage)),
     }))
+    mirrorActivity('room_joined', roomId, { roomId })
   }, [updateState])
 
   const saveRoom = useCallback((roomId: string) => {
@@ -321,6 +325,7 @@ function useEcosystemStore() {
         recentInteractions: addInteraction(current, createInteraction('drift_discovery', label, 'drift')),
       }
     })
+    mirrorActivity('drift_discovery', label, { discoveryId })
   }, [updateState])
 
   const saveCapsule = useCallback((capsuleId: string) => {
@@ -350,6 +355,7 @@ function useEcosystemStore() {
           : addInteraction(current, createInteraction('capsule_opened', `opened ${label ?? capsuleId}`, 'capsules')),
       }
     })
+    mirrorActivity('capsule_opened', label ?? capsuleId, { capsuleId })
   }, [updateState])
 
   const unlockRelic = useCallback((relicId: string, label?: string) => {
@@ -363,6 +369,7 @@ function useEcosystemStore() {
         recentInteractions: addInteraction(current, createInteraction('relic_unlocked', `discovered relic ${label ?? relicId}`, 'relics')),
       }
     })
+    mirrorActivity('relic_unlocked', label ?? relicId, { relicId })
   }, [updateState])
 
   const archiveEntry = useCallback((itemType: ArchiveEntry['itemType'], label: string) => {
@@ -374,6 +381,7 @@ function useEcosystemStore() {
       ].slice(0, maxHistoryEntries),
       recentInteractions: addInteraction(current, createInteraction('archived', `archived ${label}`, current.currentPage)),
     }))
+    mirrorActivity('item_archived', label, { itemType })
   }, [updateState])
 
   const reactToSignal = useCallback((signalId: string, label: string) => {
@@ -382,6 +390,7 @@ function useEcosystemStore() {
       resonanceLevel: clamp(current.resonanceLevel + 2),
       recentInteractions: addInteraction(current, createInteraction('voice_reaction', label, current.currentPage)),
     }))
+    mirrorActivity('voice_reaction', label, { signalId })
   }, [updateState])
 
   const setRareEvent = useCallback((event: string | null) => {

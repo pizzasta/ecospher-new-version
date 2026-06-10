@@ -15,8 +15,11 @@ export type ActivityEventRow = Tables['activity_events']['Row']
 export type ArchiveItemType = ArchiveItemRow['item_type']
 
 export type ActivityEventType =
+  | 'signal_played'
   | 'signal_saved'
   | 'signal_unsaved'
+  | 'voice_reaction'
+  | 'drift_discovery'
   | 'audio_uploaded'
   | 'audio_renamed'
   | 'audio_deleted'

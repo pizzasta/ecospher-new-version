@@ -1,12 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import FeedScreen from './FeedScreen'
 import { getOptionalSupabaseClient } from './lib'
 import { useEcosystemState } from './hooks/useEcosystemState'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
-import UnsentRoom from './components/UnsentRoom'
-import RoomsScreenComponent from './components/RoomsScreen'
 import EcosphereAmbience from './components/EcosphereAmbience'
+
+const FeedScreen = lazy(() => import('./FeedScreen'))
+const RoomsScreenComponent = lazy(() => import('./components/RoomsScreen'))
+const UnsentRoom = lazy(() => import('./components/UnsentRoom'))
+
+function ScreenLoading() {
+  return (
+    <div className="screen eco-screen-loading" aria-label="tuning frequency">
+      <div className="eco-loading-orb" aria-hidden="true" />
+      <p>tuning frequency…</p>
+    </div>
+  )
+}
 import './unsent-room.css'
 import './rooms.css'
 import './living-pages.css'
@@ -1773,7 +1783,9 @@ export default function App() {
 
       {/* Content */}
       <main className="content-well">
-        {screenMap[screen]}
+        <Suspense fallback={<ScreenLoading />}>
+          {screenMap[screen]}
+        </Suspense>
       </main>
 
       <Nav active={screen} onNav={navigate} />
