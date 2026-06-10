@@ -9356,3 +9356,18 @@ html, body, #root {
     animation: none;
   }
 }
+
+/* ─── Feed ambient layer (toggle-driven) ─────────────────────── */
+.feed-screen--ambient .feed-fog-layer {
+  opacity: 1.6;
+  filter: blur(64px) saturate(1.25);
+}
+
+.feed-screen--ambient .feed-glow-orb {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.feed-screen--ambient .feed-particle-canvas {
+  opacity: 0.95;
+}

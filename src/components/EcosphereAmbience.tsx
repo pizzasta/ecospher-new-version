@@ -115,6 +115,28 @@ export default function EcosphereAmbience() {
     return () => window.clearInterval(t)
   }, [])
 
+  // user preferences: night protocol, motion intensity, haptics
+  useEffect(() => {
+    const apply = (prefs: { nightMode?: boolean; driftSensitivity?: number } | null) => {
+      if (!prefs) return
+      if (prefs.nightMode) document.body.dataset.ecoNight = 'on'
+      else delete document.body.dataset.ecoNight
+      const sensitivity = Number(prefs.driftSensitivity)
+      document.body.style.setProperty('--eco-motion', Number.isFinite(sensitivity) ? (sensitivity / 100).toFixed(2) : '0.6')
+    }
+    try {
+      const raw = window.localStorage.getItem('ecosphere:settings')
+      if (raw) apply(JSON.parse(raw))
+    } catch { /* defaults apply */ }
+    const onPrefs = (event: Event) => apply((event as CustomEvent).detail)
+    window.addEventListener('ecosphere:prefs', onPrefs)
+    return () => {
+      window.removeEventListener('ecosphere:prefs', onPrefs)
+      delete document.body.dataset.ecoNight
+      document.body.style.removeProperty('--eco-motion')
+    }
+  }, [])
+
   // click resonance ripples — direct DOM so taps never trigger React renders
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
@@ -122,6 +144,10 @@ export default function EcosphereAmbience() {
     const spawn = (event: PointerEvent) => {
       if (live >= 5) return
       live += 1
+      try {
+        const raw = window.localStorage.getItem('ecosphere:settings')
+        if (raw && JSON.parse(raw)?.vibrate && 'vibrate' in navigator) navigator.vibrate(6)
+      } catch { /* haptics unavailable */ }
       const ripple = document.createElement('span')
       ripple.className = 'eco-click-ripple'
       ripple.style.left = `${event.clientX}px`

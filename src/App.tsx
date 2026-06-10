@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { getOptionalSupabaseClient } from './lib'
+import { getOptionalSupabaseClient, syncProfile } from './lib'
 import { useEcosystemState } from './hooks/useEcosystemState'
 import { deleteReactionAudio, listReactionAudio } from './lib/localAudioStore'
 import type { StoredReaction } from './lib/localAudioStore'
@@ -874,6 +874,9 @@ function genWave(seed: number, bars = 48): number[] {
 }
 
 function FrequenciesScreen() {
+  const cfAudio = useGlobalAudio()
+  const uploadRef = useRef<HTMLInputElement>(null)
+
   // ─── Types ──────────────────────────────────────────────────────────────
   type EmotionalTag = 'nocturne' | 'bloom' | 'static' | 'drift' | 'echo' | 'pulse' | 'lost' | 'soft_focus'
   type ContribType = 'voice' | 'hum' | 'ambient' | 'whisper' | 'synth' | 'texture' | 'static' | 'pulse'
@@ -1348,7 +1351,37 @@ function FrequenciesScreen() {
                 {justContributed ? '◈ transmitted' : isRecording ? '▐▐ finish recording' : '● begin recording'}
               </button>
               {!isRecording && !justContributed && (
-                <button className="cf-upload-btn">⬡ upload audio file</button>
+                <>
+                <button
+                  className="cf-upload-btn"
+                  type="button"
+                  onClick={() => uploadRef.current?.click()}
+                >
+                  ⬡ upload audio file
+                </button>
+                <input
+                  ref={uploadRef}
+                  type="file"
+                  accept="audio/*"
+                  hidden
+                  onChange={e => {
+                    const file = e.target.files?.[0]
+                    e.target.value = ''
+                    if (!file) return
+                    void cfAudio.playBlob(file, { id: `upload-${Date.now()}`, label: file.name.slice(0, 40), source: 'frequencies' })
+                    setCarriers(prev => {
+                      const inactive = prev.findIndex(c => !c.active)
+                      if (inactive === -1) return prev
+                      const updated = [...prev]
+                      updated[inactive] = { ...updated[inactive], active: true, tag: selectedTag, type: 'ambient', resonance: Math.floor(Math.random() * 25 + 70) }
+                      return updated
+                    })
+                    setResonance(r => Math.min(99, r + 4))
+                    setEcoEvent({ id: Date.now().toString(), msg: 'uploaded audio joined the collective' })
+                    setTimeout(() => setEcoEvent(null), 5000)
+                  }}
+                />
+                </>
               )}
             </div>
           </div>
@@ -1701,12 +1734,79 @@ function AnomaliesScreen() {
   )
 }
 
+type EcoPrefs = {
+  vibrate: boolean
+  anonymous: boolean
+  nightMode: boolean
+  signalVolume: number
+  driftSensitivity: number
+}
+
+const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, signalVolume: 72, driftSensitivity: 60 }
+
+function normalizeIdentity(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
+}
+
 function SettingsScreen() {
-  const [vibrate, setVibrate] = useState(true)
-  const [anonymous, setAnonymous] = useState(true)
-  const [nightMode, setNightMode] = useState(true)
-  const [signalVolume, setSignalVolume] = useState(72)
-  const [driftSensitivity, setDriftSensitivity] = useState(60)
+  const { ecosystemState } = useEcosystemState()
+  const [prefs, setPrefs] = usePersistentState<EcoPrefs>('ecosphere:settings', defaultPrefs)
+  const [identityDraft, setIdentityDraft] = useState('')
+  const [note, setNote] = useState<string | null>(null)
+  const [confirmWipe, setConfirmWipe] = useState(false)
+
+  // broadcast preference changes so global systems (audio volume,
+  // night protocol, motion intensity) pick them up immediately
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('ecosphere:prefs', { detail: prefs }))
+  }, [prefs])
+
+  const update = (patch: Partial<EcoPrefs>) => setPrefs(p => ({ ...p, ...patch }))
+
+  const showNote = (text: string) => {
+    setNote(text)
+    window.setTimeout(() => setNote(null), 4000)
+  }
+
+  const renameIdentity = () => {
+    const next = normalizeIdentity(identityDraft)
+    if (!next) return
+    try {
+      window.localStorage.setItem('signalIdentity', next)
+      const profileRaw = window.localStorage.getItem('ecosphereSignalProfile')
+      const profile = profileRaw ? JSON.parse(profileRaw) : {}
+      window.localStorage.setItem('ecosphereSignalProfile', JSON.stringify({ ...profile, username: next }))
+    } catch { /* storage unavailable */ }
+    void syncProfile(next)
+    setIdentityDraft('')
+    showNote(`identity retuned · ${next}`)
+  }
+
+  const resetIntro = () => {
+    try {
+      window.localStorage.removeItem('introSeen')
+      window.localStorage.removeItem('signalIdentity')
+      window.localStorage.removeItem('ecosphereSignalProfile')
+      window.localStorage.removeItem('ecosphereBackendMigrated')
+    } catch { /* storage unavailable */ }
+    window.location.reload()
+  }
+
+  const wipeLocalData = () => {
+    if (!confirmWipe) {
+      setConfirmWipe(true)
+      window.setTimeout(() => setConfirmWipe(false), 5000)
+      return
+    }
+    try {
+      window.localStorage.clear()
+    } catch { /* storage unavailable */ }
+    try {
+      indexedDB.deleteDatabase('ecosphere-audio')
+    } catch { /* unavailable */ }
+    window.location.reload()
+  }
+
   return (
     <div className="screen">
       <div className="screen-header">
@@ -1714,43 +1814,81 @@ function SettingsScreen() {
         <h2 className="screen-title">Settings</h2>
         <p className="screen-sub">tune your presence in the ecosystem</p>
       </div>
+
       <div className="settings-list">
+        <div className="setting-row glass setting-row--identity">
+          <div className="setting-info">
+            <div className="setting-label">Signal Identity</div>
+            <div className="setting-detail">{ecosystemState.userSignalIdentity ?? 'unclaimed frequency'}</div>
+          </div>
+          <div className="setting-identity-edit">
+            <input
+              type="text"
+              value={identityDraft}
+              placeholder="retune your signal…"
+              onChange={e => setIdentityDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') renameIdentity() }}
+            />
+            <button type="button" disabled={!normalizeIdentity(identityDraft)} onClick={renameIdentity}>retune</button>
+          </div>
+        </div>
+
         <div className="setting-row glass">
           <div className="setting-info">
             <div className="setting-label">Anonymous Mode</div>
             <div className="setting-detail">broadcast without identity</div>
           </div>
-          <button className={`toggle ${anonymous ? 'on' : ''}`} onClick={() => setAnonymous(!anonymous)} />
+          <button className={`toggle ${prefs.anonymous ? 'on' : ''}`} onClick={() => update({ anonymous: !prefs.anonymous })} />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
             <div className="setting-label">Vibrate on Signal</div>
             <div className="setting-detail">haptic pulse on new resonance</div>
           </div>
-          <button className={`toggle ${vibrate ? 'on' : ''}`} onClick={() => setVibrate(!vibrate)} />
+          <button className={`toggle ${prefs.vibrate ? 'on' : ''}`} onClick={() => update({ vibrate: !prefs.vibrate })} />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
             <div className="setting-label">Night Protocol</div>
-            <div className="setting-detail">darker atmosphere after midnight</div>
+            <div className="setting-detail">deepen the atmosphere</div>
           </div>
-          <button className={`toggle ${nightMode ? 'on' : ''}`} onClick={() => setNightMode(!nightMode)} />
+          <button className={`toggle ${prefs.nightMode ? 'on' : ''}`} onClick={() => update({ nightMode: !prefs.nightMode })} />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
             <div className="setting-label">Signal Volume</div>
-            <div className="setting-detail">{signalVolume}%</div>
+            <div className="setting-detail">{prefs.signalVolume}% — applies to all playback</div>
           </div>
-          <input type="range" min={0} max={100} value={signalVolume} onChange={e => setSignalVolume(+e.target.value)} className="range-input" />
+          <input type="range" min={0} max={100} value={prefs.signalVolume} onChange={e => update({ signalVolume: +e.target.value })} className="range-input" />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
             <div className="setting-label">Drift Sensitivity</div>
-            <div className="setting-detail">{driftSensitivity}% — ambient movement</div>
+            <div className="setting-detail">{prefs.driftSensitivity}% — ambient motion intensity</div>
           </div>
-          <input type="range" min={0} max={100} value={driftSensitivity} onChange={e => setDriftSensitivity(+e.target.value)} className="range-input" />
+          <input type="range" min={0} max={100} value={prefs.driftSensitivity} onChange={e => update({ driftSensitivity: +e.target.value })} className="range-input" />
+        </div>
+
+        <div className="setting-row glass setting-row--danger">
+          <div className="setting-info">
+            <div className="setting-label">Replay Onboarding</div>
+            <div className="setting-detail">re-enter the ecosphere from the beginning</div>
+          </div>
+          <button type="button" className="setting-action" onClick={resetIntro}>reset intro</button>
+        </div>
+        <div className="setting-row glass setting-row--danger">
+          <div className="setting-info">
+            <div className="setting-label">Clear Local Data</div>
+            <div className="setting-detail">erase identity, saves, recordings — everything on this device</div>
+          </div>
+          <button type="button" className={`setting-action setting-action--danger${confirmWipe ? ' confirming' : ''}`} onClick={wipeLocalData}>
+            {confirmWipe ? 'tap again to erase' : 'erase'}
+          </button>
         </div>
       </div>
+
+      {note && <div className="setting-note">{note}</div>}
+
       <div className="settings-footer">
         <div className="settings-version">ecosphere v2.0 · signal observatory</div>
       </div>

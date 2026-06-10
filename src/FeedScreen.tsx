@@ -523,7 +523,7 @@ export default function FeedScreen() {
   const dismissEvent = useCallback(() => setActiveEvent(null), [])
 
   return (
-    <div className="feed-screen">
+    <div className={`feed-screen ${ambientEnabled ? 'feed-screen--ambient' : ''}`}>
       {/* Background atmosphere layers */}
       <div className="feed-atmosphere">
         <div className="feed-fog-layer feed-fog-1" />

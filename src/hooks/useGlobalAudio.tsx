@@ -24,6 +24,17 @@ type GlobalAudioApi = GlobalAudioStatus & {
 
 const GlobalAudioContext = createContext<GlobalAudioApi | null>(null)
 
+function preferredVolume(): number {
+  try {
+    const raw = window.localStorage.getItem('ecosphere:settings')
+    if (!raw) return 1
+    const volume = Number(JSON.parse(raw)?.signalVolume)
+    return Number.isFinite(volume) ? Math.min(1, Math.max(0, volume / 100)) : 1
+  } catch {
+    return 1
+  }
+}
+
 /**
  * One audio source for the whole app: starting any playback stops the
  * previous one, progress is shared, and everything halts on route change.
@@ -61,6 +72,7 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
   }, [setActiveAudio, teardown])
 
   const startAudio = useCallback(async (audio: HTMLAudioElement, meta: ActiveAudio) => {
+    audio.volume = preferredVolume()
 
     audio.ontimeupdate = () => {
       if (audio.duration > 0 && Number.isFinite(audio.duration)) {
