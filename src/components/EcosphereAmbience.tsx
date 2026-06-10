@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
+import { useEcosystemState } from '../hooks/useEcosystemState'
+import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import './EcosphereAmbience.css'
 
 // ─── Signal Weather ───────────────────────────────────────────────────────────
@@ -41,6 +44,8 @@ const PRESENCE_EVENTS = [
 ] as const
 
 export default function EcosphereAmbience() {
+  const { ecosystemState, setAtmosphere, setRareEvent } = useEcosystemState()
+  const globalAudio = useGlobalAudio()
   const [weather, setWeather] = useState<SignalWeather>(() => currentWeather())
   const [announcement, setAnnouncement] = useState<string | null>(null)
   const [presencePulse, setPresencePulse] = useState<string | null>(null)
@@ -52,6 +57,7 @@ export default function EcosphereAmbience() {
     const apply = () => {
       const next = currentWeather()
       setWeather(next)
+      setAtmosphere(next.id)
       document.body.dataset.signalWeather = next.id
       if (announcedRef.current !== next.id) {
         announcedRef.current = next.id
@@ -65,7 +71,27 @@ export default function EcosphereAmbience() {
       window.clearInterval(t)
       delete document.body.dataset.signalWeather
     }
-  }, [])
+  }, [setAtmosphere])
+
+  // ecosystem pulse: resonance + current page drive global CSS hooks
+  const resonance = ecosystemState.resonanceLevel
+  const currentPage = ecosystemState.currentPage
+  useEffect(() => {
+    document.body.style.setProperty('--eco-resonance', (resonance / 100).toFixed(3))
+    document.body.dataset.ecoPage = currentPage
+    return () => {
+      document.body.style.removeProperty('--eco-resonance')
+      delete document.body.dataset.ecoPage
+    }
+  }, [resonance, currentPage])
+
+  // rare ecosystem events surface globally, then fade
+  const rareEvent = ecosystemState.rareEvent
+  useEffect(() => {
+    if (!rareEvent) return
+    const t = window.setTimeout(() => setRareEvent(null), 8000)
+    return () => window.clearTimeout(t)
+  }, [rareEvent, setRareEvent])
 
   // presence pulses on a soft random cadence
   useEffect(() => {
@@ -121,19 +147,41 @@ export default function EcosphereAmbience() {
 
       <div className="eco-presence-chip" title={`signal weather: ${weather.label}`}>
         <span className="eco-presence-dot" aria-hidden="true" />
-        <span className="eco-presence-count">{listeners}</span>
+        <span className="eco-presence-count">{listeners + Math.round(ecosystemState.roomActivity / 10)}</span>
         <span className="eco-presence-label">listening · {weather.label}</span>
       </div>
 
-      {announcement && (
+      {ecosystemState.activeAudio && (
+        <div className="eco-now-playing" role="status">
+          <span className="eco-now-playing-bars" aria-hidden="true"><i /><i /><i /><i /></span>
+          <span className="eco-now-playing-label">{ecosystemState.activeAudio.label}</span>
+          {globalAudio.progress > 0 && (
+            <span className="eco-now-playing-progress" style={{ '--p': `${Math.round(globalAudio.progress * 100)}%` } as CSSProperties} />
+          )}
+        </div>
+      )}
+
+      {rareEvent && (
+        <div className="eco-ambient-toast eco-ambient-toast--rare" role="status" key={rareEvent}>
+          ✶ {rareEvent}
+        </div>
+      )}
+
+      {announcement && !rareEvent && (
         <div className="eco-ambient-toast eco-ambient-toast--weather" role="status" key={announcement}>
           ◍ {announcement}
         </div>
       )}
 
-      {presencePulse && !announcement && (
+      {presencePulse && !announcement && !rareEvent && (
         <div className="eco-ambient-toast" role="status" key={presencePulse}>
           <span className="eco-presence-dot" aria-hidden="true" /> {presencePulse}
+        </div>
+      )}
+
+      {globalAudio.notice && (
+        <div className="eco-ambient-toast eco-ambient-toast--notice" role="alert" key={globalAudio.notice}>
+          ⌁ {globalAudio.notice}
         </div>
       )}
     </>

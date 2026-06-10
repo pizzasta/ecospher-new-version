@@ -402,7 +402,7 @@ function readElementText(element: Element | null) {
 }
 
 function EcosystemLoopBridge() {
-  const { enterRoom, exploreDrift, playSignal, saveCapsule, unlockRelic, visitPage } = useEcosystemState()
+  const { enterRoom, exploreDrift, saveCapsule, unlockRelic, visitPage } = useEcosystemState()
 
   useEffect(() => {
     visitPage('home')
@@ -422,14 +422,6 @@ function EcosystemLoopBridge() {
           if (nextPage === 'drift') exploreDrift('opened drift field')
           if (nextPage === 'rooms') enterRoom('resonance-chambers')
         }
-        return
-      }
-
-      const playButton = target.closest('.waveform-play-btn')
-      if (playButton) {
-        const card = playButton.closest('.signal-card')
-        const label = readElementText(card ? card.querySelector('.card-handle') : null) || 'feed-signal'
-        playSignal(normalizeSignalName(label) || 'feed-signal', 6)
         return
       }
 
@@ -459,7 +451,7 @@ function EcosystemLoopBridge() {
 
     document.addEventListener('click', handleClick)
     return () => document.removeEventListener('click', handleClick)
-  }, [enterRoom, exploreDrift, playSignal, saveCapsule, unlockRelic, visitPage])
+  }, [enterRoom, exploreDrift, saveCapsule, unlockRelic, visitPage])
 
   return null
 }

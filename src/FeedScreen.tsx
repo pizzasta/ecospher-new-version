@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useEcosystemState } from './hooks/useEcosystemState'
+import { useGlobalAudio } from './hooks/useGlobalAudio'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SignalStatus = 'live' | 'fading' | 'drifting' | 'archiving' | 'corrupted' | 'resonating'
@@ -140,6 +142,12 @@ function useTypewriter(text: string, enabled: boolean, speed: number = 28): stri
   return displayed
 }
 
+function durationToMs(duration: string): number {
+  const [m, sec] = duration.split(':').map(Number)
+  const total = (Number.isFinite(m) ? m : 0) * 60 + (Number.isFinite(sec) ? sec : 0)
+  return Math.max(1500, total * 1000)
+}
+
 // ─── Waveform Card Component ──────────────────────────────────────────────────
 function WaveformBar({ height, active, color, animated, index }: {
   height: number; active: boolean; color: string; animated: boolean; index: number
@@ -278,12 +286,23 @@ function SignalReactionBar({ signalId, reactions, setReactions, reactionPop, set
 
 // ─── Signal Card Component ────────────────────────────────────────────────────
 function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
+  const { ecosystemState, saveSignal } = useEcosystemState()
+  const globalAudio = useGlobalAudio()
   const [visible, setVisible] = useState(false)
   const [waveformVisible, setWaveformVisible] = useState(false)
   const [textVisible, setTextVisible] = useState(false)
   const [hovered, setHovered] = useState(false)
-  const [playing, setPlaying] = useState(false)
   const [showExport, setShowExport] = useState(false)
+  const playing = globalAudio.current?.id === signal.id && globalAudio.playing
+  const wasReplayed = ecosystemState.playedSignals.includes(signal.id)
+
+  const togglePlay = () => {
+    if (playing) {
+      globalAudio.stop()
+    } else {
+      globalAudio.playSimulated({ id: signal.id, label: signal.handle, source: 'signals' }, durationToMs(signal.duration))
+    }
+  }
   const [reactions, setReactions] = useState<SignalReactions>(() => {
     try {
       const stored = localStorage.getItem('ecosphere_reactions_' + signal.id)
@@ -309,10 +328,12 @@ function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
   return (
     <>
       <div
-        className={`signal-card ${visible ? 'signal-card--visible' : ''} ${hovered ? 'signal-card--hovered' : ''} ${isCorrupted ? 'signal-card--corrupted' : ''} ${isFading ? 'signal-card--fading' : ''}`}
+        className={`signal-card ${visible ? 'signal-card--visible' : ''} ${hovered ? 'signal-card--hovered' : ''} ${isCorrupted ? 'signal-card--corrupted' : ''} ${isFading ? 'signal-card--fading' : ''} ${playing ? 'signal-card--playing' : ''} ${wasReplayed ? 'signal-card--replayed' : ''}`}
         style={{ '--mood-color': colors.primary, '--mood-glow': colors.glow, '--mood-dim': colors.dim, '--entry-delay': `${index * 350}ms` } as React.CSSProperties}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        onTouchStart={() => setHovered(true)}
+        onTouchEnd={() => setHovered(false)}
       >
         {/* Breathing neon edge */}
         <div className="card-neon-edge" style={{ boxShadow: `inset 0 0 0 1px ${hovered ? colors.glow : colors.dim}, 0 0 ${hovered ? '24px' : '8px'} ${hovered ? colors.glow : 'transparent'}` }} />
@@ -339,7 +360,7 @@ function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
           <button
             className={`waveform-play-btn ${playing ? 'waveform-play-btn--active' : ''}`}
             style={{ borderColor: colors.primary, color: colors.primary }}
-            onClick={() => setPlaying(p => !p)}
+            onClick={togglePlay}
           >
             {playing ? '▐▐' : '▶'}
           </button>
@@ -383,7 +404,14 @@ function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
 
         {/* Export action */}
         <div className={`card-export-row ${hovered ? 'card-export-row--visible' : ''}`}>
-          <button className="action-btn action-btn--export" style={{ '--btn-color': colors.primary } as React.CSSProperties} onClick={() => setShowExport(true)}>
+          <button
+            className="action-btn action-btn--export"
+            style={{ '--btn-color': colors.primary } as React.CSSProperties}
+            onClick={() => {
+              saveSignal(signal.id, signal.handle)
+              setShowExport(true)
+            }}
+          >
             <span>⬡</span> export signal
           </button>
         </div>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import FeedScreen from './FeedScreen'
 import { getOptionalSupabaseClient } from './lib'
+import { useEcosystemState } from './hooks/useEcosystemState'
 import UnsentRoom from './components/UnsentRoom'
 import RoomsScreenComponent from './components/RoomsScreen'
 import EcosphereAmbience from './components/EcosphereAmbience'
@@ -229,32 +230,6 @@ function AmbientLine({ lines, interval = 8500 }: { lines: readonly string[]; int
   )
 }
 
-type EcoSnapshot = {
-  resonanceLevel: number
-  driftActivity: number
-  unlockedRelics: string[]
-  savedCapsules: string[]
-  recentInteractions: { id: string; type: string; label: string; createdAt: string }[]
-}
-
-function readEcoSnapshot(): EcoSnapshot {
-  const fallback: EcoSnapshot = { resonanceLevel: 42, driftActivity: 18, unlockedRelics: [], savedCapsules: [], recentInteractions: [] }
-  try {
-    const raw = window.localStorage.getItem('ecosphere:EcosystemState')
-    if (!raw) return fallback
-    const p = JSON.parse(raw) as Partial<EcoSnapshot>
-    return {
-      resonanceLevel: Number(p.resonanceLevel) || fallback.resonanceLevel,
-      driftActivity: Number(p.driftActivity) || fallback.driftActivity,
-      unlockedRelics: Array.isArray(p.unlockedRelics) ? p.unlockedRelics : [],
-      savedCapsules: Array.isArray(p.savedCapsules) ? p.savedCapsules : [],
-      recentInteractions: Array.isArray(p.recentInteractions) ? p.recentInteractions : [],
-    }
-  } catch {
-    return fallback
-  }
-}
-
 function lpTimeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime()
   if (!Number.isFinite(ms) || ms < 0) return 'just now'
@@ -277,10 +252,13 @@ const OBS_EVENTS = [
 ] as const
 
 function HomeScreen() {
+  const { ecosystemState } = useEcosystemState()
   const [tick, setTick] = useState(0)
   useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 3000); return () => clearInterval(t) }, [])
+  const liveActivity = ecosystemState.recentInteractions.slice(0, 5).map(it => it.label)
+  const activityLines = liveActivity.length >= 2 ? liveActivity : OBS_EVENTS
   return (
-    <div className="screen home-screen">
+    <div className="screen home-screen" style={{ '--eco-glow': (ecosystemState.resonanceLevel / 100).toFixed(3) } as CSSProperties}>
       <div className="obs-grid" aria-hidden="true" />
       <div className="obs-sweep" aria-hidden="true" />
       <div className="home-kicker">ECOSPHERE · LIVE</div>
@@ -289,11 +267,11 @@ function HomeScreen() {
         <span className="title-glow-cyan">Observatory</span>
       </h1>
       <p className="home-sub">anonymous voice signals · replayed memories · emotional frequencies</p>
-      <AmbientLine lines={OBS_EVENTS} interval={7000} />
+      <AmbientLine lines={activityLines} interval={7000} />
 
       <div className="stat-row">
         <div className="stat-card glass">
-          <div className="stat-value pink">{87 + (tick % 3)}<span className="stat-unit">%</span></div>
+          <div className="stat-value pink">{Math.round(ecosystemState.resonanceLevel) + (tick % 2)}<span className="stat-unit">%</span></div>
           <div className="stat-label">resonance</div>
         </div>
         <div className="stat-card glass">
@@ -301,7 +279,7 @@ function HomeScreen() {
           <div className="stat-label">live threads</div>
         </div>
         <div className="stat-card glass">
-          <div className="stat-value violet">+14</div>
+          <div className="stat-value violet">+{Math.max(1, Math.round(ecosystemState.driftActivity / 4))}</div>
           <div className="stat-label">drift cycles</div>
         </div>
       </div>
@@ -351,6 +329,7 @@ const DRIFT_EVENTS = [
 ] as const
 
 function DriftScreen() {
+  const { discoverDrift, unlockRelic } = useEcosystemState()
   const [energy, setEnergy] = useState<Record<string, number>>({})
   const [offsets, setOffsets] = useState<Record<string, { dx: number; dy: number }>>({})
   const [found, setFound] = usePersistentState<string[]>('ecosphere:driftFound', [])
@@ -378,8 +357,15 @@ function DriftScreen() {
 
   const findHotspot = (h: DriftHotspot) => {
     if (found.includes(h.id)) return
-    setFound(f => [...f, h.id])
-    setPing('a hidden fragment surfaced from the fog')
+    const nextFound = [...found, h.id]
+    setFound(nextFound)
+    discoverDrift(h.id, h.fragment)
+    if (nextFound.length >= driftHotspots.length) {
+      unlockRelic('recovered-fragment', 'Recovered Fragment')
+      setPing('all traces recovered · a relic surfaced in the archive')
+    } else {
+      setPing('a hidden fragment surfaced from the fog')
+    }
   }
 
   return (
@@ -476,7 +462,9 @@ const CAPSULE_EVENTS = [
 
 function CapsulesScreen() {
   const typeGlyph: Record<string, string> = { voice: '◎', memory: '◐', echo: '◑' }
+  const { openCapsule: recordCapsuleOpen } = useEcosystemState()
   const [phases, setPhases] = useState<Record<string, CapsulePhase>>({})
+  const [preservation, setPreservation] = useState<Record<string, number>>({})
   const [shimmerId, setShimmerId] = useState<string | null>(null)
   const [formed, setFormed] = useState(false)
   const timersRef = useRef<number[]>([])
@@ -486,6 +474,15 @@ function CapsulesScreen() {
     const timers = timersRef.current
     return () => { timers.forEach(id => window.clearTimeout(id)) }
   }, [])
+
+  // preservation fields decay slowly while you watch
+  useEffect(() => {
+    setPreservation(Object.fromEntries(allCapsules.map((c, i) => [c.id, 92 - i * 11])))
+    const t = window.setInterval(() => {
+      setPreservation(prev => Object.fromEntries(Object.entries(prev).map(([k, v]) => [k, Math.max(24, v - 0.4)])))
+    }, 9000)
+    return () => window.clearInterval(t)
+  }, [allCapsules])
 
   // the unmarked capsule finishes forming after time spent on the page
   useEffect(() => {
@@ -504,6 +501,8 @@ function CapsulesScreen() {
   }, [allCapsules])
 
   const openCapsule = (id: string) => {
+    const capsule = allCapsules.find(c => c.id === id)
+    recordCapsuleOpen(id, capsule?.title)
     setPhases(p => ({ ...p, [id]: 'cracking' }))
     timersRef.current.push(window.setTimeout(() => setPhases(p => (p[id] === 'cracking' ? { ...p, [id]: 'leaking' } : p)), 850))
     timersRef.current.push(window.setTimeout(() => setPhases(p => (p[id] === 'leaking' ? { ...p, [id]: 'open' } : p)), 1950))
@@ -540,6 +539,11 @@ function CapsulesScreen() {
                 <div className="capsule-meta">
                   {isForming ? 'still forming · stay on this page' : `${c.feeling} · ${c.duration} · ${c.timestamp}`}
                 </div>
+                {!isForming && (
+                  <div className="lp-preservation" aria-hidden="true" title="preservation field">
+                    <i style={{ width: `${Math.round(preservation[c.id] ?? 70)}%` }} />
+                  </div>
+                )}
                 {phase === 'sealed' && !isForming && <div className="lp-capsule-hint">tap to break the seal</div>}
                 {phase === 'cracking' && <div className="lp-capsule-stage-note">seal cracking…</div>}
                 {phase === 'leaking' && <div className="lp-capsule-stage-note leak">light leaking through…</div>}
@@ -601,6 +605,7 @@ const HIDDEN_SHARD_THRESHOLD = 4
 
 function RelicsScreen() {
   const [selected, setSelected] = useState<Relic | null>(null)
+  const { archiveEntry, unlockRelic: unlockEcosystemRelic } = useEcosystemState()
   const [store, setStore] = usePersistentState<Record<string, RelicActivity>>('ecosphere:relicActivity', {})
   const [charge, setCharge] = useState<Record<string, number>>(() => Object.fromEntries(relics.map(r => [r.id, r.resonance])))
   const [stage, setStage] = useState(0)
@@ -705,7 +710,16 @@ function RelicsScreen() {
             )}
             {stage >= 3 && (
               <div className="lp-relic-actions">
-                <button className="lp-action lp-replay" onClick={() => updateActivity(selected.id, a => ({ ...a, replays: a.replays + 1 }))}>
+                <button
+                  className="lp-action lp-replay"
+                  onClick={() => {
+                    updateActivity(selected.id, a => {
+                      const next = { ...a, replays: a.replays + 1 }
+                      if (next.replays === 3) unlockEcosystemRelic(selected.id, selected.name)
+                      return next
+                    })
+                  }}
+                >
                   ▶ replay echo{selectedActivity.replays > 0 ? ` · ${selectedActivity.replays}` : ''}
                 </button>
                 {relicReactionDefs.map(rx => (
@@ -717,7 +731,13 @@ function RelicsScreen() {
                     {rx.glyph} {rx.label}{selectedActivity.reactions[rx.id] ? ` · ${selectedActivity.reactions[rx.id]}` : ''}
                   </button>
                 ))}
-                <button className={`lp-action lp-keep${selectedActivity.saved ? ' on' : ''}`} onClick={() => updateActivity(selected.id, a => ({ ...a, saved: !a.saved }))}>
+                <button
+                  className={`lp-action lp-keep${selectedActivity.saved ? ' on' : ''}`}
+                  onClick={() => {
+                    if (!selectedActivity.saved) archiveEntry('relic', selected.name)
+                    updateActivity(selected.id, a => ({ ...a, saved: !a.saved }))
+                  }}
+                >
                   {selectedActivity.saved ? '✶ kept in pod' : '✧ keep in pod'}
                 </button>
               </div>
@@ -1333,15 +1353,10 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [eco, setEco] = useState<EcoSnapshot>(() => readEcoSnapshot())
+  const { ecosystemState } = useEcosystemState()
+  const eco = ecosystemState
   const [podPulses, setPodPulses] = usePersistentState<number>('ecosphere:podPulses', 0)
   const [rippling, setRippling] = useState(false)
-
-  // the pod listens to ecosystem activity while you're here
-  useEffect(() => {
-    const t = window.setInterval(() => setEco(readEcoSnapshot()), 10000)
-    return () => window.clearInterval(t)
-  }, [])
 
   const podEnergy = Math.min(1, (eco.resonanceLevel + podPulses * 2) / 120)
   const podStage = podEnergy > 0.7 ? 'radiant' : podEnergy > 0.4 ? 'awake' : 'resting'
@@ -1462,12 +1477,23 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
         <div className="pod-orb-label">
           {podStage === 'radiant' ? 'radiant · it knows you' : podStage === 'awake' ? 'awake · gathering you' : 'resting · touch to wake'}
         </div>
+        <div className="lp-pod-signature" aria-label="your waveform signature">
+          <LpWaveform
+            seed={(eco.userSignalIdentity ?? 'signal').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 7)}
+            bars={30}
+            active={podStage !== 'resting'}
+            tint={podStage === 'radiant' ? 'cyan' : 'pink'}
+          />
+          <small>{eco.userSignalIdentity ? `signature · ${eco.userSignalIdentity}` : 'signature · unclaimed'}</small>
+        </div>
       </div>
       <div className="lp-pod-stats">
         {[
           { label: 'resonance', value: `${Math.round(eco.resonanceLevel)}%` },
           { label: 'drift trails', value: String(eco.driftActivity) },
           { label: 'relics held', value: String(eco.unlockedRelics.length) },
+          { label: 'signals kept', value: String(eco.savedSignals.length) },
+          { label: 'archive', value: String(eco.archiveHistory.length) },
           { label: 'pod touches', value: String(podPulses) },
         ].map(s => (
           <div key={s.label} className="lp-pod-stat glass">
@@ -1489,8 +1515,16 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
             <div className="pod-card-time">{item.time}</div>
           </div>
         ))}
+        {eco.listeningHistory.slice(0, 2).map((it, i) => (
+          <div key={`lh-${it.playedAt}`} className="pod-card glass lp-enter lp-pod-trace" style={{ '--idx': i + 3 } as CSSProperties}>
+            <div className="pod-card-type">Listening History</div>
+            <div className="pod-card-title">{it.label}</div>
+            <p className="pod-card-detail">a signal you let play all the way through.</p>
+            <div className="pod-card-time">{lpTimeAgo(it.playedAt)}</div>
+          </div>
+        ))}
         {eco.recentInteractions.slice(0, 4).map((it, i) => (
-          <div key={it.id} className="pod-card glass lp-enter lp-pod-trace" style={{ '--idx': i + 3 } as CSSProperties}>
+          <div key={it.id} className="pod-card glass lp-enter lp-pod-trace" style={{ '--idx': i + 5 } as CSSProperties}>
             <div className="pod-card-type">Emotional Trace</div>
             <div className="pod-card-title">{it.label}</div>
             <p className="pod-card-detail">the pod kept this moment as you moved through the ecosystem.</p>
@@ -1616,7 +1650,14 @@ function Nav({ active, onNav }: { active: Screen; onNav: (s: Screen) => void }) 
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [screen, setScreen] = useState<Screen>('home')
+  const [veilKey, setVeilKey] = useState(0)
   const [user, setUser] = useState<{ email?: string; id: string } | null>(null)
+
+  const navigate = (next: Screen) => {
+    if (next === screen) return
+    setScreen(next)
+    setVeilKey(k => k + 1)
+  }
 
   useEffect(() => {
     const supabase = getOptionalSupabaseClient()
@@ -1667,7 +1708,14 @@ export default function App() {
         {screenMap[screen]}
       </main>
 
-      <Nav active={screen} onNav={setScreen} />
+      <Nav active={screen} onNav={navigate} />
+
+      {/* cinematic route veil */}
+      {veilKey > 0 && (
+        <div className="eco-route-veil" key={veilKey} aria-hidden="true">
+          <span className="eco-route-veil-wave" />
+        </div>
+      )}
     </div>
   )
 }

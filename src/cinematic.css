@@ -302,3 +302,219 @@
     transition: none;
   }
 }
+
+/* ═══ CONNECTED ECOSYSTEM LAYER ══════════════════════════════ */
+
+/* resonance pulse: global bloom intensity follows --eco-resonance (0..1) */
+.atmosphere {
+  filter: brightness(calc(0.92 + var(--eco-resonance, 0.42) * 0.3));
+  transition: filter 2.4s ease;
+}
+
+.home-screen .home-title {
+  animation-duration: calc(8s - var(--eco-glow, 0.4) * 4s);
+}
+
+.home-screen .stat-card:first-child {
+  box-shadow: 0 0 calc(8px + var(--eco-glow, 0.4) * 26px) rgba(255, 45, 120, calc(var(--eco-glow, 0.4) * 0.22));
+  transition: box-shadow 1.8s ease;
+}
+
+/* ─── Route veil: waveform sweep between pages ───────────────── */
+.eco-route-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  background: rgba(2, 4, 14, 0.0);
+  animation: ecoVeilFade 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  overflow: hidden;
+}
+
+.eco-route-veil-wave {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -30%;
+  width: 30%;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 45, 120, 0.16) 0 2px, transparent 2px 7px),
+    linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.1), transparent);
+  filter: blur(1px);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 18% 82%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 18% 82%, transparent);
+  animation: ecoVeilSweep 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes ecoVeilFade {
+  0% { backdrop-filter: blur(0); }
+  35% { backdrop-filter: blur(3px); }
+  100% { backdrop-filter: blur(0); }
+}
+
+@keyframes ecoVeilSweep {
+  from { transform: translateX(0) scaleY(1.04); opacity: 0.9; }
+  to { transform: translateX(440%) scaleY(1); opacity: 0; }
+}
+
+/* ─── Global now-playing chip ────────────────────────────────── */
+.eco-now-playing {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 52vw;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(4, 6, 18, 0.72);
+  border: 1px solid rgba(255, 45, 120, 0.28);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 0 18px rgba(255, 45, 120, 0.14);
+  pointer-events: none;
+  overflow: hidden;
+  animation: ecoNowPlayingIn 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes ecoNowPlayingIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.eco-now-playing-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.eco-now-playing-bars i {
+  display: block;
+  width: 2.5px;
+  border-radius: 1px;
+  background: linear-gradient(to top, rgba(255, 45, 120, 0.5), #ff2d78);
+  animation: ecoEqBar 0.7s ease-in-out infinite alternate;
+}
+
+.eco-now-playing-bars i:nth-child(1) { height: 60%; animation-delay: 0s; }
+.eco-now-playing-bars i:nth-child(2) { height: 100%; animation-delay: 0.15s; }
+.eco-now-playing-bars i:nth-child(3) { height: 45%; animation-delay: 0.3s; }
+.eco-now-playing-bars i:nth-child(4) { height: 80%; animation-delay: 0.45s; }
+
+@keyframes ecoEqBar {
+  from { transform: scaleY(0.4); }
+  to { transform: scaleY(1.1); }
+}
+
+.eco-now-playing-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 200, 222, 0.92);
+  text-transform: lowercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eco-now-playing-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: var(--p, 0%);
+  background: linear-gradient(90deg, rgba(255, 45, 120, 0.8), rgba(0, 212, 255, 0.7));
+  transition: width 0.3s linear;
+}
+
+.eco-ambient-toast--rare {
+  border-color: rgba(255, 215, 130, 0.35);
+  color: rgba(255, 226, 170, 0.95);
+}
+
+.eco-ambient-toast--notice {
+  border-color: rgba(255, 90, 90, 0.35);
+  color: rgba(255, 170, 170, 0.95);
+}
+
+/* ─── Feed: playing + replay-activity card states ────────────── */
+.signal-card--playing {
+  border-color: var(--mood-glow, rgba(255, 45, 120, 0.4)) !important;
+  box-shadow: 0 0 32px var(--mood-dim, rgba(255, 45, 120, 0.1)), 0 14px 36px rgba(0, 0, 0, 0.4);
+}
+
+.signal-card--replayed .card-handle::after {
+  content: ' ↺';
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.signal-card--replayed .card-neon-edge {
+  box-shadow: inset 0 0 0 1px var(--mood-dim, rgba(255, 45, 120, 0.1)) !important;
+}
+
+/* ─── Drift: radar sweep + drifting trails ───────────────────── */
+.lp-drift-map::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: conic-gradient(from 0deg at 50% 50%, rgba(0, 212, 255, 0.06), transparent 14%);
+  animation: driftRadarSweep 9s linear infinite;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+@keyframes driftRadarSweep {
+  to { transform: rotate(360deg); }
+}
+
+.lp-drift-node .drift-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 45, 120, 0.25);
+  animation: driftTrailRing 3.4s ease-out infinite;
+}
+
+@keyframes driftTrailRing {
+  from { opacity: 0.7; transform: scale(0.6); }
+  to { opacity: 0; transform: scale(2.6); }
+}
+
+/* ─── Soul Pod: waveform signature ───────────────────────────── */
+.lp-pod-signature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.lp-pod-signature .lp-wave {
+  width: min(70vw, 230px);
+  height: 24px;
+  margin: 0;
+}
+
+.lp-pod-signature small {
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim, rgba(140, 155, 195, 0.5));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eco-route-veil,
+  .eco-route-veil-wave,
+  .eco-now-playing,
+  .eco-now-playing-bars i,
+  .lp-drift-map::after,
+  .lp-drift-node .drift-pulse::after {
+    animation: none;
+  }
+}

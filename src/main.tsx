@@ -13,14 +13,20 @@ import App from './App'
 import IntroGate from './components/IntroGate'
 import PageTransitionFlow from './components/PageTransitionFlow'
 import SignalErrorBoundary from './components/SignalErrorBoundary'
+import { EcosystemProvider } from './hooks/useEcosystemState'
+import { GlobalAudioProvider } from './hooks/useGlobalAudio'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <SignalErrorBoundary>
-      <IntroGate>
-        <PageTransitionFlow />
-        <App />
-      </IntroGate>
+      <EcosystemProvider>
+        <GlobalAudioProvider>
+          <IntroGate>
+            <PageTransitionFlow />
+            <App />
+          </IntroGate>
+        </GlobalAudioProvider>
+      </EcosystemProvider>
     </SignalErrorBoundary>
   </React.StrictMode>,
 )

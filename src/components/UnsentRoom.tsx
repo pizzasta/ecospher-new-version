@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useGlobalAudio } from '../hooks/useGlobalAudio';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -520,9 +521,10 @@ const soundEngine = new AtmosphericSound();
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export const UnsentRoom: React.FC = () => {
+  const globalAudio = useGlobalAudio();
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [signals, setSignals] = useState<UnsentSignal[]>([]);
-  const [playingId, setPlayingId] = useState<string | null>(null);
+  const playingId = globalAudio.current?.source === 'unsent' && globalAudio.playing ? globalAudio.current.id : null;
   const [whispers, setWhispers] = useState<WhisperMessage[]>([]);
   const [filter, setFilter] = useState<FilterMode>('all');
   const [exportTarget, setExportTarget] = useState<UnsentSignal | null>(null);
@@ -536,7 +538,6 @@ export const UnsentRoom: React.FC = () => {
   const chunksRef = useRef<Blob[]>([]);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const whisperTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const decayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -625,10 +626,6 @@ export const UnsentRoom: React.FC = () => {
       } catch { /* already stopped */ }
       streamRef.current?.getTracks().forEach(t => t.stop());
       audioCtxRef.current?.close().catch(() => { /* already closed */ });
-      if (audioPlayerRef.current) {
-        audioPlayerRef.current.pause();
-        audioPlayerRef.current = null;
-      }
       soundEngine.stopHiss();
     };
   }, []);
@@ -716,37 +713,27 @@ export const UnsentRoom: React.FC = () => {
     audioCtxRef.current?.close();
   }, [recordingState, recordStart, soundEnabled, showWhisper]);
 
-  // ── Playback ─────────────────────────────────────────────────────────────────
+  // ── Playback (one global audio source) ──────────────────────────────────────
   const handlePlay = useCallback((id: string) => {
     if (playingId === id) {
-      audioPlayerRef.current?.pause();
-      setPlayingId(null);
+      globalAudio.stop();
       return;
     }
 
     const signal = signals.find(s => s.id === id);
-    if (!signal?.blob) {
-      // Demo mode — just simulate playback
-      setPlayingId(id);
-      setSignals(prev => prev.map(s => s.id === id ? { ...s, replayCount: s.replayCount + 1 } : s));
-      if (soundEnabled) soundEngine.playResonancePulse();
-      setTimeout(() => setPlayingId(null), signal?.duration ?? 3000);
-      return;
-    }
+    if (!signal) return;
 
-    // only one signal plays at a time
-    audioPlayerRef.current?.pause();
-
-    const url = URL.createObjectURL(signal.blob);
-    const audio = new Audio(url);
-    audioPlayerRef.current = audio;
-    audio.onended = () => { setPlayingId(null); URL.revokeObjectURL(url); };
-    audio.onerror = () => { setPlayingId(null); URL.revokeObjectURL(url); };
-    audio.play().catch(() => setPlayingId(null));
-    setPlayingId(id);
     setSignals(prev => prev.map(s => s.id === id ? { ...s, replayCount: s.replayCount + 1 } : s));
     if (soundEnabled) soundEngine.playResonancePulse();
-  }, [playingId, signals, soundEnabled]);
+
+    const meta = { id, label: `signal ${signal.signalId}`, source: 'unsent' as const };
+    if (!signal.blob) {
+      // demo fragments have no real audio — simulate the replay
+      globalAudio.playSimulated(meta, signal.duration || 3000);
+      return;
+    }
+    void globalAudio.playBlob(signal.blob, meta);
+  }, [playingId, signals, soundEnabled, globalAudio]);
 
   // ── Actions ──────────────────────────────────────────────────────────────────
   const handleSave = useCallback((id: string) => {
