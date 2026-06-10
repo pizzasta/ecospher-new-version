@@ -266,6 +266,7 @@ const OBS_EVENTS = [
 
 function HomeScreen() {
   const { ecosystemState } = useEcosystemState()
+  const nowPlaying = ecosystemState.activeAudio
   const [tick, setTick] = useState(0)
   useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 3000); return () => clearInterval(t) }, [])
   const liveActivity = ecosystemState.recentInteractions.slice(0, 5).map(it => it.label)
@@ -296,6 +297,14 @@ function HomeScreen() {
           <div className="stat-label">drift cycles</div>
         </div>
       </div>
+
+      {nowPlaying && (
+        <div className="obs-now-replaying glass">
+          <span className="obs-now-bars" aria-hidden="true"><i /><i /><i /><i /></span>
+          <span className="obs-now-label">currently replaying · {nowPlaying.label}</span>
+          <span className="obs-now-source">{nowPlaying.source}</span>
+        </div>
+      )}
 
       <div className="section-head">
         <span className="section-kicker">recent signals</span>
@@ -817,7 +826,51 @@ function RelicsScreen() {
   )
 }
 
+const ZONE_EVENTS = [
+  'corruption levels drifting',
+  'a dormant zone exhaled static',
+  'faint carrier traced, then lost',
+  'the silence has a shape tonight',
+  'recovery window narrowing',
+] as const
+
+const zoneFragments: Record<string, string> = {
+  z1: 'recovered: half a sentence about a window left open',
+  z2: 'recovered: laughter, badly degraded, unmistakably real',
+  z3: 'recovered: a hummed melody nobody has claimed',
+  z4: 'recovered: four seconds of someone deciding not to speak',
+}
+
 function DeadZonesScreen() {
+  const { saveToLibrary } = useEcosystemState()
+  const zoneAudio = useGlobalAudio()
+  const [corruption, setCorruption] = useState<Record<string, number>>(() => Object.fromEntries(deadZones.map(z => [z.id, z.corruption])))
+  const [recovered, setRecovered] = usePersistentState<string[]>('ecosphere:zoneFragments', [])
+  const [listening, setListening] = useState<string | null>(null)
+
+  // corruption breathes while you watch
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      setCorruption(prev => Object.fromEntries(
+        Object.entries(prev).map(([k, v]) => [k, Math.max(20, Math.min(96, v + (Math.random() - 0.5) * 5))]),
+      ))
+    }, 4000)
+    return () => window.clearInterval(t)
+  }, [])
+
+  const listenInto = (zoneId: string, name: string) => {
+    setListening(zoneId)
+    zoneAudio.playSimulated({ id: `zone-${zoneId}`, label: `static from ${name.toLowerCase()}`, source: 'zones' }, 4500)
+    window.setTimeout(() => setListening(l => (l === zoneId ? null : l)), 4500)
+    // listening into a zone can shake a fragment loose
+    if (!recovered.includes(zoneId) && Math.random() > 0.35) {
+      window.setTimeout(() => {
+        setRecovered(r => (r.includes(zoneId) ? r : [...r, zoneId]))
+        saveToLibrary('drift', `zone-${zoneId}`, zoneFragments[zoneId] ?? 'recovered fragment')
+      }, 3200)
+    }
+  }
+
   return (
     <div className="screen">
       <div className="screen-header">
@@ -825,20 +878,45 @@ function DeadZonesScreen() {
         <h2 className="screen-title">Absent Carriers</h2>
         <p className="screen-sub">places the signal stopped returning from</p>
       </div>
+      <AmbientLine lines={ZONE_EVENTS} />
       <div className="zones-list">
-        {deadZones.map(z => (
-          <div key={z.id} className="zone-card glass">
-            <div className="zone-header">
-              <span className="zone-name">{z.name}</span>
-              <span className={`badge ${z.status === 'corrupted' ? 'badge-red' : z.status === 'recoverable' ? 'badge-cyan' : 'badge-grey'}`}>{z.status}</span>
+        {deadZones.map((z, i) => {
+          const level = Math.round(corruption[z.id] ?? z.corruption)
+          const isListening = listening === z.id
+          const hasFragment = recovered.includes(z.id)
+          return (
+            <div
+              key={z.id}
+              role="button"
+              tabIndex={0}
+              className={`zone-card glass lp-card lp-enter${isListening ? ' zone-card--listening' : ''}${hasFragment ? ' zone-card--recovered' : ''}`}
+              style={{ '--idx': i, '--zone-corruption': (level / 100).toFixed(2) } as CSSProperties}
+              onClick={() => { if (!isListening) listenInto(z.id, z.name) }}
+              onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !isListening) { e.preventDefault(); listenInto(z.id, z.name) } }}
+            >
+              <div className="zone-header">
+                <span className="zone-name">{z.name}</span>
+                <span className={`badge ${z.status === 'corrupted' ? 'badge-red' : z.status === 'recoverable' ? 'badge-cyan' : 'badge-grey'}`}>
+                  {hasFragment ? 'fragment recovered' : z.status}
+                </span>
+              </div>
+              <p className="zone-desc">{z.description}</p>
+              {isListening && (
+                <div className="zone-listening">
+                  <LpWaveform seed={z.id.charCodeAt(1) * 53} bars={28} active tint="violet" />
+                  <small>listening into the void…</small>
+                </div>
+              )}
+              {hasFragment && !isListening && (
+                <p className="zone-fragment">{zoneFragments[z.id]}</p>
+              )}
+              <div className="zone-footer">
+                <span className="zone-last">{isListening ? 'receiving…' : `last signal: ${z.lastSignal} · corruption ${level}%`}</span>
+                <SignalBar value={level} color="violet" />
+              </div>
             </div>
-            <p className="zone-desc">{z.description}</p>
-            <div className="zone-footer">
-              <span className="zone-last">last signal: {z.lastSignal}</span>
-              <SignalBar value={z.corruption} color="violet" />
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
@@ -1699,15 +1777,75 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
   )
 }
 
+const ANOMALY_EVENTS = [
+  'spectrum holding steady',
+  'a low pattern repeated twice',
+  'containment fields nominal',
+  'something brushed the outer band',
+  'the floor hum changed key',
+] as const
+
+const anomalyReadouts: Record<string, string[]> = {
+  'Pulse Spike': ['tracing the surge to its origin…', 'origin: a replay played 11 times in a row', 'verdict: not a malfunction. somebody needed that one.'],
+  'Unknown Transmission': ['isolating the repeating carrier…', 'pattern matches no registered signal', 'it stops when observed. resuming watch.'],
+  'Memory Flicker': ['sampling unstable phases…', 'the flicker syncs with drift activity', 'memories hold better when someone is listening.'],
+  'Dead Zone Movement': ['re-mapping zone boundary…', 'the zone moved toward the observatory', 'it may simply want to be found.'],
+  'Echo Loop': ['measuring loop decay…', 'echo amplitude falling 2% per cycle', 'verdict: let it fade on its own terms.'],
+  'Resonance Overflow': ['containment cannot hold this much feeling…', 'overflow is harmless. overflow is the point.', 'verdict: keep going.'],
+}
+
 function AnomaliesScreen() {
-  const items = [
+  const { ecosystemState, setRareEvent } = useEcosystemState()
+  const [strengths, setStrengths] = useState<Record<string, number>>({})
+  const [investigating, setInvestigating] = useState<string | null>(null)
+  const [readoutStep, setReadoutStep] = useState(0)
+  const [contained, setContained] = usePersistentState<string[]>('ecosphere:containedAnomalies', [])
+
+  const baseItems = useMemo(() => [
     { name: 'Pulse Spike', severity: 'critical', detected: 'now', strength: 97, desc: 'A sudden resonance surge fractured the local signal layer.' },
     { name: 'Unknown Transmission', severity: 'unknown', detected: '3 min ago', strength: 82, desc: 'An unidentified carrier is repeating beneath the observatory floor.' },
     { name: 'Memory Flicker', severity: 'elevated', detected: '11 min ago', strength: 69, desc: 'Recovered memories are blinking in and out of stable phase.' },
     { name: 'Dead Zone Movement', severity: 'unstable', detected: '26 min ago', strength: 58, desc: 'A dormant zone drifted outside its mapped boundary.' },
     { name: 'Echo Loop', severity: 'low', detected: '44 min ago', strength: 44, desc: 'A repeating echo pattern softened into a low-priority cycle.' },
-  ]
+  ], [])
+
+  // high resonance manifests its own anomaly — the ecosystem talking back
+  const items = useMemo(() => (
+    ecosystemState.resonanceLevel >= 85
+      ? [{ name: 'Resonance Overflow', severity: 'critical', detected: 'live', strength: Math.round(ecosystemState.resonanceLevel), desc: 'Your activity has pushed local resonance beyond mapped levels.' }, ...baseItems]
+      : baseItems
+  ), [baseItems, ecosystemState.resonanceLevel])
+
+  // strengths drift while the page is open
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      setStrengths(prev => Object.fromEntries(
+        items.map(a => {
+          const cur = prev[a.name] ?? a.strength
+          return [a.name, Math.max(20, Math.min(99, cur + (Math.random() - 0.5) * 6))]
+        }),
+      ))
+    }, 3500)
+    return () => window.clearInterval(t)
+  }, [items])
+
+  // investigation readout reveals line by line
+  useEffect(() => {
+    if (!investigating) { setReadoutStep(0); return }
+    setReadoutStep(1)
+    const lines = anomalyReadouts[investigating]?.length ?? 0
+    const timers = Array.from({ length: lines - 1 }, (_, i) =>
+      window.setTimeout(() => setReadoutStep(i + 2), (i + 1) * 1100),
+    )
+    const done = window.setTimeout(() => {
+      setContained(c => (c.includes(investigating) ? c : [...c, investigating]))
+      if (investigating === 'Resonance Overflow') setRareEvent('resonance overflow contained · barely')
+    }, lines * 1100 + 600)
+    return () => { timers.forEach(t => window.clearTimeout(t)); window.clearTimeout(done) }
+  }, [investigating, setContained, setRareEvent])
+
   const sevColor: Record<string, string> = { critical: 'badge-red', unknown: 'badge-grey', elevated: 'badge-violet', unstable: 'badge-pink', low: 'badge-cyan' }
+
   return (
     <div className="screen">
       <div className="screen-header">
@@ -1715,20 +1853,43 @@ function AnomaliesScreen() {
         <h2 className="screen-title">Anomalies</h2>
         <p className="screen-sub">irregularities in the emotional spectrum</p>
       </div>
+      <AmbientLine lines={ANOMALY_EVENTS} />
       <div className="anomaly-list">
-        {items.map(a => (
-          <div key={a.name} className="anomaly-card glass">
-            <div className="anomaly-header">
-              <span className="anomaly-name">{a.name}</span>
-              <span className={`badge ${sevColor[a.severity]}`}>{a.severity}</span>
+        {items.map((a, i) => {
+          const live = Math.round(strengths[a.name] ?? a.strength)
+          const isOpen = investigating === a.name
+          const isContained = contained.includes(a.name)
+          const lines = anomalyReadouts[a.name] ?? []
+          return (
+            <div
+              key={a.name}
+              role="button"
+              tabIndex={0}
+              className={`anomaly-card glass lp-card lp-enter anomaly--${a.severity}${isOpen ? ' anomaly--open' : ''}${isContained ? ' anomaly--contained' : ''}`}
+              style={{ '--idx': i } as CSSProperties}
+              onClick={() => setInvestigating(cur => (cur === a.name ? null : a.name))}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setInvestigating(cur => (cur === a.name ? null : a.name)) } }}
+            >
+              <div className="anomaly-header">
+                <span className="anomaly-name">{a.name}</span>
+                <span className={`badge ${isContained ? 'badge-cyan' : sevColor[a.severity]}`}>{isContained ? 'contained' : a.severity}</span>
+              </div>
+              <p className="anomaly-desc">{a.desc}</p>
+              {!isOpen && !isContained && <div className="anomaly-hint">tap to investigate</div>}
+              {isOpen && (
+                <div className="anomaly-readout">
+                  {lines.slice(0, readoutStep).map(line => (
+                    <p key={line} className="lp-frag">{line}</p>
+                  ))}
+                </div>
+              )}
+              <div className="anomaly-footer">
+                <span className="anomaly-detected">{a.detected}</span>
+                <SignalBar value={live} color={a.severity === 'critical' ? 'pink' : a.severity === 'elevated' ? 'violet' : 'cyan'} />
+              </div>
             </div>
-            <p className="anomaly-desc">{a.desc}</p>
-            <div className="anomaly-footer">
-              <span className="anomaly-detected">{a.detected}</span>
-              <SignalBar value={a.strength} color={a.severity === 'critical' ? 'pink' : a.severity === 'elevated' ? 'violet' : 'cyan'} />
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

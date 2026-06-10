@@ -902,3 +902,157 @@
     animation: none;
   }
 }
+
+/* ─── Dead Zones: listenable voids ───────────────────────────── */
+.zone-card {
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.zone-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(155, 93, 229, calc(var(--zone-corruption, 0.5) * 0.05)) 3px 4px);
+}
+
+.zone-card--listening {
+  border-color: rgba(155, 93, 229, 0.5);
+  box-shadow: 0 0 26px rgba(155, 93, 229, 0.16);
+}
+
+.zone-card--recovered {
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+.zone-listening {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 6px 0;
+}
+
+.zone-listening small {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(200, 160, 255, 0.7);
+  animation: lpAmbientDot 1.6s ease-in-out infinite;
+}
+
+.zone-fragment {
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.5;
+  color: #67e8f9;
+  margin: 6px 0;
+  animation: lpMemoryReveal 0.9s ease both;
+}
+
+/* ─── Anomalies: investigations ──────────────────────────────── */
+.anomaly-card {
+  cursor: pointer;
+  position: relative;
+}
+
+.anomaly--critical:not(.anomaly--contained) {
+  animation: anomalyCriticalPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes anomalyCriticalPulse {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: 0 0 22px rgba(255, 45, 120, 0.16), inset 0 0 14px rgba(255, 45, 120, 0.05); }
+}
+
+.anomaly--open {
+  border-color: rgba(255, 45, 120, 0.4);
+}
+
+.anomaly--contained {
+  opacity: 0.78;
+  border-color: rgba(0, 212, 255, 0.25);
+}
+
+.anomaly-hint {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: rgba(255, 130, 180, 0.6);
+  margin: 4px 0;
+}
+
+.anomaly-readout {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-left: 2px solid rgba(255, 45, 120, 0.35);
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 0 8px 8px 0;
+}
+
+.anomaly-readout .lp-frag {
+  font-size: 11px;
+  animation-delay: 0s;
+}
+
+/* ─── Observatory: currently replaying ───────────────────────── */
+.obs-now-replaying {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-color: rgba(255, 45, 120, 0.3);
+  animation: lpAmbientIn 0.4s ease both;
+}
+
+.obs-now-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.obs-now-bars i {
+  display: block;
+  width: 2.5px;
+  border-radius: 1px;
+  background: linear-gradient(to top, rgba(255, 45, 120, 0.5), #ff2d78);
+  animation: lpWaveBar 0.6s ease-in-out infinite alternate;
+}
+
+.obs-now-bars i:nth-child(1) { height: 55%; }
+.obs-now-bars i:nth-child(2) { height: 100%; animation-delay: 0.12s; }
+.obs-now-bars i:nth-child(3) { height: 45%; animation-delay: 0.24s; }
+.obs-now-bars i:nth-child(4) { height: 80%; animation-delay: 0.36s; }
+
+.obs-now-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--text-primary, #f0f4ff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: lowercase;
+}
+
+.obs-now-source {
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim, rgba(140, 155, 195, 0.5));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zone-listening small,
+  .anomaly--critical:not(.anomaly--contained),
+  .obs-now-bars i {
+    animation: none;
+  }
+}
