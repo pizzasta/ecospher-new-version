@@ -251,7 +251,7 @@ function SignalReactionBar({ signalId, reactions, setReactions, reactionPop, set
   const toggle = (type: ReactionType) => {
     setReactions(prev => {
       const next = { ...prev, [type]: !prev[type] }
-      try { localStorage.setItem('ecosphere_reactions_' + signalId, JSON.stringify(next)) } catch {}
+      try { localStorage.setItem('ecosphere_reactions_' + signalId, JSON.stringify(next)) } catch { /* storage unavailable */ }
       return next
     })
     setReactionPop(type)

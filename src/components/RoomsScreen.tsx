@@ -709,7 +709,7 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
       }
     }, 7000)
     return () => clearInterval(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [room.id])
 
   // fake playback timer
@@ -739,7 +739,7 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
       setRecElapsed(next)
     }, 250)
     return () => clearInterval(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [recStatus])
 
   // cleanup on unmount: stop mic + any real audio

@@ -12,12 +12,15 @@ import './capsules.css'
 import App from './App'
 import IntroGate from './components/IntroGate'
 import PageTransitionFlow from './components/PageTransitionFlow'
+import SignalErrorBoundary from './components/SignalErrorBoundary'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <IntroGate>
-      <PageTransitionFlow />
-      <App />
-    </IntroGate>
+    <SignalErrorBoundary>
+      <IntroGate>
+        <PageTransitionFlow />
+        <App />
+      </IntroGate>
+    </SignalErrorBoundary>
   </React.StrictMode>,
 )

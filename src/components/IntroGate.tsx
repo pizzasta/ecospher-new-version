@@ -10,6 +10,31 @@ const introSeenStorageKey = 'introSeen'
 const signalIdentityStorageKey = 'signalIdentity'
 const signalProfileStorageKey = 'ecosphereSignalProfile'
 
+// localStorage can throw in some privacy modes — never let that break boot
+function safeStorageGet(key: string) {
+  try {
+    return window.localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function safeStorageSet(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value)
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+function safeStorageRemove(key: string) {
+  try {
+    window.localStorage.removeItem(key)
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 const maxSignalNameLength = 24
 
 const mundaneObjects = [
@@ -441,8 +466,8 @@ function EcosystemLoopBridge() {
 
 export default function IntroGate({ children }: { children: ReactNode }) {
   const [landingEntered, setLandingEntered] = useState(false)
-  const [introSeen, setIntroSeen] = useState(() => window.localStorage.getItem(introSeenStorageKey) === 'true')
-  const [signalIdentity, setSignalIdentity] = useState(() => window.localStorage.getItem(signalIdentityStorageKey) ?? '')
+  const [introSeen, setIntroSeen] = useState(() => safeStorageGet(introSeenStorageKey) === 'true')
+  const [signalIdentity, setSignalIdentity] = useState(() => safeStorageGet(signalIdentityStorageKey) ?? '')
 
   useEffect(() => {
     if (signalIdentity) {
@@ -451,7 +476,7 @@ export default function IntroGate({ children }: { children: ReactNode }) {
   }, [signalIdentity])
 
   const completeIntro = () => {
-    window.localStorage.setItem(introSeenStorageKey, 'true')
+    safeStorageSet(introSeenStorageKey, 'true')
     setIntroSeen(true)
   }
 
@@ -463,16 +488,16 @@ export default function IntroGate({ children }: { children: ReactNode }) {
       onboardingComplete: true,
     }
 
-    window.localStorage.setItem(signalIdentityStorageKey, nextSignalIdentity)
-    window.localStorage.setItem(signalProfileStorageKey, JSON.stringify(nextProfile))
+    safeStorageSet(signalIdentityStorageKey, nextSignalIdentity)
+    safeStorageSet(signalProfileStorageKey, JSON.stringify(nextProfile))
     setSignalIdentity(nextSignalIdentity)
     void syncProfile(nextSignalIdentity, signalCore)
   }
 
   const resetIntroForTesting = () => {
-    window.localStorage.removeItem(introSeenStorageKey)
-    window.localStorage.removeItem(signalIdentityStorageKey)
-    window.localStorage.removeItem(signalProfileStorageKey)
+    safeStorageRemove(introSeenStorageKey)
+    safeStorageRemove(signalIdentityStorageKey)
+    safeStorageRemove(signalProfileStorageKey)
     window.location.reload()
   }
 

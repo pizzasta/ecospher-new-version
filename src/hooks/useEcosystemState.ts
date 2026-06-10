@@ -84,7 +84,12 @@ function readStoredState(): EcosystemState {
     return defaultEcosystemState
   }
 
-  const storedIdentity = window.localStorage.getItem(signalIdentityStorageKey)
+  let storedIdentity: string | null = null
+  try {
+    storedIdentity = window.localStorage.getItem(signalIdentityStorageKey)
+  } catch {
+    return defaultEcosystemState
+  }
 
   try {
     const stored = window.localStorage.getItem(ecosystemStateStorageKey)
@@ -105,7 +110,9 @@ function readStoredState(): EcosystemState {
       recentInteractions: Array.isArray(parsed.recentInteractions) ? parsed.recentInteractions.slice(0, maxRecentInteractions) : [],
     }
   } catch {
-    window.localStorage.removeItem(ecosystemStateStorageKey)
+    try {
+      window.localStorage.removeItem(ecosystemStateStorageKey)
+    } catch { /* storage unavailable */ }
     return { ...defaultEcosystemState, userSignalIdentity: storedIdentity }
   }
 }
@@ -114,7 +121,9 @@ export function useEcosystemState() {
   const [state, setState] = useState<EcosystemState>(readStoredState)
 
   useEffect(() => {
-    window.localStorage.setItem(ecosystemStateStorageKey, JSON.stringify(state))
+    try {
+      window.localStorage.setItem(ecosystemStateStorageKey, JSON.stringify(state))
+    } catch { /* storage unavailable */ }
   }, [state])
 
   const updateState = useCallback((updater: (current: EcosystemState) => EcosystemState) => {

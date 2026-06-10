@@ -158,7 +158,8 @@ const LiveWaveform: React.FC<{ analyser: AnalyserNode | null; active: boolean }>
         ctx.lineWidth = 1.5;
         for (let x = 0; x < W; x++) {
           const y = H / 2 + Math.sin(x / 22 + t) * 8 * Math.sin(t * 0.4);
-          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
         }
         ctx.stroke();
         return;
@@ -187,7 +188,8 @@ const LiveWaveform: React.FC<{ analyser: AnalyserNode | null; active: boolean }>
       for (let i = 0; i < buf.length; i++) {
         const v = buf[i] / 128.0;
         const y = (v * H) / 2;
-        i === 0 ? ctx.moveTo(i * sliceW, y) : ctx.lineTo(i * sliceW, y);
+        if (i === 0) ctx.moveTo(i * sliceW, y);
+        else ctx.lineTo(i * sliceW, y);
       }
       ctx.stroke();
     };
@@ -455,11 +457,13 @@ class AtmosphericSound {
 
   init() {
     try {
-      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      this.ctx = new AudioCtx();
       this.gainNode = this.ctx.createGain();
       this.gainNode.gain.value = 0.04;
       this.gainNode.connect(this.ctx.destination);
-    } catch {}
+    } catch { /* audio unavailable */ }
   }
 
   startHiss() {
@@ -479,11 +483,11 @@ class AtmosphericSound {
       this.hissNode.connect(filter);
       filter.connect(this.gainNode);
       this.hissNode.start();
-    } catch {}
+    } catch { /* audio unavailable */ }
   }
 
   stopHiss() {
-    try { this.hissNode?.stop(); this.hissNode = null; } catch {}
+    try { this.hissNode?.stop(); this.hissNode = null; } catch { /* audio unavailable */ }
   }
 
   playResonancePulse() {
@@ -499,7 +503,7 @@ class AtmosphericSound {
       gain.connect(this.ctx.destination);
       osc.start();
       osc.stop(this.ctx.currentTime + 1.2);
-    } catch {}
+    } catch { /* audio unavailable */ }
   }
 
   setVolume(v: number) {
@@ -610,6 +614,25 @@ export const UnsentRoom: React.FC = () => {
     return () => { if (whisperTimerRef.current) clearTimeout(whisperTimerRef.current); };
   }, [showWhisper]);
 
+  // ── Cleanup on unmount: stop mic, playback, and ambient audio ────────────────
+  useEffect(() => {
+    return () => {
+      try {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.onstop = null;
+          mediaRecorderRef.current.stop();
+        }
+      } catch { /* already stopped */ }
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      audioCtxRef.current?.close().catch(() => { /* already closed */ });
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+        audioPlayerRef.current = null;
+      }
+      soundEngine.stopHiss();
+    };
+  }, []);
+
   // ── Signal decay ─────────────────────────────────────────────────────────────
   useEffect(() => {
     decayTimerRef.current = setInterval(() => {
@@ -649,8 +672,9 @@ export const UnsentRoom: React.FC = () => {
       setRecordingState('recording');
 
       if (soundEnabled) { soundEngine.resume(); soundEngine.startHiss(); }
-    } catch (err: any) {
-      setPermissionError(err?.message?.includes('denied')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      setPermissionError(/denied|permission/i.test(message)
         ? 'Microphone access denied. Enable in browser settings.'
         : 'Could not access microphone.');
     }
@@ -710,11 +734,15 @@ export const UnsentRoom: React.FC = () => {
       return;
     }
 
+    // only one signal plays at a time
+    audioPlayerRef.current?.pause();
+
     const url = URL.createObjectURL(signal.blob);
     const audio = new Audio(url);
     audioPlayerRef.current = audio;
-    audio.onended = () => setPlayingId(null);
-    audio.play();
+    audio.onended = () => { setPlayingId(null); URL.revokeObjectURL(url); };
+    audio.onerror = () => { setPlayingId(null); URL.revokeObjectURL(url); };
+    audio.play().catch(() => setPlayingId(null));
     setPlayingId(id);
     setSignals(prev => prev.map(s => s.id === id ? { ...s, replayCount: s.replayCount + 1 } : s));
     if (soundEnabled) soundEngine.playResonancePulse();

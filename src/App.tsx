@@ -1,20 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { CSSProperties, ReactNode } from 'react'
-import type { User } from '@supabase/supabase-js'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import FeedScreen from './FeedScreen'
-import IntroSequence from './components/IntroSequence'
-import {
-  AtmosphereBackground,
-  CategoryTabs,
-  CinematicHeader,
-  FloatingDock,
-  LivePulseIndicator,
-  SignalMeter,
-  SimpleMeter,
-  StatusBadge,
-  WaveformPreview,
-} from './design-system'
-import { createSignedAudioUrl, getOptionalSupabaseClient, getStorageBucket, isSupabaseConfigured, supabaseEnv } from './lib'
+import { getOptionalSupabaseClient } from './lib'
 import UnsentRoom from './components/UnsentRoom'
 import RoomsScreenComponent from './components/RoomsScreen'
 import EcosphereAmbience from './components/EcosphereAmbience'
@@ -47,15 +34,6 @@ type Capsule = {
   status: 'saved' | 'archived' | 'private'
 }
 
-type Room = {
-  id: string
-  name: string
-  mood: string
-  listeners: number
-  status: 'live' | 'quiet' | 'tuning'
-  frequency: string
-  description: string
-}
 
 type DeadZone = {
   id: string
@@ -84,12 +62,6 @@ const signals: SignalThread[] = [
   { id: 's5', handle: 'anonymous_0:48', time: '1 hr ago', content: "the ecosystem held the channel open. like it was waiting for something i hadn't said yet.", mood: 'bloom', resonance: 91, anonymous: true },
 ]
 
-const rooms: Room[] = [
-  { id: 'r1', name: 'Late Night Room', mood: 'nocturne', listeners: 128, status: 'live', frequency: '88.1 Hz', description: 'A warm after-hours chamber for low voices and soft signals.' },
-  { id: 'r2', name: 'Calm Frequency', mood: 'soft focus', listeners: 246, status: 'live', frequency: '72.4 Hz', description: 'Steady resonance for long immersion and inward attention.' },
-  { id: 'r3', name: 'Static Bloom', mood: 'charged', listeners: 71, status: 'tuning', frequency: '101.6 Hz', description: 'A flickering chamber where restless signals become light.' },
-  { id: 'r4', name: 'Memory Room', mood: 'nostalgic', listeners: 93, status: 'quiet', frequency: '77.9 Hz', description: 'Slow archive filled with softened echo fragments.' },
-]
 
 const capsules: Capsule[] = [
   { id: 'c1', title: 'Late Night Signal', duration: '0:42', feeling: 'warm static', timestamp: '12 min ago', type: 'voice', status: 'saved' },
@@ -784,6 +756,35 @@ function DeadZonesScreen() {
   )
 }
 
+const CF_ECO_EVENTS = [
+  'signal overload detected',
+  '32 carriers synchronized',
+  'quiet frequency spike',
+  'echo bloom expanding',
+  'new resonance layer detected',
+  'deep carrier drift active',
+  'frequency membrane thinning',
+  'collective signal stabilizing',
+  'anomalous bloom at 3:17am',
+  'carrier convergence imminent',
+]
+
+function pseudoRand(seed: number) {
+  let s = seed
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff
+    return Math.abs(s) / 0x7fffffff
+  }
+}
+
+function genWave(seed: number, bars = 48): number[] {
+  const r = pseudoRand(seed)
+  return Array.from({ length: bars }, (_, i) => {
+    const shape = Math.sin(i * 0.35 + seed * 0.05) * 0.3 + 0.5
+    return Math.max(0.04, Math.min(1, r() * shape + 0.08))
+  })
+}
+
 function FrequenciesScreen() {
   // ─── Types ──────────────────────────────────────────────────────────────
   type EmotionalTag = 'nocturne' | 'bloom' | 'static' | 'drift' | 'echo' | 'pulse' | 'lost' | 'soft_focus'
@@ -838,30 +839,11 @@ function FrequenciesScreen() {
     pulse:   'pulse layer',
   }
 
-  const ECO_EVENTS = [
-    'signal overload detected',
-    '32 carriers synchronized',
-    'quiet frequency spike',
-    'echo bloom expanding',
-    'new resonance layer detected',
-    'deep carrier drift active',
-    'frequency membrane thinning',
-    'collective signal stabilizing',
-    'anomalous bloom at 3:17am',
-    'carrier convergence imminent',
-  ]
 
   const TAGS: EmotionalTag[] = ['nocturne','bloom','static','drift','echo','pulse','lost','soft_focus']
   const CONTRIB_TYPES: ContribType[] = ['voice','hum','ambient','whisper','synth','texture','static','pulse']
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
-  function pseudoRand(seed: number) {
-    let s = seed
-    return () => {
-      s = (s * 1664525 + 1013904223) & 0xffffffff
-      return Math.abs(s) / 0x7fffffff
-    }
-  }
 
   function makeCarrier(idx: number, total: number): Carrier {
     const r = pseudoRand(idx * 31 + 7)
@@ -881,13 +863,6 @@ function FrequenciesScreen() {
     }
   }
 
-  function genWave(seed: number, bars = 48): number[] {
-    const r = pseudoRand(seed)
-    return Array.from({ length: bars }, (_, i) => {
-      const shape = Math.sin(i * 0.35 + seed * 0.05) * 0.3 + 0.5
-      return Math.max(0.04, Math.min(1, r() * shape + 0.08))
-    })
-  }
 
   // ─── State ───────────────────────────────────────────────────────────────
   const [carriers, setCarriers] = useState<Carrier[]>(() =>
@@ -970,7 +945,7 @@ function FrequenciesScreen() {
   // ─── Ecosystem events ─────────────────────────────────────────────────────
   useEffect(() => {
     const fire = () => {
-      const msg = ECO_EVENTS[ecoEventRef.current % ECO_EVENTS.length]
+      const msg = CF_ECO_EVENTS[ecoEventRef.current % CF_ECO_EVENTS.length]
       ecoEventRef.current++
       setEcoEvent({ id: Date.now().toString(), msg })
       setTimeout(() => setEcoEvent(null), 5000)
@@ -1140,7 +1115,7 @@ function FrequenciesScreen() {
           </div>
 
           {/* Carrier nodes orbiting */}
-          {carriers.map((c, i) => {
+          {carriers.map(c => {
             const isHov = hoveredCarrier === c.id
             const orbitR = c.radius
             const x = 50 + Math.cos(c.angle + orbPhase * 0.3) * (orbitR / 4.2)
