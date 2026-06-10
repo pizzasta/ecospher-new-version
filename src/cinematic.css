@@ -1,0 +1,304 @@
+/* ═══════════════════════════════════════════════════════════════
+   CINEMATIC LAYER — global depth, motion, and interaction polish
+   Layered on top of styles.css; additive only.
+═══════════════════════════════════════════════════════════════ */
+
+/* ─── Route transitions: arrival with depth ──────────────────── */
+.screen {
+  animation: cinematicArrive 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes cinematicArrive {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+    filter: blur(6px) brightness(1.3);
+  }
+  55% {
+    filter: blur(0) brightness(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0) brightness(1);
+  }
+}
+
+/* ─── Parallax depth field behind everything ─────────────────── */
+.cinematic-depth {
+  position: fixed;
+  inset: -4%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.cinematic-depth span {
+  position: absolute;
+  inset: 0;
+}
+
+.cinematic-depth span:nth-child(1) {
+  background:
+    radial-gradient(ellipse 30% 22% at 20% 30%, rgba(255, 45, 120, 0.05), transparent 70%),
+    radial-gradient(ellipse 26% 20% at 78% 70%, rgba(0, 212, 255, 0.045), transparent 70%);
+  filter: blur(40px);
+  animation: depthFar 46s ease-in-out infinite alternate;
+}
+
+.cinematic-depth span:nth-child(2) {
+  background:
+    radial-gradient(ellipse 20% 14% at 65% 22%, rgba(155, 93, 229, 0.06), transparent 70%),
+    radial-gradient(ellipse 16% 12% at 30% 80%, rgba(255, 45, 120, 0.05), transparent 70%);
+  filter: blur(24px);
+  animation: depthNear 30s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes depthFar {
+  from { transform: translate3d(-1.2%, -0.6%, 0) scale(1); }
+  to { transform: translate3d(1.4%, 1%, 0) scale(1.05); }
+}
+
+@keyframes depthNear {
+  from { transform: translate3d(1.6%, 0.8%, 0) scale(1.02); }
+  to { transform: translate3d(-1.8%, -1.2%, 0) scale(1); }
+}
+
+/* ─── Cards: lift, tilt, press ───────────────────────────────── */
+.content-well .glass {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1),
+    border-color 0.3s ease,
+    box-shadow 0.45s ease;
+}
+
+@media (hover: hover) {
+  .content-well .glass:hover {
+    transform: perspective(900px) translateY(-2px) rotateX(0.6deg);
+    border-color: rgba(255, 45, 120, 0.22);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 22px rgba(255, 45, 120, 0.06);
+  }
+}
+
+.content-well :where(button.glass, [role='button'].glass):active {
+  transform: perspective(900px) scale(0.985);
+}
+
+/* ─── Buttons: press glow (low specificity, never overrides) ─── */
+:where(.content-well button:not(:disabled)):active {
+  filter: brightness(1.22) saturate(1.1);
+}
+
+/* ─── Nav: alive active state ────────────────────────────────── */
+.nav-item {
+  position: relative;
+  transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease;
+}
+
+.nav-item:active {
+  transform: scale(0.94);
+}
+
+.nav-item.active {
+  box-shadow: 0 0 18px rgba(255, 45, 120, 0.14), inset 0 0 12px rgba(255, 45, 120, 0.06);
+}
+
+.nav-item.active .nav-glyph {
+  animation: navGlyphPulse 2.4s ease-in-out infinite;
+  text-shadow: 0 0 12px rgba(255, 45, 120, 0.8);
+}
+
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  margin-left: -1.5px;
+  border-radius: 50%;
+  background: var(--pink, #ff2d78);
+  box-shadow: 0 0 8px rgba(255, 45, 120, 0.9);
+  animation: navDotBreath 2.4s ease-in-out infinite;
+}
+
+@keyframes navGlyphPulse {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.5px); }
+}
+
+@keyframes navDotBreath {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.5); }
+}
+
+/* ─── Click resonance ripples (spawned by EcosphereAmbience) ─── */
+.eco-click-ripple {
+  position: fixed;
+  z-index: 80;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 212, 255, 0.65);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.35), inset 0 0 8px rgba(255, 45, 120, 0.2);
+  pointer-events: none;
+  animation: ecoClickRipple 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+@keyframes ecoClickRipple {
+  from { opacity: 0.9; transform: scale(0.4); }
+  to { opacity: 0; transform: scale(3.4); }
+}
+
+/* ═══ OBSERVATORY — living control room ══════════════════════ */
+.home-screen {
+  position: relative;
+}
+
+.obs-grid {
+  position: absolute;
+  inset: -24px -16px auto;
+  height: 360px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(0, 212, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  transform: perspective(420px) rotateX(48deg);
+  transform-origin: top center;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent 80%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent 80%);
+  animation: obsGridDrift 14s linear infinite;
+}
+
+@keyframes obsGridDrift {
+  to { background-position: 0 44px, 0 0; }
+}
+
+.obs-sweep {
+  position: absolute;
+  top: -30px;
+  right: -40px;
+  width: 220px;
+  height: 220px;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(0, 212, 255, 0.12), transparent 16%);
+  mask-image: radial-gradient(circle, transparent 18%, #000 22%, #000 64%, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle, transparent 18%, #000 22%, #000 64%, transparent 70%);
+  animation: obsSweepSpin 7s linear infinite;
+  opacity: 0.55;
+}
+
+@keyframes obsSweepSpin {
+  to { transform: rotate(360deg); }
+}
+
+.home-title {
+  animation: obsTitleGlow 6s ease-in-out infinite;
+}
+
+@keyframes obsTitleGlow {
+  0%, 100% { filter: drop-shadow(0 0 14px rgba(255, 45, 120, 0.18)); }
+  50% { filter: drop-shadow(0 0 26px rgba(0, 212, 255, 0.22)); }
+}
+
+.stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.05) 50%, transparent 70%);
+  transform: translateX(-100%);
+  animation: obsStatSheen 6s ease-in-out infinite;
+}
+
+.stat-card:nth-child(2)::after { animation-delay: 1.4s; }
+.stat-card:nth-child(3)::after { animation-delay: 2.8s; }
+
+@keyframes obsStatSheen {
+  0%, 60% { transform: translateX(-100%); }
+  85%, 100% { transform: translateX(100%); }
+}
+
+.stat-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.home-screen .feed-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.home-screen .feed-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(255, 45, 120, 0.6), rgba(0, 212, 255, 0.3));
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.home-screen .feed-card:hover::before {
+  opacity: 1;
+}
+
+/* ═══ FREQUENCIES — tuning through a strange dial ════════════ */
+.cf-screen {
+  position: relative;
+}
+
+.cf-tuning-sweep {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.cf-tuning-sweep::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 90px;
+  background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.045), rgba(255, 45, 120, 0.05), transparent);
+  filter: blur(6px);
+  animation: cfBandSweep 17s ease-in-out infinite;
+}
+
+@keyframes cfBandSweep {
+  0% { left: -12%; }
+  48% { left: 104%; }
+  52% { left: 104%; }
+  100% { left: -12%; }
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .screen,
+  .cinematic-depth span,
+  .nav-item.active .nav-glyph,
+  .nav-item.active::after,
+  .eco-click-ripple,
+  .obs-grid,
+  .obs-sweep,
+  .home-title,
+  .stat-card::after,
+  .cf-tuning-sweep::before {
+    animation: none;
+  }
+
+  .content-well .glass {
+    transition: none;
+  }
+}

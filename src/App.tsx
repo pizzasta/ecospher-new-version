@@ -21,6 +21,7 @@ import EcosphereAmbience from './components/EcosphereAmbience'
 import './unsent-room.css'
 import './rooms.css'
 import './living-pages.css'
+import './cinematic.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'unsent' | 'capsules' | 'relics' | 'pod' | 'zones' | 'frequencies' | 'anomalies' | 'settings'
@@ -294,17 +295,29 @@ function lpTimeAgo(iso: string): string {
 }
 
 // ─── Screens ──────────────────────────────────────────────────────────────────
+const OBS_EVENTS = [
+  'network stable · all bands listening',
+  'a carrier crossed the northern band',
+  'replay activity rising in the feed',
+  'drift field reporting light fog',
+  'two rooms resonating in sync',
+  'archive pressure nominal',
+] as const
+
 function HomeScreen() {
   const [tick, setTick] = useState(0)
   useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 3000); return () => clearInterval(t) }, [])
   return (
     <div className="screen home-screen">
+      <div className="obs-grid" aria-hidden="true" />
+      <div className="obs-sweep" aria-hidden="true" />
       <div className="home-kicker">ECOSPHERE · LIVE</div>
       <h1 className="home-title">
         <span className="title-glow-pink">Signal</span>{' '}
         <span className="title-glow-cyan">Observatory</span>
       </h1>
       <p className="home-sub">anonymous voice signals · replayed memories · emotional frequencies</p>
+      <AmbientLine lines={OBS_EVENTS} interval={7000} />
 
       <div className="stat-row">
         <div className="stat-card glass">
@@ -1028,6 +1041,9 @@ function FrequenciesScreen() {
       <div className="cf-fog cf-fog-2" />
       <div className="cf-fog cf-fog-3" />
 
+      {/* Tuning band sweep */}
+      <div className="cf-tuning-sweep" aria-hidden="true" />
+
       {/* Scan lines */}
       <div className="cf-scanlines" />
 
@@ -1665,6 +1681,7 @@ export default function App() {
     <div className="app-shell">
       {/* Atmosphere layers */}
       <div className="atmosphere" />
+      <div className="cinematic-depth" aria-hidden="true"><span /><span /></div>
       <div className="scanline" />
       <div className="crt-vignette" />
       <Particles />

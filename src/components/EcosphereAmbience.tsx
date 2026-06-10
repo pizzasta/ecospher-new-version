@@ -89,6 +89,27 @@ export default function EcosphereAmbience() {
     return () => window.clearInterval(t)
   }, [])
 
+  // click resonance ripples — direct DOM so taps never trigger React renders
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let live = 0
+    const spawn = (event: PointerEvent) => {
+      if (live >= 5) return
+      live += 1
+      const ripple = document.createElement('span')
+      ripple.className = 'eco-click-ripple'
+      ripple.style.left = `${event.clientX}px`
+      ripple.style.top = `${event.clientY}px`
+      document.body.appendChild(ripple)
+      window.setTimeout(() => {
+        ripple.remove()
+        live -= 1
+      }, 720)
+    }
+    document.addEventListener('pointerdown', spawn, { passive: true })
+    return () => document.removeEventListener('pointerdown', spawn)
+  }, [])
+
   const weatherClass = useMemo(() => `eco-weather eco-weather--${weather.id}`, [weather.id])
 
   return (
