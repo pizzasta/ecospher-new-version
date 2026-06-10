@@ -1,16 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useEcosystemState } from './hooks/useEcosystemState'
+import { useGlobalAudio } from './hooks/useGlobalAudio'
+import VoiceReactionStack from './components/VoiceReactions'
+import { downloadBlob, exportFilename, renderStoryImage, renderStoryVideo } from './lib/storyExport'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SignalStatus = 'live' | 'fading' | 'drifting' | 'archiving' | 'corrupted' | 'resonating'
 type SignalType = 'voice_note' | 'drifting_thought' | 'unresolved_echo' | 'static_bloom' | 'dead_zone' | 'memory_fragment' | 'nocturne_broadcast' | 'abandoned_carrier'
 type Mood = 'nocturne' | 'bloom' | 'drift' | 'static' | 'lost'
 type ExportType = 'tiktok' | 'story' | 'relic' | 'drift' | 'remix'
-type ReactionType = 'drift' | 'bloom' | 'echo' | 'static' | 'nocturne' | 'fracture'
-
-type SignalReactions = {
-  [K in ReactionType]?: boolean
-}
-
 
 type FeedSignal = {
   id: string
@@ -140,6 +138,12 @@ function useTypewriter(text: string, enabled: boolean, speed: number = 28): stri
   return displayed
 }
 
+function durationToMs(duration: string): number {
+  const [m, sec] = duration.split(':').map(Number)
+  const total = (Number.isFinite(m) ? m : 0) * 60 + (Number.isFinite(sec) ? sec : 0)
+  return Math.max(1500, total * 1000)
+}
+
 // ─── Waveform Card Component ──────────────────────────────────────────────────
 function WaveformBar({ height, active, color, animated, index }: {
   height: number; active: boolean; color: string; animated: boolean; index: number
@@ -166,12 +170,38 @@ function WaveformBar({ height, active, color, animated, index }: {
 function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => void }) {
   const [exporting, setExporting] = useState<ExportType | null>(null)
   const [done, setDone] = useState(false)
+  const [exportError, setExportError] = useState(false)
   const colors = MOOD_COLORS[signal.mood]
   const waveform = generateWaveform(signal.waveformSeed, 20)
 
-  const handleExport = (type: ExportType) => {
+  const handleExport = async (type: ExportType) => {
     setExporting(type)
-    setTimeout(() => { setDone(true) }, 2200)
+    setExportError(false)
+    const opts = {
+      handle: signal.handle,
+      caption: signal.content,
+      duration: signal.duration,
+      typeLabel: SIGNAL_TYPE_LABELS[signal.type],
+      accentColor: colors.primary,
+      waveformSeed: signal.waveformSeed,
+    }
+
+    // vertical clip when the browser can record canvas; story card otherwise
+    let kind: 'video' | 'image' = 'image'
+    let blob: Blob | null = null
+    if (type === 'tiktok' || type === 'story') {
+      blob = await renderStoryVideo(opts, 4500)
+      if (blob) kind = 'video'
+    }
+    if (!blob) blob = await renderStoryImage(opts)
+
+    if (blob) {
+      downloadBlob(blob, exportFilename(signal.handle, kind))
+      setDone(true)
+    } else {
+      setExportError(true)
+      setExporting(null)
+    }
   }
 
   const exports: { type: ExportType; label: string; icon: string }[] = [
@@ -200,7 +230,7 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
                 <div className="export-ecosphere-watermark">◈ ecosphere</div>
               </div>
             </div>
-            <div className="export-title">package this signal</div>
+            <div className="export-title">{exportError ? 'export failed — try again' : 'package this signal'}</div>
             <div className="export-buttons">
               {exports.map(ex => (
                 <button key={ex.type} className="export-btn" style={{ '--btn-color': colors.primary } as React.CSSProperties} onClick={() => handleExport(ex.type)}>
@@ -214,13 +244,13 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
           <div className="export-loading">
             <div className="export-pulse" style={{ backgroundColor: colors.primary }} />
             <div className="export-loading-text">packaging signal</div>
-            <div className="export-loading-sub" style={{ color: colors.primary }}>{exporting === 'tiktok' ? 'generating vertical preview...' : 'compressing signal data...'}</div>
+            <div className="export-loading-sub" style={{ color: colors.primary }}>{exporting === 'tiktok' || exporting === 'story' ? 'rendering vertical clip…' : 'rendering story card…'}</div>
           </div>
         ) : (
           <div className="export-success">
             <div className="export-success-icon" style={{ color: colors.primary }}>◈</div>
             <div className="export-success-text">signal packaged successfully</div>
-            <div className="export-success-sub">ready for transmission</div>
+            <div className="export-success-sub">saved to your downloads · ready for transmission</div>
             <button className="export-close-btn" onClick={onClose}>close</button>
           </div>
         )}
@@ -229,68 +259,27 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
     </div>
   )
 }
-// ─── Reaction Config ─────────────────────────────────────────────────────────
-const REACTIONS: { type: ReactionType; symbol: string; label: string }[] = [
-  { type: 'drift',    symbol: '∿', label: 'drift'    },
-  { type: 'bloom',    symbol: '✦', label: 'bloom'    },
-  { type: 'echo',     symbol: '◌', label: 'echo'     },
-  { type: 'static',   symbol: '⋯', label: 'static'   },
-  { type: 'nocturne', symbol: '◑', label: 'nocturne' },
-  { type: 'fracture', symbol: '⌁', label: 'fracture' },
-]
-
-// ─── Signal Reaction Bar ──────────────────────────────────────────────────────
-function SignalReactionBar({ signalId, reactions, setReactions, reactionPop, setReactionPop, moodColor }: {
-  signalId: string
-  reactions: SignalReactions
-  setReactions: React.Dispatch<React.SetStateAction<SignalReactions>>
-  reactionPop: ReactionType | null
-  setReactionPop: React.Dispatch<React.SetStateAction<ReactionType | null>>
-  moodColor: string
-}) {
-  const toggle = (type: ReactionType) => {
-    setReactions(prev => {
-      const next = { ...prev, [type]: !prev[type] }
-      try { localStorage.setItem('ecosphere_reactions_' + signalId, JSON.stringify(next)) } catch {}
-      return next
-    })
-    setReactionPop(type)
-    setTimeout(() => setReactionPop(null), 600)
-  }
-
-  return (
-    <div className="signal-reaction-bar">
-      {REACTIONS.map(r => (
-        <button
-          key={r.type}
-          className={`reaction-btn reaction-btn--${r.type} ${reactions[r.type] ? 'reaction-btn--active' : ''} ${reactionPop === r.type ? 'reaction-btn--pop' : ''}`}
-          style={{ '--reaction-color': moodColor } as React.CSSProperties}
-          onClick={() => toggle(r.type)}
-          title={r.label}
-        >
-          <span className="reaction-symbol">{r.symbol}</span>
-          <span className="reaction-label">{r.label}</span>
-        </button>
-      ))}
-    </div>
-  )
-}
-
 // ─── Signal Card Component ────────────────────────────────────────────────────
 function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
+  const { ecosystemState, saveSignal, unsaveFromLibrary } = useEcosystemState()
+  const globalAudio = useGlobalAudio()
   const [visible, setVisible] = useState(false)
   const [waveformVisible, setWaveformVisible] = useState(false)
   const [textVisible, setTextVisible] = useState(false)
   const [hovered, setHovered] = useState(false)
-  const [playing, setPlaying] = useState(false)
   const [showExport, setShowExport] = useState(false)
-  const [reactions, setReactions] = useState<SignalReactions>(() => {
-    try {
-      const stored = localStorage.getItem('ecosphere_reactions_' + signal.id)
-      return stored ? JSON.parse(stored) : {}
-    } catch { return {} }
-  })
-  const [reactionPop, setReactionPop] = useState<ReactionType | null>(null)
+  const playing = globalAudio.current?.id === signal.id && globalAudio.playing
+  const wasReplayed = ecosystemState.playedSignals.includes(signal.id)
+  const isSaved = ecosystemState.savedSignals.includes(signal.id)
+
+
+  const togglePlay = () => {
+    if (playing) {
+      globalAudio.stop()
+    } else {
+      globalAudio.playSimulated({ id: signal.id, label: signal.handle, source: 'signals' }, durationToMs(signal.duration))
+    }
+  }
   const colors = MOOD_COLORS[signal.mood]
   const waveform = generateWaveform(signal.waveformSeed)
   const displayText = useTypewriter(signal.content, !!(signal.typewriterEffect && textVisible))
@@ -309,10 +298,12 @@ function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
   return (
     <>
       <div
-        className={`signal-card ${visible ? 'signal-card--visible' : ''} ${hovered ? 'signal-card--hovered' : ''} ${isCorrupted ? 'signal-card--corrupted' : ''} ${isFading ? 'signal-card--fading' : ''}`}
+        className={`signal-card ${visible ? 'signal-card--visible' : ''} ${hovered ? 'signal-card--hovered' : ''} ${isCorrupted ? 'signal-card--corrupted' : ''} ${isFading ? 'signal-card--fading' : ''} ${playing ? 'signal-card--playing' : ''} ${wasReplayed ? 'signal-card--replayed' : ''}`}
         style={{ '--mood-color': colors.primary, '--mood-glow': colors.glow, '--mood-dim': colors.dim, '--entry-delay': `${index * 350}ms` } as React.CSSProperties}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        onTouchStart={() => setHovered(true)}
+        onTouchEnd={() => setHovered(false)}
       >
         {/* Breathing neon edge */}
         <div className="card-neon-edge" style={{ boxShadow: `inset 0 0 0 1px ${hovered ? colors.glow : colors.dim}, 0 0 ${hovered ? '24px' : '8px'} ${hovered ? colors.glow : 'transparent'}` }} />
@@ -339,7 +330,7 @@ function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
           <button
             className={`waveform-play-btn ${playing ? 'waveform-play-btn--active' : ''}`}
             style={{ borderColor: colors.primary, color: colors.primary }}
-            onClick={() => setPlaying(p => !p)}
+            onClick={togglePlay}
           >
             {playing ? '▐▐' : '▶'}
           </button>
@@ -371,19 +362,23 @@ function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
           )}
         </div>
 
-        {/* Reaction Row */}
-        <SignalReactionBar
-          signalId={signal.id}
-          reactions={reactions}
-          setReactions={setReactions}
-          reactionPop={reactionPop}
-          setReactionPop={setReactionPop}
-          moodColor={colors.primary}
-        />
+        {/* Voice reactions */}
+        <VoiceReactionStack signalId={signal.id} moodColor={colors.primary} />
 
         {/* Export action */}
         <div className={`card-export-row ${hovered ? 'card-export-row--visible' : ''}`}>
-          <button className="action-btn action-btn--export" style={{ '--btn-color': colors.primary } as React.CSSProperties} onClick={() => setShowExport(true)}>
+          <button
+            className={`action-btn action-btn--save ${isSaved ? 'action-btn--saved' : ''}`}
+            style={{ '--btn-color': colors.primary } as React.CSSProperties}
+            onClick={() => (isSaved ? unsaveFromLibrary('signal', signal.id) : saveSignal(signal.id, signal.handle))}
+          >
+            <span>{isSaved ? '✦' : '✧'}</span> {isSaved ? 'kept' : 'keep'}
+          </button>
+          <button
+            className="action-btn action-btn--export"
+            style={{ '--btn-color': colors.primary } as React.CSSProperties}
+            onClick={() => setShowExport(true)}
+          >
             <span>⬡</span> export signal
           </button>
         </div>
@@ -528,13 +523,26 @@ export default function FeedScreen() {
   const dismissEvent = useCallback(() => setActiveEvent(null), [])
 
   return (
-    <div className="feed-screen">
+    <div className={`feed-screen ${ambientEnabled ? 'feed-screen--ambient' : ''}`}>
       {/* Background atmosphere layers */}
       <div className="feed-atmosphere">
         <div className="feed-fog-layer feed-fog-1" />
         <div className="feed-fog-layer feed-fog-2" />
         <div className="feed-fog-layer feed-fog-3" />
       </div>
+
+      {/* Drifting waveform shards */}
+      <div className="feed-waveform-shards" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+      </div>
+
+      {/* Depth vignette */}
+      <div className="feed-depth-vignette" aria-hidden="true" />
 
       {/* Particle system */}
       <ParticleLayer />

@@ -1,31 +1,236 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import EcosphereLandingScreen from './EcosphereLandingScreen'
 import IntroSequence from './IntroSequence'
 import { useEcosystemState } from '../hooks/useEcosystemState'
 import type { EcosystemPage } from '../hooks/useEcosystemState'
+import { migrateLocalDataToBackend, syncProfile } from '../lib'
 
 const introSeenStorageKey = 'introSeen'
 const signalIdentityStorageKey = 'signalIdentity'
 const signalProfileStorageKey = 'ecosphereSignalProfile'
-const suggestedSignalNames = ['static_radio', 'halo_07', 'noctiswave', 'relicform', 'signal_veil']
-const signalNamePool = [
-  'static_radio',
-  'halo_07',
-  'noctiswave',
-  'relicform',
-  'signal_veil',
-  'halo_void',
-  'lost_carrier',
-  'echo_bloom',
-  'driftmemory',
-  'nova_07',
-  'ghost_frequency',
-  'pink_carrier',
-  'violet_replay',
-  'afterglow_02',
-  'silent_bloom',
-  'midnight_relic',
+
+// localStorage can throw in some privacy modes — never let that break boot
+function safeStorageGet(key: string) {
+  try {
+    return window.localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function safeStorageSet(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value)
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+function safeStorageRemove(key: string) {
+  try {
+    window.localStorage.removeItem(key)
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+const maxSignalNameLength = 24
+
+const mundaneObjects = [
+  'microwave',
+  'vendingmachine',
+  'plasticfork',
+  'deadbattery',
+  'hotpocket',
+  'shoelace',
+  'receipt',
+  'ashtray',
+  'sodacan',
+  'hoodie',
+  'voicemail',
+  'lawnchair',
+  'ceilingfan',
+  'screendoor',
+  'tupperware',
+  'nightlight',
+  'crockpot',
+  'dialtone',
+  'freezerburn',
+  'couchcushion',
+  'garagesale',
+  'cassettetape',
+  'mothball',
+  'spraycheese',
+  'bananapeel',
+  'juicebox',
+  'lavalamp',
+  'doorbell',
+  'keychain',
+  'grocerylist',
+  'windchime',
+  'porchlight',
+  'minivan',
+  'trampoline',
+  'expiredcoupon',
+]
+
+const mundanePlaces = [
+  'gasstation',
+  'parkinglot',
+  'wafflehouse',
+  'laundromat',
+  'motelhallway',
+  'walmartparkinglot',
+  'checkoutlane',
+  'breakroom',
+  'stairwell',
+  'drivethru',
+  'foodcourt',
+  'reststop',
+  'cerealaisle',
+  'basement',
+  'culdesac',
+  'busstop',
+  'frozenfoodaisle',
+  'mallfountain',
+]
+
+const mundaneAdjectives = [
+  'blurry',
+  'overcooked',
+  'lukewarm',
+  'haunted',
+  'expired',
+  'unplugged',
+  'leftover',
+  'offbrand',
+  'flickering',
+  'crooked',
+  'halfeaten',
+  'misplaced',
+  'sleepy',
+  'damp',
+  'untitled',
+  'secondhand',
+  'microwaved',
+]
+
+const wistfulTails = [
+  'oracle',
+  'cathedral',
+  'sermon',
+  'prophecy',
+  'hymn',
+  'angel',
+  'theory',
+  'philosophy',
+  'confession',
+  'apology',
+  'lullaby',
+  'museum',
+  'miracle',
+  'paradox',
+  'eulogy',
+  'daydream',
+  'amnesia',
+  'limbo',
+  'seance',
+  'gospel',
+  'epiphany',
+]
+
+const driftTails = [
+  'fog',
+  'echo',
+  'collapse',
+  'energy',
+  'incident',
+  'aftermath',
+  'feeling',
+  'syndrome',
+  'situation',
+  'rerun',
+]
+
+const whereabouts = [
+  'bythelake',
+  'inthewind',
+  'at3am',
+  'inthedryer',
+  'underthebed',
+  'onthecurb',
+  'atdusk',
+  'inthegloverbox',
+  'nooneclaimed',
+]
+
+const latenightLeads = ['voicemail', 'textback', 'lastcall', 'dialtone', 'rerun', 'leftovers']
+const latenightHours = ['2', '3', '4', '11', 'midnight', 'closing']
+
+const phraseNames = [
+  'somebodyleftthetvon',
+  'sinkfullofdishes',
+  'cryingincheckoutlane',
+  'voicemailafter2',
+  'receiptinthewind',
+  'hoodiebythelake',
+  'blurrywafflehouse',
+  'overcookedhotpocket',
+  'motelhallwayecho',
+  'deadbatteryangel',
+  'shoelacecollapse',
+  'walmartparkinglotfog',
+  'lowbatteryphilosophy',
+  'plasticforktheory',
+  'vendingmachinehymn',
+  'bananapeelprophecy',
+  'gasstationoracle',
+  'microwavecathedral',
+  'parkinglotsermon',
+  'sodaashtray',
+  'fridgehumat3am',
+  'cerealfordinneragain',
+  'forgotwhyiwalkedin',
+  'icecreamtruckatdusk',
+  'halfdeflatedballoon',
+  'doorbellnobodyanswered',
+  'sprinklersatmidnight',
+  'wrongnumberbutstayed',
+  'leftoneearbudin',
+  'grandmasashtray',
+]
+
+const atmosphericNames = [
+  'porchlightorbit',
+  'peachstreetlight',
+  'rainonthecarport',
+  'mothsinthelamplight',
+  'tvglowthroughcurtains',
+  'powerlinesatdusk',
+  'heatlightningseason',
+  'carradiobaptism',
+  'airconditionerchoir',
+  'glowinthedarkceiling',
+]
+
+function pick<T>(items: readonly T[]) {
+  return items[Math.floor(Math.random() * items.length)]
+}
+
+const signalPatterns: Array<() => string> = [
+  () => pick(mundaneObjects) + pick(wistfulTails),
+  () => pick(mundanePlaces) + pick(wistfulTails),
+  () => pick(mundaneAdjectives) + pick(mundaneObjects),
+  () => pick(mundaneAdjectives) + pick(mundanePlaces),
+  () => pick(mundanePlaces) + pick(driftTails),
+  () => pick(mundaneObjects) + pick(driftTails),
+  () => `cryingin${pick(mundanePlaces)}`,
+  () => pick(mundaneObjects) + pick(whereabouts),
+  () => `${pick(latenightLeads)}after${pick(latenightHours)}`,
+  () => pick(phraseNames),
+  () => pick(phraseNames),
+  () => pick(atmosphericNames),
 ]
 
 function normalizeSignalName(value: string) {
@@ -34,11 +239,25 @@ function normalizeSignalName(value: string) {
     .toLowerCase()
     .replace(/[^a-z0-9_]+/g, '_')
     .replace(/^_+|_+$/g, '')
-    .slice(0, 24)
+    .slice(0, maxSignalNameLength)
 }
 
-function createSignalSuggestions(offset: number) {
-  return Array.from({ length: 5 }, (_, index) => signalNamePool[(index + offset) % signalNamePool.length])
+function generateSignalBatch(exclude: readonly string[] = [], count = 5) {
+  const batch: string[] = []
+  const seen = new Set(exclude)
+  let attempts = 0
+
+  while (batch.length < count && attempts < 120) {
+    attempts += 1
+    const raw = pick(signalPatterns)()
+    if (raw.length > maxSignalNameLength) continue
+    const name = normalizeSignalName(raw)
+    if (!name || seen.has(name)) continue
+    seen.add(name)
+    batch.push(name)
+  }
+
+  return batch
 }
 
 function DevOnboardingReset({ onReset }: { onReset: () => void }) {
@@ -54,19 +273,17 @@ function DevOnboardingReset({ onReset }: { onReset: () => void }) {
 }
 
 function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, signalCore: string) => void }) {
-  const [offset, setOffset] = useState(0)
-  const [selectedSignal, setSelectedSignal] = useState(suggestedSignalNames[0])
+  const [suggestions, setSuggestions] = useState(() => generateSignalBatch())
+  const [selectedSignal, setSelectedSignal] = useState(() => suggestions[0] ?? '')
   const [manualSignal, setManualSignal] = useState('')
   const [enteringDrift, setEnteringDrift] = useState(false)
-  const suggestions = useMemo(() => createSignalSuggestions(offset), [offset])
   const activeSignal = normalizeSignalName(manualSignal || selectedSignal)
   const orbEnergy = Math.min(1, Math.max(0.35, activeSignal.length / 18))
 
   const regenerateSignals = () => {
-    const nextOffset = (offset + 3) % signalNamePool.length
-    const nextSuggestions = createSignalSuggestions(nextOffset)
-    setOffset(nextOffset)
-    setSelectedSignal(nextSuggestions[0])
+    const nextSuggestions = generateSignalBatch(suggestions)
+    setSuggestions(nextSuggestions)
+    setSelectedSignal(nextSuggestions[0] ?? '')
     setManualSignal('')
   }
 
@@ -79,6 +296,12 @@ function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, 
   return (
     <main className={`claim-signal-shell identity-claim-shell ${enteringDrift ? 'entering-drift' : ''}`} style={{ '--claim-energy': orbEnergy } as CSSProperties}>
       <div className="claim-atmosphere" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
         <span />
         <span />
         <span />
@@ -104,6 +327,7 @@ function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, 
           </div>
           <div className="claim-orb-ripple" />
           <div className="claim-orb-ripple claim-orb-ripple-two" />
+          <div className="claim-orb-ripple claim-orb-ripple-three" />
           <div className="boot-orbit boot-orbit-one" />
           <div className="boot-orbit boot-orbit-two" />
           <div className="claim-signal-orb pink-core">
@@ -178,7 +402,7 @@ function readElementText(element: Element | null) {
 }
 
 function EcosystemLoopBridge() {
-  const { enterRoom, exploreDrift, playSignal, saveCapsule, unlockRelic, visitPage } = useEcosystemState()
+  const { enterRoom, exploreDrift, saveCapsule, unlockRelic, visitPage } = useEcosystemState()
 
   useEffect(() => {
     visitPage('home')
@@ -198,14 +422,6 @@ function EcosystemLoopBridge() {
           if (nextPage === 'drift') exploreDrift('opened drift field')
           if (nextPage === 'rooms') enterRoom('resonance-chambers')
         }
-        return
-      }
-
-      const playButton = target.closest('.waveform-play-btn')
-      if (playButton) {
-        const card = playButton.closest('.signal-card')
-        const label = readElementText(card ? card.querySelector('.card-handle') : null) || 'feed-signal'
-        playSignal(normalizeSignalName(label) || 'feed-signal', 6)
         return
       }
 
@@ -235,18 +451,24 @@ function EcosystemLoopBridge() {
 
     document.addEventListener('click', handleClick)
     return () => document.removeEventListener('click', handleClick)
-  }, [enterRoom, exploreDrift, playSignal, saveCapsule, unlockRelic, visitPage])
+  }, [enterRoom, exploreDrift, saveCapsule, unlockRelic, visitPage])
 
   return null
 }
 
 export default function IntroGate({ children }: { children: ReactNode }) {
   const [landingEntered, setLandingEntered] = useState(false)
-  const [introSeen, setIntroSeen] = useState(() => window.localStorage.getItem(introSeenStorageKey) === 'true')
-  const [signalIdentity, setSignalIdentity] = useState(() => window.localStorage.getItem(signalIdentityStorageKey) ?? '')
+  const [introSeen, setIntroSeen] = useState(() => safeStorageGet(introSeenStorageKey) === 'true')
+  const [signalIdentity, setSignalIdentity] = useState(() => safeStorageGet(signalIdentityStorageKey) ?? '')
+
+  useEffect(() => {
+    if (signalIdentity) {
+      void migrateLocalDataToBackend()
+    }
+  }, [signalIdentity])
 
   const completeIntro = () => {
-    window.localStorage.setItem(introSeenStorageKey, 'true')
+    safeStorageSet(introSeenStorageKey, 'true')
     setIntroSeen(true)
   }
 
@@ -258,15 +480,16 @@ export default function IntroGate({ children }: { children: ReactNode }) {
       onboardingComplete: true,
     }
 
-    window.localStorage.setItem(signalIdentityStorageKey, nextSignalIdentity)
-    window.localStorage.setItem(signalProfileStorageKey, JSON.stringify(nextProfile))
+    safeStorageSet(signalIdentityStorageKey, nextSignalIdentity)
+    safeStorageSet(signalProfileStorageKey, JSON.stringify(nextProfile))
     setSignalIdentity(nextSignalIdentity)
+    void syncProfile(nextSignalIdentity, signalCore)
   }
 
   const resetIntroForTesting = () => {
-    window.localStorage.removeItem(introSeenStorageKey)
-    window.localStorage.removeItem(signalIdentityStorageKey)
-    window.localStorage.removeItem(signalProfileStorageKey)
+    safeStorageRemove(introSeenStorageKey)
+    safeStorageRemove(signalIdentityStorageKey)
+    safeStorageRemove(signalProfileStorageKey)
     window.location.reload()
   }
 

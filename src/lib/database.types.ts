@@ -1,8 +1,6 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
-export type Database = {
-  public: {
-    Tables: {
+type PublicTables = {
       profiles: {
         Row: {
           id: string
@@ -39,11 +37,13 @@ export type Database = {
           owner_id: string | null
           bucket: string
           path: string
+          title: string | null
           duration_seconds: number | null
           file_size_bytes: number | null
           mime_type: string | null
           waveform_data: Json
           is_public: boolean
+          is_archived: boolean
           created_at: string
           updated_at: string | null
         }
@@ -52,20 +52,24 @@ export type Database = {
           owner_id?: string | null
           bucket: string
           path: string
+          title?: string | null
           duration_seconds?: number | null
           file_size_bytes?: number | null
           mime_type?: string | null
           waveform_data?: Json
           is_public?: boolean
+          is_archived?: boolean
           created_at?: string
           updated_at?: string | null
         }
         Update: {
+          title?: string | null
           duration_seconds?: number | null
           file_size_bytes?: number | null
           mime_type?: string | null
           waveform_data?: Json
           is_public?: boolean
+          is_archived?: boolean
           updated_at?: string | null
         }
       }
@@ -231,7 +235,10 @@ export type Database = {
           text_note: string | null
           emotional_tag: string | null
           status: 'saved' | 'archived' | 'private' | 'new'
+          unlock_at: string | null
+          opened_at: string | null
           created_at: string
+          updated_at: string | null
         }
         Insert: {
           id?: string
@@ -241,7 +248,10 @@ export type Database = {
           text_note?: string | null
           emotional_tag?: string | null
           status?: 'saved' | 'archived' | 'private' | 'new'
+          unlock_at?: string | null
+          opened_at?: string | null
           created_at?: string
+          updated_at?: string | null
         }
         Update: {
           title?: string
@@ -249,6 +259,49 @@ export type Database = {
           text_note?: string | null
           emotional_tag?: string | null
           status?: 'saved' | 'archived' | 'private' | 'new'
+          unlock_at?: string | null
+          opened_at?: string | null
+          updated_at?: string | null
+        }
+      }
+      saved_signals: {
+        Row: {
+          id: string
+          user_id: string
+          signal_id: string
+          note: string | null
+          saved_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          signal_id: string
+          note?: string | null
+          saved_at?: string
+        }
+        Update: {
+          note?: string | null
+        }
+      }
+      archive_items: {
+        Row: {
+          id: string
+          user_id: string
+          item_type: 'signal' | 'audio' | 'capsule' | 'relic'
+          item_id: string
+          note: string | null
+          archived_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          item_type: 'signal' | 'audio' | 'capsule' | 'relic'
+          item_id: string
+          note?: string | null
+          archived_at?: string
+        }
+        Update: {
+          note?: string | null
         }
       }
       relics: {
@@ -287,6 +340,8 @@ export type Database = {
           user_id: string
           relic_id: string
           source_signal_id: string | null
+          is_favorite: boolean
+          discovery_source: string | null
           unlocked_at: string
         }
         Insert: {
@@ -294,10 +349,14 @@ export type Database = {
           user_id: string
           relic_id: string
           source_signal_id?: string | null
+          is_favorite?: boolean
+          discovery_source?: string | null
           unlocked_at?: string
         }
         Update: {
           source_signal_id?: string | null
+          is_favorite?: boolean
+          discovery_source?: string | null
         }
       }
       soul_pod_items: {
@@ -398,6 +457,7 @@ export type Database = {
           signal_id: string | null
           audio_file_id: string | null
           relic_id: string | null
+          capsule_id: string | null
           metadata: Json | null
           is_public: boolean
           created_at: string
@@ -409,6 +469,7 @@ export type Database = {
           signal_id?: string | null
           audio_file_id?: string | null
           relic_id?: string | null
+          capsule_id?: string | null
           metadata?: Json | null
           is_public?: boolean
           created_at?: string
@@ -496,6 +557,12 @@ export type Database = {
           updated_at?: string
         }
       }
+}
+
+export type Database = {
+  public: {
+    Tables: {
+      [K in keyof PublicTables]: PublicTables[K] & { Relationships: [] }
     }
     Views: Record<string, never>
     Functions: {

@@ -1,4 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useGlobalAudio } from '../hooks/useGlobalAudio';
+import { useEcosystemState } from '../hooks/useEcosystemState';
+import { deleteLocalRecording, listLocalRecordings, saveRecordingLocally } from '../lib/localAudioStore';
+import { downloadBlob, exportFilename, renderStoryImage } from '../lib/storyExport';
+import { fetchRemoteRecordings, mirrorRecordingDelete, mirrorRecordingUpload, remotePlaybackUrl } from '../lib/backendBridge';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -13,6 +18,7 @@ interface UnsentSignal {
   emotionalTag: ResonanceState;
   replayCount: number;
   blob?: Blob;
+  remote?: { audioId: string; bucket: string; path: string };
   waveformData: number[];
   decayLevel: number; // 0–1, higher = more decayed
   isDrifted: boolean;
@@ -142,6 +148,7 @@ const LiveWaveform: React.FC<{ analyser: AnalyserNode | null; active: boolean }>
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    const stage = canvas.closest('.ur-orb-stage') as HTMLElement | null;
 
     const draw = () => {
       rafRef.current = requestAnimationFrame(draw);
@@ -149,6 +156,7 @@ const LiveWaveform: React.FC<{ analyser: AnalyserNode | null; active: boolean }>
       ctx.clearRect(0, 0, W, H);
 
       if (!analyser || !active) {
+        stage?.style.setProperty('--mic-level', '0');
         // Idle breathing waveform
         const t = Date.now() / 1200;
         ctx.beginPath();
@@ -156,7 +164,8 @@ const LiveWaveform: React.FC<{ analyser: AnalyserNode | null; active: boolean }>
         ctx.lineWidth = 1.5;
         for (let x = 0; x < W; x++) {
           const y = H / 2 + Math.sin(x / 22 + t) * 8 * Math.sin(t * 0.4);
-          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
         }
         ctx.stroke();
         return;
@@ -165,6 +174,11 @@ const LiveWaveform: React.FC<{ analyser: AnalyserNode | null; active: boolean }>
       const buf = new Uint8Array(analyser.fftSize);
       analyser.getByteTimeDomainData(buf);
       const sliceW = W / buf.length;
+
+      let sum = 0;
+      for (let i = 0; i < buf.length; i++) sum += Math.abs(buf[i] - 128);
+      const level = Math.min(1, (sum / buf.length) / 28);
+      stage?.style.setProperty('--mic-level', level.toFixed(3));
 
       const gradient = ctx.createLinearGradient(0, 0, W, 0);
       gradient.addColorStop(0, 'rgba(0,240,255,0.7)');
@@ -180,7 +194,8 @@ const LiveWaveform: React.FC<{ analyser: AnalyserNode | null; active: boolean }>
       for (let i = 0; i < buf.length; i++) {
         const v = buf[i] / 128.0;
         const y = (v * H) / 2;
-        i === 0 ? ctx.moveTo(i * sliceW, y) : ctx.lineTo(i * sliceW, y);
+        if (i === 0) ctx.moveTo(i * sliceW, y);
+        else ctx.lineTo(i * sliceW, y);
       }
       ctx.stroke();
     };
@@ -239,8 +254,9 @@ const SignalCard: React.FC<{
   onDrift: (id: string) => void;
   onExport: (id: string) => void;
   onArchive: (id: string) => void;
+  onDelete: (id: string) => void;
   isPlaying: boolean;
-}> = ({ signal, onPlay, onSave, onDrift, onExport, onArchive, isPlaying }) => {
+}> = ({ signal, onPlay, onSave, onDrift, onExport, onArchive, onDelete, isPlaying }) => {
   const decay = signal.decayLevel;
   const glowIntensity = Math.min(1, signal.replayCount / 5);
 
@@ -316,6 +332,11 @@ const SignalCard: React.FC<{
         <button className="ur-signal-btn ur-signal-btn--archive" onClick={() => onArchive(signal.id)}>
           ARCHIVE
         </button>
+        {(signal.blob || signal.remote) && (
+          <button className="ur-signal-btn ur-signal-btn--delete" onClick={() => onDelete(signal.id)} aria-label="Delete recording">
+            ✕
+          </button>
+        )}
       </footer>
     </article>
   );
@@ -448,11 +469,13 @@ class AtmosphericSound {
 
   init() {
     try {
-      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      this.ctx = new AudioCtx();
       this.gainNode = this.ctx.createGain();
       this.gainNode.gain.value = 0.04;
       this.gainNode.connect(this.ctx.destination);
-    } catch {}
+    } catch { /* audio unavailable */ }
   }
 
   startHiss() {
@@ -472,11 +495,11 @@ class AtmosphericSound {
       this.hissNode.connect(filter);
       filter.connect(this.gainNode);
       this.hissNode.start();
-    } catch {}
+    } catch { /* audio unavailable */ }
   }
 
   stopHiss() {
-    try { this.hissNode?.stop(); this.hissNode = null; } catch {}
+    try { this.hissNode?.stop(); this.hissNode = null; } catch { /* audio unavailable */ }
   }
 
   playResonancePulse() {
@@ -492,7 +515,7 @@ class AtmosphericSound {
       gain.connect(this.ctx.destination);
       osc.start();
       osc.stop(this.ctx.currentTime + 1.2);
-    } catch {}
+    } catch { /* audio unavailable */ }
   }
 
   setVolume(v: number) {
@@ -509,9 +532,11 @@ const soundEngine = new AtmosphericSound();
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export const UnsentRoom: React.FC = () => {
+  const globalAudio = useGlobalAudio();
+  const { archiveEntry, saveToLibrary } = useEcosystemState();
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [signals, setSignals] = useState<UnsentSignal[]>([]);
-  const [playingId, setPlayingId] = useState<string | null>(null);
+  const playingId = globalAudio.current?.source === 'unsent' && globalAudio.playing ? globalAudio.current.id : null;
   const [whispers, setWhispers] = useState<WhisperMessage[]>([]);
   const [filter, setFilter] = useState<FilterMode>('all');
   const [exportTarget, setExportTarget] = useState<UnsentSignal | null>(null);
@@ -525,7 +550,6 @@ export const UnsentRoom: React.FC = () => {
   const chunksRef = useRef<Blob[]>([]);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const whisperTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const decayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -582,6 +606,51 @@ export const UnsentRoom: React.FC = () => {
       },
     ];
     setSignals(demo);
+
+    // restore real recordings persisted in IndexedDB
+    let cancelled = false;
+    void listLocalRecordings().then(stored => {
+      if (cancelled || stored.length === 0) return;
+      const restored: UnsentSignal[] = stored.map(r => ({
+        id: r.id,
+        signalId: r.label,
+        duration: r.durationMs,
+        timestamp: new Date(r.createdAt),
+        emotionalTag: (SIGNAL_TAGS.includes(r.emotionalTag as ResonanceState) ? r.emotionalTag : 'unresolved') as ResonanceState,
+        replayCount: 0,
+        blob: r.blob,
+        waveformData: generateWaveform(),
+        decayLevel: Math.min(0.9, (Date.now() - r.createdAt) / (1000 * 60 * 60 * 24 * 14)),
+        isDrifted: false,
+        isArchived: false,
+      }));
+      setSignals(prev => [...restored, ...prev.filter(p => !restored.some(r => r.id === p.id))]);
+    });
+
+    // merge recordings synced to the backend audio library
+    void fetchRemoteRecordings().then(remote => {
+      if (cancelled || remote.length === 0) return;
+      setSignals(prev => {
+        const localLabels = new Set(prev.map(p => p.signalId));
+        const merged: UnsentSignal[] = remote
+          .filter(r => !localLabels.has(r.title))
+          .map(r => ({
+            id: `remote-${r.audioId}`,
+            signalId: r.title,
+            duration: r.durationMs,
+            timestamp: new Date(r.createdAt),
+            emotionalTag: 'replaying' as ResonanceState,
+            replayCount: 0,
+            remote: { audioId: r.audioId, bucket: r.bucket, path: r.path },
+            waveformData: generateWaveform(),
+            decayLevel: Math.min(0.9, (Date.now() - r.createdAt) / (1000 * 60 * 60 * 24 * 14)),
+            isDrifted: false,
+            isArchived: false,
+          }));
+        return merged.length ? [...merged, ...prev] : prev;
+      });
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // ── Whisper engine ───────────────────────────────────────────────────────────
@@ -602,6 +671,21 @@ export const UnsentRoom: React.FC = () => {
     schedule();
     return () => { if (whisperTimerRef.current) clearTimeout(whisperTimerRef.current); };
   }, [showWhisper]);
+
+  // ── Cleanup on unmount: stop mic, playback, and ambient audio ────────────────
+  useEffect(() => {
+    return () => {
+      try {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.onstop = null;
+          mediaRecorderRef.current.stop();
+        }
+      } catch { /* already stopped */ }
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      audioCtxRef.current?.close().catch(() => { /* already closed */ });
+      soundEngine.stopHiss();
+    };
+  }, []);
 
   // ── Signal decay ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -642,8 +726,9 @@ export const UnsentRoom: React.FC = () => {
       setRecordingState('recording');
 
       if (soundEnabled) { soundEngine.resume(); soundEngine.startHiss(); }
-    } catch (err: any) {
-      setPermissionError(err?.message?.includes('denied')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      setPermissionError(/denied|permission/i.test(message)
         ? 'Microphone access denied. Enable in browser settings.'
         : 'Could not access microphone.');
     }
@@ -673,6 +758,15 @@ export const UnsentRoom: React.FC = () => {
       };
 
       setSignals(prev => [newSignal, ...prev]);
+      void saveRecordingLocally({
+        id: newSignal.id,
+        label: newSignal.signalId,
+        durationMs: duration,
+        emotionalTag: tag,
+        createdAt: Date.now(),
+        blob,
+      });
+      mirrorRecordingUpload(blob, newSignal.signalId, duration);
       setRecordingState('idle');
       setAnalyser(null);
 
@@ -685,38 +779,41 @@ export const UnsentRoom: React.FC = () => {
     audioCtxRef.current?.close();
   }, [recordingState, recordStart, soundEnabled, showWhisper]);
 
-  // ── Playback ─────────────────────────────────────────────────────────────────
+  // ── Playback (one global audio source) ──────────────────────────────────────
   const handlePlay = useCallback((id: string) => {
     if (playingId === id) {
-      audioPlayerRef.current?.pause();
-      setPlayingId(null);
+      globalAudio.stop();
       return;
     }
 
     const signal = signals.find(s => s.id === id);
-    if (!signal?.blob) {
-      // Demo mode — just simulate playback
-      setPlayingId(id);
-      setSignals(prev => prev.map(s => s.id === id ? { ...s, replayCount: s.replayCount + 1 } : s));
-      if (soundEnabled) soundEngine.playResonancePulse();
-      setTimeout(() => setPlayingId(null), signal?.duration ?? 3000);
-      return;
-    }
+    if (!signal) return;
 
-    const url = URL.createObjectURL(signal.blob);
-    const audio = new Audio(url);
-    audioPlayerRef.current = audio;
-    audio.onended = () => setPlayingId(null);
-    audio.play();
-    setPlayingId(id);
     setSignals(prev => prev.map(s => s.id === id ? { ...s, replayCount: s.replayCount + 1 } : s));
     if (soundEnabled) soundEngine.playResonancePulse();
-  }, [playingId, signals, soundEnabled]);
+
+    const meta = { id, label: `signal ${signal.signalId}`, source: 'unsent' as const };
+    if (signal.blob) {
+      void globalAudio.playBlob(signal.blob, meta);
+      return;
+    }
+    if (signal.remote) {
+      void remotePlaybackUrl(signal.remote).then(url => {
+        if (url) void globalAudio.playUrl(url, meta);
+        else globalAudio.playSimulated(meta, signal.duration || 3000);
+      });
+      return;
+    }
+    // demo fragments have no real audio — simulate the replay
+    globalAudio.playSimulated(meta, signal.duration || 3000);
+  }, [playingId, signals, soundEnabled, globalAudio]);
 
   // ── Actions ──────────────────────────────────────────────────────────────────
   const handleSave = useCallback((id: string) => {
     setSignals(prev => prev.map(s => s.id === id ? { ...s, isArchived: false } : s));
-  }, []);
+    const signal = signals.find(s => s.id === id);
+    if (signal) saveToLibrary('audio', id, `unsent ${signal.signalId.toLowerCase()}`);
+  }, [signals, saveToLibrary]);
 
   const handleDrift = useCallback((id: string) => {
     setSignals(prev => prev.map(s => s.id === id ? { ...s, isDrifted: true } : s));
@@ -730,12 +827,31 @@ export const UnsentRoom: React.FC = () => {
 
   const handleArchive = useCallback((id: string) => {
     setSignals(prev => prev.map(s => s.id === id ? { ...s, isArchived: true } : s));
-  }, []);
+    const signal = signals.find(s => s.id === id);
+    if (signal) archiveEntry('audio', `unsent ${signal.signalId}`);
+  }, [signals, archiveEntry]);
 
-  const handleExportDownload = useCallback(() => {
-    // In production this would render to canvas and download
+  const handleDelete = useCallback((id: string) => {
+    if (playingId === id) globalAudio.stop();
+    const signal = signals.find(s => s.id === id);
+    if (signal?.remote) mirrorRecordingDelete({ id: signal.remote.audioId, bucket: signal.remote.bucket, path: signal.remote.path });
+    setSignals(prev => prev.filter(s => s.id !== id));
+    void deleteLocalRecording(id);
+  }, [playingId, globalAudio, signals]);
+
+  const handleExportDownload = useCallback(async () => {
+    if (!exportTarget) return;
+    const blob = await renderStoryImage({
+      handle: exportTarget.signalId.toLowerCase(),
+      caption: 'messages that never found a destination.',
+      duration: formatDuration(exportTarget.duration),
+      typeLabel: `unsent room · ${exportTarget.emotionalTag.replace('-', ' ')}`,
+      accentColor: '#ff1493',
+      waveformSeed: Math.round((exportTarget.waveformData[0] ?? 0.5) * 9973),
+    });
+    if (blob) downloadBlob(blob, exportFilename(exportTarget.signalId, 'image'));
     setExportTarget(null);
-  }, []);
+  }, [exportTarget]);
 
   // ── Toggle recording ─────────────────────────────────────────────────────────
   const handleOrbClick = () => {
@@ -845,6 +961,7 @@ export const UnsentRoom: React.FC = () => {
                 onDrift={handleDrift}
                 onExport={handleExport}
                 onArchive={handleArchive}
+                onDelete={handleDelete}
                 isPlaying={playingId === signal.id}
               />
             ))}
