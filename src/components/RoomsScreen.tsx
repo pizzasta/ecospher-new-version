@@ -1,764 +1,1187 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import type { CSSProperties, MutableRefObject } from 'react'
 import '../rooms.css'
 
-// ─── Room Types ────────────────────────────────────────────────
-type RoomType = 'quiet' | 'nocturne' | 'static-bloom' | 'drift' | 'dead-zone' | 'pulse' | 'signal-storm'
-type RoomState = 'stable' | 'signal-bloom' | 'quiet-hour' | 'resonance-spike' | 'frequency-storm' | 'dead-silence' | 'corrupted-broadcast'
+// ═══════════════════════════════════════════════════════════════
+// ROOMS — live ecosystem of anonymous frequency spaces
+// ═══════════════════════════════════════════════════════════════
+
+// ─── Types ─────────────────────────────────────────────────────
+type RoomStateName =
+  | 'quiet-bloom'
+  | 'signal-storm'
+  | 'dead-silence'
+  | 'resonance-spike'
+  | 'static-interference'
+
+interface AudioProfile {
+  oscFreq: number
+  detune: number
+  filterFreq: number
+  noiseLevel: number
+}
+
+interface SignalDef {
+  id: string
+  title: string
+  duration: number // seconds
+  url?: string // real blob url for user fragments
+  mine?: boolean
+}
 
 interface RoomDef {
   id: string
-  type: RoomType
   name: string
   tagline: string
-  atmosphere: string
-  emotionalTone: string
   frequency: string
-  colorA: string
-  colorB: string
-  glowColor: string
-  carriers: number
-  activity: number
+  accentRgb: string // "r,g,b"
+  baseListeners: number
+  baseResonance: number
+  initialState: RoomStateName
+  audio: AudioProfile
+  signals: SignalDef[]
+  feed: string[]
 }
 
-interface Carrier {
-  id: string
-  x: number
-  y: number
-  vx: number
-  vy: number
-  size: number
-  opacity: number
-  hue: number
-  orbitRadius: number
-  orbitAngle: number
-  orbitSpeed: number
-  pulsePhase: number
-}
-
-interface Whisper {
-  id: string
+interface FloatWhisper {
+  id: number
   text: string
-  x: number
-  y: number
-  age: number
-  maxAge: number
-  opacity: number
-  distort: number
+  top: number
+  dur: number
+  mine: boolean
 }
 
-interface RoomEvent {
-  id: string
-  message: string
-  type: RoomState
-  timestamp: number
+interface ReactionPop {
+  id: number
+  glyph: string
+  left: number
 }
 
-// ─── Room Definitions ──────────────────────────────────────────
-const ROOM_DEFS: RoomDef[] = [
+interface SignalNode {
+  id: number
+  left: number
+  top: number
+  dur: number
+  delay: number
+  size: number
+  fragment: string
+}
+
+// ─── Mock data ─────────────────────────────────────────────────
+const ROOMS: RoomDef[] = [
   {
-    id: 'quiet',
-    type: 'quiet',
-    name: 'Quiet Room',
-    tagline: 'where silence becomes a shared frequency',
-    atmosphere: 'still / breathable / low resonance',
-    emotionalTone: 'calm',
-    frequency: '28.4 Hz',
-    colorA: '#0a1520',
-    colorB: '#001830',
-    glowColor: 'rgba(80,160,255,0.4)',
-    carriers: 0,
-    activity: 12
+    id: 'drift-field',
+    name: '3am drift field',
+    tagline: 'for the ones still transmitting after everyone left',
+    frequency: '36.6 hz',
+    accentRgb: '0,212,255',
+    baseListeners: 23,
+    baseResonance: 48,
+    initialState: 'quiet-bloom',
+    audio: { oscFreq: 54, detune: 7, filterFreq: 420, noiseLevel: 0.18 },
+    signals: [
+      { id: 'df-1', title: 'untitled hum, looped twice', duration: 42 },
+      { id: 'df-2', title: 'breath against the window', duration: 18 },
+      { id: 'df-3', title: 'half a sentence, then static', duration: 27 },
+    ],
+    feed: [
+      'a carrier replayed the same 6 seconds twice',
+      'someone arrived without a sound',
+      'a whisper dissolved before anyone caught it',
+      'two signals overlapped for a moment',
+    ],
   },
   {
-    id: 'nocturne',
-    type: 'nocturne',
-    name: 'Nocturne Room',
-    tagline: 'for the ones still awake when everything quiets',
-    atmosphere: 'warm dark / velvet low-end / slow pulse',
-    emotionalTone: 'nocturne',
-    frequency: '44.1 Hz',
-    colorA: '#100820',
-    colorB: '#200830',
-    glowColor: 'rgba(180,80,255,0.45)',
-    carriers: 0,
-    activity: 47
+    id: 'static-garden',
+    name: 'static garden',
+    tagline: 'restless noise, growing into something warm',
+    frequency: '92.4 hz',
+    accentRgb: '255,45,120',
+    baseListeners: 61,
+    baseResonance: 72,
+    initialState: 'static-interference',
+    audio: { oscFreq: 66, detune: 11, filterFreq: 920, noiseLevel: 0.3 },
+    signals: [
+      { id: 'sg-1', title: 'rain recorded through a wall', duration: 51 },
+      { id: 'sg-2', title: 'laughter, pitched down', duration: 14 },
+      { id: 'sg-3', title: 'a kettle and a confession', duration: 33 },
+    ],
+    feed: [
+      'the static thickened, then settled',
+      'a fragment bloomed near the east edge',
+      'someone reacted with ✦ and left',
+      'three carriers synced by accident',
+    ],
   },
   {
-    id: 'static-bloom',
-    type: 'static-bloom',
-    name: 'Static Bloom',
-    tagline: 'restless signals becoming something warm',
-    atmosphere: 'charged / flickering / electric warmth',
-    emotionalTone: 'charged',
-    frequency: '101.6 Hz',
-    colorA: '#150510',
-    colorB: '#2a0020',
-    glowColor: 'rgba(255,20,147,0.5)',
-    carriers: 0,
-    activity: 78
+    id: 'long-hallway',
+    name: 'the long hallway',
+    tagline: 'every echo here takes a while to come back',
+    frequency: '47.0 hz',
+    accentRgb: '155,93,233',
+    baseListeners: 14,
+    baseResonance: 35,
+    initialState: 'dead-silence',
+    audio: { oscFreq: 48, detune: 4, filterFreq: 300, noiseLevel: 0.12 },
+    signals: [
+      { id: 'lh-1', title: 'footsteps that never arrive', duration: 64 },
+      { id: 'lh-2', title: 'a door, opened gently', duration: 9 },
+      { id: 'lh-3', title: 'reverb of a name', duration: 22 },
+    ],
+    feed: [
+      'an echo returned from 3 cycles ago',
+      'a carrier paused mid-hallway',
+      'something distant answered, faintly',
+      'the silence stretched, comfortably',
+    ],
   },
   {
-    id: 'drift',
-    type: 'drift',
-    name: 'Drift Room',
-    tagline: 'untethered carriers moving without direction',
-    atmosphere: 'weightless / open / slow current',
-    emotionalTone: 'drifting',
-    frequency: '33.8 Hz',
-    colorA: '#050d18',
-    colorB: '#081520',
-    glowColor: 'rgba(0,200,255,0.4)',
-    carriers: 0,
-    activity: 23
+    id: 'low-battery',
+    name: 'low battery lounge',
+    tagline: 'dim signals welcome. nothing here needs to be loud.',
+    frequency: '28.8 hz',
+    accentRgb: '255,128,160',
+    baseListeners: 37,
+    baseResonance: 41,
+    initialState: 'quiet-bloom',
+    audio: { oscFreq: 40, detune: 3, filterFreq: 220, noiseLevel: 0.15 },
+    signals: [
+      { id: 'lb-1', title: 'humming at 4 percent', duration: 38 },
+      { id: 'lb-2', title: 'blanket static, very soft', duration: 47 },
+      { id: 'lb-3', title: 'the last voice memo of the night', duration: 19 },
+    ],
+    feed: [
+      'a carrier dimmed to standby',
+      'someone left a warm fragment by the door',
+      'the room exhaled together',
+      'a tired signal found a corner',
+    ],
   },
   {
-    id: 'dead-zone',
-    type: 'dead-zone',
-    name: 'Dead Zone',
-    tagline: 'corrupted frequencies. unstable presence.',
-    atmosphere: 'fractured / corrupted / falling apart',
-    emotionalTone: 'corrupted',
-    frequency: '???.? Hz',
-    colorA: '#0d0d0d',
-    colorB: '#111100',
-    glowColor: 'rgba(100,255,80,0.3)',
-    carriers: 0,
-    activity: 6
+    id: 'resonance-chambers',
+    name: 'resonance chambers',
+    tagline: 'where overlapping feelings amplify each other',
+    frequency: '72.2 hz',
+    accentRgb: '122,160,255',
+    baseListeners: 88,
+    baseResonance: 83,
+    initialState: 'resonance-spike',
+    audio: { oscFreq: 72, detune: 9, filterFreq: 640, noiseLevel: 0.22 },
+    signals: [
+      { id: 'rc-1', title: 'twelve hums, braided', duration: 56 },
+      { id: 'rc-2', title: 'collective inhale', duration: 11 },
+      { id: 'rc-3', title: 'a chord nobody planned', duration: 29 },
+    ],
+    feed: [
+      'resonance crossed 80% and held',
+      'two strangers hit the same note',
+      'the chamber rang for a full minute',
+      'a spike rippled through every carrier',
+    ],
   },
   {
-    id: 'pulse',
-    type: 'pulse',
-    name: 'Pulse Room',
-    tagline: 'synchronized heartbeats. collective resonance.',
-    atmosphere: 'rhythmic / alive / synchronized',
-    emotionalTone: 'pulse',
-    frequency: '72.8 Hz',
-    colorA: '#100005',
-    colorB: '#200010',
-    glowColor: 'rgba(255,60,120,0.5)',
-    carriers: 0,
-    activity: 94
-  },
-  {
-    id: 'signal-storm',
-    type: 'signal-storm',
-    name: 'Signal Storm',
-    tagline: 'chaos blooming into frequency',
-    atmosphere: 'turbulent / overwhelming / electric',
-    emotionalTone: 'storm',
-    frequency: '188.2 Hz',
-    colorA: '#0a0510',
-    colorB: '#150520',
-    glowColor: 'rgba(120,80,255,0.5)',
-    carriers: 0,
-    activity: 61
+    id: 'dead-air-archive',
+    name: 'dead air archive',
+    tagline: 'recordings of silence, catalogued with care',
+    frequency: '??.? hz',
+    accentRgb: '120,230,150',
+    baseListeners: 7,
+    baseResonance: 18,
+    initialState: 'static-interference',
+    audio: { oscFreq: 36, detune: 2, filterFreq: 180, noiseLevel: 0.1 },
+    signals: [
+      { id: 'da-1', title: 'tape hiss, archived 3 cycles ago', duration: 73 },
+      { id: 'da-2', title: 'the pause before an answer', duration: 8 },
+      { id: 'da-3', title: 'an empty room, listening back', duration: 41 },
+    ],
+    feed: [
+      'a new silence was filed under "almost"',
+      'the archive flickered, briefly',
+      'a carrier checked out an old quiet',
+      'nothing happened. it was recorded.',
+    ],
   },
 ]
 
-const WHISPER_TEXTS = [
-  'i left something here once.',
-  'the resonance remembers.',
-  'you found the quiet part.',
+const ROOM_STATES: RoomStateName[] = [
+  'quiet-bloom',
+  'signal-storm',
+  'dead-silence',
+  'resonance-spike',
+  'static-interference',
+]
+
+const WEATHER: Record<RoomStateName, string[]> = {
+  'quiet-bloom': ['warm fog', 'soft drizzle of static', 'slow golden haze'],
+  'signal-storm': ['signal storm approaching', 'electric crosswinds', 'frequency squall'],
+  'dead-silence': ['flat air, no wind', 'vacuum stillness', 'pressure drop, total hush'],
+  'resonance-spike': ['aurora interference', 'rising harmonic pressure', 'shimmering overtones'],
+  'static-interference': ['light static rain', 'grainy haze', 'intermittent crackle fronts'],
+}
+
+const ACTIVITY_LABEL: Record<RoomStateName, string> = {
+  'quiet-bloom': 'gently blooming',
+  'signal-storm': 'surging',
+  'dead-silence': 'holding its breath',
+  'resonance-spike': 'amplifying',
+  'static-interference': 'flickering',
+}
+
+const STATE_GLYPH: Record<RoomStateName, string> = {
+  'quiet-bloom': '✦',
+  'signal-storm': '∿',
+  'dead-silence': '◌',
+  'resonance-spike': '◑',
+  'static-interference': '⋯',
+}
+
+const STATE_INTENSITY: Record<RoomStateName, number> = {
+  'quiet-bloom': 0.45,
+  'signal-storm': 1,
+  'dead-silence': 0.12,
+  'resonance-spike': 0.85,
+  'static-interference': 0.6,
+}
+
+const REACTION_GLYPHS = ['∿', '✦', '◌', '⋯', '◑']
+
+const NODE_FRAGMENTS = [
+  'someone hummed here, once',
+  'this node remembers rain',
+  'a held breath, suspended',
+  'half of a lullaby',
+  'the shape of a sigh',
+  'an unsent goodnight',
+  'static, but kind',
+  'a frequency someone misses',
+  'the quiet part of a song',
+]
+
+const AMBIENT_WHISPERS = [
   'still here.',
-  'someone else was here.',
-  'the signal keeps returning.',
   'do you feel that?',
-  'almost audible.',
-  'fragments of something.',
+  'the resonance remembers.',
   'not alone.',
-  'the frequency knows you.',
+  'almost audible.',
   'drifting back.',
+  'the signal keeps returning.',
+  'you found the quiet part.',
 ]
 
-const EVENT_MESSAGES: Record<RoomState, string[]> = {
-  stable: [],
-  'signal-bloom': [
-    'signal bloom detected — something is opening.',
-    'bloom event in progress. stay still.',
-    'frequencies converging.',
-  ],
-  'quiet-hour': [
-    'quiet hour descending.',
-    'all carriers entering stillness.',
-    'the room is breathing slower now.',
-  ],
-  'resonance-spike': [
-    'resonance spike detected.',
-    'collective frequency rising.',
-    'something is amplifying.',
-  ],
-  'frequency-storm': [
-    'frequency storm forming.',
-    'unstable carrier detected.',
-    'the room is fracturing.',
-  ],
-  'dead-silence': [
-    'dead silence event.',
-    'all signals suspended.',
-    'the room has gone still.',
-  ],
-  'corrupted-broadcast': [
-    'corrupted broadcast detected.',
-    'signal integrity failing.',
-    'fragments only. proceed carefully.',
-  ],
+// ─── Small utils ───────────────────────────────────────────────
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+
+const fmtTime = (s: number) => {
+  const m = Math.floor(s / 60)
+  const r = Math.floor(s % 60)
+  return `${m}:${String(r).padStart(2, '0')}`
 }
 
-const RARE_MESSAGES = [
-  '32 carriers synchronized.',
-  'dead zone instability rising.',
-  'quiet bloom detected.',
-  'an abandoned carrier returned.',
-  'signal echo from 3 cycles ago.',
-  'the frequency has memory.',
-  'collective resonance: maximum.',
-  'something ancient is listening.',
-]
-
-// ─── Utility ───────────────────────────────────────────────────
-function pseudoRand(seed: number): number {
-  const x = Math.sin(seed + 1) * 10000
-  return x - Math.floor(x)
+function evolveState(prev: RoomStateName, energy: number): RoomStateName {
+  if (energy > 60 && Math.random() < 0.6) return 'resonance-spike'
+  if (Math.random() < 0.45) return prev
+  const pool = ROOM_STATES.filter(s => s !== prev)
+  return pool[Math.floor(Math.random() * pool.length)]
 }
 
-function makeCarrier(i: number, cx: number, cy: number, glowHue: number): Carrier {
-  const angle = pseudoRand(i * 7) * Math.PI * 2
-  const radius = 60 + pseudoRand(i * 13) * 120
-  return {
-    id: String(i),
-    x: cx + Math.cos(angle) * radius,
-    y: cy + Math.sin(angle) * radius,
-    vx: (pseudoRand(i * 3) - 0.5) * 0.4,
-    vy: (pseudoRand(i * 5) - 0.5) * 0.4,
-    size: 3 + pseudoRand(i * 11) * 8,
-    opacity: 0.3 + pseudoRand(i * 17) * 0.5,
-    hue: glowHue + (pseudoRand(i * 23) - 0.5) * 40,
-    orbitRadius: radius,
-    orbitAngle: angle,
-    orbitSpeed: (pseudoRand(i * 29) - 0.5) * 0.008,
-    pulsePhase: pseudoRand(i * 31) * Math.PI * 2,
+function prefersReducedMotion(): boolean {
+  return typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+// ─── Ambient audio engine (Web Audio, graceful no-op) ──────────
+class AmbientEngine {
+  failed = false
+  private ctx: AudioContext | null = null
+  private master: GainNode | null = null
+  private analyser: AnalyserNode | null = null
+  private filter: BiquadFilterNode | null = null
+  private oscA: OscillatorNode | null = null
+  private oscB: OscillatorNode | null = null
+  private noiseGain: GainNode | null = null
+  private data: Uint8Array<ArrayBuffer> | null = null
+
+  private ensure(): boolean {
+    if (this.failed) return false
+    if (this.ctx) return true
+    try {
+      const Ctor =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (!Ctor) {
+        this.failed = true
+        return false
+      }
+      const ctx = new Ctor()
+      const master = ctx.createGain()
+      master.gain.value = 0
+      const analyser = ctx.createAnalyser()
+      analyser.fftSize = 512
+      master.connect(analyser)
+      analyser.connect(ctx.destination)
+
+      const filter = ctx.createBiquadFilter()
+      filter.type = 'lowpass'
+      filter.frequency.value = 400
+      filter.Q.value = 0.9
+      filter.connect(master)
+
+      // slow breathing on the filter cutoff
+      const lfo = ctx.createOscillator()
+      lfo.frequency.value = 0.07
+      const lfoGain = ctx.createGain()
+      lfoGain.gain.value = 90
+      lfo.connect(lfoGain)
+      lfoGain.connect(filter.frequency)
+      lfo.start()
+
+      const oscA = ctx.createOscillator()
+      oscA.type = 'sine'
+      const oscB = ctx.createOscillator()
+      oscB.type = 'triangle'
+      const oscGain = ctx.createGain()
+      oscGain.gain.value = 0.5
+      oscA.connect(oscGain)
+      oscB.connect(oscGain)
+      oscGain.connect(filter)
+      oscA.start()
+      oscB.start()
+
+      // soft filtered noise bed
+      const len = ctx.sampleRate * 2
+      const buf = ctx.createBuffer(1, len, ctx.sampleRate)
+      const ch = buf.getChannelData(0)
+      for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * 0.4
+      const noiseSrc = ctx.createBufferSource()
+      noiseSrc.buffer = buf
+      noiseSrc.loop = true
+      const noiseGain = ctx.createGain()
+      noiseGain.gain.value = 0.15
+      noiseSrc.connect(noiseGain)
+      noiseGain.connect(filter)
+      noiseSrc.start()
+
+      this.ctx = ctx
+      this.master = master
+      this.analyser = analyser
+      this.filter = filter
+      this.oscA = oscA
+      this.oscB = oscB
+      this.noiseGain = noiseGain
+      this.data = new Uint8Array(new ArrayBuffer(analyser.fftSize))
+      return true
+    } catch {
+      this.failed = true
+      return false
+    }
+  }
+
+  // layered per-room voicing: different osc freq / detune / filter per room
+  tune(profile: AudioProfile) {
+    if (!this.ensure() || !this.ctx) return
+    try {
+      const t = this.ctx.currentTime
+      this.oscA?.frequency.setTargetAtTime(profile.oscFreq, t, 0.6)
+      this.oscB?.frequency.setTargetAtTime(profile.oscFreq * 2.01, t, 0.6)
+      this.oscB?.detune.setTargetAtTime(profile.detune * 10, t, 0.6)
+      this.filter?.frequency.setTargetAtTime(profile.filterFreq, t, 0.8)
+      this.noiseGain?.gain.setTargetAtTime(profile.noiseLevel, t, 0.8)
+    } catch {
+      /* no-op */
+    }
+  }
+
+  // smooth gain ramp on enter / leave / toggle
+  setOn(on: boolean) {
+    if (!this.ensure() || !this.ctx || !this.master) return
+    try {
+      if (this.ctx.state === 'suspended') void this.ctx.resume()
+      const t = this.ctx.currentTime
+      this.master.gain.cancelScheduledValues(t)
+      this.master.gain.setTargetAtTime(on ? 0.17 : 0.0001, t, on ? 0.7 : 0.35)
+    } catch {
+      /* no-op */
+    }
+  }
+
+  level(): number {
+    if (!this.analyser || !this.data) return 0
+    try {
+      this.analyser.getByteTimeDomainData(this.data)
+      let sum = 0
+      for (let i = 0; i < this.data.length; i++) {
+        const v = (this.data[i] - 128) / 128
+        sum += v * v
+      }
+      const rms = Math.sqrt(sum / this.data.length)
+      return clamp(rms * 5, 0, 1)
+    } catch {
+      return 0
+    }
+  }
+
+  dispose() {
+    try {
+      void this.ctx?.close()
+    } catch {
+      /* no-op */
+    }
+    this.ctx = null
   }
 }
 
-// ─── Room Canvas Component ─────────────────────────────────────
-function RoomCanvas({ room, roomState, carrierCount }: { room: RoomDef; roomState: RoomState; carrierCount: number }) {
+// ─── Shared live-room simulation ───────────────────────────────
+function useLiveRoomSim(room: RoomDef, energyRef?: MutableRefObject<number>) {
+  const [listeners, setListeners] = useState(room.baseListeners)
+  const [resonance, setResonance] = useState(room.baseResonance)
+  const [state, setState] = useState<RoomStateName>(room.initialState)
+  const [weather, setWeather] = useState(() => WEATHER[room.initialState][0])
+  const stateRef = useRef(state)
+  stateRef.current = state
+
+  // listener count drifts up and down
+  useEffect(() => {
+    const t = setInterval(() => {
+      setListeners(prev => {
+        const s = stateRef.current
+        const bias = s === 'resonance-spike' ? 1 : s === 'dead-silence' ? -1 : 0
+        const delta = Math.floor(Math.random() * 5) - 2 + bias
+        return clamp(prev + delta, 1, 240)
+      })
+    }, 3400 + Math.random() * 1800)
+    return () => clearInterval(t)
+  }, [room.id])
+
+  // resonance fluctuates toward a state-dependent target
+  useEffect(() => {
+    const t = setInterval(() => {
+      setResonance(prev => {
+        const s = stateRef.current
+        const target =
+          s === 'resonance-spike' ? 88 :
+          s === 'signal-storm' ? 74 :
+          s === 'quiet-bloom' ? 52 :
+          s === 'static-interference' ? 44 : 14
+        const pull = (target - prev) * 0.25
+        const jitter = (Math.random() - 0.5) * 9
+        return clamp(prev + pull + jitter, 4, 99)
+      })
+    }, 2600)
+    return () => clearInterval(t)
+  }, [room.id])
+
+  // room state evolves on timers (+ activity energy when provided)
+  useEffect(() => {
+    const t = setInterval(() => {
+      setState(prev => evolveState(prev, energyRef?.current ?? 0))
+    }, 9000 + Math.random() * 5000)
+    return () => clearInterval(t)
+  }, [room.id, energyRef])
+
+  // emotional weather follows the state
+  useEffect(() => {
+    const pool = WEATHER[state]
+    setWeather(pool[Math.floor(Math.random() * pool.length)])
+  }, [state])
+
+  return { listeners, resonance, state, weather }
+}
+
+// ─── Live waveform (canvas, rAF writes pixels only) ────────────
+function LiveWaveform({ accentRgb, intensity, className }: {
+  accentRgb: string
+  intensity: number
+  className: string
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const carriersRef = useRef<Carrier[]>([])
-  const frameRef = useRef<number>(0)
-  const timeRef = useRef<number>(0)
+  const intensityRef = useRef(intensity)
+  intensityRef.current = intensity
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+    const reduced = prefersReducedMotion()
+    canvas.width = canvas.offsetWidth || 240
+    canvas.height = canvas.offsetHeight || 34
 
-    const resize = () => {
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
-    }
-    resize()
-    window.addEventListener('resize', resize)
-
-    // Parse glow color to hue
-    const hueMatch = room.glowColor.match(/rgba?\((\d+),(\d+),(\d+)/)
-    const glowR = hueMatch ? parseInt(hueMatch[1]) : 255
-    const glowG = hueMatch ? parseInt(hueMatch[2]) : 20
-    const glowB = hueMatch ? parseInt(hueMatch[3]) : 147
-
-    // Init carriers
-    const count = Math.max(4, Math.min(24, carrierCount + 4))
-    carriersRef.current = Array.from({ length: count }, (_, i) =>
-      makeCarrier(i, canvas.width / 2, canvas.height / 2, glowR)
-    )
-
-    let animId = 0
+    let raf = 0
+    let t = Math.random() * 100
+    const bars = 36
     const draw = () => {
-      timeRef.current += 0.016
-      const t = timeRef.current
+      t += 0.045
       const W = canvas.width
       const H = canvas.height
-
       ctx.clearRect(0, 0, W, H)
-
-      // Atmosphere glow
-      const isStorm = roomState === 'frequency-storm' || room.type === 'signal-storm'
-      const isCorrupt = roomState === 'corrupted-broadcast' || room.type === 'dead-zone'
-      const isQuiet = roomState === 'quiet-hour' || room.type === 'quiet'
-      const isPulse = room.type === 'pulse'
-
-      // Background radial glow
-      const pulseIntensity = isPulse ? 0.5 + Math.sin(t * 3) * 0.3 : 1
-      const bg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7)
-      bg.addColorStop(0, isCorrupt
-        ? `rgba(${Math.floor(glowR * 0.3)},${Math.floor(glowG * 1.5)},${Math.floor(glowB * 0.2)},${0.12 * pulseIntensity})`
-        : `rgba(${glowR},${glowG},${glowB},${0.1 * pulseIntensity})`
-      )
-      bg.addColorStop(1, 'transparent')
-      ctx.fillStyle = bg
-      ctx.fillRect(0, 0, W, H)
-
-      // Fog layers
-      if (!isQuiet) {
-        for (let f = 0; f < 3; f++) {
-          const fx = W * (0.2 + f * 0.3) + Math.sin(t * 0.2 + f) * 30
-          const fy = H * (0.3 + f * 0.2) + Math.cos(t * 0.15 + f) * 20
-          const fogGrad = ctx.createRadialGradient(fx, fy, 0, fx, fy, 80 + f * 40)
-          fogGrad.addColorStop(0, `rgba(${glowR},${glowG},${glowB},${isStorm ? 0.04 + Math.sin(t + f) * 0.02 : 0.025})`)
-          fogGrad.addColorStop(1, 'transparent')
-          ctx.fillStyle = fogGrad
-          ctx.fillRect(0, 0, W, H)
-        }
+      const k = 0.25 + intensityRef.current * 0.75
+      for (let i = 0; i < bars; i++) {
+        const ph = i / bars
+        const amp = Math.abs(Math.sin(t + ph * 6.5) * Math.sin(t * 0.7 + ph * 13)) * k
+        const h = Math.max(1.5, amp * H * 0.92)
+        const x = (i + 0.5) * (W / bars)
+        ctx.fillStyle = `rgba(${accentRgb},${0.22 + amp * 0.6})`
+        ctx.fillRect(x - 1, (H - h) / 2, 2, h)
       }
-
-      // Storm lightning
-      if (isStorm && Math.random() < 0.02) {
-        ctx.strokeStyle = `rgba(${glowR},${glowG},${glowB},0.3)`
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        const lx = Math.random() * W
-        ctx.moveTo(lx, 0)
-        ctx.lineTo(lx + (Math.random() - 0.5) * 40, H * 0.4)
-        ctx.lineTo(lx + (Math.random() - 0.5) * 60, H)
-        ctx.stroke()
-      }
-
-      // Carriers
-      carriersRef.current.forEach((c, i) => {
-        // Orbit movement
-        c.orbitAngle += c.orbitSpeed * (isStorm ? 3 : isPulse ? 1.5 : 1)
-        const baseX = W / 2 + Math.cos(c.orbitAngle) * c.orbitRadius
-        const baseY = H / 2 + Math.sin(c.orbitAngle) * c.orbitRadius
-        c.x += (baseX - c.x) * 0.02
-        c.y += (baseY - c.y) * 0.02
-
-        const pulse = Math.sin(t * 2 + c.pulsePhase + i * 0.5)
-        const glowSize = c.size * (2 + pulse * (isPulse ? 2 : 1))
-        const opacity = c.opacity * (isQuiet ? 0.5 : 1) * (isCorrupt ? (0.3 + Math.random() * 0.7) : 1)
-
-        // Carrier glow
-        const grad = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, glowSize * 3)
-        grad.addColorStop(0, `rgba(${glowR},${glowG},${glowB},${opacity})`)
-        grad.addColorStop(0.4, `rgba(${glowR},${glowG},${glowB},${opacity * 0.3})`)
-        grad.addColorStop(1, 'transparent')
-        ctx.fillStyle = grad
-        ctx.beginPath()
-        ctx.arc(c.x, c.y, glowSize * 3, 0, Math.PI * 2)
-        ctx.fill()
-
-        // Core dot
-        ctx.fillStyle = `rgba(${glowR},${glowG},${glowB},${Math.min(1, opacity * 1.5)})`
-        ctx.beginPath()
-        ctx.arc(c.x, c.y, c.size * 0.5 + pulse * 1, 0, Math.PI * 2)
-        ctx.fill()
-
-        // Resonance lines between close carriers
-        for (let j = i + 1; j < carriersRef.current.length; j++) {
-          const other = carriersRef.current[j]
-          const dist = Math.hypot(c.x - other.x, c.y - other.y)
-          if (dist < 80) {
-            ctx.strokeStyle = `rgba(${glowR},${glowG},${glowB},${(1 - dist / 80) * 0.15})`
-            ctx.lineWidth = 0.5
-            ctx.beginPath()
-            ctx.moveTo(c.x, c.y)
-            ctx.lineTo(other.x, other.y)
-            ctx.stroke()
-          }
-        }
-      })
-
-      // Pulse room concentric rings
-      if (isPulse || roomState === 'resonance-spike') {
-        const ringCount = 3
-        for (let r = 0; r < ringCount; r++) {
-          const phase = (t * 0.5 + r / ringCount) % 1
-          const radius = phase * Math.max(W, H) * 0.6
-          const alpha = (1 - phase) * 0.12
-          ctx.strokeStyle = `rgba(${glowR},${glowG},${glowB},${alpha})`
-          ctx.lineWidth = 1
-          ctx.beginPath()
-          ctx.arc(W / 2, H / 2, radius, 0, Math.PI * 2)
-          ctx.stroke()
-        }
-      }
-
-      // Dead zone glitch
-      if (isCorrupt) {
-        for (let g = 0; g < 3; g++) {
-          if (Math.random() < 0.15) {
-            const gy = Math.random() * H
-            const gh = 1 + Math.random() * 3
-            ctx.fillStyle = `rgba(${glowR},${glowG},${glowB},0.08)`
-            ctx.fillRect(0, gy, W, gh)
-          }
-        }
-      }
-
-      animId = requestAnimationFrame(draw)
+      if (!reduced) raf = requestAnimationFrame(draw)
     }
+    draw()
+    return () => cancelAnimationFrame(raf)
+  }, [accentRgb])
 
-    animId = requestAnimationFrame(draw)
-    frameRef.current = animId
-
-    return () => {
-      cancelAnimationFrame(animId)
-      window.removeEventListener('resize', resize)
-    }
-  }, [room, roomState, carrierCount])
-
-  return <canvas ref={canvasRef} className="room-canvas" />
+  return <canvas ref={canvasRef} className={className} />
 }
 
-// ─── Whisper Feed ──────────────────────────────────────────────
-function WhisperFeed({ whispers }: { whispers: Whisper[] }) {
-  return (
-    <div className="room-whisper-feed">
-      {whispers.map(w => (
-        <div
-          key={w.id}
-          className="room-whisper-item"
-          style={{
-            opacity: w.opacity,
-            filter: w.distort > 0.5 ? `blur(${w.distort * 1.5}px)` : undefined,
-            transform: `translateY(${w.distort * 4}px)`,
-          }}
-        >
-          <span className="room-whisper-text">{w.text}</span>
-          <span className="room-whisper-age">{Math.round((Date.now() - w.age) / 1000)}s ago</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// ─── Room View ─────────────────────────────────────────────────
-function RoomView({ room, onBack }: { room: RoomDef; onBack: () => void }) {
-  const [carriers, setCarriers] = useState<number>(room.activity)
-  const [roomState, setRoomState] = useState<RoomState>('stable')
-  const [whispers, setWhispers] = useState<Whisper[]>([])
-  const [events, setEvents] = useState<RoomEvent[]>([])
-  const [isContributing, setIsContributing] = useState(false)
-  const [contributionText, setContributionText] = useState('')
-  const [showContrib, setShowContrib] = useState(false)
-  const whisperIdRef = useRef(0)
-  const eventIdRef = useRef(0)
-  const contribTypes = ['whisper', 'hum', 'fragment', 'loop', 'pulse']
-
-  // Simulate carrier drift
-  useEffect(() => {
-    const drift = setInterval(() => {
-      setCarriers(prev => {
-        const delta = Math.floor(Math.random() * 5) - 2
-        return Math.max(1, Math.min(200, prev + delta))
-      })
-    }, 3000)
-    return () => clearInterval(drift)
-  }, [])
-
-  // Random ecosystem events
-  useEffect(() => {
-    const events: RoomState[] = ['signal-bloom', 'quiet-hour', 'resonance-spike', 'frequency-storm', 'dead-silence', 'corrupted-broadcast']
-    const eventTimer = setInterval(() => {
-      if (Math.random() < 0.2) {
-        const evType = events[Math.floor(Math.random() * events.length)]
-        const msgs = EVENT_MESSAGES[evType]
-        const msg = msgs[Math.floor(Math.random() * msgs.length)]
-        setRoomState(evType)
-        setEvents(prev => [{
-          id: String(eventIdRef.current++),
-          message: msg,
-          type: evType,
-          timestamp: Date.now(),
-        }, ...prev].slice(0, 5))
-        setTimeout(() => setRoomState('stable'), 8000 + Math.random() * 12000)
-      } else if (Math.random() < 0.15) {
-        const msg = RARE_MESSAGES[Math.floor(Math.random() * RARE_MESSAGES.length)]
-        setEvents(prev => [{
-          id: String(eventIdRef.current++),
-          message: msg,
-          type: 'stable' as RoomState,
-          timestamp: Date.now(),
-        }, ...prev].slice(0, 5))
-      }
-    }, 6000)
-    return () => clearInterval(eventTimer)
-  }, [])
-
-  // Ambient whispers
-  useEffect(() => {
-    const wTimer = setInterval(() => {
-      if (Math.random() < 0.35) {
-        const text = WHISPER_TEXTS[Math.floor(Math.random() * WHISPER_TEXTS.length)]
-        const id = String(whisperIdRef.current++)
-        const newWhisper: Whisper = {
-          id,
-          text,
-          x: Math.random() * 80 + 10,
-          y: Math.random() * 60 + 20,
-          age: Date.now(),
-          maxAge: 12000 + Math.random() * 8000,
-          opacity: 0.6 + Math.random() * 0.3,
-          distort: 0,
-        }
-        setWhispers(prev => [newWhisper, ...prev].slice(0, 6))
-        // Fade and age
-        const fadeInterval = setInterval(() => {
-          setWhispers(prev => prev.map(w => {
-            if (w.id !== id) return w
-            const age = Date.now() - w.age
-            const ratio = age / w.maxAge
-            return { ...w, opacity: Math.max(0, 0.9 - ratio), distort: ratio * 0.8 }
-          }).filter(w => w.opacity > 0.05))
-          if (Date.now() - newWhisper.age > newWhisper.maxAge) clearInterval(fadeInterval)
-        }, 1000)
-      }
-    }, 4000)
-    return () => clearInterval(wTimer)
-  }, [])
-
-  const handleContribute = () => {
-    if (!contributionText.trim()) return
-    const text = contributionText.trim()
-    setIsContributing(true)
-    const id = String(whisperIdRef.current++)
-    const newWhisper: Whisper = {
-      id,
-      text: `"${text}"`,
-      x: 30 + Math.random() * 40,
-      y: 30 + Math.random() * 40,
-      age: Date.now(),
-      maxAge: 20000,
-      opacity: 1,
-      distort: 0,
-    }
-    setWhispers(prev => [newWhisper, ...prev].slice(0, 8))
-    setContributionText('')
-    setShowContrib(false)
-    setTimeout(() => setIsContributing(false), 1500)
-  }
-
-  const carrierLabel = carriers === 1 ? '1 carrier present' : `${carriers} carriers present`
-  const activityClass = carriers > 80 ? 'high' : carriers > 30 ? 'medium' : 'low'
-
-  return (
-    <div className={`room-view room-view--${room.type}`}>
-      {/* Canvas atmosphere */}
-      <RoomCanvas room={room} roomState={roomState} carrierCount={carriers} />
-
-      {/* Ambient whisper layer */}
-      <div className="room-ambient-whispers">
-        {whispers.map(w => (
-          <div
-            key={w.id}
-            className="room-ambient-whisper"
-            style={{
-              left: `${w.x}%`,
-              top: `${w.y}%`,
-              opacity: w.opacity,
-              filter: w.distort > 0.3 ? `blur(${w.distort}px)` : undefined,
-            }}
-          >
-            {w.text}
-          </div>
-        ))}
-      </div>
-
-      {/* Header */}
-      <div className="room-view-header">
-        <button className="room-view-back" onClick={onBack}>← back</button>
-        <div className="room-view-title-group">
-          <div className="room-view-type">{room.type.replace('-', ' ')}</div>
-          <h2 className="room-view-name">{room.name}</h2>
-          <p className="room-view-tagline">{room.tagline}</p>
-        </div>
-        <div className="room-view-meta">
-          <span className="room-freq">{room.frequency}</span>
-        </div>
-      </div>
-
-      {/* Presence bar */}
-      <div className="room-presence-bar">
-        <div className={`room-presence-count room-presence-count--${activityClass}`}>
-          <span className="room-presence-dot" />
-          {carrierLabel}
-        </div>
-        <div className="room-presence-tone">{room.emotionalTone}</div>
-      </div>
-
-      {/* Event log */}
-      {events.length > 0 && (
-        <div className="room-event-log">
-          {events.slice(0, 3).map(e => (
-            <div key={e.id} className={`room-event-item room-event-item--${e.type}`}>
-              <span className="room-event-dot" />
-              {e.message}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Room state overlay */}
-      {roomState !== 'stable' && (
-        <div className={`room-state-overlay room-state-overlay--${roomState}`}>
-          <span className="room-state-label">{roomState.replace(/-/g, ' ')}</span>
-        </div>
-      )}
-
-      {/* Contribution panel */}
-      <div className="room-contribution-area">
-        {!showContrib ? (
-          <div className="room-contrib-actions">
-            {contribTypes.map(type => (
-              <button
-                key={type}
-                className="room-contrib-btn"
-                onClick={() => { setShowContrib(true); setContributionText('') }}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="room-contrib-form">
-            <input
-              type="text"
-              className="room-contrib-input"
-              placeholder="leave a fragment..."
-              value={contributionText}
-              onChange={e => setContributionText(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleContribute()}
-              maxLength={80}
-              autoFocus
-            />
-            <div className="room-contrib-btns">
-              <button className="room-contrib-submit" onClick={handleContribute} disabled={isContributing}>
-                {isContributing ? 'releasing...' : 'release into room'}
-              </button>
-              <button className="room-contrib-cancel" onClick={() => setShowContrib(false)}>cancel</button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Whisper feed */}
-      <WhisperFeed whispers={whispers.filter(w => w.opacity > 0.3)} />
-    </div>
-  )
-}
-
-// ─── Room Card ─────────────────────────────────────────────────
+// ─── Room card ─────────────────────────────────────────────────
 function RoomCard({ room, onEnter }: { room: RoomDef; onEnter: () => void }) {
-  const [localCarriers, setLocalCarriers] = useState(room.activity)
-  const [pulse, setPulse] = useState(false)
+  const { listeners, resonance, state, weather } = useLiveRoomSim(room)
+  const [feedIdx, setFeedIdx] = useState(() => Math.floor(Math.random() * room.feed.length))
 
+  // ambient activity feed line rotates
   useEffect(() => {
     const t = setInterval(() => {
-      setLocalCarriers(p => Math.max(1, p + Math.floor(Math.random() * 3) - 1))
-      setPulse(true)
-      setTimeout(() => setPulse(false), 600)
-    }, 4000 + Math.random() * 3000)
+      setFeedIdx(i => (i + 1) % room.feed.length)
+    }, 6800 + Math.random() * 2400)
+    return () => clearInterval(t)
+  }, [room.feed.length])
+
+  return (
+    <article
+      className={`room-card eco-room-card room-state--${state}`}
+      onClick={onEnter}
+      style={{ '--room-accent-rgb': room.accentRgb } as CSSProperties}
+    >
+      <div className="eco-card-aura" aria-hidden="true" />
+      <header className="eco-card-top">
+        <span className="eco-card-state">{ACTIVITY_LABEL[state]}</span>
+        <span className="eco-card-freq">{room.frequency}</span>
+      </header>
+      <h3 className="room-name">{room.name}</h3>
+      <p className="eco-card-tagline">{room.tagline}</p>
+      <div className="eco-card-weather">
+        <span className="eco-weather-glyph" aria-hidden="true">{STATE_GLYPH[state]}</span>
+        {weather}
+      </div>
+      <LiveWaveform accentRgb={room.accentRgb} intensity={STATE_INTENSITY[state]} className="eco-card-wave" />
+      <div className="eco-card-resonance">
+        <div className="eco-resonance-track">
+          <div className="eco-resonance-fill" style={{ width: `${resonance}%` }} />
+        </div>
+        <span className="eco-resonance-num">{Math.round(resonance)}% resonance</span>
+      </div>
+      <footer className="eco-card-bottom">
+        <span className="eco-card-listeners">
+          <i className="eco-live-dot" aria-hidden="true" />
+          {listeners} listening
+        </span>
+        <span className="eco-card-feedline">{room.feed[feedIdx]}</span>
+      </footer>
+    </article>
+  )
+}
+
+// ─── In-room immersive view ────────────────────────────────────
+interface RoomViewProps {
+  room: RoomDef
+  leaving: boolean
+  ambientOn: boolean
+  audioBlocked: boolean
+  onToggleAmbient: () => void
+  onExit: () => void
+  onDrift: () => void
+  engine: AmbientEngine | null
+}
+
+function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onExit, onDrift, engine }: RoomViewProps) {
+  const energyRef = useRef(0)
+  const [energy, setEnergy] = useState(0)
+  const { listeners, resonance, state, weather } = useLiveRoomSim(room, energyRef)
+  const [signals, setSignals] = useState<SignalDef[]>(room.signals)
+  const [playback, setPlayback] = useState<{ id: string; elapsed: number; duration: number } | null>(null)
+  const [whispers, setWhispers] = useState<FloatWhisper[]>([])
+  const [whisperText, setWhisperText] = useState('')
+  const [pops, setPops] = useState<ReactionPop[]>([])
+  const [notice, setNotice] = useState<string | null>(null)
+  const [recStatus, setRecStatus] = useState<'idle' | 'recording'>('idle')
+  const [recElapsed, setRecElapsed] = useState(0)
+  const recElapsedRef = useRef(0)
+  const [touchedNode, setTouchedNode] = useState<number | null>(null)
+
+  const shellRef = useRef<HTMLDivElement>(null)
+  const idRef = useRef(0)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const fragmentCountRef = useRef(0)
+  const audioElRef = useRef<HTMLAudioElement | null>(null)
+  const noticeTimerRef = useRef<number | null>(null)
+
+  energyRef.current = energy
+
+  const bumpEnergy = useCallback((amount: number) => {
+    setEnergy(e => clamp(e + amount, 0, 100))
+  }, [])
+
+  const showNotice = useCallback((text: string) => {
+    setNotice(text)
+    if (noticeTimerRef.current !== null) window.clearTimeout(noticeTimerRef.current)
+    noticeTimerRef.current = window.setTimeout(() => setNotice(null), 3200)
+  }, [])
+
+  // drifting particles + signal nodes are stable per room
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 26 }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        top: Math.random() * 100,
+        size: 1.5 + Math.random() * 3,
+        dur: 14 + Math.random() * 18,
+        delay: -Math.random() * 24,
+        alpha: 0.15 + Math.random() * 0.4,
+      })),
+    [room.id] // eslint-disable-line react-hooks/exhaustive-deps
+  )
+
+  const nodes = useMemo<SignalNode[]>(
+    () =>
+      Array.from({ length: 6 }, (_, i) => ({
+        id: i,
+        left: 8 + Math.random() * 84,
+        top: 16 + Math.random() * 52,
+        dur: 16 + Math.random() * 14,
+        delay: -Math.random() * 20,
+        size: 10 + Math.random() * 10,
+        fragment: NODE_FRAGMENTS[(i * 3 + room.name.length) % NODE_FRAGMENTS.length],
+      })),
+    [room.id] // eslint-disable-line react-hooks/exhaustive-deps
+  )
+
+  const carrierCount = clamp(Math.round(listeners / 14) + 2, 2, 6)
+  const carriers = useMemo(
+    () =>
+      Array.from({ length: 6 }, (_, i) => ({
+        id: i,
+        tag: `carrier_${String((i * 37 + room.name.length * 7) % 90 + 10)}`,
+        delay: i * 0.5,
+      })),
+    [room.id] // eslint-disable-line react-hooks/exhaustive-deps
+  )
+
+  // tune the drone to this room when it mounts (layered audio per room id)
+  useEffect(() => {
+    engine?.tune(room.audio)
+  }, [engine, room.id, room.audio])
+
+  // audio-reactive visuals: publish level into --room-level (direct DOM write, no React state)
+  useEffect(() => {
+    const shell = shellRef.current
+    if (!ambientOn || !engine) {
+      shell?.style.setProperty('--room-level', '0')
+      return
+    }
+    let raf = 0
+    let smooth = 0
+    const loop = () => {
+      smooth += (engine.level() - smooth) * 0.12
+      shell?.style.setProperty('--room-level', smooth.toFixed(3))
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => {
+      cancelAnimationFrame(raf)
+      shell?.style.setProperty('--room-level', '0')
+    }
+  }, [ambientOn, engine])
+
+  // energy slowly dissipates
+  useEffect(() => {
+    const t = setInterval(() => setEnergy(e => Math.max(0, e - 2)), 2500)
     return () => clearInterval(t)
   }, [])
 
-  const activityBar = Math.min(100, (localCarriers / 200) * 100)
+  // ambient whispers drift through occasionally
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (Math.random() < 0.4) {
+        const text = AMBIENT_WHISPERS[Math.floor(Math.random() * AMBIENT_WHISPERS.length)]
+        spawnWhisper(text, false)
+      }
+    }, 7000)
+    return () => clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room.id])
+
+  // fake playback timer
+  useEffect(() => {
+    if (!playback) return
+    const t = setInterval(() => {
+      setPlayback(p => {
+        if (!p) return null
+        const next = p.elapsed + 0.25
+        if (next >= p.duration) return null
+        return { ...p, elapsed: next }
+      })
+    }, 250)
+    return () => clearInterval(t)
+  }, [playback?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // recording timer with soft cap
+  useEffect(() => {
+    if (recStatus !== 'recording') return
+    const t = setInterval(() => {
+      const next = recElapsedRef.current + 0.25
+      if (next >= 8) {
+        stopRecording()
+        return
+      }
+      recElapsedRef.current = next
+      setRecElapsed(next)
+    }, 250)
+    return () => clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recStatus])
+
+  // cleanup on unmount: stop mic + any real audio
+  useEffect(() => {
+    return () => {
+      try {
+        if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop()
+      } catch { /* no-op */ }
+      streamRef.current?.getTracks().forEach(tr => tr.stop())
+      if (audioElRef.current) {
+        audioElRef.current.pause()
+        audioElRef.current = null
+      }
+      if (noticeTimerRef.current !== null) window.clearTimeout(noticeTimerRef.current)
+    }
+  }, [])
+
+  const spawnWhisper = (text: string, mine: boolean) => {
+    const id = ++idRef.current
+    const w: FloatWhisper = {
+      id,
+      text,
+      top: 14 + Math.random() * 58,
+      dur: 13 + Math.random() * 7,
+      mine,
+    }
+    setWhispers(prev => [...prev.slice(-7), w])
+    window.setTimeout(() => {
+      setWhispers(prev => prev.filter(x => x.id !== id))
+    }, w.dur * 1000)
+  }
+
+  const handleWhisperSubmit = () => {
+    const text = whisperText.trim()
+    if (!text) return
+    spawnWhisper(text, true)
+    setWhisperText('')
+    bumpEnergy(5)
+  }
+
+  const handleReaction = (glyph: string) => {
+    const id = ++idRef.current
+    setPops(prev => [...prev.slice(-9), { id, glyph, left: 12 + Math.random() * 76 }])
+    window.setTimeout(() => setPops(prev => prev.filter(p => p.id !== id)), 1700)
+    bumpEnergy(7)
+  }
+
+  const handleNodeTouch = (node: SignalNode) => {
+    setTouchedNode(node.id)
+    window.setTimeout(() => setTouchedNode(cur => (cur === node.id ? null : cur)), 900)
+    spawnWhisper(node.fragment, false)
+    bumpEnergy(4)
+  }
+
+  const stopRealAudio = () => {
+    if (audioElRef.current) {
+      audioElRef.current.pause()
+      audioElRef.current = null
+    }
+  }
+
+  const handleReplay = (sig: SignalDef) => {
+    stopRealAudio()
+    if (playback?.id === sig.id) {
+      setPlayback(null)
+      return
+    }
+    if (sig.url) {
+      try {
+        const el = new Audio(sig.url)
+        el.onended = () => setPlayback(null)
+        el.play().catch(() => { /* fall back to fake playback timer */ })
+        audioElRef.current = el
+      } catch { /* fall through to fake playback */ }
+    }
+    setPlayback({ id: sig.id, elapsed: 0, duration: sig.duration })
+    bumpEnergy(3)
+  }
+
+  const startRecording = async () => {
+    if (recStatus === 'recording') return
+    if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      showNotice('this device has no way to listen. fragment not captured.')
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      chunksRef.current = []
+      const rec = new MediaRecorder(stream)
+      rec.ondataavailable = e => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+      rec.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: rec.mimeType || 'audio/webm' })
+        const url = URL.createObjectURL(blob)
+        const n = ++fragmentCountRef.current
+        const dur = Math.max(1, Math.round(recElapsedRef.current))
+        setSignals(sigs => [
+          { id: `mine-${Date.now()}`, title: `your fragment ${n} — released here`, duration: dur, url, mine: true },
+          ...sigs,
+        ])
+        recElapsedRef.current = 0
+        setRecElapsed(0)
+        stream.getTracks().forEach(tr => tr.stop())
+        streamRef.current = null
+        spawnWhisper('a new fragment settles into the room', false)
+        bumpEnergy(10)
+      }
+      recorderRef.current = rec
+      rec.start()
+      recElapsedRef.current = 0
+      setRecElapsed(0)
+      setRecStatus('recording')
+    } catch {
+      showNotice('the room couldn’t hear you — mic unavailable. it’s okay.')
+      setRecStatus('idle')
+    }
+  }
+
+  const stopRecording = () => {
+    try {
+      if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop()
+    } catch { /* no-op */ }
+    setRecStatus('idle')
+  }
 
   return (
     <div
-      className={`room-card-new room-card-new--${room.type} ${pulse ? 'room-card-new--pulse' : ''}`}
-      onClick={onEnter}
-      style={{ '--room-glow': room.glowColor } as React.CSSProperties}
+      ref={shellRef}
+      className={`eco-room-shell room-state--${state} ${leaving ? 'eco-room-shell--leaving' : ''}`}
+      style={{ '--room-accent-rgb': room.accentRgb } as CSSProperties}
     >
-      <div className="room-card-atmosphere" />
-      <div className="room-card-header">
-        <div className="room-card-type-badge">{room.type.replace('-', ' ')}</div>
-        <div className="room-card-freq">{room.frequency}</div>
+      <div className="eco-room-aura" aria-hidden="true" />
+
+      {/* drifting particles */}
+      <div className="eco-particle-field" aria-hidden="true">
+        {particles.map(p => (
+          <span
+            key={p.id}
+            className="eco-particle"
+            style={{
+              left: `${p.left}%`,
+              top: `${p.top}%`,
+              width: p.size,
+              height: p.size,
+              opacity: p.alpha,
+              animationDuration: `${p.dur}s`,
+              animationDelay: `${p.delay}s`,
+            }}
+          />
+        ))}
       </div>
-      <div className="room-card-body">
-        <h3 className="room-card-name">{room.name}</h3>
-        <p className="room-card-tagline">{room.tagline}</p>
-        <p className="room-card-atmosphere-text">{room.atmosphere}</p>
+
+      {/* floating clickable signal nodes */}
+      <div className="eco-node-field">
+        {nodes.map(n => (
+          <button
+            key={n.id}
+            type="button"
+            className={`eco-signal-node ${touchedNode === n.id ? 'eco-signal-node--touched' : ''}`}
+            style={{
+              left: `${n.left}%`,
+              top: `${n.top}%`,
+              width: n.size,
+              height: n.size,
+              animationDuration: `${n.dur}s`,
+              animationDelay: `${n.delay}s`,
+            }}
+            onClick={() => handleNodeTouch(n)}
+            aria-label="touch a drifting signal node"
+          />
+        ))}
       </div>
-      <div className="room-card-footer">
-        <div className="room-activity-bar">
-          <div className="room-activity-fill" style={{ width: `${activityBar}%` }} />
+
+      {/* floating whispers */}
+      <div className="eco-whisper-field" aria-hidden="true">
+        {whispers.map(w => (
+          <span
+            key={w.id}
+            className={`eco-float-whisper ${w.mine ? 'eco-float-whisper--mine' : ''}`}
+            style={{ top: `${w.top}%`, animationDuration: `${w.dur}s` }}
+          >
+            {w.text}
+          </span>
+        ))}
+      </div>
+
+      {/* reaction pops */}
+      <div className="eco-pop-field" aria-hidden="true">
+        {pops.map(p => (
+          <span key={p.id} className="eco-reaction-pop" style={{ left: `${p.left}%` }}>
+            {p.glyph}
+          </span>
+        ))}
+      </div>
+
+      {/* header */}
+      <header className="eco-room-header">
+        <button type="button" className="eco-room-back" onClick={onExit}>← surface</button>
+        <div className="eco-room-title-wrap">
+          <span className="eco-room-statechip">{state.replace(/-/g, ' ')}</span>
+          <h2 className="eco-room-title">{room.name}</h2>
+          <p className="eco-room-tagline">{room.tagline}</p>
         </div>
-        <div className="room-carriers">
-          <span className="room-carriers-dot" />
-          {localCarriers} carriers
+        <button type="button" className="eco-room-drift" onClick={onDrift}>drift elsewhere ⇝</button>
+      </header>
+
+      {/* live vitals */}
+      <div className="eco-room-vitals">
+        <span className="eco-vital">
+          <i className="eco-live-dot" aria-hidden="true" />
+          {listeners} listening
+        </span>
+        <span className="eco-vital eco-vital--weather">
+          <span aria-hidden="true">{STATE_GLYPH[state]}</span> {weather}
+        </span>
+        <span className="eco-vital eco-vital--freq">{room.frequency}</span>
+      </div>
+
+      <div className="eco-room-meters">
+        <div className="eco-meter">
+          <span className="eco-meter-label">resonance</span>
+          <div className="eco-meter-track">
+            <div className="eco-meter-fill eco-meter-fill--resonance" style={{ width: `${resonance}%` }} />
+          </div>
+          <span className="eco-meter-num">{Math.round(resonance)}%</span>
+        </div>
+        <div className="eco-meter">
+          <span className="eco-meter-label">room energy</span>
+          <div className="eco-meter-track">
+            <div className="eco-meter-fill eco-meter-fill--energy" style={{ width: `${energy}%` }} />
+          </div>
+          <span className="eco-meter-num">{energy}%</span>
         </div>
       </div>
+
+      {/* active carriers */}
+      <div className="eco-carrier-strip">
+        {carriers.slice(0, carrierCount).map(c => (
+          <span key={c.id} className="eco-carrier" style={{ animationDelay: `${c.delay}s` }}>
+            <i className="eco-carrier-pulse" aria-hidden="true" />
+            {c.tag}
+          </span>
+        ))}
+        <span className="eco-carrier eco-carrier--you">
+          <i className="eco-carrier-pulse" aria-hidden="true" />
+          you
+        </span>
+      </div>
+
+      {/* signal list + replay */}
+      <section className="eco-signal-list">
+        <h3 className="eco-section-label">room signals</h3>
+        {signals.map(sig => {
+          const isPlaying = playback?.id === sig.id
+          return (
+            <div key={sig.id} className={`eco-signal-row ${isPlaying ? 'eco-signal-row--playing' : ''} ${sig.mine ? 'eco-signal-row--mine' : ''}`}>
+              <button
+                type="button"
+                className="eco-signal-play"
+                onClick={() => handleReplay(sig)}
+                aria-label={isPlaying ? 'stop playback' : 'replay signal'}
+              >
+                {isPlaying ? '◼' : '▸'}
+              </button>
+              <div className="eco-signal-meta">
+                <span className="eco-signal-title">{sig.title}</span>
+                {isPlaying ? (
+                  <div className="eco-playback-row">
+                    <div className="eco-playback-wave" aria-hidden="true">
+                      {Array.from({ length: 14 }, (_, i) => (
+                        <i key={i} style={{ animationDelay: `${i * 0.08}s` }} />
+                      ))}
+                    </div>
+                    <span className="eco-playback-timer">
+                      {fmtTime(playback.elapsed)} / {fmtTime(sig.duration)}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="eco-signal-duration">{fmtTime(sig.duration)}</span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </section>
+
+      {/* interaction dock */}
+      <div className="eco-room-dock">
+        <div className="eco-dock-row eco-dock-row--reactions">
+          {REACTION_GLYPHS.map(g => (
+            <button key={g} type="button" className="eco-reaction-btn" onClick={() => handleReaction(g)}>
+              {g}
+            </button>
+          ))}
+          <button
+            type="button"
+            className={`eco-record-btn ${recStatus === 'recording' ? 'eco-record-btn--live' : ''}`}
+            onClick={recStatus === 'recording' ? stopRecording : startRecording}
+          >
+            {recStatus === 'recording' ? `releasing… ${recElapsed.toFixed(0)}s ◼` : '● leave a fragment'}
+          </button>
+          <button
+            type="button"
+            className={`eco-ambient-toggle ${ambientOn ? 'eco-ambient-toggle--on' : ''}`}
+            onClick={onToggleAmbient}
+          >
+            ambient {ambientOn ? 'on ∿' : 'off ◌'}
+          </button>
+        </div>
+        {audioBlocked && <p className="eco-soft-error">ambient drone unavailable on this device. the room stays quiet.</p>}
+        <div className="eco-dock-row eco-dock-row--whisper">
+          <input
+            type="text"
+            className="eco-whisper-input"
+            placeholder="leave a whisper drifting through…"
+            maxLength={70}
+            value={whisperText}
+            onChange={e => setWhisperText(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleWhisperSubmit()}
+          />
+          <button type="button" className="eco-whisper-send" onClick={handleWhisperSubmit}>
+            release
+          </button>
+        </div>
+      </div>
+
+      {notice && <div className="eco-notice">{notice}</div>}
     </div>
   )
 }
 
-// ─── Main RoomsScreen ──────────────────────────────────────────
+// ─── Main screen ───────────────────────────────────────────────
 export default function RoomsScreen() {
-  const [activeRoom, setActiveRoom] = useState<RoomDef | null>(null)
-  const [hoveredRoom, setHoveredRoom] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'all' | RoomType>('all')
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [leaving, setLeaving] = useState(false)
+  const [ambientOn, setAmbientOn] = useState(false)
+  const [audioBlocked, setAudioBlocked] = useState(false)
+  const engineRef = useRef<AmbientEngine | null>(null)
+  const driftTimerRef = useRef<number | null>(null)
 
-  const rooms = ROOM_DEFS.map(r => ({
-    ...r,
-    carriers: r.activity + Math.floor(Math.random() * 10),
-  }))
+  const activeRoom = ROOMS.find(r => r.id === activeId) ?? null
 
-  const filteredRooms = filter === 'all' ? rooms : rooms.filter(r => r.type === filter)
+  useEffect(() => {
+    return () => {
+      if (driftTimerRef.current !== null) window.clearTimeout(driftTimerRef.current)
+      engineRef.current?.dispose()
+      engineRef.current = null
+    }
+  }, [])
+
+  const getEngine = (): AmbientEngine => {
+    if (!engineRef.current) engineRef.current = new AmbientEngine()
+    return engineRef.current
+  }
+
+  const handleEnter = (room: RoomDef) => {
+    setLeaving(false)
+    setActiveId(room.id)
+    // ambient stays OFF by default — user must toggle it on
+  }
+
+  const handleExit = () => {
+    engineRef.current?.setOn(false)
+    setAmbientOn(false)
+    setLeaving(true)
+    driftTimerRef.current = window.setTimeout(() => {
+      setActiveId(null)
+      setLeaving(false)
+    }, 420)
+  }
+
+  const handleDrift = () => {
+    if (!activeRoom) return
+    const others = ROOMS.filter(r => r.id !== activeRoom.id)
+    const next = others[Math.floor(Math.random() * others.length)]
+    setLeaving(true)
+    driftTimerRef.current = window.setTimeout(() => {
+      setActiveId(next.id)
+      setLeaving(false)
+      if (ambientOn) {
+        const e = getEngine()
+        e.tune(next.audio)
+        e.setOn(true)
+      }
+    }, 420)
+  }
+
+  const handleToggleAmbient = () => {
+    if (!activeRoom) return
+    const e = getEngine()
+    if (!ambientOn) {
+      e.tune(activeRoom.audio)
+      e.setOn(true)
+      if (e.failed) {
+        setAudioBlocked(true)
+        return
+      }
+      setAmbientOn(true)
+    } else {
+      e.setOn(false)
+      setAmbientOn(false)
+    }
+  }
 
   if (activeRoom) {
     return (
-      <div className="rooms-screen-outer">
-        <RoomView room={activeRoom} onBack={() => setActiveRoom(null)} />
+      <div className="rooms-eco rooms-eco--inroom">
+        <RoomView
+          key={activeRoom.id}
+          room={activeRoom}
+          leaving={leaving}
+          ambientOn={ambientOn}
+          audioBlocked={audioBlocked}
+          onToggleAmbient={handleToggleAmbient}
+          onExit={handleExit}
+          onDrift={handleDrift}
+          engine={engineRef.current}
+        />
       </div>
     )
   }
 
   return (
-    <div className="rooms-screen-outer">
-      <div className="rooms-screen-shell">
-        {/* Header */}
-        <div className="rooms-screen-header">
-          <div className="rooms-kicker">FREQUENCY SPACES</div>
-          <h1 className="rooms-title">Rooms</h1>
-          <p className="rooms-subtitle">temporary emotional frequencies. drift through together.</p>
-        </div>
+    <div className="rooms-eco">
+      <div className="rooms-eco-shell">
+        <header className="rooms-eco-header">
+          <span className="rooms-eco-kicker">live frequency spaces</span>
+          <h1 className="rooms-eco-title">rooms</h1>
+          <p className="rooms-eco-sub">temporary emotional weather systems. drift through together.</p>
+        </header>
 
-        {/* Filter */}
-        <div className="rooms-filter-bar">
-          <button
-            className={`rooms-filter-btn ${filter === 'all' ? 'rooms-filter-btn--active' : ''}`}
-            onClick={() => setFilter('all')}
-          >
-            all
-          </button>
-          {ROOM_DEFS.map(r => (
-            <button
-              key={r.id}
-              className={`rooms-filter-btn ${filter === r.type ? 'rooms-filter-btn--active' : ''}`}
-              onClick={() => setFilter(r.type)}
-            >
-              {r.type.replace('-', ' ')}
-            </button>
+        <div className="rooms-eco-grid">
+          {ROOMS.map(room => (
+            <RoomCard key={room.id} room={room} onEnter={() => handleEnter(room)} />
           ))}
         </div>
 
-        {/* Room grid */}
-        <div className="rooms-grid-new">
-          {filteredRooms.map(room => (
-            <div
-              key={room.id}
-              onMouseEnter={() => setHoveredRoom(room.id)}
-              onMouseLeave={() => setHoveredRoom(null)}
-              className={`rooms-card-wrapper ${hoveredRoom === room.id ? 'rooms-card-wrapper--hovered' : ''}`}
-            >
-              <RoomCard room={room} onEnter={() => setActiveRoom(room)} />
-            </div>
-          ))}
-        </div>
-
-        {/* Atmospheric hint */}
-        <div className="rooms-ambient-hint">
-          <p>rooms are temporary. carriers drift through. nothing stays forever.</p>
-        </div>
+        <footer className="rooms-eco-hint">
+          <p>rooms are temporary. carriers drift through. nothing here stays forever.</p>
+        </footer>
       </div>
     </div>
   )

@@ -1,690 +1,1020 @@
 /* ═══════════════════════════════════════════════════════════════
-   ROOMS — Live Emotional Frequency Spaces CSS
+   ROOMS — live ecosystem of frequency spaces
    For src/components/RoomsScreen.tsx
+   palette: pink #ff2d78 / cyan #00d4ff / purple #9b5de9
 ═══════════════════════════════════════════════════════════════ */
 
-/* ─── Outer Shell ────────────────────────────────────────────── */
-.rooms-screen-outer {
+/* ─── Screen shell ───────────────────────────────────────────── */
+.rooms-eco {
   position: relative;
   min-height: 100vh;
   width: 100%;
-  background: #04050a;
-  overflow: hidden;
+  background:
+    radial-gradient(ellipse 90% 50% at 50% -10%, rgba(155, 93, 233, 0.1) 0%, transparent 60%),
+    #05060c;
 }
 
-.rooms-screen-shell {
+.rooms-eco-shell {
   position: relative;
-  z-index: 5;
-  max-width: 900px;
+  z-index: 2;
+  max-width: 960px;
   margin: 0 auto;
   padding: 3rem 1rem 6rem;
 }
 
-/* ─── Header ─────────────────────────────────────────────────── */
-.rooms-screen-header {
+.rooms-eco-header {
   text-align: center;
-  padding: 2rem 0 2.5rem;
+  padding: 1.5rem 0 2.5rem;
 }
 
-.rooms-kicker {
+.rooms-eco-kicker {
+  display: block;
   font-size: 0.6rem;
-  letter-spacing: 0.4em;
+  letter-spacing: 0.42em;
   text-transform: uppercase;
-  color: rgba(180, 160, 255, 0.4);
-  margin-bottom: 0.75rem;
+  color: rgba(0, 212, 255, 0.45);
+  margin-bottom: 0.8rem;
 }
 
-.rooms-title {
-  font-size: clamp(2rem, 6vw, 3.5rem);
+.rooms-eco-title {
+  font-size: clamp(2rem, 6vw, 3.4rem);
   font-weight: 100;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
+  letter-spacing: 0.3em;
   color: #fff;
-  margin: 0 0 0.75rem;
-  text-shadow: 0 0 40px rgba(180, 100, 255, 0.4);
+  margin: 0 0 0.7rem;
+  text-shadow: 0 0 44px rgba(255, 45, 120, 0.35), 0 0 90px rgba(155, 93, 233, 0.25);
 }
 
-.rooms-subtitle {
+.rooms-eco-sub {
   font-size: 0.8rem;
-  color: rgba(180, 160, 220, 0.5);
+  color: rgba(200, 185, 230, 0.5);
+  font-style: italic;
   letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.rooms-eco-hint {
+  text-align: center;
+  padding: 2.5rem 1rem 0;
+}
+
+.rooms-eco-hint p {
+  font-size: 0.65rem;
+  color: rgba(190, 170, 220, 0.28);
+  letter-spacing: 0.12em;
   font-style: italic;
   margin: 0;
 }
 
-/* ─── Filter Bar ─────────────────────────────────────────────── */
-.rooms-filter-bar {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-bottom: 2rem;
-}
-
-.rooms-filter-btn {
-  padding: 0.35rem 0.9rem;
-  border-radius: 50px;
-  font-size: 0.6rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  cursor: pointer;
-  border: 1px solid rgba(180, 160, 220, 0.18);
-  background: transparent;
-  color: rgba(180, 160, 220, 0.45);
-  transition: all 0.2s ease;
-}
-
-.rooms-filter-btn:hover {
-  border-color: rgba(180, 100, 255, 0.4);
-  color: rgba(200, 160, 255, 0.8);
-}
-
-.rooms-filter-btn--active {
-  border-color: rgba(180, 100, 255, 0.6);
-  color: rgba(200, 160, 255, 1);
-  background: rgba(180, 100, 255, 0.08);
-}
-
-/* ─── Room Grid ──────────────────────────────────────────────── */
-.rooms-grid-new {
+/* ─── Grid ───────────────────────────────────────────────────── */
+.rooms-eco-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1.25rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 1.2rem;
 }
 
-.rooms-card-wrapper {
-  transition: transform 0.3s ease;
-}
-
-.rooms-card-wrapper--hovered {
-  transform: translateY(-4px);
-  z-index: 2;
-}
-
-/* ─── Room Card ──────────────────────────────────────────────── */
-.room-card-new {
+/* ─── Room card (keeps .room-card for the IntroGate bridge,
+       overrides the global styles.css .room-card rules) ──────── */
+.rooms-eco .room-card.eco-room-card {
   position: relative;
-  border-radius: 14px;
-  border: 1px solid rgba(180, 100, 255, 0.12);
-  background: rgba(8, 5, 15, 0.9);
-  backdrop-filter: blur(12px);
-  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1.3rem 1.3rem 1.1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(var(--room-accent-rgb, 155, 93, 233), 0.18);
+  background: rgba(9, 7, 18, 0.88);
+  backdrop-filter: blur(10px);
   cursor: pointer;
   overflow: hidden;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  min-height: 200px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  animation: none;
+  will-change: auto;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s ease;
 }
 
-.room-card-new::before {
-  content: '';
+.rooms-eco .room-card.eco-room-card:hover {
+  transform: translate3d(0, -4px, 0);
+  border-color: rgba(var(--room-accent-rgb), 0.5);
+  box-shadow:
+    0 14px 44px rgba(0, 0, 0, 0.5),
+    0 0 26px rgba(var(--room-accent-rgb), 0.18);
+}
+
+.eco-card-aura {
   position: absolute;
   inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(ellipse 80% 80% at 50% 0%, var(--room-glow, rgba(180,100,255,0.1)) 0%, transparent 70%);
-  opacity: 0.5;
-  transition: opacity 0.3s ease;
   pointer-events: none;
-}
-
-.room-card-new:hover::before {
-  opacity: 1;
-}
-
-.room-card-new:hover {
-  border-color: rgba(180, 100, 255, 0.35);
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4), 0 0 20px var(--room-glow, rgba(180,100,255,0.15));
-}
-
-.room-card-new--pulse {
-  animation: room-card-pulse-anim 0.6s ease-out;
-}
-
-/* Room type color overrides */
-.room-card-new--quiet { border-color: rgba(80, 160, 255, 0.12); }
-.room-card-new--quiet:hover { border-color: rgba(80, 160, 255, 0.35); }
-.room-card-new--nocturne { border-color: rgba(180, 80, 255, 0.12); }
-.room-card-new--nocturne:hover { border-color: rgba(180, 80, 255, 0.35); }
-.room-card-new--static-bloom { border-color: rgba(255, 20, 147, 0.15); }
-.room-card-new--static-bloom:hover { border-color: rgba(255, 20, 147, 0.4); }
-.room-card-new--drift { border-color: rgba(0, 200, 255, 0.12); }
-.room-card-new--drift:hover { border-color: rgba(0, 200, 255, 0.35); }
-.room-card-new--dead-zone { border-color: rgba(100, 255, 80, 0.1); }
-.room-card-new--dead-zone:hover { border-color: rgba(100, 255, 80, 0.25); }
-.room-card-new--pulse { border-color: rgba(255, 60, 120, 0.15); }
-.room-card-new--pulse:hover { border-color: rgba(255, 60, 120, 0.4); }
-.room-card-new--signal-storm { border-color: rgba(120, 80, 255, 0.15); }
-.room-card-new--signal-storm:hover { border-color: rgba(120, 80, 255, 0.4); }
-
-.room-card-atmosphere {
-  position: absolute;
-  inset: 0;
   border-radius: inherit;
-  pointer-events: none;
-  background: radial-gradient(ellipse 60% 40% at 50% 100%, var(--room-glow, rgba(180,100,255,0.06)) 0%, transparent 70%);
+  background: radial-gradient(ellipse 90% 70% at 50% 0%,
+    rgba(var(--room-accent-rgb), calc(0.08 + var(--state-intensity, 0.4) * 0.1)) 0%, transparent 65%);
+  animation: eco-aura-breathe calc(9s - var(--state-intensity, 0.4) * 5s) ease-in-out infinite;
 }
 
-.room-card-header {
+.rooms-eco .room-card .eco-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
-  position: relative;
-  z-index: 2;
-}
-
-.room-card-type-badge {
-  font-size: 0.55rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  padding: 0.2rem 0.6rem;
-  border-radius: 50px;
-  background: rgba(180, 100, 255, 0.08);
-  border: 1px solid rgba(180, 100, 255, 0.2);
-  color: rgba(200, 160, 255, 0.7);
-}
-
-.room-card-freq {
-  font-size: 0.6rem;
-  color: rgba(180, 160, 220, 0.4);
-  font-family: monospace;
-  letter-spacing: 0.05em;
-}
-
-.room-card-body {
-  flex: 1;
-  position: relative;
-  z-index: 2;
-  margin-bottom: 1rem;
-}
-
-.room-card-name {
-  font-size: 1.1rem;
-  font-weight: 300;
-  letter-spacing: 0.08em;
-  color: #fff;
-  margin: 0 0 0.4rem;
-}
-
-.room-card-tagline {
-  font-size: 0.72rem;
-  color: rgba(200, 180, 255, 0.6);
-  margin: 0 0 0.5rem;
-  line-height: 1.5;
-  font-style: italic;
-}
-
-.room-card-atmosphere-text {
-  font-size: 0.6rem;
-  color: rgba(180, 160, 220, 0.35);
-  margin: 0;
-  letter-spacing: 0.05em;
-}
-
-.room-card-footer {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
   gap: 0.5rem;
-}
-
-.room-activity-bar {
-  height: 2px;
-  background: rgba(180, 100, 255, 0.1);
-  border-radius: 1px;
-  overflow: hidden;
-}
-
-.room-activity-fill {
-  height: 100%;
-  background: linear-gradient(to right, var(--room-glow, rgba(180,100,255,0.6)), rgba(255,255,255,0.3));
-  border-radius: 1px;
-  transition: width 1s ease;
-}
-
-.room-carriers {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.6rem;
-  color: rgba(180, 160, 220, 0.4);
-}
-
-.room-carriers-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--room-glow, rgba(180,100,255,0.8));
-  box-shadow: 0 0 6px var(--room-glow, rgba(180,100,255,0.6));
-  animation: room-dot-pulse 2s ease-in-out infinite;
-}
-
-/* ─── Canvas ─────────────────────────────────────────────────── */
-.room-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
+  position: relative;
   z-index: 1;
 }
 
-/* ─── Room View ──────────────────────────────────────────────── */
-.room-view {
-  position: relative;
-  min-height: 100vh;
-  width: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+/* override styles.css ".room-card header span" pink uppercase rules */
+.rooms-eco .room-card header span.eco-card-state {
+  font-size: 0.55rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: lowercase;
+  color: rgba(var(--room-accent-rgb), 0.85);
+  padding: 0.18rem 0.6rem;
+  border-radius: 50px;
+  border: 1px solid rgba(var(--room-accent-rgb), 0.3);
+  background: rgba(var(--room-accent-rgb), 0.07);
 }
 
-.room-view--quiet { background: linear-gradient(180deg, #0a1520 0%, #001830 100%); }
-.room-view--nocturne { background: linear-gradient(180deg, #100820 0%, #200830 100%); }
-.room-view--static-bloom { background: linear-gradient(180deg, #150510 0%, #2a0020 100%); }
-.room-view--drift { background: linear-gradient(180deg, #050d18 0%, #081520 100%); }
-.room-view--dead-zone { background: linear-gradient(180deg, #0d0d0d 0%, #111100 100%); }
-.room-view--pulse { background: linear-gradient(180deg, #100005 0%, #200010 100%); }
-.room-view--signal-storm { background: linear-gradient(180deg, #0a0510 0%, #150520 100%); }
+.rooms-eco .room-card header span.eco-card-freq {
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  font-family: monospace;
+  color: rgba(200, 185, 230, 0.4);
+}
 
-/* ─── Room View Header ───────────────────────────────────────── */
-.room-view-header {
+.rooms-eco .room-card .room-name {
+  font-size: 1.12rem;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  color: #fff;
+  line-height: 1.25;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 0 18px rgba(var(--room-accent-rgb), 0.35);
+}
+
+.eco-card-tagline {
+  font-size: 0.7rem;
+  color: rgba(205, 190, 235, 0.55);
+  font-style: italic;
+  line-height: 1.5;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.eco-card-weather {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  color: rgba(var(--room-accent-rgb), 0.7);
+  position: relative;
+  z-index: 1;
+}
+
+.eco-weather-glyph {
+  display: inline-block;
+  animation: eco-glyph-pulse 3s ease-in-out infinite;
+}
+
+.eco-card-wave {
+  width: 100%;
+  height: 34px;
+  display: block;
+  position: relative;
+  z-index: 1;
+  opacity: calc(0.55 + var(--state-intensity, 0.4) * 0.45);
+}
+
+.eco-card-resonance {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  position: relative;
+  z-index: 1;
+}
+
+.eco-resonance-track {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(var(--room-accent-rgb), 0.12);
+  overflow: hidden;
+}
+
+.eco-resonance-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(to right,
+    rgba(var(--room-accent-rgb), 0.85), rgba(255, 255, 255, 0.45));
+  transition: width 1.4s ease;
+}
+
+.eco-resonance-num {
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  color: rgba(200, 185, 230, 0.45);
+  white-space: nowrap;
+}
+
+.rooms-eco .room-card footer.eco-card-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  position: relative;
+  z-index: 1;
+  margin-top: 0.15rem;
+}
+
+.eco-card-listeners {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: rgba(220, 205, 245, 0.6);
+}
+
+.eco-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: rgba(var(--room-accent-rgb, 255, 45, 120), 0.95);
+  box-shadow: 0 0 8px rgba(var(--room-accent-rgb, 255, 45, 120), 0.7);
+  animation: eco-dot-pulse 2.2s ease-in-out infinite;
+}
+
+.eco-card-feedline {
+  font-size: 0.58rem;
+  font-style: italic;
+  letter-spacing: 0.05em;
+  color: rgba(190, 175, 220, 0.35);
+  min-height: 1em;
+  transition: opacity 0.6s ease;
+}
+
+/* ─── Room state modifiers (cards + in-room shell) ───────────── */
+.room-state--quiet-bloom         { --state-intensity: 0.45; }
+.room-state--signal-storm        { --state-intensity: 1; }
+.room-state--dead-silence        { --state-intensity: 0.1; }
+.room-state--resonance-spike     { --state-intensity: 0.85; }
+.room-state--static-interference { --state-intensity: 0.6; }
+
+.room-state--signal-storm .eco-card-aura,
+.room-state--signal-storm .eco-room-aura {
+  animation-name: eco-storm-flicker;
+  animation-duration: 1.6s;
+}
+
+.room-state--dead-silence .eco-live-dot,
+.room-state--dead-silence .eco-weather-glyph {
+  animation-play-state: paused;
+  opacity: 0.45;
+}
+
+.room-state--dead-silence .eco-card-wave { opacity: 0.3; }
+
+.room-state--resonance-spike .eco-resonance-fill,
+.room-state--resonance-spike .eco-meter-fill--resonance {
+  box-shadow: 0 0 12px rgba(var(--room-accent-rgb), 0.8);
+}
+
+.room-state--static-interference .eco-card-aura,
+.room-state--static-interference .eco-room-aura {
+  animation-name: eco-static-jitter;
+  animation-duration: 0.9s;
+  animation-timing-function: steps(3);
+}
+
+/* ─── In-room shell ──────────────────────────────────────────── */
+.rooms-eco--inroom {
+  min-height: 100vh;
+}
+
+.eco-room-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 1.4rem 1.4rem 2rem;
+  background:
+    radial-gradient(ellipse 110% 70% at 50% 0%,
+      rgba(var(--room-accent-rgb, 155, 93, 233), 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 60% at 50% 110%,
+      rgba(var(--room-accent-rgb, 155, 93, 233), 0.08) 0%, transparent 60%),
+    #04050a;
+  animation: eco-shell-in 0.5s ease both;
+}
+
+.eco-room-shell--leaving {
+  animation: eco-shell-out 0.42s ease both;
+  pointer-events: none;
+}
+
+/* aura reacts to ambient audio via --room-level (set from JS rAF) */
+.eco-room-aura {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(ellipse 70% 55% at 50% 45%,
+    rgba(var(--room-accent-rgb), calc(0.05 + var(--state-intensity, 0.4) * 0.06 + var(--room-level, 0) * 0.25)) 0%,
+    transparent 70%);
+  animation: eco-aura-breathe 8s ease-in-out infinite;
+}
+
+/* ─── Particles ──────────────────────────────────────────────── */
+.eco-particle-field {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: calc(0.35 + var(--state-intensity, 0.4) * 0.65);
+  transition: opacity 1.5s ease;
+}
+
+.eco-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(var(--room-accent-rgb, 155, 93, 233), 0.8);
+  box-shadow: 0 0 6px rgba(var(--room-accent-rgb, 155, 93, 233), 0.5);
+  animation: eco-particle-drift linear infinite;
+}
+
+/* ─── Floating signal nodes ──────────────────────────────────── */
+.eco-node-field {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.eco-signal-node {
+  position: absolute;
+  pointer-events: auto;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--room-accent-rgb), 0.7);
+  background: radial-gradient(circle,
+    rgba(var(--room-accent-rgb), 0.55) 0%, rgba(var(--room-accent-rgb), 0.05) 70%);
+  box-shadow: 0 0 14px rgba(var(--room-accent-rgb), calc(0.4 + var(--room-level, 0) * 0.6));
+  cursor: pointer;
+  padding: 0;
+  animation: eco-node-drift ease-in-out infinite;
+  transition: box-shadow 0.4s ease;
+}
+
+.eco-signal-node:hover {
+  box-shadow: 0 0 22px rgba(var(--room-accent-rgb), 0.9);
+}
+
+.eco-signal-node--touched {
+  animation-play-state: paused;
+}
+
+.eco-signal-node--touched::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--room-accent-rgb), 0.8);
+  animation: eco-node-ping 0.9s ease-out both;
+}
+
+/* ─── Floating whispers ──────────────────────────────────────── */
+.eco-whisper-field {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  overflow: hidden;
+}
+
+.eco-float-whisper {
+  position: absolute;
+  left: -30%;
+  font-size: 0.66rem;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  color: rgba(220, 205, 245, 0.55);
+  text-shadow: 0 0 10px rgba(var(--room-accent-rgb, 155, 93, 233), 0.4);
+  animation: eco-whisper-cross linear both;
+  will-change: transform, opacity;
+}
+
+.eco-float-whisper--mine {
+  color: rgba(var(--room-accent-rgb), 0.9);
+  font-size: 0.72rem;
+}
+
+/* ─── Reaction pops ──────────────────────────────────────────── */
+.eco-pop-field {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.eco-reaction-pop {
+  position: absolute;
+  bottom: 22%;
+  font-size: 1.2rem;
+  color: rgba(var(--room-accent-rgb), 0.9);
+  text-shadow: 0 0 14px rgba(var(--room-accent-rgb), 0.7);
+  animation: eco-pop-rise 1.7s ease-out both;
+  will-change: transform, opacity;
+}
+
+/* ─── In-room header ─────────────────────────────────────────── */
+.eco-room-header {
   position: relative;
   z-index: 10;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 1.5rem 1.5rem 1rem;
   gap: 1rem;
+  padding-bottom: 1rem;
 }
 
-.room-view-back {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(200, 180, 255, 0.7);
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
-  padding: 0.4rem 0.9rem;
+.eco-room-back,
+.eco-room-drift {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(215, 200, 240, 0.7);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  padding: 0.45rem 0.95rem;
   border-radius: 50px;
   cursor: pointer;
-  transition: all 0.2s ease;
   white-space: nowrap;
+  transition: border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
 }
 
-.room-view-back:hover {
-  border-color: rgba(255, 255, 255, 0.35);
+.eco-room-back:hover,
+.eco-room-drift:hover {
+  border-color: rgba(var(--room-accent-rgb), 0.6);
   color: #fff;
+  box-shadow: 0 0 16px rgba(var(--room-accent-rgb), 0.25);
 }
 
-.room-view-title-group {
-  text-align: center;
+.eco-room-title-wrap {
   flex: 1;
+  text-align: center;
+  min-width: 0;
 }
 
-.room-view-type {
+.eco-room-statechip {
+  display: inline-block;
   font-size: 0.55rem;
-  letter-spacing: 0.25em;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: rgba(200, 160, 255, 0.4);
-  margin-bottom: 0.25rem;
+  color: rgba(var(--room-accent-rgb), 0.75);
+  margin-bottom: 0.35rem;
 }
 
-.room-view-name {
-  font-size: clamp(1.4rem, 4vw, 2rem);
+.eco-room-title {
+  font-size: clamp(1.4rem, 4vw, 2.1rem);
   font-weight: 200;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   color: #fff;
   margin: 0 0 0.3rem;
+  text-shadow: 0 0 calc(20px + var(--room-level, 0) * 30px) rgba(var(--room-accent-rgb), calc(0.4 + var(--room-level, 0) * 0.5));
 }
 
-.room-view-tagline {
-  font-size: 0.72rem;
-  color: rgba(200, 180, 255, 0.5);
+.eco-room-tagline {
+  font-size: 0.7rem;
   font-style: italic;
+  color: rgba(210, 195, 240, 0.5);
   margin: 0;
 }
 
-.room-view-meta {
-  text-align: right;
-  min-width: 60px;
-}
-
-.room-freq {
-  font-size: 0.65rem;
-  color: rgba(180, 160, 220, 0.4);
-  font-family: monospace;
-}
-
-/* ─── Presence Bar ───────────────────────────────────────────── */
-.room-presence-bar {
+/* ─── Vitals + meters ────────────────────────────────────────── */
+.eco-room-vitals {
   position: relative;
   z-index: 10;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 1.5rem 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.4rem;
+  padding-bottom: 0.9rem;
 }
 
-.room-presence-count {
+.eco-vital {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.7rem;
-  color: rgba(200, 180, 255, 0.6);
+  gap: 0.45rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  color: rgba(220, 205, 245, 0.6);
 }
 
-.room-presence-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(180, 100, 255, 0.8);
-  animation: room-dot-pulse 2s ease-in-out infinite;
-}
+.eco-vital--weather { color: rgba(var(--room-accent-rgb), 0.8); font-style: italic; }
+.eco-vital--freq { font-family: monospace; color: rgba(200, 185, 230, 0.4); }
 
-.room-presence-count--high .room-presence-dot {
-  background: rgba(255, 60, 120, 0.9);
-  box-shadow: 0 0 8px rgba(255, 60, 120, 0.6);
-}
-
-.room-presence-count--medium .room-presence-dot {
-  background: rgba(180, 100, 255, 0.9);
-  box-shadow: 0 0 8px rgba(180, 100, 255, 0.6);
-}
-
-.room-presence-count--low .room-presence-dot {
-  background: rgba(80, 160, 255, 0.6);
-}
-
-.room-presence-tone {
-  font-size: 0.6rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: rgba(180, 160, 220, 0.35);
-}
-
-/* ─── Event Log ──────────────────────────────────────────────── */
-.room-event-log {
+.eco-room-meters {
   position: relative;
   z-index: 10;
-  padding: 0 1.5rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-bottom: 0.5rem;
+  gap: 1.4rem;
+  max-width: 620px;
+  width: 100%;
+  margin: 0 auto;
+  padding-bottom: 1rem;
 }
 
-.room-event-item {
+.eco-meter {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.65rem;
-  color: rgba(200, 180, 255, 0.5);
-  letter-spacing: 0.04em;
-  font-style: italic;
-  padding: 0.3rem 0.75rem;
-  background: rgba(180, 100, 255, 0.04);
-  border-left: 2px solid rgba(180, 100, 255, 0.2);
-  border-radius: 0 4px 4px 0;
+  gap: 0.55rem;
 }
 
-.room-event-item--signal-bloom { border-left-color: rgba(255, 200, 0, 0.4); color: rgba(255, 220, 100, 0.6); }
-.room-event-item--quiet-hour { border-left-color: rgba(80, 160, 255, 0.4); color: rgba(120, 180, 255, 0.6); }
-.room-event-item--resonance-spike { border-left-color: rgba(255, 60, 120, 0.5); color: rgba(255, 100, 150, 0.7); }
-.room-event-item--frequency-storm { border-left-color: rgba(255, 100, 50, 0.5); color: rgba(255, 140, 80, 0.7); }
-.room-event-item--dead-silence { border-left-color: rgba(100, 100, 100, 0.4); color: rgba(150, 150, 150, 0.5); }
-.room-event-item--corrupted-broadcast { border-left-color: rgba(100, 255, 80, 0.4); color: rgba(150, 255, 120, 0.6); }
-
-.room-event-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: currentColor;
-  flex-shrink: 0;
-  opacity: 0.7;
-}
-
-/* ─── Room State Overlay ─────────────────────────────────────── */
-.room-state-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 8;
-  pointer-events: none;
-  animation: room-state-fade 1s ease-in;
-}
-
-.room-state-label {
-  display: block;
-  text-align: center;
+.eco-meter-label {
   font-size: 0.55rem;
-  letter-spacing: 0.4em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  padding: 0.4rem;
-  background: rgba(180, 100, 255, 0.06);
-  color: rgba(180, 100, 255, 0.5);
+  color: rgba(190, 175, 225, 0.4);
+  white-space: nowrap;
 }
 
-.room-state-overlay--signal-bloom .room-state-label { background: rgba(255, 200, 0, 0.05); color: rgba(255, 220, 100, 0.5); }
-.room-state-overlay--quiet-hour .room-state-label { background: rgba(80, 160, 255, 0.05); color: rgba(100, 180, 255, 0.5); }
-.room-state-overlay--resonance-spike .room-state-label { background: rgba(255, 60, 120, 0.05); color: rgba(255, 100, 150, 0.6); }
-.room-state-overlay--frequency-storm .room-state-label { background: rgba(255, 100, 50, 0.05); color: rgba(255, 140, 80, 0.6); }
-.room-state-overlay--dead-silence .room-state-label { background: rgba(50, 50, 50, 0.08); color: rgba(120, 120, 120, 0.5); }
-.room-state-overlay--corrupted-broadcast .room-state-label { background: rgba(100, 255, 80, 0.03); color: rgba(150, 255, 120, 0.5); }
-
-/* ─── Ambient Whispers ───────────────────────────────────────── */
-.room-ambient-whispers {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 4;
+.eco-meter-track {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.07);
   overflow: hidden;
 }
 
-.room-ambient-whisper {
-  position: absolute;
-  font-size: 0.6rem;
-  color: rgba(200, 160, 255, 0.4);
-  font-style: italic;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
-  transition: opacity 1s ease, filter 1s ease;
-  text-shadow: 0 0 8px rgba(180, 100, 255, 0.3);
-  animation: whisper-float 20s linear infinite;
-  animation-delay: calc(var(--delay, 0) * 1s);
+.eco-meter-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1.2s ease;
 }
 
-/* ─── Whisper Feed ───────────────────────────────────────────── */
-.room-whisper-feed {
+.eco-meter-fill--resonance {
+  background: linear-gradient(to right, rgba(var(--room-accent-rgb), 0.9), rgba(0, 212, 255, 0.6));
+}
+
+.eco-meter-fill--energy {
+  background: linear-gradient(to right, rgba(255, 45, 120, 0.8), rgba(155, 93, 233, 0.8));
+  transition: width 0.5s ease;
+}
+
+.eco-meter-num {
+  font-size: 0.58rem;
+  color: rgba(200, 185, 230, 0.5);
+  font-family: monospace;
+  min-width: 2.6em;
+  text-align: right;
+}
+
+/* ─── Carriers ───────────────────────────────────────────────── */
+.eco-carrier-strip {
   position: relative;
   z-index: 10;
-  padding: 1rem 1.5rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-top: auto;
-  max-height: 180px;
-  overflow-y: auto;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding-bottom: 1.2rem;
 }
 
-.room-whisper-item {
+.eco-carrier {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  transition: opacity 0.5s ease, filter 0.5s ease;
+  gap: 0.4rem;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  font-family: monospace;
+  color: rgba(200, 185, 230, 0.45);
 }
 
-.room-whisper-text {
-  font-size: 0.7rem;
-  color: rgba(200, 180, 255, 0.65);
-  font-style: italic;
+.eco-carrier--you {
+  color: rgba(var(--room-accent-rgb), 0.9);
+}
+
+.eco-carrier-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(var(--room-accent-rgb), 0.7);
+  box-shadow: 0 0 8px rgba(var(--room-accent-rgb), 0.5);
+  animation: eco-dot-pulse 2.6s ease-in-out infinite;
+  animation-delay: inherit;
+}
+
+/* ─── Signal list / replay ───────────────────────────────────── */
+.eco-signal-list {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 1.2rem;
 }
 
-.room-whisper-age {
-  font-size: 0.55rem;
-  color: rgba(180, 160, 220, 0.3);
+.eco-section-label {
+  font-size: 0.56rem;
+  font-weight: 400;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(190, 175, 225, 0.35);
+  margin: 0 0 0.3rem;
+  text-align: center;
+}
+
+.eco-signal-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(10, 8, 20, 0.72);
+  backdrop-filter: blur(8px);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.eco-signal-row--playing {
+  border-color: rgba(var(--room-accent-rgb), 0.45);
+  box-shadow: 0 0 18px rgba(var(--room-accent-rgb), 0.12);
+}
+
+.eco-signal-row--mine {
+  border-color: rgba(var(--room-accent-rgb), 0.3);
+}
+
+.eco-signal-play {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--room-accent-rgb), 0.4);
+  background: rgba(var(--room-accent-rgb), 0.08);
+  color: rgba(var(--room-accent-rgb), 0.95);
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.eco-signal-play:hover {
+  background: rgba(var(--room-accent-rgb), 0.18);
+  box-shadow: 0 0 12px rgba(var(--room-accent-rgb), 0.4);
+}
+
+.eco-signal-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.eco-signal-title {
+  font-size: 0.72rem;
+  color: rgba(225, 212, 250, 0.8);
+  font-style: italic;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* ─── Contribution Area ──────────────────────────────────────── */
-.room-contribution-area {
-  position: relative;
-  z-index: 10;
-  padding: 1rem 1.5rem;
+.eco-signal-duration {
+  font-size: 0.58rem;
+  font-family: monospace;
+  color: rgba(190, 175, 225, 0.35);
 }
 
-.room-contrib-actions {
+.eco-playback-row {
   display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.eco-playback-wave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+}
+
+.eco-playback-wave i {
+  display: block;
+  width: 2px;
+  height: 100%;
+  border-radius: 1px;
+  background: rgba(var(--room-accent-rgb), 0.8);
+  transform-origin: center;
+  animation: eco-playbar 0.9s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.eco-playback-timer {
+  font-size: 0.6rem;
+  font-family: monospace;
+  color: rgba(var(--room-accent-rgb), 0.85);
+  white-space: nowrap;
+}
+
+/* ─── Interaction dock ───────────────────────────────────────── */
+.eco-room-dock {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.eco-dock-row {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
   justify-content: center;
 }
 
-.room-contrib-btn {
-  padding: 0.4rem 1rem;
-  border-radius: 50px;
-  font-size: 0.65rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+.eco-reaction-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--room-accent-rgb), 0.3);
+  background: rgba(var(--room-accent-rgb), 0.05);
+  color: rgba(var(--room-accent-rgb), 0.9);
+  font-size: 0.95rem;
   cursor: pointer;
-  border: 1px solid rgba(180, 100, 255, 0.2);
-  background: rgba(180, 100, 255, 0.04);
-  color: rgba(200, 160, 255, 0.6);
-  transition: all 0.2s ease;
+  transition: transform 0.15s ease, background 0.25s ease, box-shadow 0.25s ease;
 }
 
-.room-contrib-btn:hover {
-  border-color: rgba(180, 100, 255, 0.5);
-  color: rgba(200, 160, 255, 1);
-  background: rgba(180, 100, 255, 0.1);
+.eco-reaction-btn:hover {
+  background: rgba(var(--room-accent-rgb), 0.15);
+  box-shadow: 0 0 14px rgba(var(--room-accent-rgb), 0.4);
 }
 
-.room-contrib-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  max-width: 500px;
-  margin: 0 auto;
+.eco-reaction-btn:active {
+  transform: scale(0.86);
 }
 
-.room-contrib-input {
-  width: 100%;
-  background: rgba(180, 100, 255, 0.06);
-  border: 1px solid rgba(180, 100, 255, 0.25);
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  color: #e8e0ff;
-  font-size: 0.8rem;
-  outline: none;
-  font-style: italic;
-  transition: border-color 0.2s ease;
-  box-sizing: border-box;
-}
-
-.room-contrib-input:focus {
-  border-color: rgba(180, 100, 255, 0.5);
-}
-
-.room-contrib-input::placeholder {
-  color: rgba(180, 160, 220, 0.3);
-}
-
-.room-contrib-btns {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: center;
-}
-
-.room-contrib-submit {
-  padding: 0.5rem 1.5rem;
-  border-radius: 50px;
-  font-size: 0.65rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  cursor: pointer;
-  border: 1px solid rgba(180, 100, 255, 0.4);
-  background: rgba(180, 100, 255, 0.1);
-  color: rgba(200, 160, 255, 0.9);
-  transition: all 0.2s ease;
-}
-
-.room-contrib-submit:hover:not(:disabled) {
-  background: rgba(180, 100, 255, 0.2);
-  border-color: rgba(180, 100, 255, 0.6);
-}
-
-.room-contrib-submit:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.room-contrib-cancel {
+.eco-record-btn,
+.eco-ambient-toggle {
   padding: 0.5rem 1rem;
   border-radius: 50px;
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: transparent;
-  color: rgba(180, 160, 220, 0.4);
-  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 45, 120, 0.35);
+  background: rgba(255, 45, 120, 0.06);
+  color: rgba(255, 130, 175, 0.9);
+  transition: all 0.25s ease;
+  white-space: nowrap;
 }
 
-.room-contrib-cancel:hover {
-  color: rgba(180, 160, 220, 0.8);
-  border-color: rgba(255, 255, 255, 0.2);
+.eco-record-btn:hover {
+  border-color: rgba(255, 45, 120, 0.6);
+  box-shadow: 0 0 14px rgba(255, 45, 120, 0.3);
 }
 
-/* ─── Ambient Hint ───────────────────────────────────────────── */
-.rooms-ambient-hint {
+.eco-record-btn--live {
+  background: rgba(255, 45, 120, 0.18);
+  border-color: rgba(255, 45, 120, 0.7);
+  animation: eco-record-blink 1.1s ease-in-out infinite;
+}
+
+.eco-ambient-toggle {
+  border-color: rgba(0, 212, 255, 0.3);
+  background: rgba(0, 212, 255, 0.05);
+  color: rgba(120, 225, 255, 0.85);
+}
+
+.eco-ambient-toggle:hover {
+  border-color: rgba(0, 212, 255, 0.55);
+  box-shadow: 0 0 14px rgba(0, 212, 255, 0.25);
+}
+
+.eco-ambient-toggle--on {
+  background: rgba(0, 212, 255, 0.14);
+  border-color: rgba(0, 212, 255, 0.6);
+  box-shadow: 0 0 calc(10px + var(--room-level, 0) * 26px) rgba(0, 212, 255, calc(0.25 + var(--room-level, 0) * 0.5));
+}
+
+.eco-soft-error {
   text-align: center;
-  padding: 2rem;
-}
-
-.rooms-ambient-hint p {
-  font-size: 0.65rem;
-  color: rgba(180, 160, 220, 0.25);
-  letter-spacing: 0.1em;
+  font-size: 0.6rem;
   font-style: italic;
+  color: rgba(255, 130, 175, 0.55);
   margin: 0;
 }
 
+.eco-whisper-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(155, 93, 233, 0.06);
+  border: 1px solid rgba(155, 93, 233, 0.28);
+  border-radius: 50px;
+  padding: 0.6rem 1.1rem;
+  color: #ece4ff;
+  font-size: 0.74rem;
+  font-style: italic;
+  outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  box-sizing: border-box;
+}
+
+.eco-whisper-input:focus {
+  border-color: rgba(var(--room-accent-rgb), 0.55);
+  box-shadow: 0 0 14px rgba(var(--room-accent-rgb), 0.15);
+}
+
+.eco-whisper-input::placeholder {
+  color: rgba(190, 175, 225, 0.32);
+}
+
+.eco-whisper-send {
+  padding: 0.55rem 1.2rem;
+  border-radius: 50px;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  border: 1px solid rgba(var(--room-accent-rgb), 0.45);
+  background: rgba(var(--room-accent-rgb), 0.1);
+  color: rgba(255, 255, 255, 0.85);
+  transition: all 0.25s ease;
+}
+
+.eco-whisper-send:hover {
+  background: rgba(var(--room-accent-rgb), 0.22);
+  box-shadow: 0 0 14px rgba(var(--room-accent-rgb), 0.35);
+}
+
+/* ─── Notice toast ───────────────────────────────────────────── */
+.eco-notice {
+  position: fixed;
+  bottom: 1.4rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  font-size: 0.66rem;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  color: rgba(235, 222, 255, 0.85);
+  background: rgba(12, 9, 24, 0.92);
+  border: 1px solid rgba(var(--room-accent-rgb, 155, 93, 233), 0.35);
+  border-radius: 50px;
+  padding: 0.55rem 1.2rem;
+  box-shadow: 0 6px 26px rgba(0, 0, 0, 0.5);
+  animation: eco-notice-in 0.35s ease both;
+  max-width: min(86vw, 420px);
+  text-align: center;
+}
+
 /* ─── Keyframes ──────────────────────────────────────────────── */
-@keyframes room-card-pulse-anim {
-  0% { box-shadow: 0 0 0 rgba(180,100,255,0); }
-  50% { box-shadow: 0 0 30px rgba(180,100,255,0.25); }
-  100% { box-shadow: 0 0 0 rgba(180,100,255,0); }
+@keyframes eco-aura-breathe {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
 }
 
-@keyframes room-dot-pulse {
+@keyframes eco-storm-flicker {
+  0%, 100% { opacity: 0.55; }
+  20% { opacity: 1; }
+  24% { opacity: 0.4; }
+  30% { opacity: 0.95; }
+  62% { opacity: 0.6; }
+  68% { opacity: 1; }
+}
+
+@keyframes eco-static-jitter {
+  0%, 100% { opacity: 0.6; }
+  33% { opacity: 0.9; }
+  66% { opacity: 0.45; }
+}
+
+@keyframes eco-dot-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
+  50% { opacity: 0.45; transform: scale(0.8); }
 }
 
-@keyframes room-state-fade {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+@keyframes eco-glyph-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.4; }
 }
 
-@keyframes whisper-float {
-  0% { transform: translateX(0) translateY(0); }
-  33% { transform: translateX(8px) translateY(-4px); }
-  66% { transform: translateX(-4px) translateY(-8px); }
-  100% { transform: translateX(0) translateY(0); }
+@keyframes eco-particle-drift {
+  0%   { transform: translate3d(0, 0, 0); }
+  25%  { transform: translate3d(26px, -34px, 0); }
+  50%  { transform: translate3d(-14px, -62px, 0); }
+  75%  { transform: translate3d(-32px, -22px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes eco-node-drift {
+  0%   { transform: translate3d(0, 0, 0); }
+  30%  { transform: translate3d(34px, 22px, 0); }
+  55%  { transform: translate3d(-18px, 44px, 0); }
+  80%  { transform: translate3d(-38px, -14px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes eco-node-ping {
+  0%   { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+@keyframes eco-whisper-cross {
+  0%   { transform: translate3d(0, 0, 0); opacity: 0; }
+  8%   { opacity: 0.9; }
+  85%  { opacity: 0.6; }
+  100% { transform: translate3d(140vw, -26px, 0); opacity: 0; }
+}
+
+@keyframes eco-pop-rise {
+  0%   { transform: translate3d(0, 0, 0) scale(0.6); opacity: 0; }
+  15%  { transform: translate3d(0, -14px, 0) scale(1.25); opacity: 1; }
+  100% { transform: translate3d(0, -110px, 0) scale(0.9); opacity: 0; }
+}
+
+@keyframes eco-playbar {
+  0%   { transform: scaleY(0.18); }
+  100% { transform: scaleY(1); }
+}
+
+@keyframes eco-record-blink {
+  0%, 100% { box-shadow: 0 0 6px rgba(255, 45, 120, 0.3); }
+  50% { box-shadow: 0 0 18px rgba(255, 45, 120, 0.7); }
+}
+
+@keyframes eco-shell-in {
+  0%   { opacity: 0; transform: scale(1.015); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes eco-shell-out {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes eco-notice-in {
+  0%   { opacity: 0; transform: translate(-50%, 8px); }
+  100% { opacity: 1; transform: translate(-50%, 0); }
 }
 
 /* ─── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .rooms-grid-new { grid-template-columns: 1fr; }
-  .room-view-header { flex-direction: column; align-items: center; text-align: center; }
-  .room-view-meta { text-align: center; }
-  .rooms-filter-bar { gap: 0.35rem; }
-  .rooms-filter-btn { padding: 0.3rem 0.7rem; font-size: 0.55rem; }
+  .rooms-eco-grid { grid-template-columns: 1fr; }
+  .rooms-eco-shell { padding: 2rem 0.9rem 4rem; }
+
+  .eco-room-shell { padding: 1rem 0.9rem 1.6rem; }
+  .eco-room-header { flex-wrap: wrap; justify-content: center; }
+  .eco-room-title-wrap { order: -1; flex-basis: 100%; margin-bottom: 0.6rem; }
+  .eco-room-meters { flex-direction: column; gap: 0.6rem; }
+  .eco-dock-row--whisper { flex-wrap: nowrap; }
+  .eco-whisper-send { flex-shrink: 0; }
+  .eco-reaction-btn { width: 34px; height: 34px; font-size: 0.85rem; }
+}
+
+/* ─── Reduced motion: decorative animation off ───────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .eco-card-aura,
+  .eco-room-aura,
+  .eco-particle,
+  .eco-signal-node,
+  .eco-float-whisper,
+  .eco-reaction-pop,
+  .eco-live-dot,
+  .eco-carrier-pulse,
+  .eco-weather-glyph,
+  .eco-playback-wave i,
+  .eco-record-btn--live,
+  .eco-room-shell,
+  .eco-room-shell--leaving,
+  .eco-notice {
+    animation: none !important;
+  }
+
+  .eco-float-whisper {
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0.8;
+  }
+
+  .eco-reaction-pop { opacity: 0; }
+  .eco-particle-field { opacity: 0.25; }
+  .rooms-eco .room-card.eco-room-card,
+  .rooms-eco .room-card.eco-room-card:hover { transform: none; transition: none; }
 }

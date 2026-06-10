@@ -17,8 +17,10 @@ import {
 import { createSignedAudioUrl, getOptionalSupabaseClient, getStorageBucket, isSupabaseConfigured, supabaseEnv } from './lib'
 import UnsentRoom from './components/UnsentRoom'
 import RoomsScreenComponent from './components/RoomsScreen'
+import EcosphereAmbience from './components/EcosphereAmbience'
 import './unsent-room.css'
 import './rooms.css'
+import './living-pages.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'unsent' | 'capsules' | 'relics' | 'pod' | 'zones' | 'frequencies' | 'anomalies' | 'settings'
@@ -197,6 +199,100 @@ function SignalBar({ value, color = 'pink' }: { value: number; color?: 'pink' | 
   )
 }
 
+// ─── Living pages: shared helpers ─────────────────────────────────────────────
+function lpRand(seed: number) {
+  let s = seed
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff
+    return Math.abs(s) / 0x7fffffff
+  }
+}
+
+function lpWave(seed: number, bars = 24): number[] {
+  const r = lpRand(seed)
+  return Array.from({ length: bars }, (_, i) => {
+    const shape = Math.sin(i * 0.4 + seed * 0.07) * 0.3 + 0.55
+    return Math.max(0.1, Math.min(1, r() * shape + 0.14))
+  })
+}
+
+function LpWaveform({ seed, bars = 24, active = false, tint = 'pink' }: { seed: number; bars?: number; active?: boolean; tint?: 'pink' | 'cyan' | 'violet' }) {
+  const heights = useMemo(() => lpWave(seed, bars), [seed, bars])
+  return (
+    <div className={`lp-wave lp-wave-${tint}${active ? ' active' : ''}`} aria-hidden="true">
+      {heights.map((h, i) => (
+        <i key={i} style={{ '--h': `${Math.round(h * 100)}%`, '--d': `${(i % 9) * 0.12}s` } as CSSProperties} />
+      ))}
+    </div>
+  )
+}
+
+function usePersistentState<T>(key: string, initial: T) {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const raw = window.localStorage.getItem(key)
+      if (raw != null) return JSON.parse(raw) as T
+    } catch { /* unreadable — start fresh */ }
+    return initial
+  })
+  useEffect(() => {
+    try { window.localStorage.setItem(key, JSON.stringify(value)) } catch { /* storage unavailable */ }
+  }, [key, value])
+  return [value, setValue] as const
+}
+
+function AmbientLine({ lines, interval = 8500 }: { lines: readonly string[]; interval?: number }) {
+  const [idx, setIdx] = useState(0)
+  useEffect(() => {
+    const t = window.setInterval(() => setIdx(i => (i + 1) % lines.length), interval)
+    return () => window.clearInterval(t)
+  }, [lines, interval])
+  const line = lines[idx % lines.length]
+  return (
+    <div className="lp-ambient-line">
+      <span className="lp-ambient-dot" aria-hidden="true" />
+      <span className="lp-ambient-text" key={line}>{line}</span>
+    </div>
+  )
+}
+
+type EcoSnapshot = {
+  resonanceLevel: number
+  driftActivity: number
+  unlockedRelics: string[]
+  savedCapsules: string[]
+  recentInteractions: { id: string; type: string; label: string; createdAt: string }[]
+}
+
+function readEcoSnapshot(): EcoSnapshot {
+  const fallback: EcoSnapshot = { resonanceLevel: 42, driftActivity: 18, unlockedRelics: [], savedCapsules: [], recentInteractions: [] }
+  try {
+    const raw = window.localStorage.getItem('ecosphere:EcosystemState')
+    if (!raw) return fallback
+    const p = JSON.parse(raw) as Partial<EcoSnapshot>
+    return {
+      resonanceLevel: Number(p.resonanceLevel) || fallback.resonanceLevel,
+      driftActivity: Number(p.driftActivity) || fallback.driftActivity,
+      unlockedRelics: Array.isArray(p.unlockedRelics) ? p.unlockedRelics : [],
+      savedCapsules: Array.isArray(p.savedCapsules) ? p.savedCapsules : [],
+      recentInteractions: Array.isArray(p.recentInteractions) ? p.recentInteractions : [],
+    }
+  } catch {
+    return fallback
+  }
+}
+
+function lpTimeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime()
+  if (!Number.isFinite(ms) || ms < 0) return 'just now'
+  const min = Math.floor(ms / 60000)
+  if (min < 1) return 'just now'
+  if (min < 60) return `${min} min ago`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr} hr ago`
+  return 'earlier'
+}
+
 // ─── Screens ──────────────────────────────────────────────────────────────────
 function HomeScreen() {
   const [tick, setTick] = useState(0)
@@ -246,7 +342,61 @@ function HomeScreen() {
     </div>
   )
 }
+const driftNodeDefs = [
+  { id: 'dn1', label: 'Dead Zones', x: 18, y: 34, intensity: 42, delay: 'slow' },
+  { id: 'dn2', label: 'Echo Fields', x: 72, y: 24, intensity: 77, delay: 'soft' },
+  { id: 'dn3', label: 'Quiet Frequencies', x: 44, y: 58, intensity: 61, delay: 'thin' },
+  { id: 'dn4', label: 'Static Bloom', x: 80, y: 68, intensity: 88, delay: 'alive' },
+  { id: 'dn5', label: 'Lost Orbit', x: 27, y: 78, intensity: 54, delay: 'far' },
+]
+
+type DriftHotspot = { id: string; x: number; y: number; fragment: string }
+const driftHotspots: DriftHotspot[] = [
+  { id: 'h1', x: 58, y: 18, fragment: 'a looped breath, four seconds long, no owner' },
+  { id: 'h2', x: 10, y: 56, fragment: 'coordinates for a room that closed years ago' },
+  { id: 'h3', x: 90, y: 46, fragment: 'half a name, sung once, then static' },
+]
+
+const DRIFT_EVENTS = [
+  'fog density rising in the east band',
+  'an unclaimed signal circled twice and left',
+  'echo fields breathing slow tonight',
+  'something faint wants to be found',
+  'cyan haze thinning near lost orbit',
+] as const
+
 function DriftScreen() {
+  const [energy, setEnergy] = useState<Record<string, number>>({})
+  const [offsets, setOffsets] = useState<Record<string, { dx: number; dy: number }>>({})
+  const [found, setFound] = usePersistentState<string[]>('ecosphere:driftFound', [])
+  const [ping, setPing] = useState<string | null>(null)
+
+  useEffect(() => {
+    const wander = () => {
+      setOffsets(() => {
+        const next: Record<string, { dx: number; dy: number }> = {}
+        for (const n of driftNodeDefs) {
+          next[n.id] = { dx: (Math.random() - 0.5) * 34, dy: (Math.random() - 0.5) * 24 }
+        }
+        return next
+      })
+    }
+    wander()
+    const t = window.setInterval(wander, 6500)
+    return () => window.clearInterval(t)
+  }, [])
+
+  const exciteNode = (id: string, label: string) => {
+    setEnergy(e => ({ ...e, [id]: Math.min((e[id] ?? 0) + 1, 8) }))
+    setPing(`${label.toLowerCase()} answered · the node is warming`)
+  }
+
+  const findHotspot = (h: DriftHotspot) => {
+    if (found.includes(h.id)) return
+    setFound(f => [...f, h.id])
+    setPing('a hidden fragment surfaced from the fog')
+  }
+
   return (
     <div className="screen">
       <div className="screen-header">
@@ -254,43 +404,126 @@ function DriftScreen() {
         <h2 className="screen-title">Drift</h2>
         <p className="screen-sub">where signals go when no one claims them</p>
       </div>
-      <div className="drift-map glass">
-        <div className="drift-label-overlay">signal weather · fog / echo · cyan haze with pink scatter</div>
-        {[
-          { label: 'Dead Zones', x: 18, y: 34, intensity: 42, delay: 'slow' },
-          { label: 'Echo Fields', x: 72, y: 24, intensity: 77, delay: 'soft' },
-          { label: 'Quiet Frequencies', x: 44, y: 58, intensity: 61, delay: 'thin' },
-          { label: 'Static Bloom', x: 80, y: 68, intensity: 88, delay: 'alive' },
-          { label: 'Lost Orbit', x: 27, y: 78, intensity: 54, delay: 'far' },
-        ].map(n => (
-          <div key={n.label} className="drift-node" style={{ left: `${n.x}%`, top: `${n.y}%` }}>
-            <div className="drift-pulse" style={{ opacity: n.intensity / 100 }} />
-            <span className="drift-node-label">{n.label}</span>
-            <span className="drift-node-delay">{n.delay}</span>
-          </div>
+      <AmbientLine lines={DRIFT_EVENTS} />
+      <div className="drift-map glass lp-drift-map">
+        <div className="lp-fog lp-fog-a" aria-hidden="true" />
+        <div className="lp-fog lp-fog-b" aria-hidden="true" />
+        <div className="drift-label-overlay">signal weather · fog / echo · {found.length} / {driftHotspots.length} hidden traces found</div>
+        {driftNodeDefs.map(n => {
+          const e = energy[n.id] ?? 0
+          const off = offsets[n.id] ?? { dx: 0, dy: 0 }
+          return (
+            <button
+              key={n.id}
+              type="button"
+              className={`drift-node lp-drift-node${e >= 5 ? ' lit' : e >= 2 ? ' warm' : ''}`}
+              style={{ left: `${n.x}%`, top: `${n.y}%`, transform: `translate(-50%, -50%) translate(${off.dx}px, ${off.dy}px)`, '--energy': (e / 8).toFixed(3) } as CSSProperties}
+              onClick={() => exciteNode(n.id, n.label)}
+            >
+              <div className="drift-pulse" style={{ opacity: Math.min(1, n.intensity / 100 + e * 0.06) }} />
+              <span className="drift-node-label">{n.label}</span>
+              <span className="drift-node-delay">{e > 0 ? `+${e} ${e === 1 ? 'ping' : 'pings'}` : n.delay}</span>
+            </button>
+          )
+        })}
+        {driftHotspots.map(h => (
+          <button
+            key={h.id}
+            type="button"
+            className={`lp-hotspot${found.includes(h.id) ? ' found' : ''}`}
+            style={{ left: `${h.x}%`, top: `${h.y}%` }}
+            onClick={() => findHotspot(h)}
+            aria-label={found.includes(h.id) ? 'recovered fragment' : 'faint trace in the fog'}
+          />
         ))}
       </div>
+      {ping && <div className="lp-drift-ping" key={ping}>{ping}</div>}
       <div className="drift-discoveries">
         {[
           { type: 'Drift Discovery', title: 'A soft pulse is repeating under the fog', note: 'It feels old, almost personal, but the signal refuses a source.', time: '03:12' },
           { type: 'Signal Anomaly', title: 'Static Bloom opened near the eastern band', note: 'Cyan traces are bending around a warm pink interference field.', time: '03:18' },
           { type: 'Emotional Pulse', title: 'Lonely resonance detected in Quiet Frequencies', note: 'The ecosystem lowered its tempo and held the channel open.', time: '03:24' },
-        ].map(d => (
-          <div key={d.title} className="drift-discovery glass">
+        ].map((d, i) => (
+          <div key={d.title} className="drift-discovery glass lp-card lp-enter" style={{ '--idx': i } as CSSProperties}>
             <div className="drift-discovery-type">{d.type}</div>
             <div className="drift-discovery-title">{d.title}</div>
             <p className="drift-discovery-note">{d.note}</p>
             <span className="drift-discovery-time">{d.time}</span>
           </div>
         ))}
+        {found.map((id, i) => {
+          const h = driftHotspots.find(x => x.id === id)
+          if (!h) return null
+          return (
+            <div key={h.id} className="drift-discovery glass lp-card lp-enter lp-found" style={{ '--idx': i + 3 } as CSSProperties}>
+              <div className="drift-discovery-type">Hidden Fragment</div>
+              <div className="drift-discovery-title">{h.fragment}</div>
+              <p className="drift-discovery-note">found off the marked paths. the map keeps it now.</p>
+              <span className="drift-discovery-time">recovered</span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
 }
 
 
+type CapsulePhase = 'sealed' | 'cracking' | 'leaking' | 'open'
+
+const formingCapsule: Capsule = { id: 'c5', title: 'Unmarked Capsule', duration: '0:21', feeling: 'still forming', timestamp: 'arriving', type: 'echo', status: 'private' }
+
+const capsuleMemories: Record<string, { line: string; seed: number }> = {
+  c1: { line: '"kept this one because the room went quiet right after. you can hear it decide to."', seed: 17 },
+  c2: { line: '"amber light through a window that is not there anymore. the recording kept the warmth."', seed: 29 },
+  c3: { line: '"said once, at low volume, to no one. the capsule sealed itself around it."', seed: 41 },
+  c4: { line: '"mostly static now. but the static remembers the shape of what it covered."', seed: 53 },
+  c5: { line: '"new. unlabeled. it sounds like the minute before something good."', seed: 67 },
+}
+
+const CAPSULE_EVENTS = [
+  'preservation field stable',
+  'a seal flexed somewhere in storage',
+  'one capsule runs warmer than it should',
+  'light leak contained in row two',
+  'a new layer is settling',
+] as const
+
 function CapsulesScreen() {
   const typeGlyph: Record<string, string> = { voice: '◎', memory: '◐', echo: '◑' }
+  const [phases, setPhases] = useState<Record<string, CapsulePhase>>({})
+  const [shimmerId, setShimmerId] = useState<string | null>(null)
+  const [formed, setFormed] = useState(false)
+  const timersRef = useRef<number[]>([])
+  const allCapsules = useMemo(() => [...capsules, formingCapsule], [])
+
+  useEffect(() => {
+    const timers = timersRef.current
+    return () => { timers.forEach(id => window.clearTimeout(id)) }
+  }, [])
+
+  // the unmarked capsule finishes forming after time spent on the page
+  useEffect(() => {
+    const t = window.setTimeout(() => setFormed(true), 22000)
+    return () => window.clearTimeout(t)
+  }, [])
+
+  // ecosystem shimmer events
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      const pick = allCapsules[Math.floor(Math.random() * allCapsules.length)]
+      setShimmerId(pick.id)
+      timersRef.current.push(window.setTimeout(() => setShimmerId(s => (s === pick.id ? null : s)), 2600))
+    }, 9000)
+    return () => window.clearInterval(t)
+  }, [allCapsules])
+
+  const openCapsule = (id: string) => {
+    setPhases(p => ({ ...p, [id]: 'cracking' }))
+    timersRef.current.push(window.setTimeout(() => setPhases(p => (p[id] === 'cracking' ? { ...p, [id]: 'leaking' } : p)), 850))
+    timersRef.current.push(window.setTimeout(() => setPhases(p => (p[id] === 'leaking' ? { ...p, [id]: 'open' } : p)), 1950))
+  }
+
   return (
     <div className="screen">
       <div className="screen-header">
@@ -298,24 +531,129 @@ function CapsulesScreen() {
         <h2 className="screen-title">Capsules</h2>
         <p className="screen-sub">preserved moments, carried forward</p>
       </div>
+      <AmbientLine lines={CAPSULE_EVENTS} />
       <div className="capsules-list">
-        {capsules.map(c => (
-          <div key={c.id} className="capsule-card glass">
-            <div className="capsule-glyph">{typeGlyph[c.type]}</div>
-            <div className="capsule-body">
-              <div className="capsule-title">{c.title}</div>
-              <div className="capsule-meta">{c.feeling} · {c.duration} · {c.timestamp}</div>
+        {allCapsules.map((c, i) => {
+          const phase: CapsulePhase = phases[c.id] ?? 'sealed'
+          const isForming = c.id === formingCapsule.id && !formed
+          const memory = capsuleMemories[c.id]
+          const badgeLabel = isForming ? 'forming' : c.id === formingCapsule.id ? 'formed' : c.status
+          const badgeClass = isForming || c.id === formingCapsule.id ? 'badge-cyan' : c.status === 'saved' ? 'badge-pink' : c.status === 'private' ? 'badge-violet' : 'badge-grey'
+          return (
+            <div
+              key={c.id}
+              role="button"
+              tabIndex={0}
+              className={`capsule-card glass lp-capsule lp-enter phase-${phase}${shimmerId === c.id ? ' shimmer' : ''}${isForming ? ' forming' : ''}`}
+              style={{ '--idx': i } as CSSProperties}
+              onClick={() => { if (!isForming && phase === 'sealed') openCapsule(c.id) }}
+              onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !isForming && phase === 'sealed') { e.preventDefault(); openCapsule(c.id) } }}
+            >
+              <div className="capsule-glyph" aria-hidden="true">{typeGlyph[c.type]}</div>
+              <div className="capsule-body">
+                <div className="capsule-title">{c.title}</div>
+                <div className="capsule-meta">
+                  {isForming ? 'still forming · stay on this page' : `${c.feeling} · ${c.duration} · ${c.timestamp}`}
+                </div>
+                {phase === 'sealed' && !isForming && <div className="lp-capsule-hint">tap to break the seal</div>}
+                {phase === 'cracking' && <div className="lp-capsule-stage-note">seal cracking…</div>}
+                {phase === 'leaking' && <div className="lp-capsule-stage-note leak">light leaking through…</div>}
+                {phase === 'open' && memory && (
+                  <div className="capsule-memory">
+                    <p className="capsule-memory-line">{memory.line}</p>
+                    <LpWaveform seed={memory.seed} bars={26} active tint="cyan" />
+                    <div className="capsule-memory-stamp">sealed {c.timestamp} · reopened just now</div>
+                    <button type="button" className="capsule-reseal" onClick={e => { e.stopPropagation(); setPhases(p => ({ ...p, [c.id]: 'sealed' })) }}>
+                      ◌ seal it again
+                    </button>
+                  </div>
+                )}
+              </div>
+              <span className={`badge ${badgeClass}`}>{badgeLabel}</span>
+              <div className="capsule-seal-cracks" aria-hidden="true"><span /><span /><span /></div>
+              <div className="capsule-lightleak" aria-hidden="true" />
             </div>
-            <span className={`badge ${c.status === 'saved' ? 'badge-pink' : c.status === 'private' ? 'badge-violet' : 'badge-grey'}`}>{c.status}</span>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
 }
 
+type RelicActivity = { replays: number; reactions: Record<string, number>; saved: boolean }
+
+const relicFragments: Record<string, string[]> = {
+  rl1: ['recovered from the east shelf of the archive', 'it hums when another signal passes close', 'the hum is almost a voice. almost.'],
+  rl2: ['a heartbeat, crystallized mid-pulse', 'still ticking at the tempo it was found at', 'warm to the touch after every replay'],
+  rl3: ['sealed by the archive. twice.', 'it repeats a name no index recognizes', 'the name gets clearer the longer you stay'],
+  rl4: ['pink interference, folded into petals', 'it opens slightly during quiet hours', 'do not listen to the center directly'],
+  rl5: ['a broken emotional index', 'violet afterimage persists after playback', 'some entries point at each other forever'],
+}
+
+const relicShards: Record<string, string> = {
+  rl1: 'hidden shard · a second hum underneath, half a beat behind. it has been answering you this whole time.',
+  rl2: 'hidden shard · the crystal skips one beat every 47th replay. the skip is the message.',
+  rl3: 'hidden shard · the name is yours, read backwards through static.',
+  rl4: 'hidden shard · at the center of the bloom: four seconds of someone breathing, calm.',
+  rl5: 'hidden shard · one index entry is intact. it points to tonight.',
+}
+
+const relicReactionDefs = [
+  { id: 'resonate', glyph: '∿', label: 'resonate' },
+  { id: 'hold', glyph: '◌', label: 'hold' },
+  { id: 'flare', glyph: '✶', label: 'flare' },
+]
+
+const RELIC_EVENTS = [
+  'archive pressure steady',
+  'a relic shifted half a degree on its shelf',
+  'replay traces cooling in sector four',
+  'deep shelf hum detected',
+  'something in the vault answered back',
+] as const
+
+const HIDDEN_SHARD_THRESHOLD = 4
+
 function RelicsScreen() {
   const [selected, setSelected] = useState<Relic | null>(null)
+  const [store, setStore] = usePersistentState<Record<string, RelicActivity>>('ecosphere:relicActivity', {})
+  const [charge, setCharge] = useState<Record<string, number>>(() => Object.fromEntries(relics.map(r => [r.id, r.resonance])))
+  const [stage, setStage] = useState(0)
+
+  // relics slowly evolve — charge drifts over time
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      setCharge(prev => {
+        const next: Record<string, number> = {}
+        for (const r of relics) {
+          const cur = prev[r.id] ?? r.resonance
+          next[r.id] = Math.max(24, Math.min(100, cur + (Math.random() - 0.45) * 6))
+        }
+        return next
+      })
+    }, 5000)
+    return () => window.clearInterval(t)
+  }, [])
+
+  // cinematic layered reveal: glow → waveform → fragments
+  useEffect(() => {
+    if (!selected) { setStage(0); return }
+    setStage(1)
+    const t1 = window.setTimeout(() => setStage(2), 800)
+    const t2 = window.setTimeout(() => setStage(3), 1700)
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2) }
+  }, [selected])
+
+  const activityOf = (id: string): RelicActivity => store[id] ?? { replays: 0, reactions: {}, saved: false }
+  const updateActivity = (id: string, fn: (a: RelicActivity) => RelicActivity) =>
+    setStore(s => ({ ...s, [id]: fn(s[id] ?? { replays: 0, reactions: {}, saved: false }) }))
+  const interactionsOf = (a: RelicActivity) => a.replays + Object.values(a.reactions).reduce((sum, n) => sum + n, 0)
+
+  const selectedActivity = selected ? activityOf(selected.id) : null
+  const selectedInteractions = selectedActivity ? interactionsOf(selectedActivity) : 0
+  const shardUnlocked = selectedInteractions >= HIDDEN_SHARD_THRESHOLD
+  const shardRemaining = HIDDEN_SHARD_THRESHOLD - selectedInteractions
+
   return (
     <div className="screen">
       <div className="screen-header">
@@ -323,24 +661,82 @@ function RelicsScreen() {
         <h2 className="screen-title">Relics</h2>
         <p className="screen-sub">artifacts recovered from the deep archive</p>
       </div>
+      <AmbientLine lines={RELIC_EVENTS} />
       <div className="relics-grid">
-        {relics.map(r => (
-          <button key={r.id} className={`relic-card glass ${selected?.id === r.id ? 'selected' : ''}`} onClick={() => setSelected(r === selected ? null : r)}>
-            <div className="relic-orb" />
-            <div className="relic-name">{r.name}</div>
-            <RarityBadge rarity={r.rarity} />
-            <div className="relic-resonance">{r.resonance}%</div>
-          </button>
-        ))}
+        {relics.map((r, i) => {
+          const a = activityOf(r.id)
+          const c = charge[r.id] ?? r.resonance
+          return (
+            <button
+              key={r.id}
+              className={`relic-card glass lp-relic lp-enter${selected?.id === r.id ? ' selected' : ''}${a.replays >= 3 ? ' awakened' : ''}${a.saved ? ' kept' : ''}`}
+              style={{ '--glow': (c / 100).toFixed(3), '--replay-boost': (Math.min(a.replays, 6) / 6).toFixed(3), '--idx': i } as CSSProperties}
+              onClick={() => setSelected(r)}
+            >
+              <div className="relic-orb" />
+              <div className="relic-name">{r.name}</div>
+              <RarityBadge rarity={r.rarity} />
+              <div className="relic-resonance">{Math.round(c)}%</div>
+              {(a.replays > 0 || a.saved) && (
+                <div className="lp-relic-trace">{a.replays > 0 ? `${a.replays}× replayed` : 'kept'}</div>
+              )}
+            </button>
+          )
+        })}
       </div>
-      {selected && (
-        <div className="relic-detail glass">
-          <div className="relic-detail-name">{selected.name}</div>
-          <div className="relic-detail-type">{selected.type}</div>
-          <p className="relic-detail-desc">{selected.description}</p>
-          <div className="relic-detail-footer">
-            <RarityBadge rarity={selected.rarity} />
-            <span className="relic-detail-res">{selected.resonance}% resonance</span>
+      {selected && selectedActivity && (
+        <div className={`lp-relic-overlay stage-${stage}`} role="dialog" aria-modal="true" onClick={() => setSelected(null)}>
+          <div className="lp-relic-scene glass" onClick={e => e.stopPropagation()}>
+            <button className="lp-overlay-close" onClick={() => setSelected(null)}>✕ release</button>
+            <div className="lp-relic-halo" style={{ '--glow': ((charge[selected.id] ?? selected.resonance) / 100).toFixed(3) } as CSSProperties}>
+              <div className="relic-orb" />
+            </div>
+            <div className="lp-relic-scene-name">{selected.name}</div>
+            <div className="lp-relic-scene-type">{selected.type} · <RarityBadge rarity={selected.rarity} /> · {Math.round(charge[selected.id] ?? selected.resonance)}% charge</div>
+            {stage >= 2 && (
+              <LpWaveform
+                key={selectedActivity.replays}
+                seed={selected.id.charCodeAt(2) * 31 + selectedActivity.replays * 7}
+                bars={36}
+                active
+                tint={selectedActivity.replays >= 3 ? 'cyan' : 'pink'}
+              />
+            )}
+            {stage >= 3 && (
+              <div className="lp-relic-frags">
+                {(relicFragments[selected.id] ?? [selected.description]).map((f, i) => (
+                  <p key={f} className="lp-frag" style={{ '--d': `${i * 0.55}s` } as CSSProperties}>{f}</p>
+                ))}
+                {shardUnlocked ? (
+                  <p className="lp-frag lp-hidden-shard" style={{ '--d': `${(relicFragments[selected.id]?.length ?? 1) * 0.55 + 0.3}s` } as CSSProperties}>
+                    {relicShards[selected.id] ?? 'hidden shard · it has noticed you noticing it.'}
+                  </p>
+                ) : (
+                  <p className="lp-frag lp-shard-locked" style={{ '--d': `${(relicFragments[selected.id]?.length ?? 1) * 0.55 + 0.3}s` } as CSSProperties}>
+                    a hidden shard resists · {shardRemaining} more {shardRemaining === 1 ? 'interaction' : 'interactions'}
+                  </p>
+                )}
+              </div>
+            )}
+            {stage >= 3 && (
+              <div className="lp-relic-actions">
+                <button className="lp-action lp-replay" onClick={() => updateActivity(selected.id, a => ({ ...a, replays: a.replays + 1 }))}>
+                  ▶ replay echo{selectedActivity.replays > 0 ? ` · ${selectedActivity.replays}` : ''}
+                </button>
+                {relicReactionDefs.map(rx => (
+                  <button
+                    key={rx.id}
+                    className="lp-action"
+                    onClick={() => updateActivity(selected.id, a => ({ ...a, reactions: { ...a.reactions, [rx.id]: (a.reactions[rx.id] ?? 0) + 1 } }))}
+                  >
+                    {rx.glyph} {rx.label}{selectedActivity.reactions[rx.id] ? ` · ${selectedActivity.reactions[rx.id]}` : ''}
+                  </button>
+                ))}
+                <button className={`lp-action lp-keep${selectedActivity.saved ? ' on' : ''}`} onClick={() => updateActivity(selected.id, a => ({ ...a, saved: !a.saved }))}>
+                  {selectedActivity.saved ? '✶ kept in pod' : '✧ keep in pod'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -930,6 +1326,14 @@ function FrequenciesScreen() {
 }
 
 
+const POD_EVENTS = [
+  'pod membrane stable',
+  'your resonance carried into the drift today',
+  'one fragment is warmer than yesterday',
+  'the pod hums at your frequency',
+  'a saved echo replayed itself, quietly',
+] as const
+
 function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string } | null; onSignOut: () => void }) {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
@@ -938,6 +1342,24 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [eco, setEco] = useState<EcoSnapshot>(() => readEcoSnapshot())
+  const [podPulses, setPodPulses] = usePersistentState<number>('ecosphere:podPulses', 0)
+  const [rippling, setRippling] = useState(false)
+
+  // the pod listens to ecosystem activity while you're here
+  useEffect(() => {
+    const t = window.setInterval(() => setEco(readEcoSnapshot()), 10000)
+    return () => window.clearInterval(t)
+  }, [])
+
+  const podEnergy = Math.min(1, (eco.resonanceLevel + podPulses * 2) / 120)
+  const podStage = podEnergy > 0.7 ? 'radiant' : podEnergy > 0.4 ? 'awake' : 'resting'
+
+  const touchPod = () => {
+    setPodPulses(n => n + 1)
+    setRippling(true)
+    window.setTimeout(() => setRippling(false), 900)
+  }
 
   const supabase = getOptionalSupabaseClient()
 
@@ -1033,12 +1455,35 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
           sign out
         </button>
       </div>
+      <AmbientLine lines={POD_EVENTS} />
       <div className="pod-orb-container">
-        <div className="pod-orb">
+        <button
+          type="button"
+          className={`pod-orb lp-pod-orb lp-pod--${podStage}${rippling ? ' rippling' : ''}`}
+          style={{ '--pod-energy': podEnergy.toFixed(3) } as CSSProperties}
+          onClick={touchPod}
+          aria-label="touch your pod"
+        >
           <div className="pod-orb-inner" />
           <div className="pod-orb-ring" />
+          <span className="lp-pod-ripple" aria-hidden="true" />
+        </button>
+        <div className="pod-orb-label">
+          {podStage === 'radiant' ? 'radiant · it knows you' : podStage === 'awake' ? 'awake · gathering you' : 'resting · touch to wake'}
         </div>
-        <div className="pod-orb-label">resonating</div>
+      </div>
+      <div className="lp-pod-stats">
+        {[
+          { label: 'resonance', value: `${Math.round(eco.resonanceLevel)}%` },
+          { label: 'drift trails', value: String(eco.driftActivity) },
+          { label: 'relics held', value: String(eco.unlockedRelics.length) },
+          { label: 'pod touches', value: String(podPulses) },
+        ].map(s => (
+          <div key={s.label} className="lp-pod-stat glass">
+            <strong>{s.value}</strong>
+            <span>{s.label}</span>
+          </div>
+        ))}
       </div>
       <div className="pod-cards">
         {[
@@ -1046,11 +1491,19 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
           { type: 'Memory Fragment', title: 'Static Bloom Memory', detail: 'Pink noise wrapped around an old feeling.', time: 'archived' },
           { type: 'Private Note', title: 'Quiet Frequency', detail: 'A small reminder to move gently today.', time: 'private' },
         ].map((item, i) => (
-          <div key={i} className="pod-card glass">
+          <div key={i} className="pod-card glass lp-enter" style={{ '--idx': i } as CSSProperties}>
             <div className="pod-card-type">{item.type}</div>
             <div className="pod-card-title">{item.title}</div>
             <p className="pod-card-detail">{item.detail}</p>
             <div className="pod-card-time">{item.time}</div>
+          </div>
+        ))}
+        {eco.recentInteractions.slice(0, 4).map((it, i) => (
+          <div key={it.id} className="pod-card glass lp-enter lp-pod-trace" style={{ '--idx': i + 3 } as CSSProperties}>
+            <div className="pod-card-type">Emotional Trace</div>
+            <div className="pod-card-title">{it.label}</div>
+            <p className="pod-card-detail">the pod kept this moment as you moved through the ecosystem.</p>
+            <div className="pod-card-time">{lpTimeAgo(it.createdAt)}</div>
           </div>
         ))}
       </div>
@@ -1215,6 +1668,7 @@ export default function App() {
       <div className="scanline" />
       <div className="crt-vignette" />
       <Particles />
+      <EcosphereAmbience />
 
       {/* Content */}
       <main className="content-well">
