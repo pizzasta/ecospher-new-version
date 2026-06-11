@@ -1,0 +1,118 @@
+/* ── Signal Observatory ambient demo ───────────────────────────── */
+:root {
+  --border-a: rgba(120, 90, 140, 0.35);  /* low-sat violet */
+  --border-b: rgba(70, 110, 125, 0.35);  /* low-sat teal  */
+  --border-now: var(--border-a);
+  --bg: #07080d;
+  --card: #0d0f17;
+  --text: #c8cdd8;
+  --dim: #6b7280;
+}
+
+* { box-sizing: border-box; margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, sans-serif;
+  padding: 24px 16px 120px;
+}
+
+/* 1 · active borders — color set from JS, eased over 5s */
+#shell {
+  max-width: 560px;
+  margin: 0 auto;
+  border: 1px solid var(--border-now);
+  border-radius: 16px;
+  padding: 24px 18px;
+  transition: border-color 5s linear, transform 0.2s ease;
+  will-change: transform;
+}
+
+#shell.pulse { transform: scale(0.985); }
+
+#top { text-align: center; margin-bottom: 26px; }
+#top h1 { font-size: 18px; letter-spacing: 0.3em; font-weight: 700; }
+#top p { color: var(--dim); font-size: 11px; letter-spacing: 0.08em; margin-top: 6px; }
+
+#feed { display: flex; flex-direction: column; gap: 14px; }
+
+/* 4 · time layers — opacity driven by JS via IntersectionObserver */
+.card {
+  background:
+    linear-gradient(var(--grad-angle, 160deg), rgba(120, 90, 140, 0.06), transparent 60%),
+    var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 16px;
+  opacity: 0.2;
+  transition: opacity 0.6s ease;
+  will-change: opacity, transform;
+}
+
+.card h2 { font-size: 14px; font-weight: 600; }
+
+.card .meta {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.card .status { letter-spacing: 0.1em; text-transform: lowercase; }
+.card .resonance { font-variant-numeric: tabular-nums; }
+
+/* 8 · room climate phrases replace raw stats */
+.stat-number { color: #8fa3b8; }
+
+/* 6 · blurred unknowns */
+.blurred-number {
+  filter: blur(4px);
+  cursor: pointer;
+  transition: filter 0.35s ease;
+  user-select: none;
+}
+.blurred-number.revealed { filter: blur(0); }
+
+/* 2 · scroll traces — faint clones left behind */
+.trace {
+  position: fixed;
+  pointer-events: none;
+  opacity: 0.1;
+  transition: opacity 30s linear;
+  will-change: opacity;
+  z-index: 1;
+}
+.trace.fading { opacity: 0; }
+
+/* 5 · inactivity dots */
+#idle-dots {
+  position: fixed;
+  right: 18px;
+  bottom: 14px;
+  font-size: 22px;
+  color: var(--text);
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  will-change: opacity;
+  pointer-events: none;
+}
+#idle-dots.on { opacity: 0.2; }
+
+/* 7 · navigation trail — dotted circle following the cursor */
+#trail {
+  position: fixed;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border: 1px dotted rgba(140, 160, 180, 0.7);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity, transform;
+  z-index: 50;
+}
+#trail.on { animation: trailFade 1s linear forwards; }
+@keyframes trailFade { from { opacity: 0.7; } to { opacity: 0; } }
