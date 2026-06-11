@@ -2,6 +2,18 @@ import { useEffect, useRef, useState } from 'react'
 import { apiReact } from '../lib/mockApi'
 import './ActiveCarriers.css'
 
+// "tuned to" — the carriers this user listens for (local-first; the listens
+// table mirrors this once carriers have real profile ids)
+const TUNED_TO_KEY = 'ecosphere:tunedTo'
+
+function readTuned(): string[] {
+  try { return JSON.parse(window.localStorage.getItem(TUNED_TO_KEY) ?? '[]') } catch { return [] }
+}
+
+function writeTuned(names: string[]) {
+  try { window.localStorage.setItem(TUNED_TO_KEY, JSON.stringify(names.slice(0, 100))) } catch { /* session only */ }
+}
+
 type CarrierStatus = 'echo' | 'pulse' | 'lost' | 'soft_focus'
 
 type Carrier = {
@@ -55,7 +67,16 @@ function pick<T>(items: readonly T[]) {
 export default function ActiveCarriers({ onViewMap }: { onViewMap?: () => void }) {
   const [carriers, setCarriers] = useState(initialCarriers)
   const [pulsedId, setPulsedId] = useState<string | null>(null)
+  const [tunedTo, setTunedTo] = useState<string[]>(() => readTuned())
   const pulseResetRef = useRef<number | null>(null)
+
+  const toggleTuned = (name: string) => {
+    setTunedTo(prev => {
+      const next = prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+      writeTuned(next)
+      return next
+    })
+  }
 
   // carriers drift between states on their own — the panel feels inhabited
   useEffect(() => {
@@ -122,6 +143,13 @@ export default function ActiveCarriers({ onViewMap }: { onViewMap?: () => void }
               {streakEmoji(carrier.streak)} {carrier.streak}
             </span>
             <div className="carrier-actions">
+              <button
+                type="button"
+                className={tunedTo.includes(carrier.name) ? 'listening' : ''}
+                onClick={() => toggleTuned(carrier.name)}
+              >
+                {tunedTo.includes(carrier.name) ? '◉ listening' : 'listen'}
+              </button>
               <button
                 type="button"
                 className={pulsedId === carrier.id ? 'pulsed' : ''}

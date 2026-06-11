@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { deleteAccountData, getOptionalSupabaseClient, isSupabaseConfigured, syncProfile } from './lib'
+import { deleteAccountData, getOptionalSupabaseClient, isSupabaseConfigured, syncProfile, updateProfileFlags } from './lib'
 import { localDateString, useEcosystemState } from './hooks/useEcosystemState'
 import { deleteLocalRecording, deleteReactionAudio, listLocalRecordings, listReactionAudio, saveReactionAudio, saveRecordingLocally } from './lib/localAudioStore'
 import { downloadBlob, exportFilename, renderStoryImage } from './lib/storyExport'
@@ -15,6 +15,7 @@ import AudioRecorder from './components/AudioRecorder'
 import AudioPlayer from './components/AudioPlayer'
 import FrequencyRecap from './components/FrequencyRecap'
 import DeepListen from './components/DeepListen'
+import ProfileHub from './components/ProfileHub'
 import { useRecordingSession } from './hooks/useRecordingSession'
 import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 
@@ -2168,6 +2169,7 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
         <h2 className="screen-title">Your Hub</h2>
         <p className="screen-sub">your signals, saves, recordings, and activity — all in one place</p>
       </div>
+      <ProfileHub onNavigate={screen => onNavigate?.(screen as Screen)} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: '12px', marginBottom: '4px' }}>
         <div>
           <div style={{ fontSize: '10px', color: 'rgba(180,190,220,0.45)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '2px' }}>
@@ -2441,11 +2443,12 @@ type EcoPrefs = {
   nightMode: boolean
   lurker: boolean
   uiSounds: boolean
+  privateProfile: boolean
   signalVolume: number
   driftSensitivity: number
 }
 
-const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, signalVolume: 72, driftSensitivity: 60 }
+const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, privateProfile: false, signalVolume: 72, driftSensitivity: 60 }
 
 function normalizeIdentity(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
@@ -2469,7 +2472,16 @@ function SettingsScreen() {
     window.dispatchEvent(new CustomEvent('ecosphere:prefs', { detail: prefs }))
   }, [prefs])
 
-  const update = (patch: Partial<EcoPrefs>) => setPrefs(p => ({ ...p, ...patch }))
+  const update = (patch: Partial<EcoPrefs>) => {
+    setPrefs(p => ({ ...p, ...patch }))
+    // mirror profile-level flags to the backend when configured
+    if ('lurker' in patch || 'privateProfile' in patch) {
+      void updateProfileFlags({
+        ...(patch.lurker !== undefined ? { lurker_mode: patch.lurker } : {}),
+        ...(patch.privateProfile !== undefined ? { is_private: patch.privateProfile } : {}),
+      })
+    }
+  }
 
   const showNote = (text: string) => {
     setNote(text)
@@ -2582,6 +2594,13 @@ function SettingsScreen() {
             <div className="setting-detail">deepen the atmosphere</div>
           </div>
           <button className={`toggle ${prefs.nightMode ? 'on' : ''}`} onClick={() => update({ nightMode: !prefs.nightMode })} />
+        </div>
+        <div className="setting-row glass">
+          <div className="setting-info">
+            <div className="setting-label">Private Profile</div>
+            <div className="setting-detail">hide your profile from other carriers entirely</div>
+          </div>
+          <button className={`toggle ${prefs.privateProfile ? 'on' : ''}`} onClick={() => update({ privateProfile: !prefs.privateProfile })} />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">

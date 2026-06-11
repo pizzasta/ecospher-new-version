@@ -506,3 +506,57 @@ export async function deleteAccountData(): Promise<boolean> {
 
   return ok
 }
+
+// ─── Profile hub ──────────────────────────────────────────────────────────────
+
+export const BIO_MAX_LENGTH = 200
+
+export async function updateBio(bio: string) {
+  const ctx = await requireUser()
+  if (!ctx) return false
+  const trimmed = bio.trim().slice(0, BIO_MAX_LENGTH)
+  const { error } = await ctx.db.from('profiles').update({ bio: trimmed || null }).eq('id', ctx.userId)
+  return !error
+}
+
+export async function updateProfileFlags(flags: { is_private?: boolean; lurker_mode?: boolean }) {
+  const ctx = await requireUser()
+  if (!ctx) return false
+  const { error } = await ctx.db.from('profiles').update(flags).eq('id', ctx.userId)
+  return !error
+}
+
+/** Tune in to another carrier. Returns the new state, or null on failure. */
+export async function toggleListen(targetUserId: string): Promise<boolean | null> {
+  const ctx = await requireUser()
+  if (!ctx || targetUserId === ctx.userId) return null
+
+  const { data: existing } = await ctx.db
+    .from('listens')
+    .select('tuned_to_id')
+    .eq('listener_id', ctx.userId)
+    .eq('tuned_to_id', targetUserId)
+    .maybeSingle()
+
+  if (existing) {
+    const { error } = await ctx.db
+      .from('listens')
+      .delete()
+      .eq('listener_id', ctx.userId)
+      .eq('tuned_to_id', targetUserId)
+    return error ? null : false
+  }
+
+  const { error } = await ctx.db.from('listens').insert({ listener_id: ctx.userId, tuned_to_id: targetUserId })
+  return error ? null : true
+}
+
+export async function getListenCounts(): Promise<{ listeners: number; tunedTo: number }> {
+  const ctx = await requireUser()
+  if (!ctx) return { listeners: 0, tunedTo: 0 }
+  const [listeners, tunedTo] = await Promise.all([
+    ctx.db.from('listens').select('listener_id', { count: 'exact', head: true }).eq('tuned_to_id', ctx.userId),
+    ctx.db.from('listens').select('tuned_to_id', { count: 'exact', head: true }).eq('listener_id', ctx.userId),
+  ])
+  return { listeners: listeners.count ?? 0, tunedTo: tunedTo.count ?? 0 }
+}

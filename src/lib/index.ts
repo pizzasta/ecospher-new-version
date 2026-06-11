@@ -8,6 +8,7 @@ export {
   deleteAudio,
   deleteCapsule,
   getAudioPlaybackUrl,
+  getListenCounts,
   getProfile,
   isCapsuleUnlocked,
   listActivity,
@@ -25,9 +26,12 @@ export {
   setAudioVisibility,
   setRelicFavorite,
   syncProfile,
+  toggleListen,
   unarchiveItem,
   unlockUserRelic,
   unsaveSignal,
+  updateBio,
+  updateProfileFlags,
   uploadAudio,
 } from './library'
 export type {
