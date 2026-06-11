@@ -14,6 +14,7 @@ type PublicTables = {
           hz_signature: number | null
           hz_display_name: string | null
           hz_color: string | null
+          gradient_settings: Json
           created_at: string
           updated_at: string | null
         }
@@ -29,6 +30,7 @@ type PublicTables = {
           hz_signature?: number | null
           hz_display_name?: string | null
           hz_color?: string | null
+          gradient_settings?: Json
           created_at?: string
           updated_at?: string | null
         }
@@ -43,6 +45,7 @@ type PublicTables = {
           hz_signature?: number | null
           hz_display_name?: string | null
           hz_color?: string | null
+          gradient_settings?: Json
           updated_at?: string | null
         }
       }

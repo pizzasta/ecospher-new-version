@@ -12,6 +12,10 @@ import type { HzProfile } from '../lib/hzSignature'
 import AudioPlayer from './AudioPlayer'
 import HzBadge from './HzBadge'
 import HzSettingsModal from './HzSettingsModal'
+import FrequencyGradientModal from './FrequencyGradientModal'
+import { loadGradientSettings, readGradientSettings, resolveGradientColors } from '../lib/frequencyGradient'
+import type { GradientSettings } from '../lib/frequencyGradient'
+import { useFrequencyGradient } from '../hooks/useFrequencyGradient'
 import './ProfileHub.css'
 
 const BIO_KEY = 'ecosphere:bio'
@@ -52,10 +56,16 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   const [aiBioBusy, setAiBioBusy] = useState(false)
   const [hzProfile, setHzProfile] = useState<HzProfile | null>(null)
   const [hzSettingsOpen, setHzSettingsOpen] = useState(false)
+  const [gradient, setGradient] = useState<GradientSettings>(() => readGradientSettings())
+  const [gradientOpen, setGradientOpen] = useState(false)
+  const gradientAngle = useFrequencyGradient(gradient)
 
   useEffect(() => {
     void getHzProfile(username).then(setHzProfile)
+    void loadGradientSettings().then(setGradient)
   }, [username])
+
+  const [gradientStart, gradientEnd] = resolveGradientColors(gradient, hzProfile?.hz ?? 110)
 
   useEffect(() => {
     // join date: backend profile when available, else first local visit
@@ -135,6 +145,11 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
 
   return (
     <section className="profile-hub" aria-label="Profile hub">
+      <div
+        className="ph-gradient-layer"
+        aria-hidden="true"
+        style={{ background: `linear-gradient(${Math.round(gradientAngle)}deg, ${gradientStart}, ${gradientEnd})` }}
+      />
       <div className="ph-col">
         {/* header */}
         <div className="ph-card glass">
@@ -144,12 +159,21 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
               <span className="ph-header-hz">
                 <HzBadge hz={hzProfile.hz} displayName={hzProfile.displayName} color={hzProfile.color} />
                 <button type="button" className="ph-hz-cog" title="hz signature settings" aria-label="hz signature settings" onClick={() => setHzSettingsOpen(true)}>⚙</button>
+                <button type="button" className="ph-hz-cog" title="background settings" aria-label="background gradient settings" onClick={() => setGradientOpen(true)}>◰</button>
               </span>
             )}
           </div>
           {joined && <p className="ph-joined">on the band since {joined}</p>}
           {hzSettingsOpen && hzProfile && (
             <HzSettingsModal profile={hzProfile} onChange={setHzProfile} onClose={() => setHzSettingsOpen(false)} />
+          )}
+          {gradientOpen && (
+            <FrequencyGradientModal
+              settings={gradient}
+              hz={hzProfile?.hz ?? 110}
+              onChange={setGradient}
+              onClose={() => setGradientOpen(false)}
+            />
           )}
 
           {!editingBio ? (
