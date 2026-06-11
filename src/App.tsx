@@ -17,6 +17,7 @@ import FrequencyRecap from './components/FrequencyRecap'
 import DeepListen from './components/DeepListen'
 import ProfileHub from './components/ProfileHub'
 import NotificationBell from './components/NotificationBell'
+import ListenerTraces from './components/ListenerTraces'
 import { useRecordingSession } from './hooks/useRecordingSession'
 import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 import { enablePushNotifications } from './lib/pushNotifications'
@@ -1700,7 +1701,10 @@ function DeadZonesScreen() {
                 </div>
               )}
               {hasFragment && !isListening && (
-                <p className="zone-fragment">{zoneFragments[z.id]}</p>
+                <>
+                  <p className="zone-fragment">{zoneFragments[z.id]}</p>
+                  <ListenerTraces signalId={`zone-${z.id}`} resonance={z.corruption} replayed />
+                </>
               )}
               <div className="zone-recovery" aria-label="recovery progress">
                 <span>recovery {recoveryPct}%</span>
