@@ -4,6 +4,7 @@ import { useEcosystemState } from '../hooks/useEcosystemState';
 import { deleteLocalRecording, listLocalRecordings, saveRecordingLocally } from '../lib/localAudioStore';
 import { downloadBlob, exportFilename, renderStoryImage } from '../lib/storyExport';
 import { fetchRemoteRecordings, mirrorRecordingDelete, mirrorRecordingUpload, remotePlaybackUrl } from '../lib/backendBridge';
+import { playSample } from '../lib/sampleAudio';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -800,12 +801,12 @@ export const UnsentRoom: React.FC = () => {
     if (signal.remote) {
       void remotePlaybackUrl(signal.remote).then(url => {
         if (url) void globalAudio.playUrl(url, meta);
-        else globalAudio.playSimulated(meta, signal.duration || 3000);
+        else void playSample(globalAudio, meta, 'voice', signal.signalId.split('').reduce((a, c) => a + c.charCodeAt(0), 5), Math.min(signal.duration || 3000, 15000));
       });
       return;
     }
-    // demo fragments have no real audio — simulate the replay
-    globalAudio.playSimulated(meta, signal.duration || 3000);
+    // demo fragments murmur with a seeded synthetic voice
+    void playSample(globalAudio, meta, 'voice', signal.signalId.split('').reduce((a, c) => a + c.charCodeAt(0), 5), Math.min(signal.duration || 3000, 15000));
   }, [playingId, signals, soundEnabled, globalAudio]);
 
   // ── Actions ──────────────────────────────────────────────────────────────────

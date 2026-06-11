@@ -3,6 +3,8 @@ import type { CSSProperties } from 'react'
 import { getOptionalSupabaseClient, syncProfile } from './lib'
 import { localDateString, useEcosystemState } from './hooks/useEcosystemState'
 import { deleteReactionAudio, listReactionAudio } from './lib/localAudioStore'
+import { playSample } from './lib/sampleAudio'
+import { lastExaminedBy, listenerCount, livedInLines } from './lib/livedIn'
 import type { StoredReaction } from './lib/localAudioStore'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
 import EcosphereAmbience from './components/EcosphereAmbience'
@@ -279,13 +281,17 @@ function HomeScreen() {
 
   const tuneIn = () => {
     if (tunedToday) return
-    homeAudio.playSimulated({ id: `daily-${dailySignal.id}`, label: `daily signal · ${dailySignal.handle}`, source: 'home' }, 6000)
+    void playSample(homeAudio, { id: `daily-${dailySignal.id}`, label: `daily signal · ${dailySignal.handle}`, source: 'home' }, 'voice', dayOfYear() * 31, 6000)
     tuneInDaily(dailySignal.handle)
   }
   const [tick, setTick] = useState(0)
   useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 3000); return () => clearInterval(t) }, [])
   const liveActivity = ecosystemState.recentInteractions.slice(0, 5).map(it => it.label)
-  const activityLines = liveActivity.length >= 2 ? liveActivity : OBS_EVENTS
+  const activityLines = useMemo(
+    () => (liveActivity.length >= 2 ? [...liveActivity, ...livedInLines('home', 2)] : [...OBS_EVENTS, ...livedInLines('home', 3)]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [liveActivity.length],
+  )
   return (
     <div className="screen home-screen" style={{ '--eco-glow': (ecosystemState.resonanceLevel / 100).toFixed(3) } as CSSProperties}>
       <div className="obs-grid" aria-hidden="true" />
@@ -520,7 +526,7 @@ function DriftScreen() {
         <h2 className="screen-title">Drift</h2>
         <p className="screen-sub">where signals go when no one claims them</p>
       </div>
-      <AmbientLine lines={DRIFT_EVENTS} />
+      <AmbientLine lines={useMemo(() => [...DRIFT_EVENTS, ...livedInLines('drift', 3)], [])} />
       <div className={`drift-map glass lp-drift-map${scanning ? ' lp-drift-map--scanning' : ''}`}>
         <div className="lp-fog lp-fog-a" aria-hidden="true" />
         <div className="lp-fog lp-fog-b" aria-hidden="true" />
@@ -717,7 +723,7 @@ function CapsulesScreen() {
         <h2 className="screen-title">Capsules</h2>
         <p className="screen-sub">preserved moments, carried forward</p>
       </div>
-      <AmbientLine lines={CAPSULE_EVENTS} />
+      <AmbientLine lines={useMemo(() => [...CAPSULE_EVENTS, ...livedInLines('capsules', 2)], [])} />
       <div className="capsules-list">
         {allCapsules.map((c, i) => {
           const phase: CapsulePhase = phases[c.id] ?? 'sealed'
@@ -814,6 +820,7 @@ const HIDDEN_SHARD_THRESHOLD = 4
 function RelicsScreen() {
   const [selected, setSelected] = useState<Relic | null>(null)
   const { archiveEntry, saveToLibrary, unsaveFromLibrary, unlockRelic: unlockEcosystemRelic } = useEcosystemState()
+  const relicAudio = useGlobalAudio()
   const [store, setStore] = usePersistentState<Record<string, RelicActivity>>('ecosphere:relicActivity', {})
   const [charge, setCharge] = useState<Record<string, number>>(() => Object.fromEntries(relics.map(r => [r.id, r.resonance])))
   const [shelfVisit, setShelfVisit] = usePersistentState<string>('ecosphere:relicShelfVisit', '')
@@ -874,7 +881,7 @@ function RelicsScreen() {
         <h2 className="screen-title">Relics</h2>
         <p className="screen-sub">artifacts recovered from the deep archive</p>
       </div>
-      <AmbientLine lines={RELIC_EVENTS} />
+      <AmbientLine lines={useMemo(() => [...RELIC_EVENTS, ...livedInLines('relics', 3)], [])} />
       {shelfNote && <div className="lp-drift-ping" key={shelfNote}>{shelfNote}</div>}
       <div className="relics-grid">
         {relics.map((r, i) => {
@@ -908,6 +915,7 @@ function RelicsScreen() {
             </div>
             <div className="lp-relic-scene-name">{selected.name}</div>
             <div className="lp-relic-scene-type">{selected.type} · <RarityBadge rarity={selected.rarity} /> · {Math.round(charge[selected.id] ?? selected.resonance)}% charge</div>
+            <div className="lp-relic-examined">{lastExaminedBy(selected.id)}</div>
             {stage >= 2 && (
               <LpWaveform
                 key={selectedActivity.replays}
@@ -938,6 +946,7 @@ function RelicsScreen() {
                 <button
                   className="lp-action lp-replay"
                   onClick={() => {
+                    void playSample(relicAudio, { id: `relic-${selected.id}`, label: `${selected.name.toLowerCase()} · echo`, source: 'relics' }, 'tone', selected.id.charCodeAt(2) * 37, 4200)
                     updateActivity(selected.id, a => {
                       const next = { ...a, replays: a.replays + 1 }
                       if (next.replays === 3) unlockEcosystemRelic(selected.id, selected.name)
@@ -1013,7 +1022,7 @@ function DeadZonesScreen() {
 
   const listenInto = (zoneId: string, name: string) => {
     setListening(zoneId)
-    zoneAudio.playSimulated({ id: `zone-${zoneId}`, label: `static from ${name.toLowerCase()}`, source: 'zones' }, 4500)
+    void playSample(zoneAudio, { id: `zone-${zoneId}`, label: `static from ${name.toLowerCase()}`, source: 'zones' }, 'zone', zoneId.charCodeAt(1) * 71, 4500)
     window.setTimeout(() => setListening(l => (l === zoneId ? null : l)), 4500)
     // listening into a zone can shake a fragment loose
     if (!recovered.includes(zoneId) && Math.random() > 0.35) {
@@ -1031,7 +1040,7 @@ function DeadZonesScreen() {
         <h2 className="screen-title">Absent Carriers</h2>
         <p className="screen-sub">places the signal stopped returning from</p>
       </div>
-      <AmbientLine lines={ZONE_EVENTS} />
+      <AmbientLine lines={useMemo(() => [...ZONE_EVENTS, ...livedInLines('zones', 2)], [])} />
       <div className="zones-list">
         {deadZones.map((z, i) => {
           const level = Math.round(corruption[z.id] ?? z.corruption)
@@ -1063,6 +1072,7 @@ function DeadZonesScreen() {
               {hasFragment && !isListening && (
                 <p className="zone-fragment">{zoneFragments[z.id]}</p>
               )}
+              <div className="zone-visits">{listenerCount(z.id, Math.floor(Date.now() / 3600000))} carriers have listened into this zone</div>
               <div className="zone-footer">
                 <span className="zone-last">{isListening ? 'receiving…' : `last signal: ${z.lastSignal} · corruption ${level}%`}</span>
                 <SignalBar value={level} color="violet" />
@@ -1858,7 +1868,10 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
               <div className="lp-library-actions">
                 <button
                   type="button"
-                  onClick={() => podAudio.playSimulated({ id: entry.id, label: entry.label, source: 'pod' }, 5000)}
+                  onClick={() => {
+                    const kind = entry.itemType === 'relic' ? 'tone' : entry.itemType === 'drift' ? 'whisper' : 'voice'
+                    void playSample(podAudio, { id: entry.id, label: entry.label, source: 'pod' }, kind, entry.id.split('').reduce((a, c) => a + c.charCodeAt(0), 11), 5000)
+                  }}
                   aria-label={`replay ${entry.label}`}
                 >
                   ▶
@@ -2006,7 +2019,7 @@ function AnomaliesScreen() {
         <h2 className="screen-title">Anomalies</h2>
         <p className="screen-sub">irregularities in the emotional spectrum</p>
       </div>
-      <AmbientLine lines={ANOMALY_EVENTS} />
+      <AmbientLine lines={useMemo(() => [...ANOMALY_EVENTS, ...livedInLines('anomalies', 2)], [])} />
       <div className="anomaly-list">
         {items.map((a, i) => {
           const live = Math.round(strengths[a.name] ?? a.strength)
