@@ -10,6 +10,7 @@ import { moderatePublicSignalText } from './lib/signalModeration'
 import { GHOST_ARCHIVE } from './lib/ghostArchive'
 import { hzForHandle } from './lib/hzSignature'
 import HzBadge from './components/HzBadge'
+import ListenerTraces from './components/ListenerTraces'
 
 const hiddenKey = 'ecosphere:hiddenSignals'
 function loadHidden(): string[] {
@@ -460,6 +461,9 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick }:
 
         {/* Voice reactions */}
         <VoiceReactionStack signalId={signal.id} moodColor={colors.primary} />
+
+        {/* listener traces — only on replayed / heavily replayed signals */}
+        <ListenerTraces signalId={signal.id} resonance={signal.resonance} replayed={wasReplayed} />
 
         {/* Export action */}
         <div className={`card-export-row ${hovered ? 'card-export-row--visible' : ''}`}>
