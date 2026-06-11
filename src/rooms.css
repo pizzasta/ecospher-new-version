@@ -1018,3 +1018,184 @@
   .rooms-eco .room-card.eco-room-card,
   .rooms-eco .room-card.eco-room-card:hover { transform: none; transition: none; }
 }
+
+/* ═══ Human rooms directory ═════════════════════════════════ */
+.rooms-cat-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+
+.rooms-cat-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(200, 210, 235, 0.6);
+  transition: border-color 0.25s ease, color 0.25s ease, box-shadow 0.3s ease;
+}
+
+.rooms-cat-tab em {
+  font-style: normal;
+  font-size: 9px;
+  opacity: 0.6;
+}
+
+.rooms-cat-tab:hover {
+  color: rgba(240, 244, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.rooms-cat-tab.active {
+  background: rgba(255, 45, 120, 0.14);
+  border-color: rgba(255, 45, 120, 0.55);
+  color: #ff2d78;
+  box-shadow: 0 0 16px rgba(255, 45, 120, 0.15);
+}
+
+.rooms-join-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: rgba(140, 155, 195, 0.6);
+  margin-bottom: 12px;
+  min-height: 16px;
+}
+
+.rooms-join-line i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #00d4ff;
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.8);
+  animation: ecoCardLivePulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.eco-card-livebadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  background: rgba(255, 45, 120, 0.14);
+  border: 1px solid rgba(255, 45, 120, 0.4);
+  color: #ff2d78;
+}
+
+.eco-card-livebadge i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ff2d78;
+  box-shadow: 0 0 7px rgba(255, 45, 120, 0.9);
+  animation: ecoCardLivePulse 1.6s ease-in-out infinite;
+}
+
+@keyframes ecoCardLivePulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+
+.eco-card-talk {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  line-height: 1.45;
+  text-transform: lowercase;
+  color: rgba(var(--room-accent-rgb, 0, 212, 255), 0.85);
+  margin: 2px 0 4px;
+  animation: roomTalkSwap 0.5s ease both;
+}
+
+@keyframes roomTalkSwap {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.eco-card-wavebars {
+  display: flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 22px;
+  margin: 2px 0;
+}
+
+.eco-card-wavebars i {
+  display: block;
+  flex: 1;
+  height: var(--bh, 50%);
+  border-radius: 1px;
+  background: linear-gradient(to top, rgba(var(--room-accent-rgb, 255, 45, 120), 0.3), rgba(var(--room-accent-rgb, 255, 45, 120), 0.85));
+  transform-origin: center;
+  animation: roomBarBreath 1.1s ease-in-out infinite alternate;
+  animation-delay: var(--bd, 0s);
+}
+
+@keyframes roomBarBreath {
+  from { transform: scaleY(0.45); }
+  to { transform: scaleY(1.05); }
+}
+
+.room-state--dead-silence .eco-card-wavebars i {
+  animation-duration: 3.2s;
+  opacity: 0.5;
+}
+
+.room-state--signal-storm .eco-card-wavebars i,
+.room-state--resonance-spike .eco-card-wavebars i {
+  animation-duration: 0.6s;
+}
+
+.eco-card-speakers {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+  color: rgba(200, 210, 235, 0.65);
+}
+
+.eco-speaking-dots {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 9px;
+}
+
+.eco-speaking-dots i {
+  display: block;
+  width: 2.5px;
+  border-radius: 1px;
+  background: rgba(var(--room-accent-rgb, 0, 212, 255), 0.9);
+  animation: roomBarBreath 0.5s ease-in-out infinite alternate;
+}
+
+.eco-speaking-dots i:nth-child(1) { height: 55%; }
+.eco-speaking-dots i:nth-child(2) { height: 100%; animation-delay: 0.12s; }
+.eco-speaking-dots i:nth-child(3) { height: 70%; animation-delay: 0.24s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rooms-join-line i,
+  .eco-card-livebadge i,
+  .eco-card-talk,
+  .eco-card-wavebars i,
+  .eco-speaking-dots i {
+    animation: none;
+  }
+}

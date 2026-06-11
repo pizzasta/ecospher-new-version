@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import type { CSSProperties, MutableRefObject } from 'react'
+import { renderSampleAudio } from '../lib/sampleAudio'
 import '../rooms.css'
 
 // ═══════════════════════════════════════════════════════════════
@@ -29,13 +30,17 @@ interface SignalDef {
   mine?: boolean
 }
 
+type RoomCategory = 'late night' | 'relationships' | 'stress & life' | 'comfort' | 'chaotic' | 'creative'
+
 interface RoomDef {
   id: string
   name: string
   tagline: string
-  frequency: string
+  category: RoomCategory
+  topics: string[]
   accentRgb: string // "r,g,b"
   baseListeners: number
+  baseSpeakers: number
   baseResonance: number
   initialState: RoomStateName
   audio: AudioProfile
@@ -67,141 +72,134 @@ interface SignalNode {
   fragment: string
 }
 
-// ─── Mock data ─────────────────────────────────────────────────
-const ROOMS: RoomDef[] = [
-  {
-    id: 'drift-field',
-    name: '3am drift field',
-    tagline: 'for the ones still transmitting after everyone left',
-    frequency: '36.6 hz',
+// ─── Room directory: late-night voice spaces ──────────────────
+const ROOM_CATEGORIES: RoomCategory[] = ['late night', 'relationships', 'stress & life', 'comfort', 'chaotic', 'creative']
+
+const CATEGORY_META: Record<RoomCategory, { accentRgb: string; audio: AudioProfile; signalTitles: string[]; feed: string[] }> = {
+  'late night': {
     accentRgb: '0,212,255',
-    baseListeners: 23,
-    baseResonance: 48,
-    initialState: 'quiet-bloom',
     audio: { oscFreq: 54, detune: 7, filterFreq: 420, noiseLevel: 0.18 },
-    signals: [
-      { id: 'df-1', title: 'untitled hum, looped twice', duration: 42 },
-      { id: 'df-2', title: 'breath against the window', duration: 18 },
-      { id: 'df-3', title: 'half a sentence, then static', duration: 27 },
-    ],
-    feed: [
-      'a carrier replayed the same 6 seconds twice',
-      'someone arrived without a sound',
-      'a whisper dissolved before anyone caught it',
-      'two signals overlapped for a moment',
-    ],
+    signalTitles: ['a voice note from 3:12am', 'someone describing their ceiling', '40 seconds of rain outside a window', 'a half-asleep story that goes nowhere', 'two people not sleeping, together'],
+    feed: ['someone joined quietly', "someone's been listening for an hour", 'a voice note got replayed', '2 people just joined', 'someone said goodnight but stayed'],
   },
-  {
-    id: 'static-garden',
-    name: 'static garden',
-    tagline: 'restless noise, growing into something warm',
-    frequency: '92.4 hz',
+  relationships: {
     accentRgb: '255,45,120',
-    baseListeners: 61,
-    baseResonance: 72,
-    initialState: 'static-interference',
-    audio: { oscFreq: 66, detune: 11, filterFreq: 920, noiseLevel: 0.3 },
-    signals: [
-      { id: 'sg-1', title: 'rain recorded through a wall', duration: 51 },
-      { id: 'sg-2', title: 'laughter, pitched down', duration: 14 },
-      { id: 'sg-3', title: 'a kettle and a confession', duration: 33 },
-    ],
-    feed: [
-      'the static thickened, then settled',
-      'a fragment bloomed near the east edge',
-      'someone reacted with ✦ and left',
-      'three carriers synced by accident',
-    ],
+    audio: { oscFreq: 60, detune: 9, filterFreq: 640, noiseLevel: 0.2 },
+    signalTitles: ['a voice note about their ex', '30 seconds of almost texting them', 'the story of how they met', 'reading the last message out loud', 'someone practicing what to say'],
+    feed: ['someone joined mid-story', 'a reply got replayed twice', 'someone needed to hear that', '3 people just joined', 'someone left to send the text'],
   },
-  {
-    id: 'long-hallway',
-    name: 'the long hallway',
-    tagline: 'every echo here takes a while to come back',
-    frequency: '47.0 hz',
-    accentRgb: '155,93,233',
-    baseListeners: 14,
-    baseResonance: 35,
-    initialState: 'dead-silence',
-    audio: { oscFreq: 48, detune: 4, filterFreq: 300, noiseLevel: 0.12 },
-    signals: [
-      { id: 'lh-1', title: 'footsteps that never arrive', duration: 64 },
-      { id: 'lh-2', title: 'a door, opened gently', duration: 9 },
-      { id: 'lh-3', title: 'reverb of a name', duration: 22 },
-    ],
-    feed: [
-      'an echo returned from 3 cycles ago',
-      'a carrier paused mid-hallway',
-      'something distant answered, faintly',
-      'the silence stretched, comfortably',
-    ],
+  'stress & life': {
+    accentRgb: '155,93,229',
+    audio: { oscFreq: 48, detune: 6, filterFreq: 380, noiseLevel: 0.22 },
+    signalTitles: ['a vent about today, uncut', 'someone sighing for 15 seconds', 'a pep talk that got real', 'the to-do list, read like a confession', 'quitting fantasies, narrated'],
+    feed: ['someone joined after a long day', 'someone said \'same\' out loud', 'a vent got an echo', '2 people just joined', "someone's lurking and that's okay"],
   },
-  {
-    id: 'low-battery',
-    name: 'low battery lounge',
-    tagline: 'dim signals welcome. nothing here needs to be loud.',
-    frequency: '28.8 hz',
-    accentRgb: '255,128,160',
-    baseListeners: 37,
-    baseResonance: 41,
-    initialState: 'quiet-bloom',
-    audio: { oscFreq: 40, detune: 3, filterFreq: 220, noiseLevel: 0.15 },
-    signals: [
-      { id: 'lb-1', title: 'humming at 4 percent', duration: 38 },
-      { id: 'lb-2', title: 'blanket static, very soft', duration: 47 },
-      { id: 'lb-3', title: 'the last voice memo of the night', duration: 19 },
-    ],
-    feed: [
-      'a carrier dimmed to standby',
-      'someone left a warm fragment by the door',
-      'the room exhaled together',
-      'a tired signal found a corner',
-    ],
+  comfort: {
+    accentRgb: '134,239,172',
+    audio: { oscFreq: 58, detune: 4, filterFreq: 520, noiseLevel: 0.12 },
+    signalTitles: ['a soft check-in for whoever needs it', 'someone reading a nice comment aloud', 'a small win, told slowly', 'gentle advice nobody asked for', 'a thank-you to the room'],
+    feed: ['someone joined and exhaled', 'a kind reply landed', 'someone stayed longer than planned', '2 people just joined', 'someone said it helped'],
   },
-  {
-    id: 'resonance-chambers',
-    name: 'resonance chambers',
-    tagline: 'where overlapping feelings amplify each other',
-    frequency: '72.2 hz',
-    accentRgb: '122,160,255',
-    baseListeners: 88,
-    baseResonance: 83,
-    initialState: 'resonance-spike',
-    audio: { oscFreq: 72, detune: 9, filterFreq: 640, noiseLevel: 0.22 },
-    signals: [
-      { id: 'rc-1', title: 'twelve hums, braided', duration: 56 },
-      { id: 'rc-2', title: 'collective inhale', duration: 11 },
-      { id: 'rc-3', title: 'a chord nobody planned', duration: 29 },
-    ],
-    feed: [
-      'resonance crossed 80% and held',
-      'two strangers hit the same note',
-      'the chamber rang for a full minute',
-      'a spike rippled through every carrier',
-    ],
+  chaotic: {
+    accentRgb: '255,170,90',
+    audio: { oscFreq: 72, detune: 14, filterFreq: 980, noiseLevel: 0.3 },
+    signalTitles: ['a story with zero context', 'someone laughing too hard to finish', 'a take that should stay private', 'a dramatic reading of their own texts', 'the plan, explained badly'],
+    feed: ['someone joined yelling (affectionately)', 'a story got replayed 3 times', 'someone cannot stop laughing', '4 people just joined', 'someone said \'wait what\''],
   },
-  {
-    id: 'dead-air-archive',
-    name: 'dead air archive',
-    tagline: 'recordings of silence, catalogued with care',
-    frequency: '??.? hz',
-    accentRgb: '120,230,150',
-    baseListeners: 7,
-    baseResonance: 18,
-    initialState: 'static-interference',
-    audio: { oscFreq: 36, detune: 2, filterFreq: 180, noiseLevel: 0.1 },
-    signals: [
-      { id: 'da-1', title: 'tape hiss, archived 3 cycles ago', duration: 73 },
-      { id: 'da-2', title: 'the pause before an answer', duration: 8 },
-      { id: 'da-3', title: 'an empty room, listening back', duration: 41 },
-    ],
-    feed: [
-      'a new silence was filed under "almost"',
-      'the archive flickered, briefly',
-      'a carrier checked out an old quiet',
-      'nothing happened. it was recorded.',
-    ],
+  creative: {
+    accentRgb: '192,132,252',
+    audio: { oscFreq: 64, detune: 8, filterFreq: 760, noiseLevel: 0.16 },
+    signalTitles: ['an unfinished chorus, first play', 'a beat looped four times', 'someone humming the missing part', 'a poem read too fast', 'the idea, pitched at 1am'],
+    feed: ['someone shared a rough demo', 'a hook got replayed', 'someone asked to hear it again', '2 people just joined', 'feedback landed gently'],
   },
+}
+
+type RoomSeed = [RoomCategory, string, string, string[], number, number, RoomStateName]
+
+const ROOM_DATA: RoomSeed[] = [
+  ['late night', 'Can\'t Sleep', 'for everyone staring at the ceiling right now', ['sleep schedules that don\'t exist', 'random memories at 2am'], 48, 4, 'quiet-bloom'],
+  ['late night', 'Still Awake', 'no reason to be up. here anyway', ['why we\'re all still up', 'what everyone\'s snacking on'], 36, 3, 'quiet-bloom'],
+  ['late night', '3am Thoughts', 'the thoughts that only show up after midnight', ['things we\'d never say in daylight', 'weird realizations tonight'], 52, 5, 'resonance-spike'],
+  ['late night', 'Late Night Driving', 'voices for the empty highway', ['where everyone\'s driving to', 'best songs for an empty road'], 29, 3, 'quiet-bloom'],
+  ['late night', 'Background Voices', 'leave us on while you do something else', ['quiet room with background conversations', 'low-effort company'], 64, 2, 'dead-silence'],
+  ['late night', 'Nobody\'s Sleeping', 'group insomnia. at least we\'re together', ['collective insomnia check-in', 'how many hours until alarm'], 41, 4, 'static-interference'],
+  ['late night', 'Night Shift Workers', 'for everyone whose day starts at 10pm', ['break room talk', 'what normal people are doing right now'], 22, 3, 'quiet-bloom'],
+  ['late night', 'Up Too Late Again', 'we said one more episode three hours ago', ['what we\'re watching instead of sleeping', 'tomorrow\'s regrets, tonight'], 33, 3, 'static-interference'],
+  ['late night', 'Quiet Hours', 'barely talking. mostly just here', ['long pauses welcome', 'the occasional half-thought'], 18, 1, 'dead-silence'],
+  ['relationships', 'Missing Someone', 'for whoever\'s on your mind right now', ['people we can\'t stop thinking about', 'voicemails we still keep'], 57, 5, 'resonance-spike'],
+  ['relationships', 'Should I Text Them?', 'the group chat decides. don\'t do it alone', ['live drafting messages together', 'votes on whether to send it'], 73, 6, 'signal-storm'],
+  ['relationships', 'Situationship Support Group', 'it\'s complicated. we get it', ['defining the relationship, badly', 'mixed signals decoded live'], 68, 6, 'signal-storm'],
+  ['relationships', 'Thinking About My Ex', 'you\'re not the only one tonight', ['mostly people venting about exes', 'the ones that got away'], 61, 5, 'static-interference'],
+  ['relationships', 'We Don\'t Talk Anymore', 'friendships and people that faded out', ['friends we lost without a fight', 'last conversations we remember'], 44, 4, 'quiet-bloom'],
+  ['relationships', 'Post Argument', 'just had a fight. decompress here', ['cooling off out loud', 'what we wish we\'d said instead'], 38, 4, 'static-interference'],
+  ['relationships', 'Long Distance', 'same call, different time zones', ['surviving the distance', 'countdown to the next visit'], 31, 3, 'quiet-bloom'],
+  ['relationships', 'Crushing Hard', 'giggling about someone. no shame here', ['overanalyzing their last message', 'do they like me back, evidence thread'], 59, 5, 'resonance-spike'],
+  ['relationships', 'Just Got Ghosted', 'they vanished. we\'re here', ['closure we\'re never getting', 'red flags we ignored'], 47, 4, 'static-interference'],
+  ['stress & life', 'Burned Out', 'running on empty together', ['jobs that take everything', 'what rest even looks like'], 42, 4, 'dead-silence'],
+  ['stress & life', 'Work Broke Me Today', 'clock out and let it out', ['venting about today\'s shift', 'worst meeting of the week'], 55, 5, 'signal-storm'],
+  ['stress & life', 'Mentally Exhausted', 'no advice. just understanding', ['tired beyond sleep', 'saying it out loud helps'], 49, 4, 'quiet-bloom'],
+  ['stress & life', 'Avoiding Responsibilities', 'the to-do list can wait. we\'re here', ['what we\'re all avoiding right now', 'productive procrastination tips'], 66, 5, 'static-interference'],
+  ['stress & life', 'Existing Only', 'minimum effort mode. doing our best', ['bare minimum check-in', 'small wins that count today'], 35, 3, 'dead-silence'],
+  ['stress & life', 'Social Battery Dead', 'people who like people, from a distance', ['recovering from being perceived', 'introvert hangout, low volume'], 28, 2, 'quiet-bloom'],
+  ['stress & life', 'Students Cramming', 'exam tomorrow. misery loves company', ['study sessions and panic', 'what we should have started last week'], 51, 4, 'signal-storm'],
+  ['stress & life', 'Broke Until Friday', 'payday countdown support group', ['surviving until the deposit hits', 'cart abandoned, again'], 39, 4, 'static-interference'],
+  ['stress & life', 'Overthinking Everything', 'replaying that one conversation again', ['the thing we said five years ago', 'spiraling, but together'], 58, 5, 'resonance-spike'],
+  ['comfort', 'Soft Talking', 'low voices, easy pace, no pressure', ['whatever comes to mind, gently', 'stories told quietly'], 45, 3, 'quiet-bloom'],
+  ['comfort', 'Good Energy Only', 'leave the bad day at the door', ['good things that happened today', 'hype for strangers'], 62, 5, 'resonance-spike'],
+  ['comfort', 'Comfort Room', 'like a weighted blanket but it\'s voices', ['comfort shows and comfort food', 'being okay, slowly'], 53, 4, 'quiet-bloom'],
+  ['comfort', 'Tiny Victories', 'got out of bed? that counts. tell us', ['small wins worth saying out loud', 'celebrating the little stuff'], 40, 4, 'resonance-spike'],
+  ['comfort', 'Need Company', 'don\'t want to talk? just stay', ['people keeping each other company', 'presence over conversation'], 71, 3, 'quiet-bloom'],
+  ['comfort', 'Real Conversations', 'no small talk. say the actual thing', ['what\'s actually going on with you', 'honest answers only'], 56, 6, 'resonance-spike'],
+  ['comfort', 'Morning People', 'up early on purpose. coffee in hand', ['sunrise check-ins', 'today\'s plans, optimistic version'], 26, 3, 'quiet-bloom'],
+  ['comfort', 'Slow Sunday Feeling', 'no plans, no rush, no guilt', ['doing nothing, professionally', 'soft weekend recaps'], 34, 3, 'dead-silence'],
+  ['comfort', 'You\'re Doing Fine', 'reassurance on demand', ['proof that you\'re not behind in life', 'kind words from strangers'], 48, 4, 'quiet-bloom'],
+  ['chaotic', 'Oversharing Hour', 'no context, no shame, full stories', ['stories with way too much detail', 'things we shouldn\'t admit, loudly'], 77, 7, 'signal-storm'],
+  ['chaotic', 'Delusional Confidence', 'manifesting unrealistic outcomes together', ['plans with zero evidence they\'ll work', 'betting on ourselves, irresponsibly'], 63, 6, 'signal-storm'],
+  ['chaotic', 'Hot Mess Club', 'everything\'s falling apart. it\'s fine', ['this week\'s disasters, ranked', 'laughing instead of coping'], 69, 6, 'static-interference'],
+  ['chaotic', 'Fake Scenarios Again', 'rehearsing arguments that will never happen', ['shower arguments we always win', 'imaginary award speeches'], 54, 5, 'static-interference'],
+  ['chaotic', 'Main Character Energy', 'the soundtrack is playing. act like it', ['main character moments of the day', 'dramatic exits we wish we\'d made'], 50, 5, 'resonance-spike'],
+  ['chaotic', 'Bad Decisions Tonight', 'we already know. we\'re doing it anyway', ['choices our future selves will hate', 'live talking each other into it'], 72, 6, 'signal-storm'],
+  ['chaotic', 'Unhinged Hour', 'logic left. vibes remain', ['takes that should stay private', 'energy with no explanation'], 65, 6, 'signal-storm'],
+  ['chaotic', 'Conspiracy Corner', 'harmless theories, fully committed', ['why birds are suspicious actually', 'connecting dots that don\'t exist'], 43, 4, 'static-interference'],
+  ['chaotic', 'Group Chat Energy', 'like the group chat but with voices', ['inside jokes forming in real time', 'roasting with love'], 60, 6, 'resonance-spike'],
+  ['creative', 'Songwriters Awake', 'people sharing unfinished songs tonight', ['unfinished songs, brave first plays', 'one lyric that won\'t resolve'], 37, 4, 'quiet-bloom'],
+  ['creative', 'Brain Dump', 'every idea, zero filter', ['ideas too raw for daylight', 'thinking out loud, messy version'], 46, 4, 'static-interference'],
+  ['creative', 'Half Finished Ideas', 'the graveyard of almost-projects. revive one', ['projects at 60 percent forever', 'what we\'d finish with one free week'], 32, 3, 'quiet-bloom'],
+  ['creative', 'Midnight Recording Booth', 'record something. play it for strangers', ['fresh recordings, instant feedback', 'first takes only'], 41, 4, 'resonance-spike'],
+  ['creative', 'Artists Avoiding Sleep', 'one more layer, one more hour', ['what everyone\'s making right now', 'the piece that won\'t cooperate'], 38, 4, 'quiet-bloom'],
+  ['creative', 'Creative Spiral', 'either a breakthrough or a breakdown', ['riding the 2am inspiration wave', 'is this genius or exhaustion'], 44, 5, 'signal-storm'],
+  ['creative', 'Writers Block Support', 'the cursor is blinking. come hide', ['sentences we\'ve rewritten ten times', 'tricks that actually unstick you'], 27, 3, 'dead-silence'],
+  ['creative', 'Beat Makers Lounge', 'loops, drums, and honest reactions', ['tonight\'s loops on repeat', 'drum patterns getting roasted gently'], 35, 4, 'resonance-spike'],
+  ['creative', 'Show Your Demos', 'rough mixes welcome. be kind', ['demo swaps and feedback', 'the hook that almost works'], 30, 3, 'quiet-bloom'],
 ]
+
+function makeRoom(seed: RoomSeed, index: number): RoomDef {
+  const [category, name, tagline, topics, baseListeners, baseSpeakers, initialState] = seed
+  const meta = CATEGORY_META[category]
+  const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+  const titles = meta.signalTitles
+  return {
+    id,
+    name,
+    tagline,
+    category,
+    topics,
+    accentRgb: meta.accentRgb,
+    baseListeners,
+    baseSpeakers,
+    baseResonance: 38 + ((index * 7) % 47),
+    initialState,
+    audio: { ...meta.audio, oscFreq: meta.audio.oscFreq + (index % 5) * 3 },
+    signals: [0, 1, 2].map(n => ({
+      id: `${id}-${n}`,
+      title: titles[(index + n) % titles.length],
+      duration: 14 + ((index * 13 + n * 17) % 46),
+    })),
+    feed: meta.feed,
+  }
+}
+
+const ROOMS: RoomDef[] = ROOM_DATA.map(makeRoom)
 
 const ROOM_STATES: RoomStateName[] = [
   'quiet-bloom',
@@ -212,19 +210,19 @@ const ROOM_STATES: RoomStateName[] = [
 ]
 
 const WEATHER: Record<RoomStateName, string[]> = {
-  'quiet-bloom': ['warm fog', 'soft drizzle of static', 'slow golden haze'],
-  'signal-storm': ['signal storm approaching', 'electric crosswinds', 'frequency squall'],
-  'dead-silence': ['flat air, no wind', 'vacuum stillness', 'pressure drop, total hush'],
-  'resonance-spike': ['aurora interference', 'rising harmonic pressure', 'shimmering overtones'],
-  'static-interference': ['light static rain', 'grainy haze', 'intermittent crackle fronts'],
+  'quiet-bloom': ['calm and cozy', 'soft voices', 'easy pace tonight'],
+  'signal-storm': ['busy right now', 'everyone talking at once', 'a lot of energy in here'],
+  'dead-silence': ['very quiet', 'mostly listeners', 'nobody talking yet'],
+  'resonance-spike': ['great conversation going', 'people really vibing', 'this one got good'],
+  'static-interference': ['a little chaotic', 'people coming and going', 'overlapping voices'],
 }
 
 const ACTIVITY_LABEL: Record<RoomStateName, string> = {
-  'quiet-bloom': 'gently blooming',
-  'signal-storm': 'surging',
-  'dead-silence': 'holding its breath',
-  'resonance-spike': 'amplifying',
-  'static-interference': 'flickering',
+  'quiet-bloom': 'chill',
+  'signal-storm': 'busy',
+  'dead-silence': 'quiet',
+  'resonance-spike': 'vibing',
+  'static-interference': 'chaotic',
 }
 
 const STATE_GLYPH: Record<RoomStateName, string> = {
@@ -235,37 +233,30 @@ const STATE_GLYPH: Record<RoomStateName, string> = {
   'static-interference': '⋯',
 }
 
-const STATE_INTENSITY: Record<RoomStateName, number> = {
-  'quiet-bloom': 0.45,
-  'signal-storm': 1,
-  'dead-silence': 0.12,
-  'resonance-spike': 0.85,
-  'static-interference': 0.6,
-}
 
 const REACTION_GLYPHS = ['∿', '✦', '◌', '⋯', '◑']
 
 const NODE_FRAGMENTS = [
-  'someone hummed here, once',
-  'this node remembers rain',
-  'a held breath, suspended',
-  'half of a lullaby',
-  'the shape of a sigh',
-  'an unsent goodnight',
-  'static, but kind',
-  'a frequency someone misses',
-  'the quiet part of a song',
+  'someone said the real thing here',
+  'a story about their ex',
+  'an unfinished song',
+  'a 2am confession',
+  'somebody laughing too hard',
+  'advice that actually helped',
+  'a long pause that meant something',
+  'someone admitting they miss them',
+  'the good part of the conversation',
 ]
 
 const AMBIENT_WHISPERS = [
-  'still here.',
-  'do you feel that?',
-  'the resonance remembers.',
-  'not alone.',
-  'almost audible.',
-  'drifting back.',
-  'the signal keeps returning.',
-  'you found the quiet part.',
+  'same honestly.',
+  'felt that.',
+  'ok that one was real.',
+  'no because same.',
+  'say more.',
+  'we are all here.',
+  'this room gets it.',
+  'glad i stayed up.',
 ]
 
 // ─── Small utils ───────────────────────────────────────────────
@@ -284,10 +275,6 @@ function evolveState(prev: RoomStateName, energy: number): RoomStateName {
   return pool[Math.floor(Math.random() * pool.length)]
 }
 
-function prefersReducedMotion(): boolean {
-  return typeof window.matchMedia === 'function'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
 
 // ─── Ambient audio engine (Web Audio, graceful no-op) ──────────
 class AmbientEngine {
@@ -487,94 +474,87 @@ function useLiveRoomSim(room: RoomDef, energyRef?: MutableRefObject<number>) {
   return { listeners, resonance, state, weather }
 }
 
-// ─── Live waveform (canvas, rAF writes pixels only) ────────────
-function LiveWaveform({ accentRgb, intensity, className }: {
-  accentRgb: string
-  intensity: number
-  className: string
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const intensityRef = useRef(intensity)
-  intensityRef.current = intensity
+// hover sound preview: one quiet murmur at a time, mouse only
+let hoverPreviewAudio: HTMLAudioElement | null = null
+let hoverPreviewTimer: number | null = null
 
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    const reduced = prefersReducedMotion()
-    canvas.width = canvas.offsetWidth || 240
-    canvas.height = canvas.offsetHeight || 34
-
-    let raf = 0
-    let t = Math.random() * 100
-    const bars = 36
-    const draw = () => {
-      t += 0.045
-      const W = canvas.width
-      const H = canvas.height
-      ctx.clearRect(0, 0, W, H)
-      const k = 0.25 + intensityRef.current * 0.75
-      for (let i = 0; i < bars; i++) {
-        const ph = i / bars
-        const amp = Math.abs(Math.sin(t + ph * 6.5) * Math.sin(t * 0.7 + ph * 13)) * k
-        const h = Math.max(1.5, amp * H * 0.92)
-        const x = (i + 0.5) * (W / bars)
-        ctx.fillStyle = `rgba(${accentRgb},${0.22 + amp * 0.6})`
-        ctx.fillRect(x - 1, (H - h) / 2, 2, h)
-      }
-      if (!reduced) raf = requestAnimationFrame(draw)
-    }
-    draw()
-    return () => cancelAnimationFrame(raf)
-  }, [accentRgb])
-
-  return <canvas ref={canvasRef} className={className} />
+function startHoverPreview(seed: number) {
+  stopHoverPreview()
+  hoverPreviewTimer = window.setTimeout(() => {
+    void renderSampleAudio('voice', seed, 5000).then(blob => {
+      if (!blob || hoverPreviewTimer === null) return
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audio.volume = 0.22
+      hoverPreviewAudio = audio
+      const release = () => URL.revokeObjectURL(url)
+      audio.onended = release
+      audio.onerror = release
+      audio.play().catch(release)
+    })
+  }, 180)
 }
 
-// ─── Room card ─────────────────────────────────────────────────
-function RoomCard({ room, onEnter }: { room: RoomDef; onEnter: () => void }) {
-  const { listeners, resonance, state, weather } = useLiveRoomSim(room)
-  const [feedIdx, setFeedIdx] = useState(() => Math.floor(Math.random() * room.feed.length))
+function stopHoverPreview() {
+  if (hoverPreviewTimer !== null) {
+    window.clearTimeout(hoverPreviewTimer)
+    hoverPreviewTimer = null
+  }
+  if (hoverPreviewAudio) {
+    hoverPreviewAudio.pause()
+    hoverPreviewAudio = null
+  }
+}
 
-  // ambient activity feed line rotates
-  useEffect(() => {
-    const t = setInterval(() => {
-      setFeedIdx(i => (i + 1) % room.feed.length)
-    }, 6800 + Math.random() * 2400)
-    return () => clearInterval(t)
-  }, [room.feed.length])
+function wobble(seed: number, tick: number, range: number) {
+  let x = seed * 374761393 + tick * 668265263
+  x = (x ^ (x >> 13)) * 1274126177
+  return Math.abs(x ^ (x >> 16)) % range
+}
+
+function RoomCard({ room, index, tick, onEnter }: { room: RoomDef; index: number; tick: number; onEnter: () => void }) {
+  const state = room.initialState
+  const listeners = Math.max(2, room.baseListeners + wobble(index + 1, tick, 9) - 4)
+  const speakers = Math.max(state === 'dead-silence' ? 0 : 1, room.baseSpeakers + wobble(index + 7, tick, 3) - 1)
+  const topic = room.topics[tick % room.topics.length]
+  const previewSeed = index * 53 + 19
 
   return (
     <article
       className={`room-card eco-room-card room-state--${state}`}
-      onClick={onEnter}
+      onClick={() => { stopHoverPreview(); onEnter() }}
+      onPointerEnter={e => { if (e.pointerType === 'mouse') startHoverPreview(previewSeed) }}
+      onPointerLeave={stopHoverPreview}
       style={{ '--room-accent-rgb': room.accentRgb } as CSSProperties}
     >
       <div className="eco-card-aura" aria-hidden="true" />
       <header className="eco-card-top">
+        <span className="eco-card-livebadge"><i aria-hidden="true" />LIVE</span>
         <span className="eco-card-state">{ACTIVITY_LABEL[state]}</span>
-        <span className="eco-card-freq">{room.frequency}</span>
       </header>
       <h3 className="room-name">{room.name}</h3>
       <p className="eco-card-tagline">{room.tagline}</p>
-      <div className="eco-card-weather">
-        <span className="eco-weather-glyph" aria-hidden="true">{STATE_GLYPH[state]}</span>
-        {weather}
-      </div>
-      <LiveWaveform accentRgb={room.accentRgb} intensity={STATE_INTENSITY[state]} className="eco-card-wave" />
-      <div className="eco-card-resonance">
-        <div className="eco-resonance-track">
-          <div className="eco-resonance-fill" style={{ width: `${resonance}%` }} />
-        </div>
-        <span className="eco-resonance-num">{Math.round(resonance)}% resonance</span>
+      <div className="eco-card-talk">talking about: {topic}</div>
+      <div className="eco-card-wavebars" aria-hidden="true">
+        {Array.from({ length: 14 }, (_, i) => (
+          <i
+            key={i}
+            style={{
+              '--bh': `${25 + wobble(index * 31 + i, 0, 70)}%`,
+              '--bd': `${(i % 7) * 0.09}s`,
+            } as CSSProperties}
+          />
+        ))}
       </div>
       <footer className="eco-card-bottom">
         <span className="eco-card-listeners">
           <i className="eco-live-dot" aria-hidden="true" />
           {listeners} listening
         </span>
-        <span className="eco-card-feedline">{room.feed[feedIdx]}</span>
+        <span className="eco-card-speakers">
+          <span className="eco-speaking-dots" aria-hidden="true"><i /><i /><i /></span>
+          {speakers === 0 ? 'nobody talking yet' : `${speakers} talking`}
+        </span>
       </footer>
     </article>
   )
@@ -957,7 +937,7 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
         <span className="eco-vital eco-vital--weather">
           <span aria-hidden="true">{STATE_GLYPH[state]}</span> {weather}
         </span>
-        <span className="eco-vital eco-vital--freq">{room.frequency}</span>
+        <span className="eco-vital eco-vital--freq">{room.category}</span>
       </div>
 
       <div className="eco-room-meters">
@@ -1168,21 +1148,63 @@ export default function RoomsScreen() {
     <div className="rooms-eco">
       <div className="rooms-eco-shell">
         <header className="rooms-eco-header">
-          <span className="rooms-eco-kicker">live frequency spaces</span>
+          <span className="rooms-eco-kicker">live voice rooms</span>
           <h1 className="rooms-eco-title">rooms</h1>
-          <p className="rooms-eco-sub">temporary emotional weather systems. drift through together.</p>
+          <p className="rooms-eco-sub">anonymous group calls. drop in, listen, talk, leave whenever.</p>
         </header>
 
-        <div className="rooms-eco-grid">
-          {ROOMS.map(room => (
-            <RoomCard key={room.id} room={room} onEnter={() => handleEnter(room)} />
-          ))}
-        </div>
+        <RoomsDirectory onEnter={handleEnter} />
 
         <footer className="rooms-eco-hint">
-          <p>rooms are temporary. carriers drift through. nothing here stays forever.</p>
+          <p>hover a room to hear it. people come and go all night.</p>
         </footer>
       </div>
     </div>
+  )
+}
+
+function RoomsDirectory({ onEnter }: { onEnter: (room: RoomDef) => void }) {
+  const [category, setCategory] = useState<RoomCategory>('late night')
+  const [tick, setTick] = useState(0)
+
+  // one shared timer drives every card's counters and topics
+  useEffect(() => {
+    const t = window.setInterval(() => setTick(n => n + 1), 5000)
+    return () => {
+      window.clearInterval(t)
+      stopHoverPreview()
+    }
+  }, [])
+
+  const visible = useMemo(() => ROOMS.filter(r => r.category === category), [category])
+  const joinFeed = CATEGORY_META[category].feed
+
+  return (
+    <>
+      <nav className="rooms-cat-tabs" aria-label="Room categories">
+        {ROOM_CATEGORIES.map(cat => (
+          <button
+            key={cat}
+            type="button"
+            className={`rooms-cat-tab${category === cat ? ' active' : ''}`}
+            onClick={() => { stopHoverPreview(); setCategory(cat) }}
+          >
+            {cat}
+            <em>{ROOMS.filter(r => r.category === cat).length}</em>
+          </button>
+        ))}
+      </nav>
+
+      <div className="rooms-join-line" aria-live="polite">
+        <i aria-hidden="true" />
+        {joinFeed[tick % joinFeed.length]}
+      </div>
+
+      <div className="rooms-eco-grid">
+        {visible.map((room, i) => (
+          <RoomCard key={room.id} room={room} index={ROOMS.indexOf(room)} tick={tick + i} onEnter={() => onEnter(room)} />
+        ))}
+      </div>
+    </>
   )
 }
