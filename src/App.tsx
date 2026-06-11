@@ -1098,11 +1098,11 @@ const relicReactionDefs = [
 ]
 
 const relicPostits: Record<string, string[]> = {
-  rl1: ['heard at 2:11am', 'kept replaying the ending'],
-  rl2: ['12 users replayed this', 'felt too familiar'],
-  rl3: ['never answered', 'someone stayed here 47 mins'],
-  rl4: ['found in an abandoned room', 'replayed 83 times'],
-  rl5: ['recovered from a dead zone', 'do not play after midnight'],
+  rl1: ['i played this in a parking lot for 40 mins', 'the silence before they talk felt worse'],
+  rl2: ['heard this at 3:12am eating cereal', 'why did this actually help'],
+  rl3: ['i muted this halfway. came back.', 'this one feels dangerous after 1am'],
+  rl4: ['the laugh at the end ruined me', 'i almost sent this to someone'],
+  rl5: ['someone was breathing in the background', 'the ending kinda—'],
 }
 
 const RELIC_EVENTS = [
