@@ -11,6 +11,9 @@ type PublicTables = {
           is_private: boolean
           bio: string | null
           lurker_mode: boolean
+          hz_signature: number | null
+          hz_display_name: string | null
+          hz_color: string | null
           created_at: string
           updated_at: string | null
         }
@@ -23,6 +26,9 @@ type PublicTables = {
           is_private?: boolean
           bio?: string | null
           lurker_mode?: boolean
+          hz_signature?: number | null
+          hz_display_name?: string | null
+          hz_color?: string | null
           created_at?: string
           updated_at?: string | null
         }
@@ -34,6 +40,9 @@ type PublicTables = {
           is_private?: boolean
           bio?: string | null
           lurker_mode?: boolean
+          hz_signature?: number | null
+          hz_display_name?: string | null
+          hz_color?: string | null
           updated_at?: string | null
         }
       }
