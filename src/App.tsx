@@ -9,6 +9,7 @@ import { lastExaminedBy, listenerCount, livedInLines } from './lib/livedIn'
 import type { StoredReaction } from './lib/localAudioStore'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
 import EcosphereAmbience from './components/EcosphereAmbience'
+import ActiveCarriers from './components/ActiveCarriers'
 
 const FeedScreen = lazy(() => import('./FeedScreen'))
 const RoomsScreenComponent = lazy(() => import('./components/RoomsScreen'))
@@ -16,11 +17,31 @@ const UnsentRoom = lazy(() => import('./components/UnsentRoom'))
 
 function ScreenLoading() {
   return (
-    <div className="screen eco-screen-loading" aria-label="tuning frequency">
+    <div className="screen eco-screen-loading" aria-label="tuning frequency" aria-busy="true">
       <div className="eco-loading-orb" aria-hidden="true" />
       <p>tuning frequency…</p>
+      <div className="eco-loading-skeleton" aria-hidden="true">
+        <div className="eco-skeleton-card glass"><span /><span /></div>
+        <div className="eco-skeleton-card glass"><span /><span /></div>
+        <div className="eco-skeleton-card glass"><span /><span /></div>
+      </div>
     </div>
   )
+}
+
+const SCREEN_TITLES: Record<Screen, string> = {
+  home: 'Signal Observatory',
+  signals: 'Signal Feed',
+  drift: 'Drift Field',
+  rooms: 'Rooms',
+  unsent: 'Unsent Room',
+  capsules: 'Capsules',
+  relics: 'Relics',
+  pod: 'Soul Pod',
+  zones: 'Dead Zones',
+  frequencies: 'Frequency Sea',
+  anomalies: 'Anomalies',
+  settings: 'Settings',
 }
 import './unsent-room.css'
 import './rooms.css'
@@ -85,6 +106,7 @@ const capsules: Capsule[] = [
   { id: 'c2', title: 'Archived Feeling', duration: '1:08', feeling: 'amber resonance', timestamp: 'yesterday', type: 'memory', status: 'archived' },
   { id: 'c3', title: 'Private Transmission', duration: '0:36', feeling: 'quiet violet', timestamp: '2 days ago', type: 'echo', status: 'private' },
   { id: 'c4', title: 'Lost Audio Fragment', duration: '0:55', feeling: 'distant cyan', timestamp: '3 days ago', type: 'voice', status: 'archived' },
+  { id: 'c6', title: 'Voicemail You Never Sent', duration: '1:14', feeling: 'held breath', timestamp: 'last week', type: 'memory', status: 'private' },
 ]
 
 const deadZones: DeadZone[] = [
@@ -554,7 +576,7 @@ function dayOfYear(): number {
   return Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
 }
 
-function HomeScreen() {
+function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
   const { ecosystemState, tuneInDaily } = useEcosystemState()
   const homeAudio = useGlobalAudio()
   const nowPlaying = ecosystemState.activeAudio
@@ -651,6 +673,8 @@ function HomeScreen() {
           </div>
         ))}
       </div>
+
+      <ActiveCarriers onViewMap={() => onNavigate?.('frequencies')} />
     </div>
   )
 }
@@ -933,7 +957,17 @@ const capsuleMemories: Record<string, { line: string; seed: number }> = {
   c3: { line: '"said once, at low volume, to no one. the capsule sealed itself around it."', seed: 41 },
   c4: { line: '"mostly static now. but the static remembers the shape of what it covered."', seed: 53 },
   c5: { line: '"new. unlabeled. it sounds like the minute before something good."', seed: 67 },
+  c6: { line: '"recorded, re-recorded, never sent. the pauses are the real message."', seed: 79 },
 }
+
+// old capsules surfaced once a day — the archive showing you something it kept
+const GHOST_CAPSULES = [
+  { title: 'Hum From An Empty Kitchen', age: 'sealed 11 months ago', line: 'the refrigerator carried the whole conversation after everyone left.' },
+  { title: 'Last Bus Confession', age: 'sealed 7 months ago', line: 'said out loud at the back of the 2:40, to a window that kept it.' },
+  { title: 'Birthday Nobody Remembered', age: 'sealed 1 year ago', line: 'the candles went out on their own. the recording kept the smoke.' },
+  { title: 'Dial Tone Lullaby', age: 'sealed 9 months ago', line: 'stayed on the line long after the call ended. the tone became a song.' },
+  { title: 'Rain On The Carport', age: 'sealed 5 months ago', line: 'forty seconds of weather that sounded exactly like being okay.' },
+]
 
 const CAPSULE_EVENTS = [
   'preservation field stable',
@@ -970,10 +1004,10 @@ function CapsulesScreen() {
     return () => window.clearInterval(t)
   }, [allCapsules])
 
-  // first visit arms the first forming cycle (45 min); countdown ticks live
+  // first visit arms the first forming cycle (12 min); countdown ticks live
   useEffect(() => {
     if (forming.readyAt === 0) {
-      setForming({ readyAt: Date.now() + 45 * 60 * 1000, cycle: 0 })
+      setForming({ readyAt: Date.now() + 12 * 60 * 1000, cycle: 0 })
     }
     const t = window.setInterval(() => setFormTick(Date.now()), 15000)
     return () => window.clearInterval(t)
@@ -981,6 +1015,23 @@ function CapsulesScreen() {
 
   const formed = forming.readyAt > 0 && formTick >= forming.readyAt
   const formingRemaining = Math.max(0, forming.readyAt - formTick)
+  const ghostCapsule = GHOST_CAPSULES[dayOfYear() % GHOST_CAPSULES.length]
+  const listRef = useRef<HTMLDivElement | null>(null)
+
+  // time layers: cards fade with scroll position, like strata in the archive
+  useEffect(() => {
+    const list = listRef.current
+    if (!list || !('IntersectionObserver' in window)) return
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        const visibility = 0.45 + entry.intersectionRatio * 0.55
+        ;(entry.target as HTMLElement).style.setProperty('--scroll-vis', visibility.toFixed(2))
+      })
+    }, { threshold: [0, 0.25, 0.5, 0.75, 1] })
+    Array.from(list.children).forEach(child => observer.observe(child))
+    return () => observer.disconnect()
+  }, [])
 
   // ecosystem shimmer events
   useEffect(() => {
@@ -1013,7 +1064,15 @@ function CapsulesScreen() {
         <p className="screen-sub">preserved moments, carried forward</p>
       </div>
       <AmbientLine lines={useMemo(() => [...CAPSULE_EVENTS, ...livedInLines('capsules', 2)], [])} />
-      <div className="capsules-list">
+      <div className="ghost-signal-banner glass" role="note" aria-label="Ghost signal of the day">
+        <div className="ghost-signal-head">
+          <span className="ghost-signal-kicker">GHOST SIGNAL OF THE DAY</span>
+          <span className="ghost-signal-age">{ghostCapsule.age}</span>
+        </div>
+        <div className="ghost-signal-title">{ghostCapsule.title}</div>
+        <p className="ghost-signal-line">{ghostCapsule.line}</p>
+      </div>
+      <div className="capsules-list" ref={listRef}>
         {allCapsules.map((c, i) => {
           const phase: CapsulePhase = phases[c.id] ?? 'sealed'
           const isForming = c.id === formingCapsule.id && !formed && openedCycle === null
@@ -1040,7 +1099,18 @@ function CapsulesScreen() {
                     ? formingRemaining > 60 * 60 * 1000
                       ? `still forming · ready in ${Math.ceil(formingRemaining / 3600000)}h — come back`
                       : `still forming · ready in ${Math.max(1, Math.ceil(formingRemaining / 60000))}m — come back`
-                    : `${c.feeling} · ${c.duration} · ${c.timestamp}`}
+                    : (
+                      <>
+                        {c.feeling} ·{' '}
+                        <span
+                          className={`capsule-duration${phase === 'sealed' ? ' capsule-duration--veiled' : ''}`}
+                          title={phase === 'sealed' ? 'break the seal to reveal' : undefined}
+                        >
+                          {phase === 'sealed' ? '?:??' : c.duration}
+                        </span>{' '}
+                        · {c.timestamp}
+                      </>
+                    )}
                 </div>
                 {!isForming && (
                   <div className="lp-preservation" aria-hidden="true" title="preservation field">
@@ -2412,6 +2482,10 @@ export default function App() {
   }
 
   useEffect(() => {
+    document.title = `Ecosphere · ${SCREEN_TITLES[screen]}`
+  }, [screen])
+
+  useEffect(() => {
     const supabase = getOptionalSupabaseClient()
     if (!supabase) return
     supabase.auth.getSession().then(({ data }) => {
@@ -2431,7 +2505,7 @@ export default function App() {
 
 
   const screenMap: Record<Screen, React.ReactNode> = {
-    home: <HomeScreen />,
+    home: <HomeScreen onNavigate={navigate} />,
     signals: <FeedScreen />,
     drift: <DriftScreen />,
     rooms: <RoomsScreenComponent />,

@@ -297,7 +297,6 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick }:
     window.setTimeout(() => setReportNote('__hide__'), 2600)
   }
 
-  if (reportNote === '__hide__') return null
   const wasReplayed = ecosystemState.playedSignals.includes(signal.id)
   const isSaved = ecosystemState.savedSignals.includes(signal.id)
 
@@ -324,6 +323,9 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick }:
 
   const isCorrupted = signal.status === 'corrupted'
   const isFading = signal.status === 'fading' || signal.status === 'archiving'
+
+  // hooks above must run every render; the post-report hide bails out here
+  if (reportNote === '__hide__') return null
 
   return (
     <>
