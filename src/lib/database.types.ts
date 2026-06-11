@@ -77,6 +77,23 @@ type PublicTables = {
           updated_at?: string | null
         }
       }
+      faded_signals: {
+        Row: {
+          id: string
+          user_id: string
+          signal_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          signal_id: string
+          created_at?: string
+        }
+        Update: {
+          signal_id?: string
+        }
+      }
       signals: {
         Row: {
           id: string

@@ -2198,3 +2198,13 @@ body[data-eco-page='unsent'] .eco-now-playing {
     animation: none;
   }
 }
+
+/* fade button: chosen forgetting */
+.action-btn--fade {
+  --btn-color: rgba(140, 155, 195, 0.7);
+}
+
+.action-btn--fade:hover {
+  opacity: 0.65;
+  filter: blur(0.4px);
+}
