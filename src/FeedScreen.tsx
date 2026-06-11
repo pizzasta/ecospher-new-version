@@ -5,7 +5,16 @@ import VoiceReactionStack from './components/VoiceReactions'
 import { downloadBlob, exportFilename, renderStoryImage, renderStoryVideo } from './lib/storyExport'
 import { playSample } from './lib/sampleAudio'
 import { listenerCount, livedInLines } from './lib/livedIn'
-import { fetchPublicSignals } from './lib/backendBridge'
+import { fetchPublicSignals, mirrorActivity } from './lib/backendBridge'
+import { moderatePublicSignalText } from './lib/signalModeration'
+
+const hiddenKey = 'ecosphere:hiddenSignals'
+function loadHidden(): string[] {
+  try { return JSON.parse(window.localStorage.getItem(hiddenKey) ?? '[]') } catch { return [] }
+}
+function storeHidden(ids: string[]) {
+  try { window.localStorage.setItem(hiddenKey, JSON.stringify(ids.slice(0, 200))) } catch { /* session only */ }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SignalStatus = 'live' | 'fading' | 'drifting' | 'archiving' | 'corrupted' | 'resonating'
@@ -271,7 +280,24 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick }:
   const [textVisible, setTextVisible] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [showExport, setShowExport] = useState(false)
+  const [reporting, setReporting] = useState(false)
+  const [reportNote, setReportNote] = useState<string | null>(null)
   const playing = globalAudio.current?.id === signal.id && globalAudio.playing
+
+  // fully automated report flow: instant hide + AI screening verdict, no human review
+  const submitReport = (reason: string) => {
+    setReporting(false)
+    if (playing) globalAudio.stop()
+    const verdict = moderatePublicSignalText(signal.content)
+    storeHidden([signal.id, ...loadHidden().filter(id => id !== signal.id)])
+    mirrorActivity('signal_reported', `reported: ${reason}`, { signalId: signal.id, autoFlags: verdict.flags, autoFlagged: verdict.status === 'flagged' })
+    setReportNote(verdict.status === 'flagged'
+      ? 'auto-review: content flagged · removed and logged'
+      : 'auto-review complete · hidden from your feed')
+    window.setTimeout(() => setReportNote('__hide__'), 2600)
+  }
+
+  if (reportNote === '__hide__') return null
   const wasReplayed = ecosystemState.playedSignals.includes(signal.id)
   const isSaved = ecosystemState.savedSignals.includes(signal.id)
 
@@ -397,7 +423,25 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick }:
           >
             <span>⬡</span> export signal
           </button>
+          <button
+            className="action-btn action-btn--report"
+            onClick={() => setReporting(r => !r)}
+            aria-expanded={reporting}
+          >
+            <span>⚑</span> report
+          </button>
         </div>
+
+        {reporting && (
+          <div className="card-report-row" role="group" aria-label="Report reason">
+            {['harassment', 'spam', 'unsafe content', 'other'].map(reason => (
+              <button key={reason} type="button" onClick={() => submitReport(reason)}>{reason}</button>
+            ))}
+          </div>
+        )}
+        {reportNote && reportNote !== '__hide__' && (
+          <div className="card-report-note" role="status">{reportNote}</div>
+        )}
 
         {/* Ambient glow pulse */}
         {hovered && (
@@ -518,7 +562,8 @@ export default function FeedScreen() {
 
   // Stagger signal entry + arm decay timers on unfaded ephemerals
   useEffect(() => {
-    setSignals(FEED_SIGNALS)
+    const hidden = new Set(loadHidden())
+    setSignals(FEED_SIGNALS.filter(sig => !hidden.has(sig.id)))
     setExpiries(Object.fromEntries(
       FEED_SIGNALS.filter(sig => sig.expiresIn != null).map(sig => [sig.id, Date.now() + (sig.expiresIn ?? 60) * 1000]),
     ))
@@ -544,7 +589,10 @@ export default function FeedScreen() {
       }))
       setSignals(prev => {
         const known = new Set(prev.map(p => p.id))
-        return [...mapped.filter(m => !known.has(m.id)), ...prev]
+        const hidden = new Set(loadHidden())
+        // automated protection: AI-screen incoming network signals before display
+        const safe = mapped.filter(m => !known.has(m.id) && !hidden.has(m.id) && moderatePublicSignalText(m.content).status !== 'flagged')
+        return [...safe, ...prev]
       })
     })
     return () => { cancelled = true }
