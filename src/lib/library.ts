@@ -19,6 +19,7 @@ export type ActivityEventType =
   | 'signal_saved'
   | 'signal_unsaved'
   | 'voice_reaction'
+  | 'signal_reported'
   | 'drift_discovery'
   | 'audio_uploaded'
   | 'audio_renamed'
