@@ -140,3 +140,19 @@ export function subscribeToEcosphereActivity(onEvent: (event: EcosphereLiveEvent
     void client.removeChannel(channel)
   }
 }
+
+/** Fade a signal forever for this user (fire-and-forget, local-first). */
+export function mirrorSignalFade(signalId: string) {
+  if (!isSupabaseConfigured) return
+  void (async () => {
+    const client = getOptionalSupabaseClient()
+    if (!client) return
+    const { data } = await client.auth.getUser()
+    const userId = data.user?.id
+    if (!userId) return
+    await client.from('faded_signals').upsert(
+      { user_id: userId, signal_id: signalId },
+      { onConflict: 'user_id,signal_id' },
+    )
+  })().catch(() => { /* local fade already applied */ })
+}

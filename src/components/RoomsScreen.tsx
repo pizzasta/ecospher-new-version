@@ -3,6 +3,9 @@ import type { CSSProperties, MutableRefObject } from 'react'
 import { playSampleBuffer, stopPreviewBuffer } from '../lib/sampleAudio'
 import { useRecordingSession } from '../hooks/useRecordingSession'
 import { useEcoPref } from '../hooks/useEcoPrefs'
+import { temporalWindow } from '../lib/temporalWindow'
+import { futureSignals } from '../lib/futureSignals'
+import { usePredictiveText } from '../hooks/usePredictiveText'
 import '../rooms.css'
 
 // ═══════════════════════════════════════════════════════════════
@@ -572,6 +575,7 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
   const [playback, setPlayback] = useState<{ id: string; elapsed: number; duration: number } | null>(null)
   const [whispers, setWhispers] = useState<FloatWhisper[]>([])
   const [whisperText, setWhisperText] = useState('')
+  const whisperEcho = usePredictiveText(whisperText)
   const [pops, setPops] = useState<ReactionPop[]>([])
   const [notice, setNotice] = useState<string | null>(null)
   const [recStatus, setRecStatus] = useState<'idle' | 'recording'>('idle')
@@ -1052,6 +1056,17 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
             release
           </button>
         </div>
+        {whisperEcho && (
+          <button
+            type="button"
+            className="predictive-echo"
+            title="Predictive Echo — finishes your thought"
+            onClick={() => setWhisperText((whisperText + whisperEcho).slice(0, 70))}
+          >
+            <i aria-hidden="true">?</i>
+            <span>{whisperText}<em>{whisperEcho}</em></span>
+          </button>
+        )}
       </div>
 
       {notice && <div className="eco-notice">{notice}</div>}
@@ -1067,6 +1082,26 @@ export default function RoomsScreen() {
   const [audioBlocked, setAudioBlocked] = useState(false)
   const engineRef = useRef<AmbientEngine | null>(null)
   const driftTimerRef = useRef<number | null>(null)
+
+  // temporal resonance: the 3:33-3:43am window, re-checked every 30s
+  // (set localStorage 'ecosphere:temporalOverride' = 'open' to preview)
+  const [temporal, setTemporal] = useState(() => temporalWindow())
+  const [temporalOpen, setTemporalOpen] = useState(false)
+  useEffect(() => {
+    const check = () => {
+      let state = temporalWindow()
+      try {
+        if (window.localStorage.getItem('ecosphere:temporalOverride') === 'open') {
+          state = { phase: 'open', minutesRemaining: 10, minutesUntilOpen: 0 }
+        }
+      } catch { /* storage unavailable */ }
+      setTemporal(state)
+      if (state.phase !== 'open') setTemporalOpen(false)
+    }
+    check()
+    const t = window.setInterval(check, 30000)
+    return () => window.clearInterval(t)
+  }, [])
 
   const activeRoom = ROOMS.find(r => r.id === activeId) ?? null
 
@@ -1132,6 +1167,10 @@ export default function RoomsScreen() {
     }
   }
 
+  if (temporalOpen && temporal.phase === 'open') {
+    return <TemporalRoomView minutesRemaining={temporal.minutesRemaining} onExit={() => setTemporalOpen(false)} />
+  }
+
   if (activeRoom) {
     return (
       <div className="rooms-eco rooms-eco--inroom">
@@ -1158,6 +1197,25 @@ export default function RoomsScreen() {
           <h1 className="rooms-eco-title">rooms</h1>
           <p className="rooms-eco-sub">anonymous group calls. drop in, listen, talk, leave whenever.</p>
         </header>
+
+        {temporal.phase !== 'closed' && (
+          <button
+            type="button"
+            className={`temporal-room-card temporal-room-card--${temporal.phase}`}
+            disabled={temporal.phase !== 'open'}
+            onClick={() => { if (temporal.phase === 'open') setTemporalOpen(true) }}
+          >
+            <span className="temporal-room-glyph" aria-hidden="true">{temporal.phase === 'open' ? '◬' : '🔒'}</span>
+            <span className="temporal-room-body">
+              <strong>Temporal Resonance (future echoes)</strong>
+              <em>
+                {temporal.phase === 'open'
+                  ? `open · closes in ${temporal.minutesRemaining} min`
+                  : `forms at 3:33am · ${temporal.minutesUntilOpen} min`}
+              </em>
+            </span>
+          </button>
+        )}
 
         <RoomsDirectory onEnter={handleEnter} />
 
@@ -1212,5 +1270,48 @@ function RoomsDirectory({ onEnter }: { onEnter: (room: RoomDef) => void }) {
         ))}
       </div>
     </>
+  )
+}
+
+// ─── Temporal Resonance ────────────────────────────────────────
+// Only reachable between 3:33 and 3:43am. Signals are dated tomorrow and
+// cannot be replied to — they haven't happened yet.
+function TemporalRoomView({ minutesRemaining, onExit }: { minutesRemaining: number; onExit: () => void }) {
+  const signals = useMemo(() => futureSignals(), [])
+
+  return (
+    <div className="rooms-eco rooms-eco--inroom temporal-room">
+      <div className="rooms-eco-inner">
+        <header className="rooms-eco-head temporal-room-head">
+          <h1 className="rooms-eco-title">temporal resonance</h1>
+          <p className="rooms-eco-sub">future echoes · window closes in {minutesRemaining} min</p>
+          <button type="button" className="temporal-room-exit" onClick={onExit}>
+            ← back to now
+          </button>
+        </header>
+
+        <div className="temporal-signal-list">
+          {signals.map(signal => (
+            <article key={signal.id} className={`temporal-signal temporal-signal--${signal.mood}`}>
+              <div className="temporal-signal-meta">
+                <span className="temporal-signal-handle">◈ {signal.handle}</span>
+                <span className="temporal-signal-time">{signal.timeLabel}</span>
+              </div>
+              <p className="temporal-signal-content">{signal.content}</p>
+              <div className="temporal-signal-wave" aria-hidden="true">
+                {Array.from({ length: 18 }, (_, i) => (
+                  <i key={i} style={{ height: `${22 + ((signal.waveformSeed * (i + 3)) % 58)}%` }} />
+                ))}
+              </div>
+              <span className="temporal-signal-locked">replies disabled — this hasn't happened yet</span>
+            </article>
+          ))}
+        </div>
+
+        <footer className="rooms-eco-hint">
+          <p>whatever you hear in here, you heard it first.</p>
+        </footer>
+      </div>
+    </div>
   )
 }

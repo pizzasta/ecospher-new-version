@@ -24,6 +24,14 @@ const STATUS_LABELS: Record<CarrierStatus, string> = {
 
 const LAST_ACTIVE_POOL = ['just now', '40 sec ago', '2 min ago', '6 min ago', '14 min ago', '31 min ago', 'an hour ago']
 
+// the phantom: a carrier that has been on the band longer than the network.
+// it drifts between states on its own slow cycle (5-15 min) and its
+// last-active never quite resolves. injected into the list like any other
+// carrier — no special UI. (see docs/PHANTOM_CARRIER.md for the backend
+// version with a real Supabase account + scheduled Edge Function.)
+const PHANTOM_CARRIER: Carrier = { id: 'phantom', signalId: 's3', name: 'carrier_null', status: 'soft_focus', streak: 113, lastActive: 'always' }
+const PHANTOM_LAST_ACTIVE = ['always', 'just now', 'before you arrived', '∅', 'a moment from now'] as const
+
 const initialCarriers: Carrier[] = [
   { id: 'car1', signalId: 's1', name: 'gasstationoracle', status: 'pulse', streak: 9, lastActive: 'just now' },
   { id: 'car2', signalId: 's2', name: 'blurrywafflehouse', status: 'echo', streak: 5, lastActive: '2 min ago' },
@@ -31,6 +39,7 @@ const initialCarriers: Carrier[] = [
   { id: 'car4', signalId: 's4', name: 'deadbatteryangel', status: 'lost', streak: 1, lastActive: '31 min ago' },
   { id: 'car5', signalId: 's5', name: 'porchlightorbit', status: 'echo', streak: 7, lastActive: '40 sec ago' },
   { id: 'car6', signalId: 's1', name: 'fridgehumat3am', status: 'pulse', streak: 2, lastActive: '14 min ago' },
+  PHANTOM_CARRIER,
 ]
 
 function streakEmoji(streak: number) {
@@ -53,9 +62,10 @@ export default function ActiveCarriers({ onViewMap }: { onViewMap?: () => void }
     const timer = window.setInterval(() => {
       setCarriers(prev => {
         const next = prev.map(c => ({ ...c }))
+        const mortals = next.filter(c => c.id !== 'phantom')
         const shifts = 1 + Math.floor(Math.random() * 2)
         for (let i = 0; i < shifts; i += 1) {
-          const target = next[Math.floor(Math.random() * next.length)]
+          const target = mortals[Math.floor(Math.random() * mortals.length)]
           target.status = pick(CARRIER_STATUSES)
           target.lastActive = pick(LAST_ACTIVE_POOL)
         }
@@ -63,6 +73,19 @@ export default function ActiveCarriers({ onViewMap }: { onViewMap?: () => void }
       })
     }, 15000)
     return () => window.clearInterval(timer)
+  }, [])
+
+  // the phantom moves on its own slower clock: every 5-15 minutes
+  useEffect(() => {
+    let timer = 0
+    const drift = () => {
+      setCarriers(prev => prev.map(c => (c.id === 'phantom'
+        ? { ...c, status: pick(['soft_focus', 'echo', 'lost'] as const), lastActive: pick(PHANTOM_LAST_ACTIVE) }
+        : c)))
+      timer = window.setTimeout(drift, (5 + Math.random() * 10) * 60 * 1000)
+    }
+    timer = window.setTimeout(drift, (5 + Math.random() * 10) * 60 * 1000)
+    return () => window.clearTimeout(timer)
   }, [])
 
   useEffect(() => () => {

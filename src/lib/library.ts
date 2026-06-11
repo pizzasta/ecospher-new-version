@@ -484,6 +484,7 @@ export async function deleteAccountData(): Promise<boolean> {
     ctx.db.from('archive_items').delete().eq('user_id', ctx.userId).then(r => ({ error: r.error })),
     ctx.db.from('archived_signals').delete().eq('user_id', ctx.userId).then(r => ({ error: r.error })),
     ctx.db.from('user_relics').delete().eq('user_id', ctx.userId).then(r => ({ error: r.error })),
+    ctx.db.from('faded_signals').delete().eq('user_id', ctx.userId).then(r => ({ error: r.error })),
   ]
   for (const result of await Promise.all(deletions)) {
     if (result.error) ok = false

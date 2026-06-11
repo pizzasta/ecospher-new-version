@@ -5,7 +5,7 @@ import VoiceReactionStack from './components/VoiceReactions'
 import { downloadBlob, exportFilename, renderStoryImage, renderStoryVideo } from './lib/storyExport'
 import { playSample } from './lib/sampleAudio'
 import { listenerCount, livedInLines } from './lib/livedIn'
-import { fetchPublicSignals, mirrorActivity } from './lib/backendBridge'
+import { fetchPublicSignals, mirrorActivity, mirrorSignalFade } from './lib/backendBridge'
 import { moderatePublicSignalText } from './lib/signalModeration'
 import { GHOST_ARCHIVE } from './lib/ghostArchive'
 
@@ -15,6 +15,15 @@ function loadHidden(): string[] {
 }
 function storeHidden(ids: string[]) {
   try { window.localStorage.setItem(hiddenKey, JSON.stringify(ids.slice(0, 200))) } catch { /* session only */ }
+}
+
+// faded signals: chosen forgetting — gone from this user's memory forever
+const fadedKey = 'ecosphere:fadedSignals'
+function loadFaded(): string[] {
+  try { return JSON.parse(window.localStorage.getItem(fadedKey) ?? '[]') } catch { return [] }
+}
+function storeFaded(ids: string[]) {
+  try { window.localStorage.setItem(fadedKey, JSON.stringify(ids.slice(0, 500))) } catch { /* session only */ }
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -309,6 +318,8 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick }:
   const [showExport, setShowExport] = useState(false)
   const [reporting, setReporting] = useState(false)
   const [reportNote, setReportNote] = useState<string | null>(null)
+  const [fading, setFading] = useState(false)
+  const [fadedAway, setFadedAway] = useState(false)
   const playing = globalAudio.current?.id === signal.id && globalAudio.playing
 
   // fully automated report flow: instant hide + AI screening verdict, no human review
@@ -351,13 +362,24 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick }:
   const isCorrupted = signal.status === 'corrupted'
   const isFading = signal.status === 'fading' || signal.status === 'archiving'
 
+  // fade: chosen forgetting — confirm, dissolve, never resurface
+  const fadeSignal = () => {
+    const sure = window.confirm('This signal will disappear from your memory. You will never see it again. Continue?')
+    if (!sure) return
+    if (playing) globalAudio.stop()
+    setFading(true)
+    storeFaded([signal.id, ...loadFaded().filter(id => id !== signal.id)])
+    mirrorSignalFade(signal.id)
+    window.setTimeout(() => setFadedAway(true), 720)
+  }
+
   // hooks above must run every render; the post-report hide bails out here
-  if (reportNote === '__hide__') return null
+  if (reportNote === '__hide__' || fadedAway) return null
 
   return (
     <>
       <div
-        className={`signal-card ${visible ? 'signal-card--visible' : ''} ${hovered ? 'signal-card--hovered' : ''} ${isCorrupted ? 'signal-card--corrupted' : ''} ${isFading ? 'signal-card--fading' : ''} ${playing ? 'signal-card--playing' : ''} ${wasReplayed ? 'signal-card--replayed' : ''} ${dissolving ? 'signal-card--dissolving' : ''}`}
+        className={`signal-card ${visible ? 'signal-card--visible' : ''} ${hovered ? 'signal-card--hovered' : ''} ${isCorrupted ? 'signal-card--corrupted' : ''} ${isFading ? 'signal-card--fading' : ''} ${playing ? 'signal-card--playing' : ''} ${wasReplayed ? 'signal-card--replayed' : ''} ${dissolving || fading ? 'signal-card--dissolving' : ''}`}
         style={{ '--mood-color': colors.primary, '--mood-glow': colors.glow, '--mood-dim': colors.dim, '--entry-delay': `${Math.min(index, 8) * 350}ms` } as React.CSSProperties}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -458,6 +480,13 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick }:
             aria-expanded={reporting}
           >
             <span>⚑</span> report
+          </button>
+          <button
+            className="action-btn action-btn--fade"
+            title="Fade — this signal leaves your memory forever"
+            onClick={fadeSignal}
+          >
+            <span>◌</span> fade
           </button>
         </div>
 
@@ -591,7 +620,7 @@ export default function FeedScreen() {
 
   // Stagger signal entry + arm decay timers on unfaded ephemerals
   useEffect(() => {
-    const hidden = new Set(loadHidden())
+    const hidden = new Set([...loadHidden(), ...loadFaded()])
     setSignals([...FEED_SIGNALS, ...GHOST_FEED.slice(0, GHOST_PAGE_SIZE)].filter(sig => !hidden.has(sig.id)))
     setExpiries(Object.fromEntries(
       FEED_SIGNALS.filter(sig => sig.expiresIn != null).map(sig => [sig.id, Date.now() + (sig.expiresIn ?? 60) * 1000]),
@@ -618,7 +647,7 @@ export default function FeedScreen() {
       }))
       setSignals(prev => {
         const known = new Set(prev.map(p => p.id))
-        const hidden = new Set(loadHidden())
+        const hidden = new Set([...loadHidden(), ...loadFaded()])
         // automated protection: AI-screen incoming network signals before display
         const safe = mapped.filter(m => !known.has(m.id) && !hidden.has(m.id) && moderatePublicSignalText(m.content).status !== 'flagged')
         return [...safe, ...prev]
@@ -652,7 +681,7 @@ export default function FeedScreen() {
     if (ghostCount <= GHOST_PAGE_SIZE) return
     setSignals(prev => {
       const known = new Set(prev.map(p => p.id))
-      const hidden = new Set(loadHidden())
+      const hidden = new Set([...loadHidden(), ...loadFaded()])
       const next = GHOST_FEED.slice(0, ghostCount).filter(g => !known.has(g.id) && !hidden.has(g.id))
       return next.length > 0 ? [...prev, ...next] : prev
     })
