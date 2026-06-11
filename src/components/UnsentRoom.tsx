@@ -5,6 +5,7 @@ import { deleteLocalRecording, listLocalRecordings, saveRecordingLocally } from 
 import { downloadBlob, exportFilename, renderStoryImage } from '../lib/storyExport';
 import { fetchRemoteRecordings, mirrorRecordingDelete, mirrorRecordingUpload, remotePlaybackUrl } from '../lib/backendBridge';
 import { playSample } from '../lib/sampleAudio';
+import VoiceReactionStack from './VoiceReactions';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -458,6 +459,127 @@ const RecordingTimer: React.FC<{ startTime: number | null; active: boolean }> = 
       </span>
       <span className="ur-recording-label">TRANSMITTING</span>
     </div>
+  );
+};
+
+// ─── Infinite anonymous voice feed ───────────────────────────────────────────
+
+const FEED_OPENERS = [
+  'i still think about that conversation sometimes.',
+  'i typed this whole thing out and never sent it.',
+  "you'd laugh at how often i check if you're online.",
+  'i drove past your street again. on purpose.',
+  "i'm doing fine. that's the part that feels wrong.",
+  'i kept the voicemail. i know. i know.',
+  'nobody asked how i was today and i almost told someone anyway.',
+  'i practiced saying it in the shower. perfect delivery. no audience.',
+  "we're strangers now and that's the weirdest thing in the world.",
+  'i heard our song at the grocery store and just stood there.',
+  'i almost called you when it happened. old habit.',
+  "it's been a year. i still draft texts i'll never send.",
+]
+
+const FEED_CLOSERS = [
+  'anyway. goodnight.',
+  "that's it. that's the whole thing.",
+  'i just needed to say it somewhere.',
+  "don't tell anyone.",
+  'maybe the internet can hold this one.',
+  'ok. deleting this in my head now.',
+  'if you ever hear this, you know.',
+  'this app is the only one awake.',
+  'same time tomorrow probably.',
+  "i feel lighter already. that's embarrassing.",
+  'whatever. it counts as closure.',
+  'someone out there gets it.',
+]
+
+const FEED_SOCIAL = [
+  (n: number) => `${n} listening now`,
+  (n: number) => `saved ${n + 9} times`,
+  () => 'resurfaced tonight',
+  (n: number) => `replayed ${n + 4}× today`,
+  () => 'voice chain growing',
+  () => 'someone echoed this',
+]
+
+type FeedFragment = {
+  id: string
+  text: string
+  seed: number
+  socialIdx: number
+  socialN: number
+  hot: boolean
+}
+
+function makeFeedFragment(i: number): FeedFragment {
+  const opener = FEED_OPENERS[i % FEED_OPENERS.length]
+  const closer = FEED_CLOSERS[(i * 7 + Math.floor(i / FEED_OPENERS.length)) % FEED_CLOSERS.length]
+  return {
+    id: `unsent-feed-${i}`,
+    text: `${opener} ${closer}`,
+    seed: i * 73 + 29,
+    socialIdx: (i * 5) % FEED_SOCIAL.length,
+    socialN: 3 + ((i * 11) % 24),
+    hot: i % 5 === 2,
+  }
+}
+
+const UnsentFeed: React.FC = () => {
+  const feedAudio = useGlobalAudio();
+  const [count, setCount] = useState(6);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // infinite scroll: load more fragments as the sentinel approaches
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const obs = new IntersectionObserver(entries => {
+      if (entries.some(e => e.isIntersecting)) setCount(c => Math.min(c + 6, 240));
+    }, { rootMargin: '600px' });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  const fragments = Array.from({ length: count }, (_, i) => makeFeedFragment(i));
+  const isPlaying = (id: string) => feedAudio.current?.id === id && feedAudio.playing;
+
+  return (
+    <section className="ur-feed" aria-label="Anonymous unsent voices">
+      <div className="ur-archive-header">
+        <div className="ur-archive-title-row">
+          <h2 className="ur-archive-title">UNSENT VOICES</h2>
+          <span className="ur-archive-count">anonymous · endless · tonight</span>
+        </div>
+      </div>
+      <div className="ur-feed-list">
+        {fragments.map(f => (
+          <article key={f.id} className={`ur-feed-card${f.hot ? ' ur-feed-card--hot' : ''}${isPlaying(f.id) ? ' ur-feed-card--playing' : ''}`}>
+            <div className="ur-feed-social">
+              <i aria-hidden="true" />
+              {FEED_SOCIAL[f.socialIdx](f.socialN)}
+            </div>
+            <p className="ur-feed-text">"{f.text}"</p>
+            <div className="ur-feed-controls">
+              <button
+                type="button"
+                className="ur-feed-play"
+                onClick={() => {
+                  if (isPlaying(f.id)) feedAudio.stop();
+                  else void playSample(feedAudio, { id: f.id, label: 'an unsent voice', source: 'unsent' }, 'voice', f.seed, 8000);
+                }}
+              >
+                {isPlaying(f.id) ? '■ stop' : '▶ hear it'}
+              </button>
+            </div>
+            <VoiceReactionStack signalId={f.id} moodColor="#ff1493" />
+          </article>
+        ))}
+      </div>
+      <div ref={sentinelRef} className="ur-feed-sentinel" aria-hidden="true">
+        <span /><span /><span />
+      </div>
+    </section>
   );
 };
 
@@ -934,6 +1056,9 @@ export const UnsentRoom: React.FC = () => {
           {recordingState === 'processing' && 'processing signal…'}
         </p>
       </section>
+
+      {/* Infinite anonymous feed */}
+      <UnsentFeed />
 
       {/* Signal archive */}
       <section className="ur-archive-section" aria-label="Signal archive">

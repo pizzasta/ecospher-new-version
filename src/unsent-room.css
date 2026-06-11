@@ -1080,3 +1080,122 @@
     animation: none;
   }
 }
+
+/* ─── Infinite anonymous feed ────────────────────────────────── */
+.ur-feed {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 680px;
+  padding: 1rem 1rem 0;
+}
+
+.ur-feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.ur-feed-card {
+  background: rgba(255, 20, 147, 0.035);
+  border: 1px solid rgba(255, 20, 147, 0.14);
+  border-radius: 14px;
+  padding: 1.1rem 1.2rem 0.8rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: border-color 0.4s ease, box-shadow 0.5s cubic-bezier(0.22, 0.61, 0.36, 1), transform 0.35s ease;
+}
+
+.ur-feed-card:hover {
+  border-color: rgba(255, 20, 147, 0.35);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35), 0 0 22px rgba(255, 20, 147, 0.1);
+  transform: translateY(-2px);
+}
+
+.ur-feed-card--hot {
+  border-color: rgba(255, 20, 147, 0.4);
+  animation: ur-card-resonance 3.2s ease-in-out infinite;
+}
+
+.ur-feed-card--playing {
+  border-color: rgba(0, 240, 255, 0.45);
+  box-shadow: 0 0 26px rgba(0, 240, 255, 0.12);
+}
+
+.ur-feed-social {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: rgba(255, 100, 160, 0.75);
+  margin-bottom: 0.55rem;
+}
+
+.ur-feed-social i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ff1493;
+  box-shadow: 0 0 7px rgba(255, 20, 147, 0.8);
+  animation: ur-rec-blink 2s ease-in-out infinite;
+}
+
+.ur-feed-text {
+  font-size: 0.92rem;
+  font-style: italic;
+  line-height: 1.6;
+  color: rgba(240, 235, 255, 0.92);
+  margin: 0 0 0.7rem;
+}
+
+.ur-feed-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 0.6rem;
+}
+
+.ur-feed-play {
+  padding: 0.4rem 1rem;
+  border-radius: 50px;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: 1px solid rgba(255, 20, 147, 0.4);
+  background: rgba(255, 20, 147, 0.1);
+  color: #ff80c0;
+  transition: box-shadow 0.3s ease, background 0.3s ease;
+}
+
+.ur-feed-play:hover {
+  background: rgba(255, 20, 147, 0.2);
+  box-shadow: 0 0 16px rgba(255, 20, 147, 0.25);
+}
+
+.ur-feed-sentinel {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 1.4rem 0 1rem;
+}
+
+.ur-feed-sentinel span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 20, 147, 0.5);
+  animation: ur-rec-blink 1.2s ease-in-out infinite;
+}
+
+.ur-feed-sentinel span:nth-child(2) { animation-delay: 0.2s; }
+.ur-feed-sentinel span:nth-child(3) { animation-delay: 0.4s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ur-feed-card--hot,
+  .ur-feed-social i,
+  .ur-feed-sentinel span {
+    animation: none;
+  }
+}

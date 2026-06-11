@@ -1080,3 +1080,129 @@
   color: rgba(0, 212, 255, 0.6);
   animation: lpAmbientIn 0.8s ease 0.4s both;
 }
+
+/* ─── User Hub ───────────────────────────────────────────────── */
+.hub-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.hub-action {
+  padding: 14px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--text-primary, #f0f4ff);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.25s ease, box-shadow 0.35s ease, transform 0.2s ease;
+}
+
+.hub-action:hover {
+  border-color: rgba(255, 45, 120, 0.45);
+  box-shadow: 0 0 20px rgba(255, 45, 120, 0.14);
+  transform: translateY(-2px);
+}
+
+.hub-action:active {
+  transform: scale(0.97);
+}
+
+.hub-activity-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+}
+
+.hub-activity-type {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 10px;
+  background: rgba(255, 45, 120, 0.1);
+  color: var(--pink, #ff2d78);
+}
+
+.hub-activity-type--signal_saved,
+.hub-activity-type--relic_unlocked {
+  background: rgba(0, 212, 255, 0.1);
+  color: #67e8f9;
+}
+
+.hub-activity-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  color: rgba(220, 228, 250, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: lowercase;
+}
+
+.hub-activity-time {
+  flex-shrink: 0;
+  font-size: 9px;
+  color: var(--text-dim, rgba(140, 155, 195, 0.5));
+}
+
+.hub-rename-input {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 45, 120, 0.45);
+  border-radius: 7px;
+  color: var(--text-primary, #f0f4ff);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+  outline: none;
+  width: 100%;
+}
+
+/* ─── Dead zones: recovery + revival ─────────────────────────── */
+.zone-recovery {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 2px;
+}
+
+.zone-recovery span {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: #67e8f9;
+  white-space: nowrap;
+}
+
+.zone-recovery-track {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.zone-recovery-track i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(155, 93, 229, 0.7), rgba(0, 212, 255, 0.85));
+  transition: width 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.zone-card--revived {
+  border-color: rgba(0, 212, 255, 0.45);
+  box-shadow: 0 0 26px rgba(0, 212, 255, 0.12);
+}
+
+.zone-card--revived::after {
+  opacity: 0.3;
+}
