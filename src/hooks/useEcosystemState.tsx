@@ -59,6 +59,17 @@ export type ListeningEntry = {
   playedAt: string
 }
 
+export type StreakState = {
+  count: number
+  lastDate: string | null
+}
+
+export function localDateString(offsetDays = 0): string {
+  const d = new Date()
+  d.setDate(d.getDate() + offsetDays)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export type ActiveAudio = {
   id: string
   label: string
@@ -76,6 +87,7 @@ export type EcosystemState = {
   rareEvent: string | null
   currentAtmosphere: string | null
   userSignalIdentity: string | null
+  streak: StreakState
   playedSignals: string[]
   savedSignals: string[]
   unlockedRelics: string[]
@@ -105,6 +117,7 @@ const defaultEcosystemState: EcosystemState = {
   rareEvent: null,
   currentAtmosphere: null,
   userSignalIdentity: null,
+  streak: { count: 0, lastDate: null },
   playedSignals: [],
   savedSignals: [],
   unlockedRelics: [],
@@ -172,6 +185,9 @@ function readStoredState(): EcosystemState {
       driftActivity: clamp(Number(parsed.driftActivity ?? defaultEcosystemState.driftActivity)),
       roomActivity: clamp(Number(parsed.roomActivity ?? 0)),
       userSignalIdentity: storedIdentity || parsed.userSignalIdentity || null,
+      streak: parsed.streak && typeof parsed.streak.count === 'number'
+        ? { count: Math.max(0, Math.floor(parsed.streak.count)), lastDate: typeof parsed.streak.lastDate === 'string' ? parsed.streak.lastDate : null }
+        : { count: 0, lastDate: null },
       playedSignals: stringArray(parsed.playedSignals),
       savedSignals: stringArray(parsed.savedSignals),
       unlockedRelics: stringArray(parsed.unlockedRelics),
@@ -384,6 +400,25 @@ function useEcosystemStore() {
     mirrorActivity('item_archived', label, { itemType })
   }, [updateState])
 
+  const tuneInDaily = useCallback((label: string) => {
+    updateState((current) => {
+      const today = localDateString()
+      if (current.streak.lastDate === today) return current
+      const continued = current.streak.lastDate === localDateString(-1)
+      const count = continued ? current.streak.count + 1 : 1
+      const milestone = [3, 7, 14, 30, 100].includes(count)
+      return {
+        ...current,
+        streak: { count, lastDate: today },
+        resonanceLevel: clamp(current.resonanceLevel + 5),
+        unlockedRelics: milestone ? addUnique(current.unlockedRelics, `streak-${count}`, 24) : current.unlockedRelics,
+        rareEvent: milestone ? `streak relic unlocked · ${count} nights tuned in` : current.rareEvent,
+        recentInteractions: addInteraction(current, createInteraction('signal_play', `tuned in to the daily signal · night ${count} — ${label}`, 'home')),
+      }
+    })
+    mirrorActivity('signal_played', `daily signal: ${label}`)
+  }, [updateState])
+
   const reactToSignal = useCallback((signalId: string, label: string) => {
     updateState((current) => ({
       ...current,
@@ -424,6 +459,7 @@ function useEcosystemStore() {
     setAtmosphere,
     setRareEvent,
     toggleLibraryFavorite,
+    tuneInDaily,
     unlockRelic,
     unsaveFromLibrary,
     visitPage,
@@ -444,6 +480,7 @@ function useEcosystemStore() {
     setAtmosphere,
     setRareEvent,
     toggleLibraryFavorite,
+    tuneInDaily,
     unlockRelic,
     unsaveFromLibrary,
     visitPage,

@@ -260,7 +260,7 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
   )
 }
 // ─── Signal Card Component ────────────────────────────────────────────────────
-function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
+function SignalCard({ signal, index, decayRemaining, dissolving }: { signal: FeedSignal; index: number; decayRemaining: number | null; dissolving: boolean }) {
   const { ecosystemState, saveSignal, unsaveFromLibrary } = useEcosystemState()
   const globalAudio = useGlobalAudio()
   const [visible, setVisible] = useState(false)
@@ -298,7 +298,7 @@ function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
   return (
     <>
       <div
-        className={`signal-card ${visible ? 'signal-card--visible' : ''} ${hovered ? 'signal-card--hovered' : ''} ${isCorrupted ? 'signal-card--corrupted' : ''} ${isFading ? 'signal-card--fading' : ''} ${playing ? 'signal-card--playing' : ''} ${wasReplayed ? 'signal-card--replayed' : ''}`}
+        className={`signal-card ${visible ? 'signal-card--visible' : ''} ${hovered ? 'signal-card--hovered' : ''} ${isCorrupted ? 'signal-card--corrupted' : ''} ${isFading ? 'signal-card--fading' : ''} ${playing ? 'signal-card--playing' : ''} ${wasReplayed ? 'signal-card--replayed' : ''} ${dissolving ? 'signal-card--dissolving' : ''}`}
         style={{ '--mood-color': colors.primary, '--mood-glow': colors.glow, '--mood-dim': colors.dim, '--entry-delay': `${index * 350}ms` } as React.CSSProperties}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -322,6 +322,15 @@ function SignalCard({ signal, index }: { signal: FeedSignal; index: number }) {
             <span className="card-type-label">{SIGNAL_TYPE_LABELS[signal.type]}</span>
             <span className="card-band" style={{ color: colors.primary }}>{signal.emotionalBand}</span>
             <span className="card-time">{signal.timeAgo}</span>
+            {signal.expiresIn != null && (
+              isSaved ? (
+                <span className="card-decay card-decay--preserved">✶ preserved</span>
+              ) : decayRemaining != null ? (
+                <span className={`card-decay${decayRemaining <= 30 ? ' card-decay--urgent' : ''}`}>
+                  fades in {Math.floor(decayRemaining / 60)}:{String(decayRemaining % 60).padStart(2, '0')}
+                </span>
+              ) : null
+            )}
           </div>
         </div>
 
@@ -491,15 +500,46 @@ function FeedHeader() {
 }
 // ─── Main FeedScreen ──────────────────────────────────────────────────────────
 export default function FeedScreen() {
+  const { ecosystemState } = useEcosystemState()
   const [activeEvent, setActiveEvent] = useState<EcosystemEvent | null>(null)
   const [signals, setSignals] = useState<FeedSignal[]>([])
+  const [expiries, setExpiries] = useState<Record<string, number>>({})
+  const [dissolving, setDissolving] = useState<string[]>([])
+  const [decayNow, setDecayNow] = useState(() => Date.now())
   const [ambientEnabled, setAmbientEnabled] = useState(false)
   const eventIndexRef = useRef(0)
 
-  // Stagger signal entry
+  // Stagger signal entry + arm decay timers on unfaded ephemerals
   useEffect(() => {
     setSignals(FEED_SIGNALS)
+    setExpiries(Object.fromEntries(
+      FEED_SIGNALS.filter(sig => sig.expiresIn != null).map(sig => [sig.id, Date.now() + (sig.expiresIn ?? 60) * 1000]),
+    ))
   }, [])
+
+  // decay tick: expired signals dissolve unless someone preserved them
+  useEffect(() => {
+    const t = window.setInterval(() => setDecayNow(Date.now()), 1000)
+    return () => window.clearInterval(t)
+  }, [])
+
+  useEffect(() => {
+    Object.entries(expiries).forEach(([id, expiresAt]) => {
+      if (ecosystemState.savedSignals.includes(id)) return
+      if (decayNow >= expiresAt && !dissolving.includes(id)) {
+        setDissolving(d => [...d, id])
+        window.setTimeout(() => {
+          setSignals(prev => prev.filter(sig => sig.id !== id))
+          setExpiries(prev => {
+            const next = { ...prev }
+            delete next[id]
+            return next
+          })
+          setActiveEvent({ id: `decay-${id}`, message: 'a signal finished fading. nobody preserved it.', visible: true })
+        }, 1600)
+      }
+    })
+  }, [decayNow, expiries, dissolving, ecosystemState.savedSignals])
 
   // Ecosystem events
   useEffect(() => {
@@ -577,9 +617,19 @@ export default function FeedScreen() {
 
         {/* Signal cards */}
         <div className="feed-cards">
-          {signals.map((signal, i) => (
-            <SignalCard key={signal.id} signal={signal} index={i} />
-          ))}
+          {signals.map((signal, i) => {
+            const expiresAt = expiries[signal.id]
+            const remaining = expiresAt != null ? Math.max(0, Math.ceil((expiresAt - decayNow) / 1000)) : null
+            return (
+              <SignalCard
+                key={signal.id}
+                signal={signal}
+                index={i}
+                decayRemaining={remaining}
+                dissolving={dissolving.includes(signal.id)}
+              />
+            )
+          })}
         </div>
 
         {/* Bottom drift zone */}
