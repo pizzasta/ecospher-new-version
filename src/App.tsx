@@ -2,7 +2,8 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { getOptionalSupabaseClient, syncProfile } from './lib'
 import { localDateString, useEcosystemState } from './hooks/useEcosystemState'
-import { deleteReactionAudio, listReactionAudio, saveReactionAudio } from './lib/localAudioStore'
+import { deleteLocalRecording, deleteReactionAudio, listLocalRecordings, listReactionAudio, saveReactionAudio, saveRecordingLocally } from './lib/localAudioStore'
+import { downloadBlob, exportFilename, renderStoryImage } from './lib/storyExport'
 import { playSample } from './lib/sampleAudio'
 import { lastExaminedBy, listenerCount, livedInLines } from './lib/livedIn'
 import type { StoredReaction } from './lib/localAudioStore'
@@ -87,12 +88,11 @@ const capsules: Capsule[] = [
 ]
 
 const deadZones: DeadZone[] = [
-  { id: 'z1', name: 'Faded Orbit', corruption: 62, status: 'dormant', description: 'An old orbit where transmissions slowly lose their shape.', lastSignal: '04:17 last cycle' },
-  { id: 'z2', name: 'Blackout Memory', corruption: 81, status: 'corrupted', description: 'A sealed zone with intermittent emotional echoes.', lastSignal: 'unknown' },
-  { id: 'z3', name: 'Static Field 09', corruption: 54, status: 'recoverable', description: 'Soft interference hiding several weak signals.', lastSignal: '22:08 yesterday' },
-  { id: 'z4', name: 'Silent Orbit', corruption: 39, status: 'silent', description: 'Abandoned node still carrying a faint cyan pulse.', lastSignal: '3 days ago' },
+  { id: 'z1', name: 'Nobody Came Back', corruption: 62, status: 'dormant', description: 'nobody has returned here in 9 days. the audio is still waiting.', lastSignal: 'last active 4:17am' },
+  { id: 'z2', name: 'Left on Read', corruption: 81, status: 'corrupted', description: 'an unfinished conversation. the last message never got a reply.', lastSignal: 'partially recoverable' },
+  { id: 'z3', name: 'Voices Still Here', corruption: 54, status: 'recoverable', description: 'this room slowly went inactive, but fragments of voices remain.', lastSignal: 'only 2 users revisited' },
+  { id: 'z4', name: 'Nobody Finished Talking', corruption: 39, status: 'silent', description: 'the conversation just stopped mid-sentence one night.', lastSignal: 'last person stayed for hours' },
 ]
-
 const relics: Relic[] = [
   { id: 'rl1', name: 'Echo Veil', type: 'Echo Fragment', rarity: 'mythic', resonance: 94, description: 'A translucent memory layer that hums when other signals pass near it.' },
   { id: 'rl2', name: 'Pulse Crystal VII', type: 'Pulse Crystal', rarity: 'rare', resonance: 82, description: 'A crystalline heartbeat recovered from a living branch of the ecosystem.' },
@@ -589,11 +589,12 @@ function HomeScreen() {
   )
 }
 const driftNodeDefs = [
-  { id: 'dn1', label: 'Dead Zones', x: 18, y: 34, intensity: 42, delay: 'slow' },
-  { id: 'dn2', label: 'Echo Fields', x: 72, y: 24, intensity: 77, delay: 'soft' },
-  { id: 'dn3', label: 'Quiet Frequencies', x: 44, y: 58, intensity: 61, delay: 'thin' },
-  { id: 'dn4', label: 'Static Bloom', x: 80, y: 68, intensity: 88, delay: 'alive' },
-  { id: 'dn5', label: 'Lost Orbit', x: 27, y: 78, intensity: 54, delay: 'far' },
+  { id: 'dn1', label: "Can't Sleep", x: 18, y: 34, intensity: 62, delay: '14 talking' },
+  { id: 'dn2', label: 'People Venting', x: 72, y: 24, intensity: 77, delay: 'busy' },
+  { id: 'dn3', label: 'Quiet Conversations', x: 44, y: 58, intensity: 41, delay: 'calm' },
+  { id: 'dn4', label: 'Music Playing Nearby', x: 80, y: 68, intensity: 88, delay: 'loud' },
+  { id: 'dn5', label: 'Deep Talks', x: 27, y: 78, intensity: 54, delay: 'close' },
+  { id: 'dn6', label: 'Lonely Tonight', x: 58, y: 40, intensity: 58, delay: 'open' },
 ]
 
 type DriftHotspot = { id: string; x: number; y: number; fragment: string }
@@ -604,11 +605,12 @@ const driftHotspots: DriftHotspot[] = [
 ]
 
 const DRIFT_EVENTS = [
-  'fog density rising in the east band',
-  'an unclaimed signal circled twice and left',
-  'echo fields breathing slow tonight',
-  'something faint wants to be found',
-  'cyan haze thinning near lost orbit',
+  'a lot of people just joined one room',
+  'someone started playing music nearby',
+  'quiet relationship conversation detected',
+  'new late-night room opened',
+  'small group talking about anxiety',
+  'people are staying longer than usual tonight',
 ] as const
 
 function DriftScreen() {
@@ -635,9 +637,10 @@ function DriftScreen() {
     return () => window.clearInterval(t)
   }, [])
 
-  const exciteNode = (id: string, label: string) => {
+  const exciteNode = (id: string, label: string, seed: number) => {
     setEnergy(e => ({ ...e, [id]: Math.min((e[id] ?? 0) + 1, 8) }))
-    setPing(`${label.toLowerCase()} answered · the node is warming`)
+    void playSample(driftAudio, { id: `overhear-${id}`, label: `overhearing · ${label.toLowerCase()}`, source: 'drift' }, 'voice', seed * 67 + 5, 5000)
+    setPing(`overhearing ${label.toLowerCase()} — open rooms to join`)
   }
 
   // voice reactions released into the drift surface here as floating fragments
@@ -741,15 +744,15 @@ function DriftScreen() {
   return (
     <div className="screen">
       <div className="screen-header">
-        <div className="screen-kicker">ATMOSPHERIC DRIFT</div>
-        <h2 className="screen-title">Drift</h2>
-        <p className="screen-sub">where signals go when no one claims them</p>
+        <div className="screen-kicker">AUDIO RADAR</div>
+        <h2 className="screen-title">Frequency Finder</h2>
+        <p className="screen-sub">overhear live rooms from a distance. drift toward whatever pulls you.</p>
       </div>
       <AmbientLine lines={useMemo(() => [...DRIFT_EVENTS, ...livedInLines('drift', 3)], [])} />
       <div className={`drift-map glass lp-drift-map${scanning ? ' lp-drift-map--scanning' : ''}`}>
         <div className="lp-fog lp-fog-a" aria-hidden="true" />
         <div className="lp-fog lp-fog-b" aria-hidden="true" />
-        <div className="drift-label-overlay">signal weather · fog / echo · {found.length} / {driftHotspots.length} hidden traces found</div>
+        <div className="drift-label-overlay">tap a room to overhear it · {found.length} / {driftHotspots.length} hidden traces found</div>
         {driftNodeDefs.map(n => {
           const e = energy[n.id] ?? 0
           const off = offsets[n.id] ?? { dx: 0, dy: 0 }
@@ -759,7 +762,7 @@ function DriftScreen() {
               type="button"
               className={`drift-node lp-drift-node${e >= 5 ? ' lit' : e >= 2 ? ' warm' : ''}`}
               style={{ left: `${n.x}%`, top: `${n.y}%`, transform: `translate(-50%, -50%) translate(${off.dx}px, ${off.dy}px)`, '--energy': (e / 8).toFixed(3) } as CSSProperties}
-              onClick={() => exciteNode(n.id, n.label)}
+              onClick={() => exciteNode(n.id, n.label, n.intensity)}
             >
               <div className="drift-pulse" style={{ opacity: Math.min(1, n.intensity / 100 + e * 0.06) }} />
               <span className="drift-node-label">{n.label}</span>
@@ -817,9 +820,9 @@ function DriftScreen() {
       {ping && <div className="lp-drift-ping" key={ping}>{ping}</div>}
       <div className="drift-discoveries">
         {[
-          { type: 'Drift Discovery', title: 'A soft pulse is repeating under the fog', note: 'It feels old, almost personal, but the signal refuses a source.', time: '03:12' },
-          { type: 'Signal Anomaly', title: 'Static Bloom opened near the eastern band', note: 'Cyan traces are bending around a warm pink interference field.', time: '03:18' },
-          { type: 'Emotional Pulse', title: 'Lonely resonance detected in Quiet Frequencies', note: 'The ecosystem lowered its tempo and held the channel open.', time: '03:24' },
+          { type: 'Room Activity', title: "a small group has been talking in Can't Sleep for 2 hours", note: 'slow conversation, long pauses. easy to join.', time: '3:12am' },
+          { type: 'Music Detected', title: 'someone is playing unreleased songs nearby', note: 'about 12 people listening quietly. nobody wants it to end.', time: '3:18am' },
+          { type: 'Open Room', title: 'a late-night room just opened with 3 people', note: 'they said anyone can drop in.', time: '3:24am' },
         ].map((d, i) => (
           <div key={d.title} className="drift-discovery glass lp-card lp-enter" style={{ '--idx': i } as CSSProperties}>
             <div className="drift-discovery-type">{d.type}</div>
@@ -1208,17 +1211,17 @@ function RelicsScreen() {
 }
 
 const ZONE_EVENTS = [
-  'corruption levels drifting',
-  'a dormant zone exhaled static',
-  'faint carrier traced, then lost',
-  'the silence has a shape tonight',
-  'recovery window narrowing',
+  'unfinished conversation detected',
+  'someone attempted a recovery here earlier',
+  'partially recoverable audio found',
+  '2 users revisited an abandoned room tonight',
+  'a dead room flickered back for a moment',
 ] as const
 
 const zoneFragments: Record<string, string> = {
-  z1: 'recovered: half a sentence about a window left open',
+  z1: 'recovered: someone saying "anyway, goodnight" to an empty room',
   z2: 'recovered: laughter, badly degraded, unmistakably real',
-  z3: 'recovered: a hummed melody nobody has claimed',
+  z3: 'recovered: half of an inside joke nobody finished',
   z4: 'recovered: four seconds of someone deciding not to speak',
 }
 
@@ -1227,6 +1230,7 @@ function DeadZonesScreen() {
   const zoneAudio = useGlobalAudio()
   const [corruption, setCorruption] = useState<Record<string, number>>(() => Object.fromEntries(deadZones.map(z => [z.id, z.corruption])))
   const [recovered, setRecovered] = usePersistentState<string[]>('ecosphere:zoneFragments', [])
+  const [recovery, setRecovery] = usePersistentState<Record<string, number>>('ecosphere:zoneRecovery', {})
   const [listening, setListening] = useState<string | null>(null)
 
   // corruption breathes while you watch
@@ -1241,6 +1245,12 @@ function DeadZonesScreen() {
 
   const listenInto = (zoneId: string, name: string) => {
     setListening(zoneId)
+    // each recovery attempt stabilizes the zone a little
+    setRecovery(prev => {
+      const next = Math.min(100, (prev[zoneId] ?? 0) + 34)
+      return { ...prev, [zoneId]: next }
+    })
+    setCorruption(prev => ({ ...prev, [zoneId]: Math.max(12, (prev[zoneId] ?? 50) - 12) }))
     void playSample(zoneAudio, { id: `zone-${zoneId}`, label: `static from ${name.toLowerCase()}`, source: 'zones' }, 'zone', zoneId.charCodeAt(1) * 71, 4500)
     window.setTimeout(() => setListening(l => (l === zoneId ? null : l)), 4500)
     // listening into a zone can shake a fragment loose
@@ -1256,13 +1266,15 @@ function DeadZonesScreen() {
     <div className="screen">
       <div className="screen-header">
         <div className="screen-kicker">DEAD ZONES</div>
-        <h2 className="screen-title">Absent Carriers</h2>
-        <p className="screen-sub">places the signal stopped returning from</p>
+        <h2 className="screen-title">Abandoned Rooms</h2>
+        <p className="screen-sub">rooms that went quiet. listen in, recover what's left, bring them back.</p>
       </div>
       <AmbientLine lines={useMemo(() => [...ZONE_EVENTS, ...livedInLines('zones', 2)], [])} />
       <div className="zones-list">
         {deadZones.map((z, i) => {
           const level = Math.round(corruption[z.id] ?? z.corruption)
+          const recoveryPct = Math.min(100, recovery[z.id] ?? 0)
+          const revived = recoveryPct >= 100
           const isListening = listening === z.id
           const hasFragment = recovered.includes(z.id)
           return (
@@ -1270,15 +1282,15 @@ function DeadZonesScreen() {
               key={z.id}
               role="button"
               tabIndex={0}
-              className={`zone-card glass lp-card lp-enter${isListening ? ' zone-card--listening' : ''}${hasFragment ? ' zone-card--recovered' : ''}`}
+              className={`zone-card glass lp-card lp-enter${isListening ? ' zone-card--listening' : ''}${hasFragment ? ' zone-card--recovered' : ''}${revived ? ' zone-card--revived' : ''}`}
               style={{ '--idx': i, '--zone-corruption': (level / 100).toFixed(2) } as CSSProperties}
               onClick={() => { if (!isListening) listenInto(z.id, z.name) }}
               onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !isListening) { e.preventDefault(); listenInto(z.id, z.name) } }}
             >
               <div className="zone-header">
                 <span className="zone-name">{z.name}</span>
-                <span className={`badge ${z.status === 'corrupted' ? 'badge-red' : z.status === 'recoverable' ? 'badge-cyan' : 'badge-grey'}`}>
-                  {hasFragment ? 'fragment recovered' : z.status}
+                <span className={`badge ${revived ? 'badge-cyan' : z.status === 'corrupted' ? 'badge-red' : z.status === 'recoverable' ? 'badge-cyan' : 'badge-grey'}`}>
+                  {revived ? 'room revived' : hasFragment ? 'fragment recovered' : z.status}
                 </span>
               </div>
               <p className="zone-desc">{z.description}</p>
@@ -1291,9 +1303,17 @@ function DeadZonesScreen() {
               {hasFragment && !isListening && (
                 <p className="zone-fragment">{zoneFragments[z.id]}</p>
               )}
-              <div className="zone-visits">{listenerCount(z.id, Math.floor(Date.now() / 3600000))} carriers have listened into this zone</div>
+              <div className="zone-recovery" aria-label="recovery progress">
+                <span>recovery {recoveryPct}%</span>
+                <div className="zone-recovery-track"><i style={{ width: `${recoveryPct}%` }} /></div>
+              </div>
+              <div className="zone-visits">
+                {revived
+                  ? `${2 + listenerCount(z.id, Math.floor(Date.now() / 3600000))} people came back since you revived it`
+                  : `${listenerCount(z.id, Math.floor(Date.now() / 3600000))} people have listened into this room`}
+              </div>
               <div className="zone-footer">
-                <span className="zone-last">{isListening ? 'receiving…' : `last signal: ${z.lastSignal} · corruption ${level}%`}</span>
+                <span className="zone-last">{isListening ? 'attempting recovery…' : `${z.lastSignal} · corruption ${level}%`}</span>
                 <SignalBar value={level} color="violet" />
               </div>
             </div>
@@ -1898,15 +1918,82 @@ function FrequenciesScreen() {
 }
 
 
+function PodAudioLibrary() {
+  const libAudio = useGlobalAudio()
+  const [recordings, setRecordings] = useState<Array<{ id: string; label: string; durationMs: number; createdAt: number; blob: Blob }>>([])
+  const [renaming, setRenaming] = useState<string | null>(null)
+  const [draftName, setDraftName] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    void listLocalRecordings().then(rows => { if (!cancelled) setRecordings(rows) })
+    return () => { cancelled = true }
+  }, [])
+
+  const commitRename = (rec: { id: string; label: string; durationMs: number; createdAt: number; blob: Blob }) => {
+    const label = draftName.trim().slice(0, 40) || rec.label
+    setRecordings(prev => prev.map(r => (r.id === rec.id ? { ...r, label } : r)))
+    void saveRecordingLocally({ id: rec.id, label, durationMs: rec.durationMs, emotionalTag: 'unresolved', createdAt: rec.createdAt, blob: rec.blob })
+    setRenaming(null)
+  }
+
+  if (recordings.length === 0) return null
+
+  return (
+    <div className="lp-library hub-recordings">
+      <div className="lp-library-head">
+        <span>YOUR RECORDINGS</span>
+        <small>{recordings.length} stored on this device</small>
+      </div>
+      {recordings.map(rec => (
+        <div key={rec.id} className="lp-library-item glass">
+          <span className="lp-library-type lp-library-type--audio">rec</span>
+          <div className="lp-library-body">
+            {renaming === rec.id ? (
+              <input
+                className="hub-rename-input"
+                autoFocus
+                value={draftName}
+                onChange={e => setDraftName(e.target.value)}
+                onBlur={() => commitRename(rec)}
+                onKeyDown={e => { if (e.key === 'Enter') commitRename(rec); if (e.key === 'Escape') setRenaming(null) }}
+              />
+            ) : (
+              <strong>{rec.label}</strong>
+            )}
+            <small>{Math.round(rec.durationMs / 1000)}s · {lpTimeAgo(new Date(rec.createdAt).toISOString())}</small>
+          </div>
+          <div className="lp-library-actions">
+            <button type="button" aria-label="replay recording" onClick={() => { void libAudio.playBlob(rec.blob, { id: rec.id, label: rec.label, source: 'pod' }) }}>▶</button>
+            <button type="button" aria-label="rename recording" onClick={() => { setRenaming(rec.id); setDraftName(rec.label) }}>✎</button>
+            <button
+              type="button"
+              aria-label="export recording"
+              onClick={() => {
+                void renderStoryImage({ handle: rec.label.toLowerCase(), caption: 'a voice note that never got sent.', duration: `0:${String(Math.round(rec.durationMs / 1000)).padStart(2, '0')}`, typeLabel: 'your recording', waveformSeed: rec.createdAt % 9973 }).then(b => {
+                  if (b) downloadBlob(b, exportFilename(rec.label, 'image'))
+                })
+              }}
+            >
+              ⬡
+            </button>
+            <button type="button" aria-label="delete recording" onClick={() => { setRecordings(prev => prev.filter(r => r.id !== rec.id)); void deleteLocalRecording(rec.id) }}>✕</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 const POD_EVENTS = [
-  'pod membrane stable',
-  'your resonance carried into the drift today',
-  'one fragment is warmer than yesterday',
-  'the pod hums at your frequency',
-  'a saved echo replayed itself, quietly',
+  '7 people replayed your signal tonight',
+  'someone echoed your recording',
+  'your saved signal resurfaced',
+  'a new voice chain started on your reply',
+  'your room from last night is active again',
 ] as const
 
-function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string } | null; onSignOut: () => void }) {
+function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string; id: string } | null; onSignOut: () => void; onNavigate?: (s: Screen) => void }) {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -2031,8 +2118,8 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
     <div className="screen">
       <div className="screen-header">
         <div className="screen-kicker">SOUL POD</div>
-        <h2 className="screen-title">Your Pod</h2>
-        <p className="screen-sub">a private chamber for everything you have felt</p>
+        <h2 className="screen-title">Your Hub</h2>
+        <p className="screen-sub">your signals, saves, recordings, and activity — all in one place</p>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: '12px', marginBottom: '4px' }}>
         <div>
@@ -2063,7 +2150,7 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
           <span className="lp-pod-ripple" aria-hidden="true" />
         </button>
         <div className="pod-orb-label">
-          {podStage === 'radiant' ? 'radiant · it knows you' : podStage === 'awake' ? 'awake · gathering you' : 'resting · touch to wake'}
+          {podStage === 'radiant' ? `radiant · ${eco.streak.count} night streak` : podStage === 'awake' ? 'active · keep listening' : 'tap to boost your glow'}
         </div>
         <div className="lp-pod-signature" aria-label="your waveform signature">
           <LpWaveform
@@ -2075,14 +2162,26 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
           <small>{eco.userSignalIdentity ? `signature · ${eco.userSignalIdentity}` : 'signature · unclaimed'}</small>
         </div>
       </div>
+      <div className="hub-actions">
+        {[
+          { label: '◉ record signal', page: 'unsent' as Screen },
+          { label: '∿ enter live rooms', page: 'rooms' as Screen },
+          { label: '⌖ scan frequencies', page: 'drift' as Screen },
+          { label: '◌ check dead zones', page: 'zones' as Screen },
+        ].map(a => (
+          <button key={a.page} type="button" className="hub-action glass" onClick={() => onNavigate?.(a.page)}>
+            {a.label}
+          </button>
+        ))}
+      </div>
       <div className="lp-pod-stats">
         {[
           { label: 'resonance', value: `${Math.round(eco.resonanceLevel)}%` },
-          { label: 'drift trails', value: String(eco.driftActivity) },
-          { label: 'relics held', value: String(eco.unlockedRelics.length) },
-          { label: 'signals kept', value: String(eco.savedSignals.length) },
-          { label: 'archive', value: String(eco.archiveHistory.length) },
-          { label: 'pod touches', value: String(podPulses) },
+          { label: 'night streak', value: String(eco.streak.count) },
+          { label: 'replays', value: String(eco.listeningHistory.length) },
+          { label: 'saved', value: String(eco.library.length) },
+          { label: 'relics', value: String(eco.unlockedRelics.length) },
+          { label: 'archived', value: String(eco.archiveHistory.length) },
         ].map(s => (
           <div key={s.label} className="lp-pod-stat glass">
             <strong>{s.value}</strong>
@@ -2147,36 +2246,25 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
           ))}
         </div>
       )}
-      <div className="pod-cards">
-        {[
-          { type: 'Saved Echo', title: 'Late Night Signal', detail: 'A soft thought preserved from the quiet hours.', time: '01:42' },
-          { type: 'Memory Fragment', title: 'Static Bloom Memory', detail: 'Pink noise wrapped around an old feeling.', time: 'archived' },
-          { type: 'Private Note', title: 'Quiet Frequency', detail: 'A small reminder to move gently today.', time: 'private' },
-        ].map((item, i) => (
-          <div key={i} className="pod-card glass lp-enter" style={{ '--idx': i } as CSSProperties}>
-            <div className="pod-card-type">{item.type}</div>
-            <div className="pod-card-title">{item.title}</div>
-            <p className="pod-card-detail">{item.detail}</p>
-            <div className="pod-card-time">{item.time}</div>
+      <PodAudioLibrary />
+
+      {eco.recentInteractions.length > 0 && (
+        <div className="lp-library hub-activity">
+          <div className="lp-library-head">
+            <span>RECENT ACTIVITY</span>
+            <small>{eco.recentInteractions.length} actions</small>
           </div>
-        ))}
-        {eco.listeningHistory.slice(0, 2).map((it, i) => (
-          <div key={`lh-${it.playedAt}`} className="pod-card glass lp-enter lp-pod-trace" style={{ '--idx': i + 3 } as CSSProperties}>
-            <div className="pod-card-type">Listening History</div>
-            <div className="pod-card-title">{it.label}</div>
-            <p className="pod-card-detail">a signal you let play all the way through.</p>
-            <div className="pod-card-time">{lpTimeAgo(it.playedAt)}</div>
-          </div>
-        ))}
-        {eco.recentInteractions.slice(0, 4).map((it, i) => (
-          <div key={it.id} className="pod-card glass lp-enter lp-pod-trace" style={{ '--idx': i + 5 } as CSSProperties}>
-            <div className="pod-card-type">Emotional Trace</div>
-            <div className="pod-card-title">{it.label}</div>
-            <p className="pod-card-detail">the pod kept this moment as you moved through the ecosystem.</p>
-            <div className="pod-card-time">{lpTimeAgo(it.createdAt)}</div>
-          </div>
-        ))}
-      </div>
+          {eco.recentInteractions.slice(0, 8).map(it => (
+            <div key={it.id} className="hub-activity-row glass">
+              <span className={`hub-activity-type hub-activity-type--${it.type}`} aria-hidden="true">
+                {it.type === 'signal_play' ? '▶' : it.type === 'voice_reaction' ? '◉' : it.type === 'room_enter' ? '∿' : it.type === 'relic_unlocked' ? '◈' : it.type === 'signal_saved' ? '✶' : '·'}
+              </span>
+              <span className="hub-activity-label">{it.label}</span>
+              <span className="hub-activity-time">{lpTimeAgo(it.createdAt)}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -2522,7 +2610,7 @@ export default function App() {
     zones: <DeadZonesScreen />,
     frequencies: <FrequenciesScreen />,
     anomalies: <AnomaliesScreen />,
-    pod: <SoulPodScreen user={user} onSignOut={handleSignOut} />,
+    pod: <SoulPodScreen user={user} onSignOut={handleSignOut} onNavigate={navigate} />,
     settings: <SettingsScreen />,
   }
 
