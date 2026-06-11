@@ -257,6 +257,53 @@ function lpTimeAgo(iso: string): string {
 }
 
 // ─── Screens ──────────────────────────────────────────────────────────────────
+// ─── LiveTail: pages never end in empty space ────────────────────────────────
+const TAIL_ROOMS = ["Can't Sleep", 'People Venting', 'Soft Talking', 'Oversharing Hour', 'Songwriters Awake', 'Deep Talks']
+const TAIL_STATUS = [
+  (n: number) => `${n + 31} users listening nearby`,
+  (n: number) => `${(n % 4) + 2} active voice chains`,
+  () => 'new room opened just now',
+  (n: number) => `signal fading in 00:${String(48 - (n % 40)).padStart(2, '0')}`,
+  () => 'echo chain growing',
+  () => 'someone replayed this page\'s last signal',
+  () => 'ambient noise increasing',
+]
+
+function LiveTail({ page, onNavigate }: { page: string; onNavigate?: (s: Screen) => void }) {
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    const t = window.setInterval(() => setTick(n => n + 1), 4000)
+    return () => window.clearInterval(t)
+  }, [])
+  const seed = page.length * 17
+  const status = TAIL_STATUS[(tick + seed) % TAIL_STATUS.length]((tick * 3 + seed) % 50)
+  const rooms = [0, 1, 2].map(i => {
+    const idx = (seed + i * 2 + Math.floor(tick / 5)) % TAIL_ROOMS.length
+    return { name: TAIL_ROOMS[idx], n: listenerCount(`${page}-${idx}`, tick) + 6 }
+  })
+  const trace = livedInLines(`tail-${page}`, 1)[0]
+
+  return (
+    <div className="live-tail" aria-label="Live activity nearby">
+      <div className="live-tail-bar">
+        <i aria-hidden="true" />
+        <span key={status}>{status}</span>
+      </div>
+      <div className="live-tail-rooms">
+        {rooms.map(r => (
+          <button key={r.name} type="button" className="live-tail-room glass" onClick={() => onNavigate?.('rooms')}>
+            <span className="live-tail-room-pulse" aria-hidden="true"><b /><b /><b /></span>
+            <strong>{r.name}</strong>
+            <small>{r.n} listening · live</small>
+          </button>
+        ))}
+      </div>
+      <div className="live-tail-trace">{trace}</div>
+      <div className="live-tail-frags" aria-hidden="true"><span /><span /><span /><span /></div>
+    </div>
+  )
+}
+
 const OBS_EVENTS = [
   'someone replayed this twice',
   '3 listeners just came online',
@@ -860,6 +907,7 @@ function DriftScreen() {
           )
         })}
       </div>
+      <LiveTail page="drift" />
     </div>
   )
 }
@@ -1017,6 +1065,7 @@ function CapsulesScreen() {
           )
         })}
       </div>
+      <LiveTail page="capsules" />
     </div>
   )
 }
@@ -1121,6 +1170,7 @@ function RelicsScreen() {
       </div>
       <AmbientLine lines={useMemo(() => [...RELIC_EVENTS, ...livedInLines('relics', 3)], [])} />
       {shelfNote && <div className="lp-drift-ping" key={shelfNote}>{shelfNote}</div>}
+      <LiveTail page="relics" />
       <div className="relics-grid">
         {relics.map((r, i) => {
           const a = activityOf(r.id)
@@ -1929,6 +1979,7 @@ function FrequenciesScreen() {
           <span className="cf-iso-reso">{hovered.resonance}% resonance</span>
         </div>
       )}
+      <div className="content-well" style={{ paddingBottom: 0, minHeight: 0 }}><LiveTail page="frequencies" /></div>
     </div>
   )
 }
@@ -2281,6 +2332,7 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
           ))}
         </div>
       )}
+      <LiveTail page="pod" onNavigate={onNavigate} />
     </div>
   )
 }
