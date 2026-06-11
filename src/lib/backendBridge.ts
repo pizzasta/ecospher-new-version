@@ -7,6 +7,7 @@
 
 import { isSupabaseConfigured } from './supabase-env'
 import { deleteAudio, getAudioPlaybackUrl, listAudioLibrary, logActivity, uploadAudio } from './library'
+import { getOptionalSupabaseClient } from './supabase'
 import type { ActivityEventType, AudioFileRow } from './library'
 
 export function mirrorActivity(type: ActivityEventType, label: string, metadata: Record<string, unknown> = {}) {
@@ -63,4 +64,38 @@ export async function remotePlaybackUrl(recording: Pick<RemoteRecording, 'bucket
 export function mirrorRecordingDelete(recording: Pick<AudioFileRow, 'id' | 'bucket' | 'path'>) {
   if (!isSupabaseConfigured) return
   void deleteAudio(recording).catch(() => { /* row stays; harmless */ })
+}
+
+
+export type RemoteSignal = {
+  id: string
+  title: string
+  caption: string
+  mood: string
+  createdAt: number
+}
+
+/** Public signals from the live backend (empty when offline/unconfigured). */
+export async function fetchPublicSignals(limit = 12): Promise<RemoteSignal[]> {
+  if (!isSupabaseConfigured) return []
+  const client = getOptionalSupabaseClient()
+  if (!client) return []
+  try {
+    const { data, error } = await client
+      .from('signals')
+      .select('id, title, caption, mood, created_at')
+      .eq('visibility', 'public')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (error || !data) return []
+    return data.map((row) => ({
+      id: row.id,
+      title: row.title,
+      caption: row.caption ?? row.title,
+      mood: row.mood ?? 'drift',
+      createdAt: new Date(row.created_at).getTime(),
+    }))
+  } catch {
+    return []
+  }
 }

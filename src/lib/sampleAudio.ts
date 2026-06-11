@@ -293,3 +293,126 @@ export async function playSample<M>(engine: EngineLike<M>, meta: M, kind: Sample
     engine.playSimulated(meta, Math.min(durationMs, MAX_RENDER_MS))
   }
 }
+
+// ─── Shared AudioContext playback ────────────────────────────────────────────
+// Browsers block HTMLAudio.play() without a click gesture, which silently
+// killed hover previews. A shared AudioContext is unlocked once by the first
+// tap/click anywhere, after which buffer playback works on hover too.
+
+let sharedCtx: AudioContext | null = null
+let currentPreview: AudioBufferSourceNode | null = null
+
+export function getSharedAudioContext(): AudioContext | null {
+  if (typeof AudioContext === 'undefined') return null
+  if (!sharedCtx) {
+    try {
+      sharedCtx = new AudioContext()
+    } catch {
+      return null
+    }
+  }
+  if (sharedCtx.state === 'suspended') void sharedCtx.resume().catch(() => { /* locked until gesture */ })
+  return sharedCtx
+}
+
+// unlock on the first user gesture anywhere
+if (typeof document !== 'undefined') {
+  const unlock = () => {
+    getSharedAudioContext()
+    document.removeEventListener('pointerdown', unlock)
+  }
+  document.addEventListener('pointerdown', unlock, { passive: true })
+}
+
+export function stopPreviewBuffer() {
+  if (currentPreview) {
+    try { currentPreview.stop() } catch { /* already stopped */ }
+    currentPreview = null
+  }
+}
+
+/** Play a rendered sample through the shared context (works on hover after first gesture). */
+export async function playSampleBuffer(kind: SampleKind, seed: number, durationMs: number, volume = 0.25): Promise<boolean> {
+  const ctx = getSharedAudioContext()
+  if (!ctx || ctx.state !== 'running') return false
+  const blob = await renderSampleAudio(kind, seed, durationMs)
+  if (!blob) return false
+  try {
+    const data = await blob.arrayBuffer()
+    const buffer = await ctx.decodeAudioData(data)
+    stopPreviewBuffer()
+    const src = ctx.createBufferSource()
+    src.buffer = buffer
+    const gain = ctx.createGain()
+    gain.gain.value = volume
+    src.connect(gain)
+    gain.connect(ctx.destination)
+    src.onended = () => { if (currentPreview === src) currentPreview = null }
+    src.start()
+    currentPreview = src
+    return true
+  } catch {
+    return false
+  }
+}
+
+// ─── Imprint micro-sounds: reactions that ARE sounds ─────────────────────────
+
+export type ImprintKind = 'felt' | 'same' | 'here' | 'again' | 'loud'
+
+export function playImprintSound(kind: ImprintKind) {
+  const ctx = getSharedAudioContext()
+  if (!ctx || ctx.state !== 'running') return
+  const t = ctx.currentTime
+  const out = ctx.createGain()
+  out.gain.value = 0.5
+  out.connect(ctx.destination)
+
+  const tone = (freq: number, start: number, dur: number, type: OscillatorType = 'sine', level = 0.5) => {
+    const osc = ctx.createOscillator()
+    osc.type = type
+    osc.frequency.value = freq
+    const g = ctx.createGain()
+    g.gain.setValueAtTime(0.0001, t + start)
+    g.gain.exponentialRampToValueAtTime(level, t + start + 0.015)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + start + dur)
+    osc.connect(g)
+    g.connect(out)
+    osc.start(t + start)
+    osc.stop(t + start + dur + 0.02)
+  }
+
+  switch (kind) {
+    case 'felt': // a heartbeat: two low thumps
+      tone(64, 0, 0.14, 'sine', 0.8)
+      tone(58, 0.18, 0.18, 'sine', 0.6)
+      break
+    case 'same': // knock knock
+      tone(190, 0, 0.06, 'triangle', 0.6)
+      tone(170, 0.11, 0.06, 'triangle', 0.6)
+      break
+    case 'here': // a soft presence hum
+      tone(220, 0, 0.45, 'sine', 0.25)
+      tone(331, 0.04, 0.4, 'sine', 0.12)
+      break
+    case 'again': { // rewind whirr: quick pitch sweep
+      const osc = ctx.createOscillator()
+      osc.type = 'sawtooth'
+      osc.frequency.setValueAtTime(520, t)
+      osc.frequency.exponentialRampToValueAtTime(140, t + 0.22)
+      const g = ctx.createGain()
+      g.gain.setValueAtTime(0.18, t)
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25)
+      osc.connect(g)
+      g.connect(out)
+      osc.start(t)
+      osc.stop(t + 0.27)
+      break
+    }
+    case 'loud': // a quick laugh burst
+      tone(300, 0, 0.07, 'sawtooth', 0.3)
+      tone(265, 0.09, 0.07, 'sawtooth', 0.26)
+      tone(235, 0.18, 0.09, 'sawtooth', 0.2)
+      break
+  }
+}

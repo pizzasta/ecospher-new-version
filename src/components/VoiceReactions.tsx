@@ -3,7 +3,8 @@ import type { CSSProperties } from 'react'
 import { useEcosystemState } from '../hooks/useEcosystemState'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { deleteReactionAudio, listReactionAudio, saveReactionAudio } from '../lib/localAudioStore'
-import { renderSampleAudio } from '../lib/sampleAudio'
+import { playImprintSound, renderSampleAudio } from '../lib/sampleAudio'
+import type { ImprintKind } from '../lib/sampleAudio'
 import './VoiceReactions.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -135,6 +136,41 @@ function storeMeta(signalId: string, reactions: VoiceReaction[]) {
   } catch { /* storage unavailable — session-only reactions */ }
 }
 
+// ─── Imprints: one-tap reactions that are sounds, not icons ──────────────────
+const IMPRINTS: Array<{ kind: ImprintKind; glyph: string; label: string; title: string }> = [
+  { kind: 'felt', glyph: '⌁', label: 'felt that', title: 'a heartbeat — this landed' },
+  { kind: 'same', glyph: '〰', label: 'same', title: 'two knocks — me too' },
+  { kind: 'here', glyph: '◌', label: 'here', title: 'a hum — you are not alone' },
+  { kind: 'again', glyph: '↺', label: 'again', title: 'a rewind — made me replay it' },
+  { kind: 'loud', glyph: '※', label: 'loud', title: 'a laugh — this got me' },
+]
+
+function loadImprints(signalId: string): Record<string, number> {
+  try {
+    const raw = window.localStorage.getItem(`ecosphere:imprints:${signalId}`)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+function storeImprints(signalId: string, counts: Record<string, number>) {
+  try {
+    window.localStorage.setItem(`ecosphere:imprints:${signalId}`, JSON.stringify(counts))
+  } catch { /* session only */ }
+}
+
+function seedImprints(signalId: string): Record<string, number> {
+  const seed = seedFromId(signalId)
+  const rand = seededRand(seed + 3)
+  const counts: Record<string, number> = {}
+  IMPRINTS.forEach(im => {
+    const n = Math.floor(rand() * 9)
+    if (n > 1) counts[im.kind] = n
+  })
+  return counts
+}
+
 // Only one reaction audible anywhere in the app
 let stopActiveReaction: (() => void) | null = null
 
@@ -167,6 +203,14 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
   const [anonymous, setAnonymous] = useState(false)
   const [filter, setFilter] = useState<ReactionFilter>('none')
   const [notice, setNotice] = useState<string | null>(null)
+  const [imprints, setImprints] = useState<Record<string, number>>(() => {
+    const seeded = seedImprints(signalId)
+    const mine = loadImprints(signalId)
+    const merged: Record<string, number> = { ...seeded }
+    Object.entries(mine).forEach(([k, v]) => { merged[k] = (merged[k] ?? 0) + v })
+    return merged
+  })
+  const [imprintPop, setImprintPop] = useState<string | null>(null)
 
   const recorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -434,6 +478,19 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
     void deleteReactionAudio(reaction.id)
   }
 
+  const leaveImprint = (kind: ImprintKind) => {
+    playImprintSound(kind)
+    setImprints(prev => {
+      const next = { ...prev, [kind]: (prev[kind] ?? 0) + 1 }
+      const mine = loadImprints(signalId)
+      storeImprints(signalId, { ...mine, [kind]: (mine[kind] ?? 0) + 1 })
+      return next
+    })
+    setImprintPop(kind)
+    timersRef.current.push(window.setTimeout(() => setImprintPop(p => (p === kind ? null : p)), 500))
+    reactToSignal(signalId, `left a ${kind} imprint`)
+  }
+
   const favoriteReaction = (reaction: VoiceReaction) => {
     saveToLibrary('audio', `reaction-${reaction.id}`, `voice reaction · ${reaction.handle} · ${formatSecs(reaction.durationMs)}`)
     setNotice('kept in your pod library')
@@ -489,6 +546,22 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
             ◉ react
           </button>
         )}
+      </div>
+
+      <div className="vr-imprints" aria-label="sound imprints">
+        {IMPRINTS.map(im => (
+          <button
+            key={im.kind}
+            type="button"
+            title={im.title}
+            className={`vr-imprint${imprintPop === im.kind ? ' pop' : ''}${(imprints[im.kind] ?? 0) > 0 ? ' has' : ''}`}
+            onClick={() => leaveImprint(im.kind)}
+          >
+            <span aria-hidden="true">{im.glyph}</span>
+            {im.label}
+            {(imprints[im.kind] ?? 0) > 0 && <em>{imprints[im.kind]}</em>}
+          </button>
+        ))}
       </div>
 
       {expanded && (

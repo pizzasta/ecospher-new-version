@@ -360,3 +360,61 @@
   color: rgba(120, 225, 250, 0.85);
   animation: vrTranscriptIn 0.4s ease both;
 }
+
+/* ─── Imprints: tap a sound, leave a mark ────────────────────── */
+.vr-imprints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.vr-imprint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: lowercase;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(180, 190, 220, 0.55);
+  transition: border-color 0.25s ease, color 0.25s ease, box-shadow 0.3s ease, transform 0.15s ease;
+}
+
+.vr-imprint span {
+  font-size: 11px;
+}
+
+.vr-imprint em {
+  font-style: normal;
+  font-weight: 800;
+  color: var(--vr-color, #ff2d78);
+}
+
+.vr-imprint.has {
+  border-color: color-mix(in srgb, var(--vr-color, #ff2d78) 30%, transparent);
+  color: rgba(220, 228, 250, 0.8);
+}
+
+.vr-imprint:hover {
+  border-color: color-mix(in srgb, var(--vr-color, #ff2d78) 55%, transparent);
+  color: #fff;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--vr-color, #ff2d78) 22%, transparent);
+}
+
+.vr-imprint.pop {
+  animation: vrImprintPop 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes vrImprintPop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.18); box-shadow: 0 0 18px color-mix(in srgb, var(--vr-color, #ff2d78) 45%, transparent); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vr-imprint.pop { animation: none; }
+}

@@ -5,6 +5,7 @@ import VoiceReactionStack from './components/VoiceReactions'
 import { downloadBlob, exportFilename, renderStoryImage, renderStoryVideo } from './lib/storyExport'
 import { playSample } from './lib/sampleAudio'
 import { listenerCount, livedInLines } from './lib/livedIn'
+import { fetchPublicSignals } from './lib/backendBridge'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SignalStatus = 'live' | 'fading' | 'drifting' | 'archiving' | 'corrupted' | 'resonating'
@@ -521,6 +522,32 @@ export default function FeedScreen() {
     setExpiries(Object.fromEntries(
       FEED_SIGNALS.filter(sig => sig.expiresIn != null).map(sig => [sig.id, Date.now() + (sig.expiresIn ?? 60) * 1000]),
     ))
+
+    // live backend signals (when Supabase is configured) lead the feed
+    let cancelled = false
+    void fetchPublicSignals(8).then(remote => {
+      if (cancelled || remote.length === 0) return
+      const moods: Mood[] = ['nocturne', 'bloom', 'drift', 'static', 'lost']
+      const mapped: FeedSignal[] = remote.map((r, i) => ({
+        id: r.id,
+        handle: 'anonymous',
+        timeAgo: 'from the network',
+        content: r.caption,
+        mood: (moods.includes(r.mood as Mood) ? r.mood : 'drift') as Mood,
+        resonance: 60 + ((i * 13) % 35),
+        anonymous: true,
+        duration: `0:${String(20 + ((i * 9) % 39)).padStart(2, '0')}`,
+        type: 'voice_note',
+        status: 'live',
+        emotionalBand: 'live-network',
+        waveformSeed: (r.createdAt % 997) + i,
+      }))
+      setSignals(prev => {
+        const known = new Set(prev.map(p => p.id))
+        return [...mapped.filter(m => !known.has(m.id)), ...prev]
+      })
+    })
+    return () => { cancelled = true }
   }, [])
 
   // decay tick: expired signals dissolve unless someone preserved them
