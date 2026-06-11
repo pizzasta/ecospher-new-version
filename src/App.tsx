@@ -13,7 +13,10 @@ import EcosphereAmbience from './components/EcosphereAmbience'
 import ActiveCarriers from './components/ActiveCarriers'
 import AudioRecorder from './components/AudioRecorder'
 import AudioPlayer from './components/AudioPlayer'
+import FrequencyRecap from './components/FrequencyRecap'
+import DeepListen from './components/DeepListen'
 import { useRecordingSession } from './hooks/useRecordingSession'
+import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 
 const FeedScreen = lazy(() => import('./FeedScreen'))
 const RoomsScreenComponent = lazy(() => import('./components/RoomsScreen'))
@@ -594,6 +597,7 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
     tuneInDaily(dailySignal.handle)
   }
   const [tick, setTick] = useState(0)
+  const [deepListen, setDeepListen] = useState(false)
   useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 3000); return () => clearInterval(t) }, [])
   const liveActivity = ecosystemState.recentInteractions.slice(0, 5).map(it => it.label)
   const activityLines = useMemo(
@@ -649,6 +653,10 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
         )}
       </div>
 
+      <FrequencyRecap />
+
+      <WeightOfSilenceChip />
+
       <LiveSignalWindows />
 
       {nowPlaying && (
@@ -681,6 +689,39 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
       <HomeVoiceTransmit />
 
       <ActiveCarriers onViewMap={() => onNavigate?.('frequencies')} />
+
+      <button type="button" className="deep-listen-entry" onClick={() => setDeepListen(true)}>
+        ◉ deep listen — no visuals, only audio
+      </button>
+      {deepListen && <DeepListen onExit={() => setDeepListen(false)} />}
+    </div>
+  )
+}
+
+/** Weight of Silence: a neutral mirror — visible after 2 quiet days, resets with a soft chime. */
+function WeightOfSilenceChip() {
+  const [days, setDays] = useState(() => silentDays(readLastVoiceAt()))
+
+  useEffect(() => {
+    const onVoice = () => {
+      setDays(prev => {
+        if (prev != null && prev >= 2) {
+          // the silence just broke — acknowledge it gently
+          void playSampleBuffer('tone', 432, 1400, 0.08)
+        }
+        return 0
+      })
+    }
+    window.addEventListener('ecosphere:voice', onVoice)
+    return () => window.removeEventListener('ecosphere:voice', onVoice)
+  }, [])
+
+  if (days == null || days < 2) return null
+
+  return (
+    <div className="silence-chip" role="note">
+      <span aria-hidden="true">◌</span>
+      {silenceLine(days)}
     </div>
   )
 }

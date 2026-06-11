@@ -2208,3 +2208,47 @@ body[data-eco-page='unsent'] .eco-now-playing {
   opacity: 0.65;
   filter: blur(0.4px);
 }
+
+/* weight of silence — a mirror, not a whip */
+.silence-chip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px dashed rgba(140, 155, 195, 0.3);
+  font-size: 12px;
+  font-style: italic;
+  color: rgba(180, 190, 220, 0.65);
+}
+
+.silence-chip span {
+  color: rgba(140, 155, 195, 0.5);
+}
+
+/* deep listen entry */
+.deep-listen-entry {
+  margin-top: 18px;
+  width: 100%;
+  padding: 13px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
+  color: rgba(200, 210, 235, 0.7);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  transition: border-color 0.3s ease, color 0.3s ease;
+}
+
+.deep-listen-entry:hover {
+  border-color: rgba(0, 212, 255, 0.4);
+  color: #67e8f9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deep-listen-entry {
+    transition: none;
+  }
+}

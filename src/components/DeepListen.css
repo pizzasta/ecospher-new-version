@@ -1,0 +1,96 @@
+/* ═══ DEEP LISTEN — no visuals, only audio ═══════════════════ */
+.deep-listen {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 38px;
+  padding: 24px;
+}
+
+.deep-listen-exit {
+  position: absolute;
+  top: max(18px, env(safe-area-inset-top));
+  right: 18px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: rgba(220, 228, 250, 0.45);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+}
+
+.deep-listen-wave {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: min(560px, 86vw);
+  height: 120px;
+}
+
+.deep-listen-wave i {
+  flex: 1;
+  height: 6%;
+  min-height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(0, 212, 255, 0.75), rgba(155, 93, 229, 0.45));
+  opacity: 0.35;
+  transition: height 0.6s ease, opacity 0.6s ease;
+}
+
+.deep-listen-wave.live i {
+  height: var(--dl-height, 40%);
+  opacity: 0.85;
+  animation: deepListenBreath 2.6s ease-in-out infinite;
+  animation-delay: var(--dl-delay, 0s);
+  will-change: transform;
+}
+
+@keyframes deepListenBreath {
+  0%, 100% { transform: scaleY(0.72); }
+  50% { transform: scaleY(1.06); }
+}
+
+.deep-listen-toggle {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 212, 255, 0.4);
+  background: rgba(0, 212, 255, 0.06);
+  color: #67e8f9;
+  font-size: 26px;
+  cursor: pointer;
+  transition: box-shadow 0.4s ease;
+}
+
+.deep-listen-toggle:hover {
+  box-shadow: 0 0 40px rgba(0, 212, 255, 0.2);
+}
+
+.deep-listen-caption {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: lowercase;
+  color: rgba(140, 155, 195, 0.45);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deep-listen-wave i,
+  .deep-listen-wave.live i {
+    animation: none;
+    transition: none;
+    will-change: auto;
+  }
+
+  .deep-listen-toggle {
+    transition: none;
+  }
+}

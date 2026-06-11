@@ -2,6 +2,8 @@
 // across reloads until the backend takes over. Falls back to no-ops when
 // IndexedDB is unavailable so callers never crash.
 
+import { stampVoiceNow } from './weightOfSilence'
+
 export type StoredRecording = {
   id: string
   label: string
@@ -51,6 +53,8 @@ function openDb(): Promise<IDBDatabase | null> {
 }
 
 export async function saveRecordingLocally(recording: StoredRecording): Promise<boolean> {
+  // every recording in the app passes through here — reset the silence clock
+  stampVoiceNow()
   const db = await openDb()
   if (!db) return false
   return new Promise((resolve) => {
