@@ -18,6 +18,7 @@ import DeepListen from './components/DeepListen'
 import ProfileHub from './components/ProfileHub'
 import NotificationBell from './components/NotificationBell'
 import ListenerTraces from './components/ListenerTraces'
+import { humanizeActivity } from './lib/listeningIdentity'
 import { useRecordingSession } from './hooks/useRecordingSession'
 import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 import { enablePushNotifications } from './lib/pushNotifications'
@@ -604,7 +605,7 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
   const [tick, setTick] = useState(0)
   const [deepListen, setDeepListen] = useState(false)
   useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 3000); return () => clearInterval(t) }, [])
-  const liveActivity = ecosystemState.recentInteractions.slice(0, 5).map(it => it.label)
+  const liveActivity = humanizeActivity(ecosystemState.recentInteractions, 5).map(a => a.text)
   const activityLines = useMemo(
     () => (liveActivity.length >= 2 ? [...liveActivity, ...livedInLines('home', 2)] : [...OBS_EVENTS, ...livedInLines('home', 3)]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2310,13 +2311,11 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
             <span>RECENT ACTIVITY</span>
             <small>{eco.recentInteractions.length} actions</small>
           </div>
-          {eco.recentInteractions.slice(0, 8).map(it => (
-            <div key={it.id} className="hub-activity-row glass">
-              <span className={`hub-activity-type hub-activity-type--${it.type}`} aria-hidden="true">
-                {it.type === 'signal_play' ? '▶' : it.type === 'voice_reaction' ? '◉' : it.type === 'room_enter' ? '∿' : it.type === 'relic_unlocked' ? '◈' : it.type === 'signal_saved' ? '✶' : '·'}
-              </span>
-              <span className="hub-activity-label">{it.label}</span>
-              <span className="hub-activity-time">{lpTimeAgo(it.createdAt)}</span>
+          {humanizeActivity(eco.recentInteractions, 8).map(activity => (
+            <div key={activity.id} className="hub-activity-row glass">
+              <span className="hub-activity-type" aria-hidden="true">·</span>
+              <span className="hub-activity-label">{activity.text}</span>
+              <span className="hub-activity-time">{lpTimeAgo(activity.createdAt)}</span>
             </div>
           ))}
         </div>
