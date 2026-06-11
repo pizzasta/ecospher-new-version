@@ -483,6 +483,22 @@ function LiveSignalWindows() {
   )
 }
 
+function useCountUp(target: number, ms = 900): number {
+  const [value, setValue] = useState(0)
+  useEffect(() => {
+    const start = performance.now()
+    let raf = 0
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / ms)
+      setValue(Math.round(target * (1 - Math.pow(1 - p, 3))))
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target, ms])
+  return value
+}
+
 function dayOfYear(): number {
   const now = new Date()
   return Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
@@ -523,11 +539,11 @@ function HomeScreen() {
 
       <div className="stat-row">
         <div className="stat-card glass">
-          <div className="stat-value pink">{Math.round(ecosystemState.resonanceLevel) + (tick % 2)}<span className="stat-unit">%</span></div>
+          <div className="stat-value pink">{useCountUp(Math.round(ecosystemState.resonanceLevel)) + (tick % 2)}<span className="stat-unit">%</span></div>
           <div className="stat-label">resonance</div>
         </div>
         <div className="stat-card glass">
-          <div className="stat-value cyan">1,{248 + tick * 3}</div>
+          <div className="stat-value cyan">{(1000 + useCountUp(248) + tick * 3).toLocaleString()}</div>
           <div className="stat-label">live threads</div>
         </div>
         <div className="stat-card glass">
@@ -2557,7 +2573,13 @@ function Nav({ active, onNav }: { active: Screen; onNav: (s: Screen) => void }) 
         <button
           key={item.id}
           className={`nav-item ${active === item.id ? 'active' : ''}`}
-          onClick={() => onNav(item.id)}
+          onClick={() => {
+            try {
+              const raw = window.localStorage.getItem('ecosphere:settings')
+              if ((!raw || JSON.parse(raw)?.vibrate) && 'vibrate' in navigator) navigator.vibrate(10)
+            } catch { /* haptics unavailable */ }
+            onNav(item.id)
+          }}
           title={item.label}
         >
           <span className="nav-glyph">{item.glyph}</span>

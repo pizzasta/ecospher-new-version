@@ -1427,3 +1427,27 @@ body[data-eco-page='unsent'] .eco-now-playing {
     animation: none;
   }
 }
+
+/* observatory title: frequency shimmer scan */
+.home-title {
+  position: relative;
+  background: linear-gradient(100deg, #fff 40%, rgba(0, 212, 255, 0.85) 50%, #fff 60%);
+  background-size: 240% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: obsTitleGlow 6s ease-in-out infinite, obsTitleShimmer 7s linear infinite;
+}
+
+.home-title .title-glow-pink,
+.home-title .title-glow-cyan {
+  -webkit-text-fill-color: transparent;
+}
+
+@keyframes obsTitleShimmer {
+  0%, 55% { background-position: 120% 0; }
+  85%, 100% { background-position: -120% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-title { animation: none; }
+}
