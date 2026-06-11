@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import { useEcosystemState } from '../hooks/useEcosystemState'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { deleteReactionAudio, listReactionAudio, saveReactionAudio } from '../lib/localAudioStore'
+import { renderSampleAudio } from '../lib/sampleAudio'
 import './VoiceReactions.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -263,7 +264,17 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
     setPlayingId(reaction.id)
     setProgress(0)
 
-    const blob = blobCacheRef.current.get(reaction.id)
+    void (async () => {
+    let blob = blobCacheRef.current.get(reaction.id)
+    if (!blob && !reaction.dataUrl) {
+      // mock reactions speak too: render a seeded sample on first play
+      const sampleKind = reaction.kind === 'voice' ? 'voice' : reaction.kind
+      const rendered = await renderSampleAudio(sampleKind, reaction.waveformSeed, reaction.durationMs)
+      if (rendered) {
+        blob = rendered
+        blobCacheRef.current.set(reaction.id, rendered)
+      }
+    }
     const src = blob ? URL.createObjectURL(blob) : reaction.dataUrl
 
     if (src) {
@@ -300,6 +311,7 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
         setProgress(0)
       }, reaction.durationMs))
     }
+    })()
   }
 
   // ── recording ───────────────────────────────────────────────────────────────

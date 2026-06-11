@@ -1056,3 +1056,27 @@
     animation: none;
   }
 }
+
+/* ─── Lived-in traces ────────────────────────────────────────── */
+.card-listeners {
+  color: rgba(220, 228, 250, 0.55);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+}
+
+.zone-visits {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim, rgba(140, 155, 195, 0.45));
+  text-transform: lowercase;
+  margin: 4px 0 2px;
+}
+
+.lp-relic-examined {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: rgba(0, 212, 255, 0.6);
+  animation: lpAmbientIn 0.8s ease 0.4s both;
+}

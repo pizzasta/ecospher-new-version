@@ -3,6 +3,8 @@ import { useEcosystemState } from './hooks/useEcosystemState'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
 import VoiceReactionStack from './components/VoiceReactions'
 import { downloadBlob, exportFilename, renderStoryImage, renderStoryVideo } from './lib/storyExport'
+import { playSample } from './lib/sampleAudio'
+import { listenerCount, livedInLines } from './lib/livedIn'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SignalStatus = 'live' | 'fading' | 'drifting' | 'archiving' | 'corrupted' | 'resonating'
@@ -260,7 +262,7 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
   )
 }
 // ─── Signal Card Component ────────────────────────────────────────────────────
-function SignalCard({ signal, index, decayRemaining, dissolving }: { signal: FeedSignal; index: number; decayRemaining: number | null; dissolving: boolean }) {
+function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick }: { signal: FeedSignal; index: number; decayRemaining: number | null; dissolving: boolean; presenceTick: number }) {
   const { ecosystemState, saveSignal, unsaveFromLibrary } = useEcosystemState()
   const globalAudio = useGlobalAudio()
   const [visible, setVisible] = useState(false)
@@ -277,7 +279,8 @@ function SignalCard({ signal, index, decayRemaining, dissolving }: { signal: Fee
     if (playing) {
       globalAudio.stop()
     } else {
-      globalAudio.playSimulated({ id: signal.id, label: signal.handle, source: 'signals' }, durationToMs(signal.duration))
+      const kind = signal.mood === 'static' || signal.status === 'corrupted' ? 'static' : 'voice'
+      void playSample(globalAudio, { id: signal.id, label: signal.handle, source: 'signals' }, kind, signal.waveformSeed, durationToMs(signal.duration))
     }
   }
   const colors = MOOD_COLORS[signal.mood]
@@ -316,6 +319,9 @@ function SignalCard({ signal, index, decayRemaining, dissolving }: { signal: Fee
             </div>
             <div className="card-status" style={{ color: colors.primary, opacity: 0.7 }}>
               {STATUS_LABELS[signal.status]}
+              {(signal.status === 'live' || signal.status === 'resonating') && (
+                <span className="card-listeners"> · {listenerCount(signal.id, presenceTick)} listening</span>
+              )}
             </div>
           </div>
           <div className="card-meta-row">
@@ -546,7 +552,8 @@ export default function FeedScreen() {
     const scheduleNext = () => {
       const delay = Math.random() * 18000 + 12000
       return setTimeout(() => {
-        const msg = ECOSYSTEM_EVENTS[eventIndexRef.current % ECOSYSTEM_EVENTS.length]
+        const pool = eventIndexRef.current % 3 === 2 ? livedInLines('signals', 4) : ECOSYSTEM_EVENTS
+        const msg = pool[eventIndexRef.current % pool.length]
         eventIndexRef.current++
         setActiveEvent({ id: Date.now().toString(), message: msg, visible: true })
         scheduleNext()
@@ -627,6 +634,7 @@ export default function FeedScreen() {
                 index={i}
                 decayRemaining={remaining}
                 dissolving={dissolving.includes(signal.id)}
+                presenceTick={Math.floor(decayNow / 8000)}
               />
             )
           })}
