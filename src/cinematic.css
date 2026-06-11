@@ -572,6 +572,51 @@
   50% { transform: scale(1.18); opacity: 1; }
 }
 
+/* skeleton cards while a lazy screen chunk loads */
+.eco-loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(520px, 100%);
+  margin: 6px auto 0;
+}
+
+.eco-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 16px;
+  border-radius: 14px;
+  animation: ecoSkeletonBreath 1.6s ease-in-out infinite;
+  will-change: opacity;
+}
+
+.eco-skeleton-card:nth-child(2) { animation-delay: 0.2s; }
+.eco-skeleton-card:nth-child(3) { animation-delay: 0.4s; }
+
+.eco-skeleton-card span {
+  display: block;
+  height: 10px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+}
+
+.eco-skeleton-card span:first-child { width: 38%; }
+.eco-skeleton-card span:last-child { width: 82%; }
+
+@keyframes ecoSkeletonBreath {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eco-loading-orb,
+  .eco-skeleton-card {
+    animation: none;
+    will-change: auto;
+  }
+}
+
 /* ─── Preferences applied globally ───────────────────────────── */
 body[data-eco-night='on'] .atmosphere {
   filter: brightness(calc((0.92 + var(--eco-resonance, 0.42) * 0.3) * 0.72)) saturate(0.85);
