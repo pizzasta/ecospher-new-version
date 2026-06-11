@@ -88,11 +88,14 @@ const capsules: Capsule[] = [
 ]
 
 const deadZones: DeadZone[] = [
-  { id: 'z1', name: 'Nobody Came Back', corruption: 62, status: 'dormant', description: 'nobody has returned here in 9 days. the audio is still waiting.', lastSignal: 'last active 4:17am' },
-  { id: 'z2', name: 'Left on Read', corruption: 81, status: 'corrupted', description: 'an unfinished conversation. the last message never got a reply.', lastSignal: 'partially recoverable' },
-  { id: 'z3', name: 'Voices Still Here', corruption: 54, status: 'recoverable', description: 'this room slowly went inactive, but fragments of voices remain.', lastSignal: 'only 2 users revisited' },
-  { id: 'z4', name: 'Nobody Finished Talking', corruption: 39, status: 'silent', description: 'the conversation just stopped mid-sentence one night.', lastSignal: 'last person stayed for hours' },
+  { id: 'z1', name: 'Nobody Answered', corruption: 71, status: 'dormant', description: 'i waited up longer than i should have.', lastSignal: 'last active 8 days ago · 2 hidden fragments' },
+  { id: 'z2', name: 'Left on Read', corruption: 82, status: 'corrupted', description: "you saw it. you just didn't answer.", lastSignal: 'playback cuts out midway · 4 users attempting recovery' },
+  { id: 'z3', name: 'Voices Still Here', corruption: 54, status: 'recoverable', description: 'this room went quiet but the audio never stopped.', lastSignal: 'faint overlapping whispers detected' },
+  { id: 'z4', name: 'Unfinished Goodbye', corruption: 93, status: 'corrupted', description: "i didn't mean to leave like th—", lastSignal: 'signal instability rising' },
+  { id: 'z5', name: 'Typing Then Nothing', corruption: 64, status: 'dormant', description: 'the three dots showed up for a whole minute. then nothing.', lastSignal: 'last active 4:17am · draft never sent' },
+  { id: 'z6', name: 'Wrong Person', corruption: 47, status: 'recoverable', description: 'sent it to the wrong chat. it was meant for you anyway.', lastSignal: 'deleted 12 seconds after sending' },
 ]
+
 const relics: Relic[] = [
   { id: 'rl1', name: 'Echo Veil', type: 'Echo Fragment', rarity: 'mythic', resonance: 94, description: 'A translucent memory layer that hums when other signals pass near it.' },
   { id: 'rl2', name: 'Pulse Crystal VII', type: 'Pulse Crystal', rarity: 'rare', resonance: 82, description: 'A crystalline heartbeat recovered from a living branch of the ecosystem.' },
@@ -1277,18 +1280,43 @@ function RelicsScreen() {
 }
 
 const ZONE_EVENTS = [
-  'unfinished conversation detected',
-  'someone attempted a recovery here earlier',
-  'partially recoverable audio found',
-  '2 users revisited an abandoned room tonight',
-  'a dead room flickered back for a moment',
+  'someone recovered a fragment 2 minutes ago',
+  'signal degrading in Left on Read',
+  'new abandoned room detected',
+  'recovery failed · fragment too corrupted',
+  'echo chain growing on a recovered message',
+  'partial reconstruction found',
 ] as const
 
 const zoneFragments: Record<string, string> = {
-  z1: 'recovered: someone saying "anyway, goodnight" to an empty room',
-  z2: 'recovered: laughter, badly degraded, unmistakably real',
-  z3: 'recovered: half of an inside joke nobody finished',
-  z4: 'recovered: four seconds of someone deciding not to speak',
+  z1: 'recovered: "anyway. goodnight." said to an empty room',
+  z2: 'recovered: the message read out loud, once, quietly',
+  z3: 'recovered: two people laughing over each other, mid-sentence',
+  z4: 'recovered: "—at like that. i\'m sorry. call me."',
+  z5: 'recovered: the unsent draft, typed and deleted three times',
+  z6: 'recovered: "i meant it though." sent to no one',
+}
+
+const GLITCH_CHARS = '▓▒░#%&@$!?/\\|<>^~'
+
+function GlitchQuote({ text, recovery, flickerTick }: { text: string; recovery: number; flickerTick: number }) {
+  return (
+    <p className="zone-quote" aria-label={recovery >= 60 ? text : 'corrupted transmission'}>
+      {text.split('').map((ch, i) => {
+        if (ch === ' ') return ' '
+        // each character stabilizes at a different recovery threshold
+        const threshold = ((i * 37 + text.length * 7) % 100)
+        const stable = recovery >= threshold
+        const flick = !stable && ((i * 13 + flickerTick * 7) % 5 === 0)
+        return (
+          <span key={i} className={stable ? 'zq-stable' : 'zq-glitch'}>
+            {stable ? ch : GLITCH_CHARS[(i + flickerTick) % GLITCH_CHARS.length]}
+            {flick ? '' : ''}
+          </span>
+        )
+      })}
+    </p>
+  )
 }
 
 function DeadZonesScreen() {
@@ -1298,6 +1326,47 @@ function DeadZonesScreen() {
   const [recovered, setRecovered] = usePersistentState<string[]>('ecosphere:zoneFragments', [])
   const [recovery, setRecovery] = usePersistentState<Record<string, number>>('ecosphere:zoneRecovery', {})
   const [listening, setListening] = useState<string | null>(null)
+  const [holding, setHolding] = useState<string | null>(null)
+  const [flickerTick, setFlickerTick] = useState(0)
+  const [criticalLeft, setCriticalLeft] = useState(90)
+  const holdTimerRef = useRef<number | null>(null)
+  const { unlockRelic: unlockZoneRelic } = useEcosystemState()
+
+  // glitch flicker + critical countdown (Unfinished Goodbye is time-limited)
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      setFlickerTick(n => n + 1)
+      setCriticalLeft(c => Math.max(0, c - 0.4))
+    }, 400)
+    return () => window.clearInterval(t)
+  }, [])
+
+  const stopHold = () => {
+    if (holdTimerRef.current !== null) {
+      window.clearInterval(holdTimerRef.current)
+      holdTimerRef.current = null
+    }
+    setHolding(null)
+  }
+
+  useEffect(() => stopHold, [])
+
+  // hold to recover: progress climbs while held, audio plays underneath
+  const startHold = (zoneId: string, name: string) => {
+    if (holding || (recovery[zoneId] ?? 0) >= 100) return
+    setHolding(zoneId)
+    listenInto(zoneId, name)
+    holdTimerRef.current = window.setInterval(() => {
+      setRecovery(prev => {
+        const next = Math.min(100, (prev[zoneId] ?? 0) + 3)
+        if (next >= 100 && (prev[zoneId] ?? 0) < 100) {
+          unlockZoneRelic(`zone-${zoneId}`, deadZones.find(z => z.id === zoneId)?.name ?? 'Recovered Fragment')
+        }
+        return { ...prev, [zoneId]: next }
+      })
+      setCorruption(prev => ({ ...prev, [zoneId]: Math.max(6, (prev[zoneId] ?? 50) - 2) }))
+    }, 220)
+  }
 
   // corruption breathes while you watch
   useEffect(() => {
@@ -1311,12 +1380,7 @@ function DeadZonesScreen() {
 
   const listenInto = (zoneId: string, name: string) => {
     setListening(zoneId)
-    // each recovery attempt stabilizes the zone a little
-    setRecovery(prev => {
-      const next = Math.min(100, (prev[zoneId] ?? 0) + 34)
-      return { ...prev, [zoneId]: next }
-    })
-    setCorruption(prev => ({ ...prev, [zoneId]: Math.max(12, (prev[zoneId] ?? 50) - 12) }))
+
     void playSample(zoneAudio, { id: `zone-${zoneId}`, label: `static from ${name.toLowerCase()}`, source: 'zones' }, 'zone', zoneId.charCodeAt(1) * 71, 4500)
     window.setTimeout(() => setListening(l => (l === zoneId ? null : l)), 4500)
     // listening into a zone can shake a fragment loose
@@ -1336,6 +1400,10 @@ function DeadZonesScreen() {
         <p className="screen-sub">rooms that went quiet. listen in, recover what's left, bring them back.</p>
       </div>
       <AmbientLine lines={useMemo(() => [...ZONE_EVENTS, ...livedInLines('zones', 2)], [])} />
+      <div className="zones-atmosphere" aria-hidden="true">
+        <span /><span /><span />
+        <em>04:17</em><em>02:51</em><em>03:33</em>
+      </div>
       <div className="zones-list">
         {deadZones.map((z, i) => {
           const level = Math.round(corruption[z.id] ?? z.corruption)
@@ -1346,12 +1414,9 @@ function DeadZonesScreen() {
           return (
             <div
               key={z.id}
-              role="button"
-              tabIndex={0}
               className={`zone-card glass lp-card lp-enter${isListening ? ' zone-card--listening' : ''}${hasFragment ? ' zone-card--recovered' : ''}${revived ? ' zone-card--revived' : ''}`}
               style={{ '--idx': i, '--zone-corruption': (level / 100).toFixed(2) } as CSSProperties}
-              onClick={() => { if (!isListening) listenInto(z.id, z.name) }}
-              onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !isListening) { e.preventDefault(); listenInto(z.id, z.name) } }}
+
             >
               <div className="zone-header">
                 <span className="zone-name">{z.name}</span>
@@ -1359,7 +1424,26 @@ function DeadZonesScreen() {
                   {revived ? 'room revived' : hasFragment ? 'fragment recovered' : z.status}
                 </span>
               </div>
-              <p className="zone-desc">{z.description}</p>
+              <GlitchQuote text={z.description} recovery={recoveryPct} flickerTick={flickerTick} />
+              {z.id === 'z4' && recoveryPct < 100 && (
+                <div className={`zone-critical${criticalLeft <= 15 ? ' urgent' : ''}`}>
+                  {criticalLeft > 0
+                    ? `recoverable for 00:${String(Math.ceil(criticalLeft)).padStart(2, '0')}`
+                    : 'window closed · fragment lost for tonight'}
+                </div>
+              )}
+              {recoveryPct < 100 && (z.id !== 'z4' || criticalLeft > 0) && (
+                <button
+                  type="button"
+                  className={`zone-hold-btn${holding === z.id ? ' holding' : ''}`}
+                  onPointerDown={e => { e.stopPropagation(); startHold(z.id, z.name) }}
+                  onPointerUp={stopHold}
+                  onPointerLeave={stopHold}
+                  onClick={e => e.stopPropagation()}
+                >
+                  {holding === z.id ? `◉ recovering… ${recoveryPct}%` : '◉ hold to recover'}
+                </button>
+              )}
               {isListening && (
                 <div className="zone-listening">
                   <LpWaveform seed={z.id.charCodeAt(1) * 53} bars={28} active tint="violet" />
@@ -1386,6 +1470,7 @@ function DeadZonesScreen() {
           )
         })}
       </div>
+      <LiveTail page="zones" />
     </div>
   )
 }
