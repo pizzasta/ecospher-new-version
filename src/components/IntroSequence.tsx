@@ -23,7 +23,7 @@ const bootSequenceLines = [
 ]
 
 const emotionalPrompts = [
-  'What does silence sound like to you?',
+  'what does silence sound like to you?',
   'what keeps you awake after everyone logs off?',
   'what frequency do you return to most?',
   'what thought keeps replaying?',
@@ -448,7 +448,7 @@ export default function IntroSequence({ onComplete, onSkip }: IntroSequenceProps
               ) : null}
               {micPermissionState === 'asking' ? (
                 <div className="boot-permission-panel">
-                  <p>Use your microphone only for this visual calibration. Nothing is recorded, saved, or uploaded.</p>
+                  <p>your microphone drives this visual calibration only. nothing is recorded, saved, or uploaded.</p>
                   <div>
                     <button type="button" onClick={() => { void activateMic() }}>allow calibration</button>
                     <button type="button" onClick={skipCalibration}>skip calibration</button>
@@ -457,7 +457,7 @@ export default function IntroSequence({ onComplete, onSkip }: IntroSequenceProps
               ) : null}
               {micPermissionState === 'denied' || micPermissionState === 'skipped' ? (
                 <p className="boot-calibration-state">
-                  {micPermissionState === 'denied' ? 'calibration skipped. microphone access was not opened.' : 'calibration skipped. your signal can still enter quietly.'}
+                  {micPermissionState === 'denied' ? 'calibration skipped. the microphone was never opened.' : 'calibration skipped. your signal can still enter quietly.'}
                 </p>
               ) : null}
               <div className="boot-human-actions">

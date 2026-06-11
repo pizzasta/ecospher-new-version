@@ -336,6 +336,20 @@ function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, 
       </div>
       <div className="boot-static-field" aria-hidden="true" />
       <div className="boot-fog-field" aria-hidden="true" />
+      <div className="identity-frequency-field" aria-hidden="true">
+        <div className="identity-frequency-lines" />
+        {Array.from({ length: 10 }, (_, index) => (
+          <span
+            className="identity-signal-mote"
+            key={index}
+            style={{
+              '--mote-left': `${(index * 23 + 7) % 100}%`,
+              '--mote-delay': `${index * 1.7}s`,
+              '--mote-duration': `${14 + (index % 5) * 3}s`,
+            } as CSSProperties}
+          />
+        ))}
+      </div>
 
       <section className="identity-claim-screen" aria-label="Claim your signal">
         <div className="identity-claim-copy">
@@ -362,6 +376,7 @@ function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, 
         </div>
 
         <div className="identity-claim-panel">
+          <div className="identity-panel-scanline" aria-hidden="true" />
           <div className="identity-visualizer" aria-hidden="true"><span /><span /><span /></div>
           <div className="identity-suggestion-header">
             <p>SUGGESTED SIGNAL</p>
