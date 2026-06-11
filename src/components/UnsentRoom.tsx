@@ -36,19 +36,19 @@ interface WhisperMessage {
 
 const WHISPER_POOL: string[] = [
   'someone almost heard this.',
-  'this signal refused to fade.',
-  'quiet replay activity detected.',
-  'transmission intercepted at 3:47am.',
-  'no receiver found. signal persists.',
-  'this was meant for someone who left.',
-  'frequency: unresolved.',
-  'archive still breathing.',
   "you've played this 11 times now.",
-  'some signals outlive their senders.',
-  'the room remembers.',
-  'drift confirmed. no destination.',
-  'still waiting for the right frequency.',
-  'recorded at the edge of saying it.',
+  'someone replayed this in a parking lot.',
+  'heard at 3:47am. no reason given.',
+  'this one gets replayed after arguments.',
+  'someone stayed 47 minutes and said nothing.',
+  'the background fan noise makes this worse somehow.',
+  'someone typed a reply and deleted it.',
+  'this sounds like driving home after saying the wrong thing.',
+  'somebody muted it halfway. came back an hour later.',
+  'feels like checking your phone after an argument.',
+  'someone said "same" out loud to nobody.',
+  'this was somebody\'s third replay tonight.',
+  'the pause in the middle is the worst part.',
 ];
 
 const SIGNAL_TAGS: ResonanceState[] = [

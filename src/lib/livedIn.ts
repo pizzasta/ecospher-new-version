@@ -12,16 +12,16 @@ const HANDLES = [
 ]
 
 const TRACE_TEMPLATES = [
-  '{h} drifted through {m}m ago',
-  '{h} replayed something here twice',
-  '{h} left without saving anything',
-  '{h} stayed {m} minutes, silent the whole time',
-  '{h} bookmarked something at 3:1{d}am',
-  '{h} is still here, probably',
-  '{h} listened to the same signal {d} times',
-  'someone almost spoke, then didn’t — {h}, we think',
-  '{h} passed through and the air is still warm',
-  '{h} keeps coming back to this page',
+  '{h} replayed this while driving',
+  '{h} stayed here {m} minutes longer than they meant to',
+  '{h} heard this during a thunderstorm',
+  '{h} said this was too relatable and left',
+  '{h} listened at 3:1{d}am for no reason',
+  '{h} muted it halfway, then unmuted',
+  '{h} said it sounded different after midnight',
+  '{h} almost sent this to somebody',
+  '{h} was avoiding a text the whole time',
+  '{h} replayed the ending {d} times',
 ]
 
 function hash(str: string): number {
