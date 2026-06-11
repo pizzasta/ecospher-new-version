@@ -686,3 +686,8 @@ begin
       check (hz_signature is null or (hz_signature >= 20 and hz_signature <= 200));
   end if;
 end $$;
+
+-- ─── Frequency gradient (migration 202606110009) ────────────────────────────
+alter table public.profiles
+  add column if not exists gradient_settings jsonb
+  default '{"locked": false, "color_start": null, "color_end": null, "angle": null, "speed": 60}';
