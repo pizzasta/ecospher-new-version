@@ -445,3 +445,22 @@ begin
 exception
   when duplicate_object then null;
 end $$;
+
+-- ─── Security hardening (migration 202606110003) ────────────────────────────
+-- Restrict insert policies to the authenticated role; the public anon key
+-- alone (no session) can no longer write.
+
+drop policy if exists "users can create their own signals" on public.signals;
+create policy "users can create their own signals" on public.signals
+  for insert to authenticated
+  with check (creator_id = auth.uid() or creator_id is null);
+
+drop policy if exists "replays are insertable by signed in users" on public.replays;
+create policy "replays are insertable by signed in users" on public.replays
+  for insert to authenticated
+  with check (listener_id = auth.uid() or listener_id is null);
+
+drop policy if exists "users can create their own activity" on public.activity_events;
+create policy "users can create their own activity" on public.activity_events
+  for insert to authenticated
+  with check (user_id = auth.uid() or user_id is null);
