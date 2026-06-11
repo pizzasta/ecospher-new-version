@@ -270,3 +270,32 @@
     animation: none;
   }
 }
+
+/* lurker mode: recorders rest */
+.eco-recorder--lurker {
+  border-style: dashed;
+  opacity: 0.75;
+}
+
+/* first-signal ritual */
+.first-signal-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.first-signal-silent {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(140, 155, 195, 0.3);
+  background: transparent;
+  color: rgba(180, 190, 220, 0.6);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+.first-signal-silent:hover {
+  color: rgba(220, 228, 250, 0.85);
+  border-color: rgba(140, 155, 195, 0.5);
+}

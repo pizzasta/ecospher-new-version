@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import AudioPlayer from './AudioPlayer'
 import { useRecordingSession } from '../hooks/useRecordingSession'
+import { useEcoPref } from '../hooks/useEcoPrefs'
 import { AUDIO_UPLOAD_LIMITS } from '../lib/library'
 import type { AudioMessageKind } from '../lib/library'
 import './recording.css'
@@ -29,6 +30,8 @@ type AudioRecorderProps = {
   minSeconds?: number
   maxSeconds?: number
   onComplete?: (recording: FinishedRecording) => void
+  /** fired when the microphone is unavailable or permission is denied */
+  onDenied?: () => void
 }
 
 type RecorderState = 'idle' | 'denied' | 'recording' | 'preview'
@@ -41,8 +44,10 @@ export default function AudioRecorder({
   minSeconds = AUDIO_UPLOAD_LIMITS.minSeconds,
   maxSeconds = AUDIO_UPLOAD_LIMITS.maxSeconds,
   onComplete,
+  onDenied,
 }: AudioRecorderProps) {
   const session = useRecordingSession()
+  const lurker = useEcoPref('lurker', false)
   const [state, setState] = useState<RecorderState>('idle')
   const [elapsed, setElapsed] = useState(0)
   const [note, setNote] = useState<string | null>(null)
@@ -90,6 +95,7 @@ export default function AudioRecorder({
     if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
       setState('denied')
       setNote('this device has no way to listen — recording unavailable')
+      onDenied?.()
       return
     }
 
@@ -159,6 +165,7 @@ export default function AudioRecorder({
       cleanupCapture()
       setState('denied')
       setNote('microphone access was not opened — your signal stays quiet for now')
+      onDenied?.()
     }
   }
 
@@ -183,6 +190,14 @@ export default function AudioRecorder({
     setPreview(null)
     setElapsed(0)
     setState('idle')
+  }
+
+  if (lurker && state !== 'recording' && state !== 'preview') {
+    return (
+      <div className="eco-recorder eco-recorder--lurker">
+        <p className="eco-recorder-prompt">lurker mode on — just listening tonight. the recorders are resting.</p>
+      </div>
+    )
   }
 
   return (

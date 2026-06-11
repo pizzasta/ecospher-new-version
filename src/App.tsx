@@ -2398,11 +2398,13 @@ type EcoPrefs = {
   vibrate: boolean
   anonymous: boolean
   nightMode: boolean
+  lurker: boolean
+  uiSounds: boolean
   signalVolume: number
   driftSensitivity: number
 }
 
-const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, signalVolume: 72, driftSensitivity: 60 }
+const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, signalVolume: 72, driftSensitivity: 60 }
 
 function normalizeIdentity(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
@@ -2513,6 +2515,20 @@ function SettingsScreen() {
             <div className="setting-detail">deepen the atmosphere</div>
           </div>
           <button className={`toggle ${prefs.nightMode ? 'on' : ''}`} onClick={() => update({ nightMode: !prefs.nightMode })} />
+        </div>
+        <div className="setting-row glass">
+          <div className="setting-info">
+            <div className="setting-label">Lurker Mode</div>
+            <div className="setting-detail">just listen tonight — hides your presence, rests the recorders</div>
+          </div>
+          <button className={`toggle ${prefs.lurker ? 'on' : ''}`} onClick={() => update({ lurker: !prefs.lurker })} />
+        </div>
+        <div className="setting-row glass">
+          <div className="setting-info">
+            <div className="setting-label">Interface Sounds</div>
+            <div className="setting-detail">soft radio clicks and static on interaction</div>
+          </div>
+          <button className={`toggle ${prefs.uiSounds ? 'on' : ''}`} onClick={() => update({ uiSounds: !prefs.uiSounds })} />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import type { CSSProperties, MutableRefObject } from 'react'
 import { playSampleBuffer, stopPreviewBuffer } from '../lib/sampleAudio'
 import { useRecordingSession } from '../hooks/useRecordingSession'
+import { useEcoPref } from '../hooks/useEcoPrefs'
 import '../rooms.css'
 
 // ═══════════════════════════════════════════════════════════════
@@ -563,6 +564,7 @@ interface RoomViewProps {
 
 function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onExit, onDrift, engine }: RoomViewProps) {
   const recordingSession = useRecordingSession()
+  const lurker = useEcoPref('lurker', false)
   const energyRef = useRef(0)
   const [energy, setEnergy] = useState(0)
   const { listeners, resonance, state, weather } = useLiveRoomSim(room, energyRef)
@@ -1021,9 +1023,11 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
           <button
             type="button"
             className={`eco-record-btn ${recStatus === 'recording' ? 'eco-record-btn--live' : ''}`}
+            disabled={lurker && recStatus !== 'recording'}
+            title={lurker ? 'lurker mode on — just listening tonight' : undefined}
             onClick={recStatus === 'recording' ? stopRecording : startRecording}
           >
-            {recStatus === 'recording' ? `releasing… ${recElapsed.toFixed(0)}s ◼` : '● leave a fragment'}
+            {lurker && recStatus !== 'recording' ? '◌ just listening' : recStatus === 'recording' ? `releasing… ${recElapsed.toFixed(0)}s ◼` : '● leave a fragment'}
           </button>
           <button
             type="button"
