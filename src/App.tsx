@@ -16,8 +16,10 @@ import AudioPlayer from './components/AudioPlayer'
 import FrequencyRecap from './components/FrequencyRecap'
 import DeepListen from './components/DeepListen'
 import ProfileHub from './components/ProfileHub'
+import NotificationBell from './components/NotificationBell'
 import { useRecordingSession } from './hooks/useRecordingSession'
 import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
+import { enablePushNotifications } from './lib/pushNotifications'
 
 const FeedScreen = lazy(() => import('./FeedScreen'))
 const RoomsScreenComponent = lazy(() => import('./components/RoomsScreen'))
@@ -2465,6 +2467,7 @@ function SettingsScreen() {
   const [identityDraft, setIdentityDraft] = useState('')
   const [note, setNote] = useState<string | null>(null)
   const [confirmWipe, setConfirmWipe] = useState(false)
+  const [pushBusy, setPushBusy] = useState(false)
 
   // broadcast preference changes so global systems (audio volume,
   // night protocol, motion intensity) pick them up immediately
@@ -2608,6 +2611,28 @@ function SettingsScreen() {
             <div className="setting-detail">just listen tonight — hides your presence, rests the recorders</div>
           </div>
           <button className={`toggle ${prefs.lurker ? 'on' : ''}`} onClick={() => update({ lurker: !prefs.lurker })} />
+        </div>
+        <div className="setting-row glass">
+          <div className="setting-info">
+            <div className="setting-label">Push Notifications</div>
+            <div className="setting-detail">opt-in browser alerts when something touches your signals</div>
+          </div>
+          <button
+            type="button"
+            className="setting-action"
+            disabled={pushBusy}
+            onClick={() => {
+              setPushBusy(true)
+              void enablePushNotifications().then(result => {
+                setPushBusy(false)
+                showNote(result === 'enabled' ? 'push enabled · the band can reach you now'
+                  : result === 'denied' ? 'permission declined — nothing was enabled'
+                  : result)
+              })
+            }}
+          >
+            {pushBusy ? 'enabling…' : 'enable push'}
+          </button>
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
@@ -2770,6 +2795,8 @@ export default function App() {
       <div className="crt-vignette" />
       <Particles />
       <EcosphereAmbience />
+
+      <NotificationBell />
 
       {liveEcho && (
         <div className="live-echo-chip" role="status">

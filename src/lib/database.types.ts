@@ -52,6 +52,56 @@ type PublicTables = {
           tuned_to_id?: string
         }
       }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          type: 'new_reaction' | 'new_listener' | 'new_listener_follow' | 'new_capsule' | 'phantom_interaction'
+          actor_id: string | null
+          signal_id: string | null
+          capsule_id: string | null
+          metadata: Json
+          read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: 'new_reaction' | 'new_listener' | 'new_listener_follow' | 'new_capsule' | 'phantom_interaction'
+          actor_id?: string | null
+          signal_id?: string | null
+          capsule_id?: string | null
+          metadata?: Json
+          read?: boolean
+          created_at?: string
+        }
+        Update: {
+          read?: boolean
+        }
+      }
+      push_subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          created_at?: string
+        }
+        Update: {
+          endpoint?: string
+          p256dh?: string
+          auth?: string
+        }
+      }
       audio_files: {
         Row: {
           id: string

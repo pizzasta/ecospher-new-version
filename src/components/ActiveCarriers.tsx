@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiReact } from '../lib/mockApi'
+import { pushLocalNotification } from '../lib/notifications'
 import './ActiveCarriers.css'
 
 // "tuned to" — the carriers this user listens for (local-first; the listens
@@ -103,6 +104,14 @@ export default function ActiveCarriers({ onViewMap }: { onViewMap?: () => void }
       setCarriers(prev => prev.map(c => (c.id === 'phantom'
         ? { ...c, status: pick(['soft_focus', 'echo', 'lost'] as const), lastActive: pick(PHANTOM_LAST_ACTIVE) }
         : c)))
+      // sometimes the phantom's pass leaves a trace in your notifications
+      if (Math.random() < 0.34) {
+        pushLocalNotification('phantom_interaction', pick([
+          'carrier_null tuned through your frequency',
+          'carrier_null replayed something near your signal',
+          'carrier_null left "…" on a drifting signal',
+        ]))
+      }
       timer = window.setTimeout(drift, (5 + Math.random() * 10) * 60 * 1000)
     }
     timer = window.setTimeout(drift, (5 + Math.random() * 10) * 60 * 1000)
