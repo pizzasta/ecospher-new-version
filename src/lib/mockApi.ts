@@ -65,7 +65,7 @@ const brokenSeals = new Set<string>()
 // small simulated network latency so loading states are exercised
 function respond<T>(response: MockResponse<T>, delayMs = 120 + Math.random() * 180): Promise<MockResponse<T>> {
   return new Promise(resolve => {
-    window.setTimeout(() => resolve(response), delayMs)
+    setTimeout(() => resolve(response), delayMs)
   })
 }
 

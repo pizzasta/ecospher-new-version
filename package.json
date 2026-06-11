@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "vitest run",
     "preview": "vite preview",
     "seed:demo": "supabase db reset",
     "seed:demo:reset": "supabase db reset"
@@ -29,8 +30,9 @@
     "globals": "^15.15.0",
     "postcss": "^8.4.33",
     "tailwindcss": "^3.4.1",
-    "typescript-eslint": "^8.34.1",
     "typescript": "^5.3.3",
-    "vite": "^5.1.0"
+    "typescript-eslint": "^8.34.1",
+    "vite": "^5.1.0",
+    "vitest": "^4.1.8"
   }
 }

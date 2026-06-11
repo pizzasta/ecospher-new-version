@@ -6,10 +6,14 @@ import { deleteLocalRecording, deleteReactionAudio, listLocalRecordings, listRea
 import { downloadBlob, exportFilename, renderStoryImage } from './lib/storyExport'
 import { playSample, playSampleBuffer, stopPreviewBuffer } from './lib/sampleAudio'
 import { lastExaminedBy, listenerCount, livedInLines } from './lib/livedIn'
+import { subscribeToEcosphereActivity } from './lib/backendBridge'
 import type { StoredReaction } from './lib/localAudioStore'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
 import EcosphereAmbience from './components/EcosphereAmbience'
 import ActiveCarriers from './components/ActiveCarriers'
+import AudioRecorder from './components/AudioRecorder'
+import AudioPlayer from './components/AudioPlayer'
+import { useRecordingSession } from './hooks/useRecordingSession'
 
 const FeedScreen = lazy(() => import('./FeedScreen'))
 const RoomsScreenComponent = lazy(() => import('./components/RoomsScreen'))
@@ -674,10 +678,38 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
         ))}
       </div>
 
+      <HomeVoiceTransmit />
+
       <ActiveCarriers onViewMap={() => onNavigate?.('frequencies')} />
     </div>
   )
 }
+
+function HomeVoiceTransmit() {
+  const [open, setOpen] = useState(false)
+  const { notify } = useRecordingSession()
+  return (
+    <div className="obs-transmit glass">
+      <div className="section-head">
+        <span className="section-kicker">transmit a voice signal</span>
+        <button type="button" className="obs-transmit-toggle" onClick={() => setOpen(o => !o)}>
+          {open ? 'close channel' : '◉ open channel'}
+        </button>
+      </div>
+      {open && (
+        <AudioRecorder
+          kind="signal"
+          prompt="say it into the static. no name attached. it joins your pod library and drifts from there."
+          onComplete={() => {
+            notify('voice signal released · find it in your pod library')
+            setOpen(false)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
 const driftNodeDefs = [
   { id: 'dn1', label: "Can't Sleep", x: 18, y: 34, intensity: 62, delay: '14 talking' },
   { id: 'dn2', label: 'People Venting', x: 72, y: 24, intensity: 77, delay: 'busy' },
@@ -1138,7 +1170,87 @@ function CapsulesScreen() {
           )
         })}
       </div>
+      <PersonalCapsules />
       <LiveTail page="capsules" />
+    </div>
+  )
+}
+
+type PersonalCapsule = { id: string; title: string; createdAt: number; durationMs: number }
+
+/** Capsules the user records themselves — sealed audio, break to replay. */
+function PersonalCapsules() {
+  const [myCapsules, setMyCapsules] = usePersistentState<PersonalCapsule[]>('ecosphere:personalCapsules', [])
+  const [blobs, setBlobs] = useState<Record<string, Blob>>({})
+  const [openIds, setOpenIds] = useState<Record<string, boolean>>({})
+  const [recorderOpen, setRecorderOpen] = useState(false)
+
+  useEffect(() => {
+    if (myCapsules.length === 0) return
+    void listLocalRecordings().then(rows => {
+      setBlobs(Object.fromEntries(rows.map(r => [r.id, r.blob])))
+    })
+  }, [myCapsules.length])
+
+  return (
+    <div className="personal-capsules">
+      <div className="section-head">
+        <span className="section-kicker">seal your own transmission</span>
+        <button type="button" className="obs-transmit-toggle" onClick={() => setRecorderOpen(o => !o)}>
+          {recorderOpen ? 'leave it unsaid' : '◎ record a capsule'}
+        </button>
+      </div>
+      {recorderOpen && (
+        <AudioRecorder
+          kind="capsule"
+          prompt="speak something worth keeping. it seals itself when you send it."
+          onComplete={({ durationMs, uploadId }) => {
+            setMyCapsules(prev => [
+              { id: uploadId, title: `Sealed Transmission ${String(prev.length + 1).padStart(2, '0')}`, createdAt: Date.now(), durationMs },
+              ...prev,
+            ])
+            setRecorderOpen(false)
+          }}
+        />
+      )}
+      {myCapsules.length > 0 && (
+        <div className="capsules-list personal-capsules-list">
+          {myCapsules.map(capsule => {
+            const open = openIds[capsule.id]
+            const blob = blobs[capsule.id]
+            return (
+              <div
+                key={capsule.id}
+                role="button"
+                tabIndex={0}
+                className={`capsule-card glass lp-capsule phase-${open ? 'open' : 'sealed'}`}
+                onClick={() => { if (!open) setOpenIds(p => ({ ...p, [capsule.id]: true })) }}
+                onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !open) { e.preventDefault(); setOpenIds(p => ({ ...p, [capsule.id]: true })) } }}
+              >
+                <div className="capsule-glyph" aria-hidden="true">◎</div>
+                <div className="capsule-body">
+                  <div className="capsule-title">{capsule.title}</div>
+                  <div className="capsule-meta">
+                    yours · {open ? `${Math.round(capsule.durationMs / 1000)}s` : '?:??'} · sealed {new Date(capsule.createdAt).toLocaleDateString()}
+                  </div>
+                  {!open && <div className="lp-capsule-hint">tap to break the seal</div>}
+                  {open && (
+                    <div className="capsule-memory" onClick={e => e.stopPropagation()}>
+                      {blob
+                        ? <AudioPlayer src={blob} seed={capsule.createdAt % 9973} durationSeconds={capsule.durationMs / 1000} />
+                        : <p className="capsule-memory-line">this capsule's audio lives on the device that sealed it.</p>}
+                      <button type="button" className="capsule-reseal" onClick={e => { e.stopPropagation(); setOpenIds(p => ({ ...p, [capsule.id]: false })) }}>
+                        ◌ seal it again
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <span className="badge badge-pink">{open ? 'open' : 'sealed'}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -2446,12 +2558,15 @@ function SettingsScreen() {
 
 // ─── Nav ──────────────────────────────────────────────────────────────────────
 function Nav({ active, onNav }: { active: Screen; onNav: (s: Screen) => void }) {
+  const { recordingActive } = useRecordingSession()
   return (
-    <nav className="bottom-nav glass-nav">
+    <nav className={`bottom-nav glass-nav${recordingActive ? ' nav--recording' : ''}`}>
       {navItems.map(item => (
         <button
           key={item.id}
           className={`nav-item ${active === item.id ? 'active' : ''}`}
+          disabled={recordingActive}
+          title={recordingActive ? 'finish recording first' : item.label}
           onClick={() => {
             try {
               const raw = window.localStorage.getItem('ecosphere:settings')
@@ -2459,7 +2574,6 @@ function Nav({ active, onNav }: { active: Screen; onNav: (s: Screen) => void }) 
             } catch { /* haptics unavailable */ }
             onNav(item.id)
           }}
-          title={item.label}
         >
           <span className="nav-glyph">{item.glyph}</span>
           <span className="nav-label">{item.label}</span>
@@ -2484,6 +2598,21 @@ export default function App() {
   useEffect(() => {
     document.title = `Ecosphere · ${SCREEN_TITLES[screen]}`
   }, [screen])
+
+  // realtime: public activity from other carriers surfaces as a live echo
+  const [liveEcho, setLiveEcho] = useState<string | null>(null)
+  useEffect(() => {
+    let hideTimer: number | undefined
+    const unsubscribe = subscribeToEcosphereActivity(event => {
+      setLiveEcho(event.label)
+      window.clearTimeout(hideTimer)
+      hideTimer = window.setTimeout(() => setLiveEcho(null), 5200)
+    })
+    return () => {
+      unsubscribe()
+      window.clearTimeout(hideTimer)
+    }
+  }, [])
 
   useEffect(() => {
     const supabase = getOptionalSupabaseClient()
@@ -2528,6 +2657,13 @@ export default function App() {
       <div className="crt-vignette" />
       <Particles />
       <EcosphereAmbience />
+
+      {liveEcho && (
+        <div className="live-echo-chip" role="status">
+          <span aria-hidden="true" />
+          {liveEcho}
+        </div>
+      )}
 
       {/* Content */}
       <main className="content-well">

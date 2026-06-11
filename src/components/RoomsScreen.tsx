@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import type { CSSProperties, MutableRefObject } from 'react'
 import { playSampleBuffer, stopPreviewBuffer } from '../lib/sampleAudio'
+import { useRecordingSession } from '../hooks/useRecordingSession'
 import '../rooms.css'
 
 // ═══════════════════════════════════════════════════════════════
@@ -561,6 +562,7 @@ interface RoomViewProps {
 }
 
 function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onExit, onDrift, engine }: RoomViewProps) {
+  const recordingSession = useRecordingSession()
   const energyRef = useRef(0)
   const [energy, setEnergy] = useState(0)
   const { listeners, resonance, state, weather } = useLiveRoomSim(room, energyRef)
@@ -806,14 +808,24 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
         const url = URL.createObjectURL(blob)
         const n = ++fragmentCountRef.current
         const dur = Math.max(1, Math.round(recElapsedRef.current))
+        const stamp = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+        // drift notes persist: kept on-device and mirrored to the backend with the room attached
+        recordingSession.enqueueUpload({
+          title: `drift note · ${room.name} · ${stamp}`,
+          kind: 'drift_note',
+          roomId: room.id,
+          durationMs: dur * 1000,
+          blob,
+        })
         setSignals(sigs => [
-          { id: `mine-${Date.now()}`, title: `your fragment ${n} — released here`, duration: dur, url, mine: true },
+          { id: `mine-${Date.now()}`, title: `your fragment ${n} — released ${stamp}`, duration: dur, url, mine: true },
           ...sigs,
         ])
         recElapsedRef.current = 0
         setRecElapsed(0)
         stream.getTracks().forEach(tr => tr.stop())
         streamRef.current = null
+        recordingSession.setRecordingActive(false)
         spawnWhisper('a new fragment settles into the room', false)
         bumpEnergy(10)
       }
@@ -822,9 +834,11 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
       recElapsedRef.current = 0
       setRecElapsed(0)
       setRecStatus('recording')
+      recordingSession.setRecordingActive(true)
     } catch {
       showNotice('the room couldn’t hear you — mic unavailable. it’s okay.')
       setRecStatus('idle')
+      recordingSession.setRecordingActive(false)
     }
   }
 

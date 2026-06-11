@@ -15,16 +15,19 @@ import PageTransitionFlow from './components/PageTransitionFlow'
 import SignalErrorBoundary from './components/SignalErrorBoundary'
 import { EcosystemProvider } from './hooks/useEcosystemState'
 import { GlobalAudioProvider } from './hooks/useGlobalAudio'
+import { RecordingSessionProvider } from './hooks/useRecordingSession'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <SignalErrorBoundary>
       <EcosystemProvider>
         <GlobalAudioProvider>
-          <IntroGate>
-            <PageTransitionFlow />
-            <App />
-          </IntroGate>
+          <RecordingSessionProvider>
+            <IntroGate>
+              <PageTransitionFlow />
+              <App />
+            </IntroGate>
+          </RecordingSessionProvider>
         </GlobalAudioProvider>
       </EcosystemProvider>
     </SignalErrorBoundary>

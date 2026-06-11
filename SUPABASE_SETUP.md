@@ -30,3 +30,18 @@ activity appears in the `activity_events` table.
 
 Everything degrades gracefully — without these steps the app keeps running
 fully on localStorage/IndexedDB.
+
+## 6. Audio messages + realtime (migration 202606110002)
+Run `supabase/migrations/202606110002_audio_message_metadata.sql` (or re-run
+`setup-all.sql`, which is idempotent). It adds:
+
+- `audio_files.kind` — classifies uploads as `signal`, `echo`, `capsule`, or
+  `drift_note` (room recordings carry `room_id`).
+- Realtime replication on `activity_events`, so the app's live-echo chip can
+  stream public activity to connected clients without a reload. If you manage
+  replication in the dashboard instead, enable **Database → Replication →
+  supabase_realtime** for the `activity_events` table.
+
+Upload limits are enforced client-side before any storage call: 2MB max file
+size, 3–60 second duration. Failed uploads stay in IndexedDB and retry
+automatically when the connection returns.

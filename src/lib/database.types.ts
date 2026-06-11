@@ -42,6 +42,8 @@ type PublicTables = {
           file_size_bytes: number | null
           mime_type: string | null
           waveform_data: Json
+          kind: string
+          room_id: string | null
           is_public: boolean
           is_archived: boolean
           created_at: string
@@ -57,6 +59,8 @@ type PublicTables = {
           file_size_bytes?: number | null
           mime_type?: string | null
           waveform_data?: Json
+          kind?: string
+          room_id?: string | null
           is_public?: boolean
           is_archived?: boolean
           created_at?: string
