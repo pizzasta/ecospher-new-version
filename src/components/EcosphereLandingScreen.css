@@ -504,3 +504,131 @@
     width: min(100%, 280px);
   }
 }
+
+/* ─── Immersive layer: parallax depth, live indicators, waveform ── */
+.ecosphere-landing__grid {
+  transform: perspective(700px) rotateX(38deg) translate3d(calc(var(--px, 0) * -14px), calc(var(--py, 0) * -8px), 0);
+  transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.ecosphere-landing__glow--pink {
+  transform: translate3d(calc(var(--px, 0) * 22px), calc(var(--py, 0) * 16px), 0);
+  transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.ecosphere-landing__glow--cyan {
+  transform: translate3d(calc(var(--px, 0) * -18px), calc(var(--py, 0) * -12px), 0);
+  transition: transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.ecosphere-landing__content {
+  transform: translate3d(calc(var(--px, 0) * 7px), calc(var(--py, 0) * 5px), 0);
+  transition: transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.ecosphere-landing__indicators {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  transform: translate3d(calc(var(--px, 0) * -10px), calc(var(--py, 0) * -7px), 0);
+  transition: transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.ecosphere-landing__indicator {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(4, 6, 18, 0.55);
+  border: 1px solid rgba(0, 212, 255, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: rgba(180, 220, 240, 0.7);
+  animation: landingIndicatorFloat 7s ease-in-out infinite;
+  animation-delay: var(--ind-delay, 0s);
+  opacity: 0;
+}
+
+.ecosphere-landing__indicator i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #00d4ff;
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.8);
+  animation: landingIndicatorDot 2s ease-in-out infinite;
+}
+
+@keyframes landingIndicatorFloat {
+  0% { opacity: 0; transform: translate3d(0, 10px, 0); }
+  12%, 82% { opacity: 1; }
+  50% { transform: translate3d(5px, -7px, 0); }
+  100% { opacity: 0; transform: translate3d(-4px, -16px, 0); }
+}
+
+@keyframes landingIndicatorDot {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.ecosphere-landing__wave {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 30px;
+  margin: 18px auto 6px;
+  max-width: 260px;
+}
+
+.ecosphere-landing__wave em {
+  display: block;
+  width: 3px;
+  height: var(--wh, 50%);
+  border-radius: 2px;
+  background: linear-gradient(to top, rgba(255, 45, 120, 0.35), rgba(255, 45, 120, 0.85));
+  animation: landingWavePulse 1.3s ease-in-out infinite alternate;
+  animation-delay: var(--wd, 0s);
+}
+
+.ecosphere-landing__wave em:nth-child(3n) {
+  background: linear-gradient(to top, rgba(0, 212, 255, 0.3), rgba(0, 212, 255, 0.75));
+}
+
+@keyframes landingWavePulse {
+  from { transform: scaleY(0.35); }
+  to { transform: scaleY(1.1); }
+}
+
+.ecosphere-landing__button {
+  position: relative;
+  overflow: hidden;
+}
+
+.ecosphere-landing__button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.16) 50%, transparent 65%);
+  transform: translateX(-110%);
+  animation: landingButtonSheen 3.6s ease-in-out infinite;
+}
+
+@keyframes landingButtonSheen {
+  0%, 55% { transform: translateX(-110%); }
+  85%, 100% { transform: translateX(110%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ecosphere-landing__indicator,
+  .ecosphere-landing__indicator i,
+  .ecosphere-landing__wave em,
+  .ecosphere-landing__button::after {
+    animation: none;
+  }
+}

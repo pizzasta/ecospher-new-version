@@ -5,6 +5,7 @@ import IntroSequence from './IntroSequence'
 import { useEcosystemState } from '../hooks/useEcosystemState'
 import type { EcosystemPage } from '../hooks/useEcosystemState'
 import { migrateLocalDataToBackend, syncProfile } from '../lib'
+import { usePointerParallax } from '../hooks/usePointerParallax'
 
 const introSeenStorageKey = 'introSeen'
 const signalIdentityStorageKey = 'signalIdentity'
@@ -161,7 +162,7 @@ const whereabouts = [
   'underthebed',
   'onthecurb',
   'atdusk',
-  'inthegloverbox',
+  'intheglovebox',
   'nooneclaimed',
 ]
 
@@ -201,6 +202,9 @@ const phraseNames = [
   'grandmasashtray',
 ]
 
+const softLeads = ['soft', 'tender', 'blurry', 'frozen', 'stale', 'fluorescent', 'lost', 'midnight', 'static']
+const noiseTails = ['static', 'noise', 'radio', 'ghost', 'memory', 'receipt', 'laundry', 'goldfish', 'headphones', 'calendar', 'oracle', 'poet', 'club', 'checkout']
+
 const atmosphericNames = [
   'porchlightorbit',
   'peachstreetlight',
@@ -219,6 +223,9 @@ function pick<T>(items: readonly T[]) {
 }
 
 const signalPatterns: Array<() => string> = [
+  () => pick(softLeads) + pick(noiseTails),
+  () => `3am${pick(mundanePlaces)}`,
+  () => `${pick(mundaneObjects)}club`,
   () => pick(mundaneObjects) + pick(wistfulTails),
   () => pick(mundanePlaces) + pick(wistfulTails),
   () => pick(mundaneAdjectives) + pick(mundaneObjects),
@@ -273,12 +280,26 @@ function DevOnboardingReset({ onReset }: { onReset: () => void }) {
 }
 
 function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, signalCore: string) => void }) {
+  const parallaxRef = usePointerParallax<HTMLElement>()
   const [suggestions, setSuggestions] = useState(() => generateSignalBatch())
   const [selectedSignal, setSelectedSignal] = useState(() => suggestions[0] ?? '')
   const [manualSignal, setManualSignal] = useState('')
   const [enteringDrift, setEnteringDrift] = useState(false)
+  const [keyPulse, setKeyPulse] = useState(0)
+  const [scanState, setScanState] = useState<'idle' | 'scanning' | 'clear'>('idle')
   const activeSignal = normalizeSignalName(manualSignal || selectedSignal)
   const orbEnergy = Math.min(1, Math.max(0.35, activeSignal.length / 18))
+
+  // signal scanner: every identity change sweeps the band before clearing it
+  useEffect(() => {
+    if (!activeSignal) {
+      setScanState('idle')
+      return
+    }
+    setScanState('scanning')
+    const t = window.setTimeout(() => setScanState('clear'), 650 + Math.random() * 500)
+    return () => window.clearTimeout(t)
+  }, [activeSignal])
 
   const regenerateSignals = () => {
     const nextSuggestions = generateSignalBatch(suggestions)
@@ -294,7 +315,11 @@ function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, 
   }
 
   return (
-    <main className={`claim-signal-shell identity-claim-shell ${enteringDrift ? 'entering-drift' : ''}`} style={{ '--claim-energy': orbEnergy } as CSSProperties}>
+    <main
+      className={`claim-signal-shell identity-claim-shell ${enteringDrift ? 'entering-drift' : ''} ${keyPulse % 2 === 1 ? 'key-pulse-a' : 'key-pulse-b'}`}
+      ref={parallaxRef}
+      style={{ '--claim-energy': orbEnergy } as CSSProperties}
+    >
       <div className="claim-atmosphere" aria-hidden="true">
         <span />
         <span />
@@ -337,13 +362,23 @@ function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, 
         </div>
 
         <div className="identity-claim-panel">
+          <div className="identity-visualizer" aria-hidden="true"><span /><span /><span /></div>
           <div className="identity-suggestion-header">
             <p>SUGGESTED SIGNAL</p>
             <button onClick={regenerateSignals} type="button">
               regenerate
             </button>
           </div>
-          <strong>{activeSignal || 'waiting_for_signal'}</strong>
+          <strong aria-label={activeSignal || 'waiting for signal'}>
+            {(activeSignal || 'waiting_for_signal').split('').map((ch, i) => (
+              <span className="identity-letter" key={`${i}-${ch}`} style={{ '--ci': i } as CSSProperties}>{ch}</span>
+            ))}
+          </strong>
+          <div className={`identity-scanner identity-scanner--${scanState}`} aria-live="polite">
+            {scanState === 'scanning' && <><i /> scanning the band…</>}
+            {scanState === 'clear' && <>✓ frequency available · unclaimed</>}
+            {scanState === 'idle' && <>⌖ awaiting signal</>}
+          </div>
 
           <div className="identity-suggestion-grid" aria-label="Suggested signal identities">
             {suggestions.map((signal) => (
@@ -364,7 +399,10 @@ function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, 
           <label className="identity-manual-label">
             <span>OR TUNE MANUALLY</span>
             <input
-              onChange={(event) => setManualSignal(event.target.value)}
+              onChange={(event) => {
+                setManualSignal(event.target.value)
+                setKeyPulse(n => n + 1)
+              }}
               placeholder="type your signal..."
               type="text"
               value={manualSignal}
