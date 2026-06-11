@@ -1097,6 +1097,14 @@ const relicReactionDefs = [
   { id: 'flare', glyph: '✶', label: 'flare' },
 ]
 
+const relicPostits: Record<string, string[]> = {
+  rl1: ['heard at 2:11am', 'kept replaying the ending'],
+  rl2: ['12 users replayed this', 'felt too familiar'],
+  rl3: ['never answered', 'someone stayed here 47 mins'],
+  rl4: ['found in an abandoned room', 'replayed 83 times'],
+  rl5: ['recovered from a dead zone', 'do not play after midnight'],
+}
+
 const RELIC_EVENTS = [
   'archive pressure steady',
   'a relic shifted half a degree on its shelf',
@@ -1185,8 +1193,17 @@ function RelicsScreen() {
               style={{ '--glow': (c / 100).toFixed(3), '--replay-boost': (Math.min(a.replays, 6) / 6).toFixed(3), '--idx': i } as CSSProperties}
               onClick={() => setSelected(r)}
             >
-              <div className="relic-orb" />
+              <div className={`cassette${relicAudio.current?.id === `relic-${r.id}` && relicAudio.playing ? ' playing' : ''}`} aria-hidden="true">
+                <span className="cassette-reel" />
+                <span className="cassette-window" />
+                <span className="cassette-reel" />
+              </div>
               <div className="relic-name">{r.name}</div>
+              <div className="relic-postits" aria-hidden="true">
+                {(relicPostits[r.id] ?? []).slice(0, 2).map((note, ni) => (
+                  <span key={note} className={`postit postit-${ni}`}>{note}</span>
+                ))}
+              </div>
               <RarityBadge rarity={r.rarity} />
               <div className="relic-resonance">{Math.round(c)}%</div>
               {(a.replays > 0 || a.saved) && (
@@ -1207,6 +1224,11 @@ function RelicsScreen() {
             <div className="lp-relic-scene-name">{selected.name}</div>
             <div className="lp-relic-scene-type">{selected.type} · <RarityBadge rarity={selected.rarity} /> · {Math.round(charge[selected.id] ?? selected.resonance)}% charge</div>
             <div className="lp-relic-examined">{lastExaminedBy(selected.id)}</div>
+            <div className="relic-postits relic-postits--overlay" aria-hidden="true">
+              {(relicPostits[selected.id] ?? []).map((note, ni) => (
+                <span key={note} className={`postit postit-${ni}`}>{note}</span>
+              ))}
+            </div>
             {stage >= 2 && (
               <LpWaveform
                 key={selectedActivity.replays}
@@ -1571,6 +1593,13 @@ function FrequenciesScreen() {
   const [tideIdx, setTideIdx] = useState(0)
   const [ping, setPing] = useState<string | null>(null)
   const [stabilized, setStabilized] = useState<number[]>([])
+  const [orbOpen, setOrbOpen] = useState<number | null>(null)
+  const seaOrbs = useMemo(() => [
+    { presence: 'a quiet listener', replaying: 'still awake. the quiet feels different tonight.', cassette: 'Echo Veil', trace: 'drifting for 18 min · paused twice near you' },
+    { presence: 'someone half asleep', replaying: 'i kept the voicemail. i know.', cassette: 'Pulse Crystal VII', trace: 'crossed your path 4 min ago' },
+    { presence: 'a restless presence', replaying: '(laughing, far away)', cassette: 'Static Bloom', trace: 'following the same current as you' },
+    { presence: 'someone on a long drive', replaying: 'replaying the same memory again.', cassette: 'Memory Burn', trace: 'left a resonance trail heading east' },
+  ], [])
   const timersRef = useRef<number[]>([])
 
   // tides shift; the sea slowly carries you into new zones
@@ -1646,6 +1675,27 @@ function FrequenciesScreen() {
       </header>
 
       <div className="sea-field">
+        {[0, 1, 2, 3].map(i => {
+          const open = orbOpen === i
+          const orb = seaOrbs[i]
+          return (
+            <div
+              key={`orb-${i}`}
+              className={`sea-orb${open ? ' open' : ''}`}
+              style={{ '--top': `${20 + i * 18}%`, '--dur': `${52 + i * 9}s`, '--delay': `${-i * 14}s` } as CSSProperties}
+            >
+              <button type="button" aria-label="a listener drifting nearby" onClick={() => setOrbOpen(open ? null : i)} />
+              {open && (
+                <div className="sea-orb-panel">
+                  <strong>{orb.presence}</strong>
+                  <span>replaying · "{orb.replaying}"</span>
+                  <span>recent cassette · {orb.cassette}</span>
+                  <span>{orb.trace}</span>
+                </div>
+              )}
+            </div>
+          )
+        })}
         {buoys.map(b => {
           const near = nearId === b.id
           const isStable = stabilized.includes(b.id)
