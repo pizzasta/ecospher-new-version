@@ -4,6 +4,7 @@ export { migrateLocalDataToBackend } from './localMigration'
 export {
   archiveItem,
   createCapsule,
+  deleteAccountData,
   deleteAudio,
   deleteCapsule,
   getAudioPlaybackUrl,

@@ -289,6 +289,7 @@ function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, 
   const [keyPulse, setKeyPulse] = useState(0)
   const [scanState, setScanState] = useState<'idle' | 'scanning' | 'clear'>('idle')
   const activeSignal = normalizeSignalName(manualSignal || selectedSignal)
+  const signalTooShort = activeSignal.length > 0 && activeSignal.length < 3
   const orbEnergy = Math.min(1, Math.max(0.35, activeSignal.length / 18))
 
   // signal scanner: every identity change sweeps the band before clearing it
@@ -310,7 +311,7 @@ function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, 
   }
 
   const enterDrift = () => {
-    if (!activeSignal || enteringDrift) return
+    if (!activeSignal || activeSignal.length < 3 || enteringDrift) return
     setEnteringDrift(true)
     window.setTimeout(() => onComplete(activeSignal, 'pink-core'), 680)
   }
@@ -390,10 +391,11 @@ function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, 
               <span className="identity-letter" key={`${i}-${ch}`} style={{ '--ci': i } as CSSProperties}>{ch}</span>
             ))}
           </strong>
-          <div className={`identity-scanner identity-scanner--${scanState}`} aria-live="polite">
-            {scanState === 'scanning' && <><i /> scanning the band…</>}
-            {scanState === 'clear' && <>✓ frequency available · unclaimed</>}
-            {scanState === 'idle' && <>⌖ awaiting signal</>}
+          <div className={`identity-scanner identity-scanner--${signalTooShort ? 'scanning' : scanState}`} aria-live="polite">
+            {signalTooShort && <>signal too faint — 3 characters minimum</>}
+            {!signalTooShort && scanState === 'scanning' && <><i /> scanning the band…</>}
+            {!signalTooShort && scanState === 'clear' && <>✓ frequency available · unclaimed</>}
+            {!signalTooShort && scanState === 'idle' && <>⌖ awaiting signal</>}
           </div>
 
           <div className="identity-suggestion-grid" aria-label="Suggested signal identities">
@@ -425,7 +427,7 @@ function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, 
             />
           </label>
 
-          <button className="identity-enter-button" disabled={!activeSignal} onClick={enterDrift} type="button">
+          <button className="identity-enter-button" disabled={!activeSignal || activeSignal.length < 3} onClick={enterDrift} type="button">
             ENTER THE DRIFT
           </button>
 
