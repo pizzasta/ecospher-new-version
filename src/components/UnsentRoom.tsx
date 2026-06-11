@@ -7,6 +7,7 @@ import { fetchRemoteRecordings, mirrorRecordingDelete, mirrorRecordingUpload, re
 import { playSample } from '../lib/sampleAudio';
 import VoiceReactionStack from './VoiceReactions';
 import EcosphereVRPanel from './EcosphereVRPanel';
+import PassingThoughts from './PassingThoughts';
 import { useRecordingSession } from '../hooks/useRecordingSession';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1061,6 +1062,9 @@ export const UnsentRoom: React.FC = () => {
           {recordingState === 'processing' && 'processing signal…'}
         </p>
       </section>
+
+      {/* Passing thoughts: open-once text letters, gone in 60s, never stored */}
+      <PassingThoughts />
 
       {/* EcosphereVR v4 voice reactions system */}
       <section className="ur-archive-section ur-vr-section" aria-label="Voice reactions system">
