@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { useEcosystemState } from '../hooks/useEcosystemState'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { playSample } from '../lib/sampleAudio'
@@ -16,6 +17,9 @@ import FrequencyGradientModal from './FrequencyGradientModal'
 import { loadGradientSettings, readGradientSettings, resolveGradientColors } from '../lib/frequencyGradient'
 import type { GradientSettings } from '../lib/frequencyGradient'
 import { useFrequencyGradient } from '../hooks/useFrequencyGradient'
+import { deriveAtmosphere, deriveTraits, memoryLines, tonightLines } from '../lib/listeningIdentity'
+import type { IdentityInput } from '../lib/listeningIdentity'
+import { readLastVoiceAt, silentDays } from '../lib/weightOfSilence'
 import './ProfileHub.css'
 
 const BIO_KEY = 'ecosphere:bio'
@@ -67,6 +71,38 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
 
   const [gradientStart, gradientEnd] = resolveGradientColors(gradient, hzProfile?.hz ?? 110)
 
+  // ── echo archive ──
+  const [echoes, setEchoes] = useState<StoredRecording[]>([])
+  const [echoLimit, setEchoLimit] = useState(ECHO_PAGE)
+
+  // listening identity: who this person is inside the ecosystem
+  const identityInput: IdentityInput = useMemo(() => ({
+    interactions: ecosystemState.recentInteractions,
+    listens: ecosystemState.listeningHistory,
+    savedCount: ecosystemState.savedSignals.length,
+    recordingsCount: echoes.length,
+    silentDays: silentDays(readLastVoiceAt()),
+    streak: ecosystemState.streak.count,
+  }), [ecosystemState.recentInteractions, ecosystemState.listeningHistory, ecosystemState.savedSignals.length, ecosystemState.streak.count, echoes.length])
+
+  const atmosphere = useMemo(() => deriveAtmosphere(identityInput), [identityInput])
+  const traits = useMemo(() => deriveTraits(identityInput), [identityInput])
+  const tonight = useMemo(() => tonightLines(identityInput), [identityInput])
+  const memories = useMemo(() => memoryLines(identityInput), [identityInput])
+
+  // most replayed fragment + recovered count, for the shelf card
+  const mostReplayed = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const listen of ecosystemState.listeningHistory) counts.set(listen.label, (counts.get(listen.label) ?? 0) + 1)
+    let best: string | null = null
+    let bestCount = 1
+    for (const [label, count] of counts) if (count > bestCount) { best = label; bestCount = count }
+    return best ? { label: best, count: bestCount } : null
+  }, [ecosystemState.listeningHistory])
+  const recoveredFragments = useMemo(() => {
+    try { return (JSON.parse(window.localStorage.getItem('ecosphere:zoneFragments') ?? '[]') as unknown[]).length } catch { return 0 }
+  }, [])
+
   useEffect(() => {
     // join date: backend profile when available, else first local visit
     if (!readLocal(FIRST_SEEN_KEY)) writeLocal(FIRST_SEEN_KEY, String(Date.now()))
@@ -90,10 +126,6 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
     void updateBio(trimmed)
     setEditingBio(false)
   }
-
-  // ── echo archive ──
-  const [echoes, setEchoes] = useState<StoredRecording[]>([])
-  const [echoLimit, setEchoLimit] = useState(ECHO_PAGE)
 
   const generateBio = async (seed: number) => {
     setAiBioBusy(true)
@@ -150,6 +182,42 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
         aria-hidden="true"
         style={{ background: `linear-gradient(${Math.round(gradientAngle)}deg, ${gradientStart}, ${gradientEnd})` }}
       />
+
+      {/* centerpiece: the identity ring — your frequency, breathing */}
+      <div className="ph-centerpiece">
+        <div className="ph-ring" style={{ '--ring-color': hzProfile?.color ?? '#66ccff' } as CSSProperties} aria-hidden="true">
+          <div className="ph-ring-bars">
+            {Array.from({ length: 36 }, (_, i) => (
+              <i
+                key={i}
+                style={{
+                  '--bar-angle': `${i * 10}deg`,
+                  '--bar-scale': `${0.35 + (((Math.round((hzProfile?.hz ?? 110) * 10) * (i + 7)) % 60) / 100)}`,
+                  '--bar-delay': `${(i % 9) * 0.35}s`,
+                } as CSSProperties}
+              />
+            ))}
+          </div>
+          <div className="ph-ring-center">
+            <strong>{(hzProfile?.hz ?? 110).toFixed(1)}</strong>
+            <span>Hz</span>
+          </div>
+        </div>
+        <div className="ph-identity">
+          <div className="ph-atmosphere" role="status">
+            <i aria-hidden="true" />
+            {atmosphere}
+          </div>
+          {traits.length > 0 ? (
+            <ul className="ph-traits">
+              {traits.map(trait => <li key={trait}>{trait}</li>)}
+            </ul>
+          ) : (
+            <p className="ph-empty">the ecosystem is still learning how you listen.</p>
+          )}
+        </div>
+      </div>
+
       <div className="ph-col">
         {/* header */}
         <div className="ph-card glass">
@@ -234,6 +302,21 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
       </div>
 
       <div className="ph-col">
+        {/* tonight: stats with feelings attached */}
+        <div className="ph-card glass">
+          <div className="ph-card-head">
+            <span className="ph-card-kicker">TONIGHT</span>
+          </div>
+          <ul className="ph-tonight">
+            {tonight.map(line => <li key={line}>{line}</li>)}
+          </ul>
+          {memories.length > 0 && (
+            <div className="ph-memory">
+              {memories.map(line => <p key={line}>{line}</p>)}
+            </div>
+          )}
+        </div>
+
         {/* listening history */}
         <div className="ph-card glass">
           <div className="ph-card-head">
@@ -251,6 +334,30 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
             ))}
           </ul>
         </div>
+
+        {/* from the shelf: relics + fragments connected to the hub */}
+        {(mostReplayed || recoveredFragments > 0) && (
+          <div className="ph-card glass">
+            <div className="ph-card-head">
+              <span className="ph-card-kicker">FROM THE SHELF</span>
+            </div>
+            {mostReplayed && (
+              <p className="ph-shelf-line">
+                most replayed fragment: <em>{mostReplayed.label}</em> · {mostReplayed.count}×
+              </p>
+            )}
+            {recoveredFragments > 0 && (
+              <p className="ph-shelf-line">
+                {recoveredFragments} fragment{recoveredFragments === 1 ? '' : 's'} recovered from dead zones
+              </p>
+            )}
+            {ecosystemState.savedSignals.length > 0 && (
+              <p className="ph-shelf-line">
+                {ecosystemState.savedSignals.length} trace{ecosystemState.savedSignals.length === 1 ? '' : 's'} kept from the feed
+              </p>
+            )}
+          </div>
+        )}
 
         {/* capsule vault */}
         <div className="ph-card glass">
