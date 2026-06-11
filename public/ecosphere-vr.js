@@ -440,7 +440,7 @@ const EcosphereVR = (() => {
 
     _updateDisplay(signalId) {
       const count = _s.presenceCounts[signalId] || 0;
-      const el = document.getElementById(`eco-presence-count-${signalId}`);
+      const el = document.getElementById(`evr-presence-count-${signalId}`);
       if (!el) return;
       el.textContent = count === 0 ? 'quiet right now'
         : count === 1 ? '1 listening nearby'
@@ -781,7 +781,7 @@ const EcosphereVR = (() => {
       const echo     = card.querySelector('.eco-echo-thread');
       const presence = card.querySelector('.eco-presence-row');
       const footer   = card.querySelector('.eco-signal-footer');
-      const wrapRow  = card.querySelector('.eco-whisper-input-wrap');
+      const wrapRow  = card.querySelector('.evr-whisper-input-wrap');
       const wlist    = card.querySelector('.eco-whisper-list');
       if (content)  { content.innerHTML = '<span class="eco-faded-placeholder">[something was here]</span>'; content.classList.add('is-faded'); }
       if (echo)     echo.remove();
@@ -1146,9 +1146,9 @@ const EcosphereVR = (() => {
           </div>
         </div>
 
-        <button class="eco-record-btn" id="eco-record-start" aria-label="Start recording voice reaction">
-          <div class="eco-record-btn__ring" aria-hidden="true"></div>
-          <div class="eco-record-btn__ring eco-record-btn__ring--2" aria-hidden="true"></div>
+        <button class="evr-record-btn" id="eco-record-start" aria-label="Start recording voice reaction">
+          <div class="evr-record-btn__ring" aria-hidden="true"></div>
+          <div class="evr-record-btn__ring evr-record-btn__ring--2" aria-hidden="true"></div>
           <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="2"/>
             <path d="M24 14a4 4 0 0 0-4 4v8a4 4 0 0 0 8 0v-8a4 4 0 0 0-4-4z" fill="currentColor"/>
@@ -1557,7 +1557,7 @@ const EcosphereVR = (() => {
 
       // Event delegation for whisper inputs
       feed.addEventListener('keydown', e => {
-        if (e.target.classList.contains('eco-whisper-input') && e.key === 'Enter') {
+        if (e.target.classList.contains('evr-whisper-input') && e.key === 'Enter') {
           const sigId = e.target.dataset.signalId;
           postWhisper(sigId, e.target.value);
           e.target.value = '';
@@ -1583,7 +1583,7 @@ const EcosphereVR = (() => {
       if (_s.faded.has(sig.id)) {
         return `<article class="eco-signal-card eco-signal-card--faded" data-signal-id="${sig.id}" aria-label="${sig.title} — memory faded">
           <div class="eco-signal-header">
-            <div class="eco-signal-meta">
+            <div class="evr-signal-meta">
               <span class="eco-signal-id">${sig.title}</span>
             </div>
           </div>
@@ -1610,7 +1610,7 @@ const EcosphereVR = (() => {
       return `
 <article class="eco-signal-card" data-signal-id="${sig.id}" aria-label="${sig.title}">
   <div class="eco-signal-header">
-    <div class="eco-signal-meta">
+    <div class="evr-signal-meta">
       <span class="eco-signal-id">${sig.title}</span>
       <span class="eco-signal-time">${_ago(sig.ts)}</span>
     </div>
@@ -1626,8 +1626,8 @@ const EcosphereVR = (() => {
   ${this.buildEchoThread(sig)}
 
   <div class="eco-presence-row" aria-live="polite">
-    <div class="eco-presence-dot ${presenceCount > 0 ? 'is-active' : ''}" aria-hidden="true"></div>
-    <span class="eco-presence-count" id="eco-presence-count-${sig.id}">${presenceText}</span>
+    <div class="evr-presence-dot ${presenceCount > 0 ? 'is-active' : ''}" aria-hidden="true"></div>
+    <span class="evr-presence-count" id="evr-presence-count-${sig.id}">${presenceText}</span>
     <div class="eco-presence-feed" id="eco-presence-feed-${sig.id}" aria-live="polite" aria-atomic="false"></div>
   </div>
 
@@ -1653,9 +1653,9 @@ const EcosphereVR = (() => {
         <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>` : ''}
-    <div class="eco-whisper-input-wrap">
-      <input type="text" class="eco-whisper-input"
-        id="eco-whisper-input-${sig.id}"
+    <div class="evr-whisper-input-wrap">
+      <input type="text" class="evr-whisper-input"
+        id="evr-whisper-input-${sig.id}"
         data-signal-id="${sig.id}"
         placeholder="whisper…" maxlength="80"
         aria-label="Whisper something — fades in 2 minutes" />
