@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { getOptionalSupabaseClient, syncProfile } from './lib'
-import { useEcosystemState } from './hooks/useEcosystemState'
+import { localDateString, useEcosystemState } from './hooks/useEcosystemState'
 import { deleteReactionAudio, listReactionAudio } from './lib/localAudioStore'
 import type { StoredReaction } from './lib/localAudioStore'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
@@ -264,9 +264,24 @@ const OBS_EVENTS = [
   'archive pressure nominal',
 ] as const
 
+function dayOfYear(): number {
+  const now = new Date()
+  return Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
+}
+
 function HomeScreen() {
-  const { ecosystemState } = useEcosystemState()
+  const { ecosystemState, tuneInDaily } = useEcosystemState()
+  const homeAudio = useGlobalAudio()
   const nowPlaying = ecosystemState.activeAudio
+  const dailySignal = signals[dayOfYear() % signals.length]
+  const tunedToday = ecosystemState.streak.lastDate === localDateString()
+  const streak = ecosystemState.streak.count
+
+  const tuneIn = () => {
+    if (tunedToday) return
+    homeAudio.playSimulated({ id: `daily-${dailySignal.id}`, label: `daily signal · ${dailySignal.handle}`, source: 'home' }, 6000)
+    tuneInDaily(dailySignal.handle)
+  }
   const [tick, setTick] = useState(0)
   useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 3000); return () => clearInterval(t) }, [])
   const liveActivity = ecosystemState.recentInteractions.slice(0, 5).map(it => it.label)
@@ -296,6 +311,27 @@ function HomeScreen() {
           <div className="stat-value violet">+{Math.max(1, Math.round(ecosystemState.driftActivity / 4))}</div>
           <div className="stat-label">drift cycles</div>
         </div>
+      </div>
+
+      <div className={`obs-daily glass${tunedToday ? ' obs-daily--tuned' : ''}`}>
+        <div className="obs-daily-head">
+          <span className="obs-daily-kicker">DAILY SIGNAL</span>
+          {streak > 0 && (
+            <span className="obs-streak" title={`${streak} nights tuned in`}>
+              ◉ {streak} {streak === 1 ? 'night' : 'nights'}
+            </span>
+          )}
+        </div>
+        <p className="obs-daily-content">"{dailySignal.content}"</p>
+        <div className="obs-daily-foot">
+          <span className="obs-daily-handle">{dailySignal.anonymous ? '⬡ anonymous' : `◈ ${dailySignal.handle}`}</span>
+          <button type="button" className="obs-daily-tune" disabled={tunedToday} onClick={tuneIn}>
+            {tunedToday ? `✶ tuned in · night ${streak}` : '◉ tune in'}
+          </button>
+        </div>
+        {streak >= 2 && !tunedToday && (
+          <div className="obs-daily-warning">tune in today to keep your {streak}-night streak alive</div>
+        )}
       </div>
 
       {nowPlaying && (
@@ -403,6 +439,67 @@ function DriftScreen() {
     setPing('the fragment dissolved back into the fog')
   }
 
+  // ── field scans: a pull of the lever every 30 minutes ──────────────────────
+  const SCAN_COOLDOWN = 30 * 60 * 1000
+  const [scanMeta, setScanMeta] = usePersistentState<{ lastScanAt: number; shards: number }>('ecosphere:driftScan', { lastScanAt: 0, shards: 0 })
+  const [scanning, setScanning] = useState(false)
+  const [nowTick, setNowTick] = useState(() => Date.now())
+
+  useEffect(() => {
+    const t = window.setInterval(() => setNowTick(Date.now()), 1000)
+    return () => window.clearInterval(t)
+  }, [])
+
+  const scanRemaining = Math.max(0, scanMeta.lastScanAt + SCAN_COOLDOWN - nowTick)
+
+  const scanField = () => {
+    if (scanRemaining > 0 || scanning) return
+    setScanning(true)
+    window.setTimeout(() => setScanning(false), 2400)
+
+    const roll = Math.random()
+    let shards = scanMeta.shards
+    window.setTimeout(() => {
+      if (roll < 0.45) {
+        const nothing = [
+          'the fog gave nothing back this time',
+          'a faint trace, gone before it resolved',
+          'only your own echo out there. for now.',
+          'the field is quiet. it knows you checked.',
+        ]
+        setPing(nothing[Math.floor(Math.random() * nothing.length)])
+      } else if (roll < 0.78) {
+        const fragments = [
+          'a scan caught: someone counting backwards from ten, softly',
+          'a scan caught: rain on a car roof, twenty years ago',
+          'a scan caught: a dial tone that sounds almost like a chord',
+          'a scan caught: two seconds of a song nobody finished',
+          'a scan caught: a door closing gently, on purpose',
+          'a scan caught: breathing synced to a washing machine',
+        ]
+        const line = fragments[Math.floor(Math.random() * fragments.length)]
+        discoverDrift(`scan-${Date.now()}`, line)
+        setPing(line)
+      } else if (roll < 0.94) {
+        shards += 1
+        if (shards >= 3) {
+          unlockRelic('reassembled-shard', 'Reassembled Shard')
+          setPing('third shard recovered · the pieces fused into a relic')
+        } else {
+          setPing(`a relic shard surfaced from the fog · ${shards}/3 collected`)
+        }
+      } else if (driftReactions.length > 0) {
+        const r = driftReactions[Math.floor(Math.random() * driftReactions.length)]
+        playDriftReaction(r)
+        setPing('the scan locked onto a voice somebody released here')
+      } else {
+        discoverDrift(`scan-${Date.now()}`, 'a scan caught: a frequency that only exists tonight')
+        setPing('a scan caught: a frequency that only exists tonight')
+      }
+      setScanMeta({ lastScanAt: Date.now(), shards })
+    }, 2000)
+  }
+
   const findHotspot = (h: DriftHotspot) => {
     if (found.includes(h.id)) return
     const nextFound = [...found, h.id]
@@ -424,7 +521,7 @@ function DriftScreen() {
         <p className="screen-sub">where signals go when no one claims them</p>
       </div>
       <AmbientLine lines={DRIFT_EVENTS} />
-      <div className="drift-map glass lp-drift-map">
+      <div className={`drift-map glass lp-drift-map${scanning ? ' lp-drift-map--scanning' : ''}`}>
         <div className="lp-fog lp-fog-a" aria-hidden="true" />
         <div className="lp-fog lp-fog-b" aria-hidden="true" />
         <div className="drift-label-overlay">signal weather · fog / echo · {found.length} / {driftHotspots.length} hidden traces found</div>
@@ -480,6 +577,18 @@ function DriftScreen() {
           />
         ))}
       </div>
+      <button
+        type="button"
+        className={`drift-scan-btn${scanning ? ' scanning' : ''}`}
+        disabled={scanRemaining > 0 || scanning}
+        onClick={scanField}
+      >
+        {scanning
+          ? '⌖ scanning the field…'
+          : scanRemaining > 0
+            ? `⌖ field recharging · ${Math.floor(scanRemaining / 60000)}:${String(Math.floor((scanRemaining % 60000) / 1000)).padStart(2, '0')}`
+            : `⌖ scan the field${scanMeta.shards > 0 && scanMeta.shards < 3 ? ` · ${scanMeta.shards}/3 shards` : ''}`}
+      </button>
       {ping && <div className="lp-drift-ping" key={ping}>{ping}</div>}
       <div className="drift-discoveries">
         {[
@@ -516,6 +625,13 @@ type CapsulePhase = 'sealed' | 'cracking' | 'leaking' | 'open'
 
 const formingCapsule: Capsule = { id: 'c5', title: 'Unmarked Capsule', duration: '0:21', feeling: 'still forming', timestamp: 'arriving', type: 'echo', status: 'private' }
 
+const formingMemoryPool = [
+  '"new. unlabeled. it sounds like the minute before something good."',
+  '"it formed overnight. there is a name inside it that is almost yours."',
+  '"whatever sealed this one in did it gently."',
+  '"it hums at the same pitch as your first signal. coincidence, probably."',
+]
+
 const capsuleMemories: Record<string, { line: string; seed: number }> = {
   c1: { line: '"kept this one because the room went quiet right after. you can hear it decide to."', seed: 17 },
   c2: { line: '"amber light through a window that is not there anymore. the recording kept the warmth."', seed: 29 },
@@ -538,7 +654,10 @@ function CapsulesScreen() {
   const [phases, setPhases] = useState<Record<string, CapsulePhase>>({})
   const [preservation, setPreservation] = useState<Record<string, number>>({})
   const [shimmerId, setShimmerId] = useState<string | null>(null)
-  const [formed, setFormed] = useState(false)
+  // the unmarked capsule forms in real time — leave, come back, it's closer
+  const [forming, setForming] = usePersistentState<{ readyAt: number; cycle: number }>('ecosphere:capsuleForming', { readyAt: 0, cycle: 0 })
+  const [openedCycle, setOpenedCycle] = useState<number | null>(null)
+  const [formTick, setFormTick] = useState(() => Date.now())
   const timersRef = useRef<number[]>([])
   const allCapsules = useMemo(() => [...capsules, formingCapsule], [])
 
@@ -556,11 +675,17 @@ function CapsulesScreen() {
     return () => window.clearInterval(t)
   }, [allCapsules])
 
-  // the unmarked capsule finishes forming after time spent on the page
+  // first visit arms the first forming cycle (45 min); countdown ticks live
   useEffect(() => {
-    const t = window.setTimeout(() => setFormed(true), 22000)
-    return () => window.clearTimeout(t)
-  }, [])
+    if (forming.readyAt === 0) {
+      setForming({ readyAt: Date.now() + 45 * 60 * 1000, cycle: 0 })
+    }
+    const t = window.setInterval(() => setFormTick(Date.now()), 15000)
+    return () => window.clearInterval(t)
+  }, [forming.readyAt, setForming])
+
+  const formed = forming.readyAt > 0 && formTick >= forming.readyAt
+  const formingRemaining = Math.max(0, forming.readyAt - formTick)
 
   // ecosystem shimmer events
   useEffect(() => {
@@ -575,6 +700,11 @@ function CapsulesScreen() {
   const openCapsule = (id: string) => {
     const capsule = allCapsules.find(c => c.id === id)
     recordCapsuleOpen(id, capsule?.title)
+    if (id === formingCapsule.id) {
+      // opening the unmarked capsule starts the next one forming (4 hours out)
+      setOpenedCycle(forming.cycle)
+      setForming({ readyAt: Date.now() + 4 * 60 * 60 * 1000, cycle: forming.cycle + 1 })
+    }
     setPhases(p => ({ ...p, [id]: 'cracking' }))
     timersRef.current.push(window.setTimeout(() => setPhases(p => (p[id] === 'cracking' ? { ...p, [id]: 'leaking' } : p)), 850))
     timersRef.current.push(window.setTimeout(() => setPhases(p => (p[id] === 'leaking' ? { ...p, [id]: 'open' } : p)), 1950))
@@ -591,8 +721,10 @@ function CapsulesScreen() {
       <div className="capsules-list">
         {allCapsules.map((c, i) => {
           const phase: CapsulePhase = phases[c.id] ?? 'sealed'
-          const isForming = c.id === formingCapsule.id && !formed
-          const memory = capsuleMemories[c.id]
+          const isForming = c.id === formingCapsule.id && !formed && openedCycle === null
+          const memory = c.id === formingCapsule.id
+            ? { line: formingMemoryPool[(openedCycle ?? forming.cycle) % formingMemoryPool.length], seed: 67 + (openedCycle ?? forming.cycle) * 13 }
+            : capsuleMemories[c.id]
           const badgeLabel = isForming ? 'forming' : c.id === formingCapsule.id ? 'formed' : c.status
           const badgeClass = isForming || c.id === formingCapsule.id ? 'badge-cyan' : c.status === 'saved' ? 'badge-pink' : c.status === 'private' ? 'badge-violet' : 'badge-grey'
           return (
@@ -609,7 +741,11 @@ function CapsulesScreen() {
               <div className="capsule-body">
                 <div className="capsule-title">{c.title}</div>
                 <div className="capsule-meta">
-                  {isForming ? 'still forming · stay on this page' : `${c.feeling} · ${c.duration} · ${c.timestamp}`}
+                  {isForming
+                    ? formingRemaining > 60 * 60 * 1000
+                      ? `still forming · ready in ${Math.ceil(formingRemaining / 3600000)}h — come back`
+                      : `still forming · ready in ${Math.max(1, Math.ceil(formingRemaining / 60000))}m — come back`
+                    : `${c.feeling} · ${c.duration} · ${c.timestamp}`}
                 </div>
                 {!isForming && (
                   <div className="lp-preservation" aria-hidden="true" title="preservation field">
@@ -680,6 +816,21 @@ function RelicsScreen() {
   const { archiveEntry, saveToLibrary, unsaveFromLibrary, unlockRelic: unlockEcosystemRelic } = useEcosystemState()
   const [store, setStore] = usePersistentState<Record<string, RelicActivity>>('ecosphere:relicActivity', {})
   const [charge, setCharge] = useState<Record<string, number>>(() => Object.fromEntries(relics.map(r => [r.id, r.resonance])))
+  const [shelfVisit, setShelfVisit] = usePersistentState<string>('ecosphere:relicShelfVisit', '')
+  const [shelfNote, setShelfNote] = useState<string | null>(null)
+
+  // returning on a new day re-stabilizes the shelf — a reason to come back tomorrow
+  useEffect(() => {
+    const today = localDateString()
+    if (shelfVisit && shelfVisit !== today) {
+      setCharge(prev => Object.fromEntries(Object.entries(prev).map(([k, v]) => [k, Math.min(100, v + 14)])))
+      setShelfNote('the shelf settled overnight · charges restored')
+      const t = window.setTimeout(() => setShelfNote(null), 6000)
+      setShelfVisit(today)
+      return () => window.clearTimeout(t)
+    }
+    if (!shelfVisit) setShelfVisit(today)
+  }, [shelfVisit, setShelfVisit])
   const [stage, setStage] = useState(0)
 
   // relics slowly evolve — charge drifts over time
@@ -724,6 +875,7 @@ function RelicsScreen() {
         <p className="screen-sub">artifacts recovered from the deep archive</p>
       </div>
       <AmbientLine lines={RELIC_EVENTS} />
+      {shelfNote && <div className="lp-drift-ping" key={shelfNote}>{shelfNote}</div>}
       <div className="relics-grid">
         {relics.map((r, i) => {
           const a = activityOf(r.id)
@@ -742,6 +894,7 @@ function RelicsScreen() {
               {(a.replays > 0 || a.saved) && (
                 <div className="lp-relic-trace">{a.replays > 0 ? `${a.replays}× replayed` : 'kept'}</div>
               )}
+              {c < 45 && <div className="lp-relic-unstable">unstable · return tomorrow</div>}
             </button>
           )
         })}
@@ -1538,7 +1691,7 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
   const [podPulses, setPodPulses] = usePersistentState<number>('ecosphere:podPulses', 0)
   const [rippling, setRippling] = useState(false)
 
-  const podEnergy = Math.min(1, (eco.resonanceLevel + podPulses * 2) / 120)
+  const podEnergy = Math.min(1, (eco.resonanceLevel + podPulses * 2 + eco.streak.count * 4) / 130)
   const podStage = podEnergy > 0.7 ? 'radiant' : podEnergy > 0.4 ? 'awake' : 'resting'
 
   const touchPod = () => {
