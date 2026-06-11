@@ -20,6 +20,7 @@ import NotificationBell from './components/NotificationBell'
 import { useRecordingSession } from './hooks/useRecordingSession'
 import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 import { enablePushNotifications } from './lib/pushNotifications'
+import { SCREEN_PATHS, screenForPath } from './lib/routes'
 
 const FeedScreen = lazy(() => import('./FeedScreen'))
 const RoomsScreenComponent = lazy(() => import('./components/RoomsScreen'))
@@ -2723,7 +2724,8 @@ function Nav({ active, onNav }: { active: Screen; onNav: (s: Screen) => void }) 
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('home')
+  // deep links: the URL decides the starting screen (/rooms, /capsules, …)
+  const [screen, setScreen] = useState<Screen>(() => screenForPath(window.location.pathname))
   const [veilKey, setVeilKey] = useState(0)
   const [user, setUser] = useState<{ email?: string; id: string } | null>(null)
 
@@ -2731,7 +2733,20 @@ export default function App() {
     if (next === screen) return
     setScreen(next)
     setVeilKey(k => k + 1)
+    try {
+      window.history.pushState({}, '', SCREEN_PATHS[next])
+    } catch { /* sandboxed iframe — state-only navigation still works */ }
   }
+
+  // browser back/forward moves between screens
+  useEffect(() => {
+    const onPopState = () => {
+      setScreen(screenForPath(window.location.pathname))
+      setVeilKey(k => k + 1)
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
 
   useEffect(() => {
     document.title = `Ecosphere · ${SCREEN_TITLES[screen]}`
