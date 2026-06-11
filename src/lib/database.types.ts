@@ -9,6 +9,8 @@ type PublicTables = {
           profile_energy: string | null
           onboarding_complete: boolean
           is_private: boolean
+          bio: string | null
+          lurker_mode: boolean
           created_at: string
           updated_at: string | null
         }
@@ -19,6 +21,8 @@ type PublicTables = {
           profile_energy?: string | null
           onboarding_complete?: boolean
           is_private?: boolean
+          bio?: string | null
+          lurker_mode?: boolean
           created_at?: string
           updated_at?: string | null
         }
@@ -28,7 +32,24 @@ type PublicTables = {
           profile_energy?: string | null
           onboarding_complete?: boolean
           is_private?: boolean
+          bio?: string | null
+          lurker_mode?: boolean
           updated_at?: string | null
+        }
+      }
+      listens: {
+        Row: {
+          listener_id: string
+          tuned_to_id: string
+          created_at: string
+        }
+        Insert: {
+          listener_id: string
+          tuned_to_id: string
+          created_at?: string
+        }
+        Update: {
+          tuned_to_id?: string
         }
       }
       audio_files: {

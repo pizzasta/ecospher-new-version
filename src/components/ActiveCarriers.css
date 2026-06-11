@@ -155,3 +155,9 @@
     transition: none;
   }
 }
+
+.carrier-actions button.listening {
+  border-color: rgba(0, 212, 255, 0.55);
+  background: rgba(0, 212, 255, 0.1);
+  color: #67e8f9;
+}
