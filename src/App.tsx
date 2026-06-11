@@ -4,7 +4,7 @@ import { getOptionalSupabaseClient, syncProfile } from './lib'
 import { localDateString, useEcosystemState } from './hooks/useEcosystemState'
 import { deleteLocalRecording, deleteReactionAudio, listLocalRecordings, listReactionAudio, saveReactionAudio, saveRecordingLocally } from './lib/localAudioStore'
 import { downloadBlob, exportFilename, renderStoryImage } from './lib/storyExport'
-import { playSample } from './lib/sampleAudio'
+import { playSample, playSampleBuffer, stopPreviewBuffer } from './lib/sampleAudio'
 import { lastExaminedBy, listenerCount, livedInLines } from './lib/livedIn'
 import type { StoredReaction } from './lib/localAudioStore'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
@@ -1475,596 +1475,218 @@ function DeadZonesScreen() {
   )
 }
 
-const CF_ECO_EVENTS = [
-  'signal overload detected',
-  '32 carriers synchronized',
-  'quiet frequency spike',
-  'echo bloom expanding',
-  'new resonance layer detected',
-  'deep carrier drift active',
-  'frequency membrane thinning',
-  'collective signal stabilizing',
-  'anomalous bloom at 3:17am',
-  'carrier convergence imminent',
-]
+// ═══ FREQUENCY SEA — drifting through a distant emotional ocean ═══
 
-function pseudoRand(seed: number) {
-  let s = seed
-  return () => {
-    s = (s * 1664525 + 1013904223) & 0xffffffff
-    return Math.abs(s) / 0x7fffffff
-  }
+type SeaSource = 'unsent' | 'reaction' | 'deadzone' | 'feed' | 'room'
+
+type SeaBuoy = {
+  id: number
+  source: SeaSource
+  fragment: string
+  kind: 'voice' | 'whisper' | 'laugh' | 'static' | 'zone' | 'tone'
+  seed: number
+  top: number
+  duration: number
+  delay: number
+  fading: boolean
+  deep: boolean
 }
 
-function genWave(seed: number, bars = 48): number[] {
-  const r = pseudoRand(seed)
-  return Array.from({ length: bars }, (_, i) => {
-    const shape = Math.sin(i * 0.35 + seed * 0.05) * 0.3 + 0.5
-    return Math.max(0.04, Math.min(1, r() * shape + 0.08))
-  })
+const SEA_ZONES = [
+  'Quiet Waters', 'Sleepless Tide', 'Static Rain', 'Distant Voices',
+  'Soft Collapse', 'Late Drive Waters', 'Echo Coast', 'Fading Signals', 'Open Ocean',
+] as const
+
+const SEA_FRAGMENTS: Record<SeaSource, string[]> = {
+  unsent: [
+    'i typed this whole thing out and never sent it.',
+    'i kept the voicemail. i know.',
+    "it's been a year. i still draft texts i'll never send.",
+    'i almost called you when it happened.',
+  ],
+  reaction: [
+    '(laughing, far away)',
+    '(whispered) i replayed this twice',
+    'no because same',
+    '(a sigh, then quiet)',
+  ],
+  deadzone: [
+    'i waited up longer than i should have.',
+    "you saw it. you just didn't answer.",
+    "i didn't mean to leave like th—",
+  ],
+  feed: [
+    'still awake. the quiet feels different tonight.',
+    'something about 3am feels like the only honest hour.',
+    'replaying the same memory again.',
+  ],
+  room: [
+    'a room full of people not sleeping, together',
+    'someone sharing an unfinished song',
+    'two voices agreeing about everything at 2am',
+  ],
+}
+
+const SEA_KIND: Record<SeaSource, SeaBuoy['kind']> = {
+  unsent: 'voice',
+  reaction: 'whisper',
+  deadzone: 'zone',
+  feed: 'voice',
+  room: 'tone',
+}
+
+const SEA_TIDES = [
+  'tide rising · currents pulling east',
+  'heavy current passing through',
+  'calm surface · faint voices underneath',
+  'static rain over the far water',
+  'a signal storm, somewhere past the horizon',
+  'tide easing · echoes carrying further',
+] as const
+
+function makeBuoy(id: number, night: boolean): SeaBuoy {
+  const sources: SeaSource[] = ['unsent', 'reaction', 'deadzone', 'feed', 'room']
+  const source = sources[id % sources.length]
+  const pool = SEA_FRAGMENTS[source]
+  return {
+    id,
+    source,
+    fragment: pool[(id * 7) % pool.length],
+    kind: SEA_KIND[source],
+    seed: id * 97 + 13,
+    top: 12 + ((id * 31) % 68),
+    duration: 38 + ((id * 13) % 30),
+    delay: -((id * 9) % 38),
+    fading: id % 4 === 2,
+    deep: night && id % 7 === 5,
+  }
 }
 
 function FrequenciesScreen() {
-  const cfAudio = useGlobalAudio()
-  const uploadRef = useRef<HTMLInputElement>(null)
+  const { reactToSignal, saveToLibrary } = useEcosystemState()
+  const night = (() => { const h = new Date().getHours(); return h >= 22 || h < 5 })()
+  const [buoys, setBuoys] = useState<SeaBuoy[]>(() => Array.from({ length: night ? 9 : 7 }, (_, i) => makeBuoy(i, night)))
+  const [nearId, setNearId] = useState<number | null>(null)
+  const [zoneIdx, setZoneIdx] = useState(() => Math.floor(Date.now() / 40000) % SEA_ZONES.length)
+  const [tideIdx, setTideIdx] = useState(0)
+  const [ping, setPing] = useState<string | null>(null)
+  const [stabilized, setStabilized] = useState<number[]>([])
+  const timersRef = useRef<number[]>([])
 
-  // ─── Types ──────────────────────────────────────────────────────────────
-  type EmotionalTag = 'nocturne' | 'bloom' | 'static' | 'drift' | 'echo' | 'pulse' | 'lost' | 'soft_focus'
-  type ContribType = 'voice' | 'hum' | 'ambient' | 'whisper' | 'synth' | 'texture' | 'static' | 'pulse'
-
-  type Carrier = {
-    id: string
-    handle: string
-    tag: EmotionalTag
-    type: ContribType
-    resonance: number
-    angle: number
-    radius: number
-    active: boolean
-    waveformSeed: number
-    color: string
-    joinedAt: number
-  }
-
-  type EcoEvent = { id: string; msg: string }
-
-  // ─── Constants ───────────────────────────────────────────────────────────
-  const HANDLES = [
-    'halo_07','static_radio','driftmemory','noctiswave','signal_veil',
-    'anonymous_3am','carrier_lost','echo_bloom','soft_static','void_hum',
-    'nocturne_33','pulse_frag','freq_mirror','ghost_band','carrier_null',
-    'drift_loop','memorywave','the_signal','aurora_static','tender_noise',
-    'bloom_fade','quiet_freq','signal_ghost','late_wave','carrier_veil',
-    'echo_soft','static_bloom','void_freq','dark_hum','signal_frag',
-    'pulse_echo','drift_anon',
-  ]
-
-  const TAG_COLORS: Record<EmotionalTag, string> = {
-    nocturne:   '#c084fc',
-    bloom:      '#f472b6',
-    static:     '#94a3b8',
-    drift:      '#22d3ee',
-    echo:       '#a78bfa',
-    pulse:      '#fb923c',
-    lost:       '#64748b',
-    soft_focus: '#86efac',
-  }
-
-  const CONTRIB_LABELS: Record<ContribType, string> = {
-    voice:   'voice fragment',
-    hum:     'humming',
-    ambient: 'ambient sound',
-    whisper: 'whispered phrase',
-    synth:   'synth loop',
-    texture: 'emotional texture',
-    static:  'static / noise',
-    pulse:   'pulse layer',
-  }
-
-
-  const TAGS: EmotionalTag[] = ['nocturne','bloom','static','drift','echo','pulse','lost','soft_focus']
-  const CONTRIB_TYPES: ContribType[] = ['voice','hum','ambient','whisper','synth','texture','static','pulse']
-
-  // ─── Helpers ─────────────────────────────────────────────────────────────
-
-  function makeCarrier(idx: number, total: number): Carrier {
-    const r = pseudoRand(idx * 31 + 7)
-    const tag = TAGS[Math.floor(r() * TAGS.length)]
-    return {
-      id: 'c' + idx,
-      handle: HANDLES[idx % HANDLES.length],
-      tag,
-      type: CONTRIB_TYPES[Math.floor(r() * CONTRIB_TYPES.length)],
-      resonance: Math.floor(r() * 40 + 55),
-      angle: (idx / total) * Math.PI * 2,
-      radius: 180 + r() * 60,
-      active: r() > 0.25,
-      waveformSeed: Math.floor(r() * 9999),
-      color: TAG_COLORS[tag],
-      joinedAt: Date.now() - Math.floor(r() * 3600000),
-    }
-  }
-
-
-  // ─── State ───────────────────────────────────────────────────────────────
-  const [carriers, setCarriers] = useState<Carrier[]>(() =>
-    Array.from({ length: 24 }, (_, i) => makeCarrier(i, 24))
-  )
-  const [resonance, setResonance] = useState(67)
-  const [intensity, setIntensity] = useState(0.6)
-  const [orbPhase, setOrbPhase] = useState(0)
-  const [ecoEvent, setEcoEvent] = useState<EcoEvent | null>(null)
-  const [hoveredCarrier, setHoveredCarrier] = useState<string | null>(null)
-  const [contributing, setContributing] = useState(false)
-  const [selectedType, setSelectedType] = useState<ContribType>('voice')
-  const [selectedTag, setSelectedTag] = useState<EmotionalTag>('nocturne')
-  const [isRecording, setIsRecording] = useState(false)
-  const [recordSeconds, setRecordSeconds] = useState(0)
-  const [justContributed, setJustContributed] = useState(false)
-  const [masterWave, setMasterWave] = useState(() => genWave(42))
-  const [layerWaves, setLayerWaves] = useState(() => [genWave(7), genWave(33), genWave(91)])
-  const [activeLayerIdx, setActiveLayerIdx] = useState(0)
-  const ecoEventRef = useRef(0)
-  const orbRef = useRef<HTMLDivElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animRef = useRef(0)
-  const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  const activeCount = carriers.filter(c => c.active).length
-
-  // ─── Orb animation loop ───────────────────────────────────────────────────
+  // tides shift; the sea slowly carries you into new zones
   useEffect(() => {
-    let frame = 0
-    const tick = () => {
-      frame++
-      setOrbPhase(frame * 0.012)
-      if (frame % 120 === 0) {
-        setMasterWave(genWave(frame + 42))
-        setActiveLayerIdx(i => (i + 1) % 3)
-      }
-      if (frame % 180 === 0) {
-        setResonance(r => Math.min(99, Math.max(40, r + (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 4))))
-        setIntensity(Math.random() * 0.4 + 0.5)
-      }
-      animRef.current = requestAnimationFrame(tick)
+    const t = window.setInterval(() => setTideIdx(n => n + 1), 9000)
+    const z = window.setInterval(() => {
+      setZoneIdx(i => (i + 1) % SEA_ZONES.length)
+      // currents replace a drifting signal now and then
+      setBuoys(prev => {
+        const replaceAt = Math.floor(Math.random() * prev.length)
+        return prev.map((b, i) => (i === replaceAt && !stabilized.includes(b.id) ? makeBuoy(b.id + prev.length * 3, night) : b))
+      })
+    }, 40000)
+    const timers = timersRef.current
+    return () => {
+      window.clearInterval(t)
+      window.clearInterval(z)
+      timers.forEach(id => window.clearTimeout(id))
+      stopPreviewBuffer()
     }
-    animRef.current = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(animRef.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ─── Particle canvas ──────────────────────────────────────────────────────
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight }
-    resize()
-    window.addEventListener('resize', resize)
-    const particles = Array.from({ length: 60 }, (_, i) => {
-      const r = pseudoRand(i * 17)
-      const colors = ['#f472b6','#22d3ee','#c084fc','#a78bfa','#ffffff']
-      return { x: r() * 100, y: r() * 100, size: r() * 1.8 + 0.4, opacity: r() * 0.35 + 0.05,
-               sx: (r() - 0.5) * 0.012, sy: (r() - 0.5) * 0.012 - 0.004, color: colors[Math.floor(r() * 5)] }
-    })
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      particles.forEach(p => {
-        p.x += p.sx; p.y += p.sy
-        if (p.x < -1) p.x = 101; if (p.x > 101) p.x = -1
-        if (p.y < -1) p.y = 101; if (p.y > 101) p.y = -1
-        ctx.beginPath()
-        ctx.arc((p.x / 100) * canvas.width, (p.y / 100) * canvas.height, p.size, 0, Math.PI * 2)
-        ctx.fillStyle = p.color + Math.round(p.opacity * 255).toString(16).padStart(2, '0')
-        ctx.fill()
-      })
-      requestAnimationFrame(draw)
-    }
-    draw()
-    return () => window.removeEventListener('resize', resize)
-  }, [])
-
-  // ─── Ecosystem events ─────────────────────────────────────────────────────
-  useEffect(() => {
-    const fire = () => {
-      const msg = CF_ECO_EVENTS[ecoEventRef.current % CF_ECO_EVENTS.length]
-      ecoEventRef.current++
-      setEcoEvent({ id: Date.now().toString(), msg })
-      setTimeout(() => setEcoEvent(null), 5000)
-    }
-    const t1 = setTimeout(fire, 8000)
-    const interval = setInterval(fire, 18000 + Math.random() * 12000)
-    return () => { clearTimeout(t1); clearInterval(interval) }
-  }, [])
-
-  // ─── Recording timer ──────────────────────────────────────────────────────
-  useEffect(() => {
-    if (isRecording) {
-      recTimerRef.current = setInterval(() => setRecordSeconds(s => s + 1), 1000)
-    } else {
-      if (recTimerRef.current) clearInterval(recTimerRef.current)
-      setRecordSeconds(0)
-    }
-    return () => { if (recTimerRef.current) clearInterval(recTimerRef.current) }
-  }, [isRecording])
-
-  // ─── Contribute handler ──────────────────────────────────────────────────
-  const handleContribute = () => {
-    if (isRecording) {
-      setIsRecording(false)
-      setJustContributed(true)
-      setTimeout(() => setJustContributed(false), 3000)
-      // Add a new carrier or activate an existing one
-      setCarriers(prev => {
-        const inactive = prev.findIndex(c => !c.active)
-        if (inactive === -1) return prev
-        const updated = [...prev]
-        updated[inactive] = {
-          ...updated[inactive],
-          active: true,
-          tag: selectedTag,
-          type: selectedType,
-          resonance: Math.floor(Math.random() * 30 + 65),
-          waveformSeed: Math.floor(Math.random() * 9999),
-          color: TAG_COLORS[selectedTag],
-        }
-        return updated
-      })
-      setResonance(r => Math.min(99, r + Math.floor(Math.random() * 5 + 2)))
-      setLayerWaves(prev => {
-        const next = [...prev]
-        next[Math.floor(Math.random() * 3)] = genWave(Math.floor(Math.random() * 9999))
-        return next
-      })
-    } else {
-      setIsRecording(true)
-    }
+  const say = (text: string) => {
+    setPing(text)
+    timersRef.current.push(window.setTimeout(() => setPing(null), 4000))
   }
 
-  // ─── Connection lines on canvas (SVG) ────────────────────────────────────
-  const centerX = 50 // percent
-  const centerY = 42
+  // drifting near a signal: it clarifies; drifting away: it fades back to sea
+  const driftNear = (b: SeaBuoy) => {
+    setNearId(b.id)
+    void playSampleBuffer(b.kind, b.seed, 7000, 0.3)
+  }
 
-  const hovered = hoveredCarrier ? carriers.find(c => c.id === hoveredCarrier) : null
+  const driftAway = () => {
+    setNearId(null)
+    stopPreviewBuffer()
+  }
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  const saveEcho = (b: SeaBuoy) => {
+    saveToLibrary('drift', `sea-${b.id}`, `echo from the sea · "${b.fragment.slice(0, 36)}"`)
+    say('echo saved · it will keep drifting with you')
+  }
+
+  const stabilize = (b: SeaBuoy) => {
+    setStabilized(prev => [...prev, b.id])
+    say('signal stabilized · it will not fade tonight')
+  }
+
+  const followCurrent = () => {
+    setZoneIdx(i => (i + 1) % SEA_ZONES.length)
+    setBuoys(prev => prev.map(b => (stabilized.includes(b.id) ? b : makeBuoy(b.id + 100 + Math.floor(Math.random() * 50), night))))
+    say(`the current carried you into ${SEA_ZONES[(zoneIdx + 1) % SEA_ZONES.length].toLowerCase()}`)
+  }
+
+  const sendIntoSea = () => {
+    reactToSignal('frequency-sea', 'released a signal into the sea')
+    say('your signal drifted out past the horizon')
+  }
+
   return (
-    <div className="cf-screen">
-      {/* Particle canvas */}
-      <canvas ref={canvasRef} className="cf-particle-canvas" />
+    <div className={`sea-screen${night ? ' sea-screen--night' : ''}`}>
+      <div className="sea-fog sea-fog-a" aria-hidden="true" />
+      <div className="sea-fog sea-fog-b" aria-hidden="true" />
+      <div className="sea-glow" aria-hidden="true" />
+      <div className="sea-lightning" aria-hidden="true" />
+      <div className="sea-waves" aria-hidden="true"><span /><span /><span /></div>
 
-      {/* Atmospheric fog */}
-      <div className="cf-fog cf-fog-1" />
-      <div className="cf-fog cf-fog-2" />
-      <div className="cf-fog cf-fog-3" />
+      <header className="sea-header">
+        <span className="sea-kicker">FREQUENCY SEA</span>
+        <h1 className="sea-zone" key={zoneIdx}>{SEA_ZONES[zoneIdx]}</h1>
+        <p className="sea-tide" key={tideIdx}>{SEA_TIDES[tideIdx % SEA_TIDES.length]}{night ? ' · night tide' : ''}</p>
+      </header>
 
-      {/* Tuning band sweep */}
-      <div className="cf-tuning-sweep" aria-hidden="true" />
-
-      {/* Scan lines */}
-      <div className="cf-scanlines" />
-
-      {/* Ambient orbs */}
-      <div className="cf-orb-bg cf-orb-bg--pink" style={{ opacity: intensity * 0.6 }} />
-      <div className="cf-orb-bg cf-orb-bg--cyan" style={{ opacity: intensity * 0.5 }} />
-      <div className="cf-orb-bg cf-orb-bg--violet" style={{ opacity: intensity * 0.4 }} />
-
-      {/* Header */}
-      <div className="cf-header">
-        <div className="cf-header-left">
-          <div className="cf-live-ring" />
-          <div>
-            <h1 className="cf-title">COLLECTIVE FREQUENCY</h1>
-            <p className="cf-subtitle">32 carriers shaping the same signal stream</p>
-          </div>
-        </div>
-        <div className="cf-header-stats">
-          <div className="cf-stat">
-            <span className="cf-stat-val" style={{ color: '#22d3ee' }}>{activeCount}</span>
-            <span className="cf-stat-label">active carriers</span>
-          </div>
-          <div className="cf-stat">
-            <span className="cf-stat-val" style={{ color: '#f472b6' }}>{resonance}%</span>
-            <span className="cf-stat-label">resonance</span>
-          </div>
-          <div className="cf-stat">
-            <span className="cf-stat-val" style={{ color: '#c084fc' }}>{layerWaves.length + 1}</span>
-            <span className="cf-stat-label">layers</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main stage */}
-      <div className="cf-stage">
-
-        {/* SVG connection lines */}
-        <svg className="cf-connection-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {carriers.filter(c => c.active).map(c => {
-            const cx = centerX + Math.cos(c.angle) * (c.radius / 8)
-            const cy = centerY + Math.sin(c.angle) * (c.radius / 10)
-            const isHov = hoveredCarrier === c.id
-            return (
-              <line
-                key={c.id}
-                x1={centerX} y1={centerY}
-                x2={cx} y2={cy}
-                stroke={c.color}
-                strokeWidth={isHov ? 0.3 : 0.12}
-                strokeOpacity={isHov ? 0.7 : 0.2}
-                strokeDasharray={isHov ? '0' : '0.5 1.5'}
-              />
-            )
-          })}
-        </svg>
-
-        {/* Central orb */}
-        <div className="cf-orb-zone">
-          <div
-            className="cf-orb"
-            ref={orbRef}
-            style={{
-              boxShadow: `0 0 ${40 + intensity * 60}px rgba(244,114,182,${0.15 + intensity * 0.25}),
-                          0 0 ${80 + intensity * 80}px rgba(34,211,238,${0.08 + intensity * 0.15}),
-                          0 0 ${120 + intensity * 100}px rgba(192,132,252,${0.05 + intensity * 0.1}),
-                          inset 0 0 60px rgba(0,0,0,0.6)`,
-              transform: `scale(${1 + Math.sin(orbPhase) * 0.04 + intensity * 0.06})`,
-            }}
-          >
-            {/* Orb inner waveform */}
-            <div className="cf-orb-wave">
-              {masterWave.slice(0, 24).map((h, i) => (
-                <div
-                  key={i}
-                  className="cf-orb-bar"
-                  style={{
-                    height: `${h * 60 + 8}%`,
-                    backgroundColor: i % 3 === 0 ? '#f472b6' : i % 3 === 1 ? '#22d3ee' : '#c084fc',
-                    opacity: 0.5 + h * 0.5,
-                  }}
-                />
-              ))}
-            </div>
-            {/* Orb rings */}
-            <div className="cf-orb-ring cf-orb-ring-1" style={{ borderColor: `rgba(244,114,182,${0.15 + intensity * 0.2})` }} />
-            <div className="cf-orb-ring cf-orb-ring-2" style={{ borderColor: `rgba(34,211,238,${0.1 + intensity * 0.15})` }} />
-            <div className="cf-orb-ring cf-orb-ring-3" style={{ borderColor: `rgba(192,132,252,${0.08 + intensity * 0.1})` }} />
-            <div className="cf-orb-core" />
-            <div className="cf-orb-label">
-              <span className="cf-orb-label-top">frequency</span>
-              <span className="cf-orb-label-res" style={{ color: resonance > 80 ? '#f472b6' : '#22d3ee' }}>{resonance}%</span>
-              <span className="cf-orb-label-bot">resonance</span>
-            </div>
-          </div>
-
-          {/* Carrier nodes orbiting */}
-          {carriers.map(c => {
-            const isHov = hoveredCarrier === c.id
-            const orbitR = c.radius
-            const x = 50 + Math.cos(c.angle + orbPhase * 0.3) * (orbitR / 4.2)
-            const y = 50 + Math.sin(c.angle + orbPhase * 0.2) * (orbitR / 6)
-            return (
-              <div
-                key={c.id}
-                className={`cf-node ${c.active ? 'cf-node--active' : 'cf-node--idle'} ${isHov ? 'cf-node--hovered' : ''}`}
-                style={{
-                  left: `${x}%`,
-                  top: `${y}%`,
-                  '--node-color': c.color,
-                } as React.CSSProperties}
-                onMouseEnter={() => setHoveredCarrier(c.id)}
-                onMouseLeave={() => setHoveredCarrier(null)}
-              >
-                <div className="cf-node-pulse" />
-                <div className="cf-node-dot" />
-                {isHov && (
-                  <div className="cf-node-tooltip">
-                    <span className="cf-node-handle">{c.handle}</span>
-                    <span className="cf-node-tag" style={{ color: c.color }}>{c.tag}</span>
-                    <span className="cf-node-type">{CONTRIB_LABELS[c.type]}</span>
-                    <span className="cf-node-reso">{c.resonance}% resonance</span>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Layer waveforms */}
-        <div className="cf-layer-waves">
-          {layerWaves.map((wave, li) => (
-            <div key={li} className={`cf-layer-wave ${li === activeLayerIdx ? 'cf-layer-wave--active' : ''}`}>
-              <div className="cf-layer-label">layer {li + 1}</div>
-              <div className="cf-layer-bars">
-                {wave.map((h, bi) => (
-                  <div
-                    key={bi}
-                    className="cf-layer-bar"
-                    style={{
-                      height: `${h * 100}%`,
-                      backgroundColor: li === 0 ? '#f472b6' : li === 1 ? '#22d3ee' : '#c084fc',
-                      opacity: (li === activeLayerIdx ? 0.7 : 0.3) + h * 0.3,
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-      </div>
-
-      {/* Intensity meter */}
-      <div className="cf-meters">
-        <div className="cf-meter">
-          <span className="cf-meter-label">emotional intensity</span>
-          <div className="cf-meter-track">
-            <div className="cf-meter-fill cf-meter-fill--intensity"
-              style={{ width: `${intensity * 100}%`, background: 'linear-gradient(90deg, #c084fc, #f472b6)' }} />
-          </div>
-          <span className="cf-meter-val">{Math.round(intensity * 100)}%</span>
-        </div>
-        <div className="cf-meter">
-          <span className="cf-meter-label">resonance stability</span>
-          <div className="cf-meter-track">
-            <div className="cf-meter-fill"
-              style={{ width: `${resonance}%`, background: 'linear-gradient(90deg, #22d3ee, #c084fc)' }} />
-          </div>
-          <span className="cf-meter-val">{resonance}%</span>
-        </div>
-      </div>
-
-      {/* Contribute panel */}
-      <div className="cf-contribute-panel">
-        {!contributing ? (
-          <button className="cf-contribute-open" onClick={() => setContributing(true)}>
-            <span className="cf-contribute-open-icon">⬡</span>
-            contribute to the frequency
-          </button>
-        ) : (
-          <div className="cf-contribute-form">
-            <div className="cf-contribute-header">
-              <span className="cf-contribute-title">add your signal</span>
-              <button className="cf-contribute-close" onClick={() => { setContributing(false); setIsRecording(false) }}>✕</button>
-            </div>
-
-            {/* Type selector */}
-            <div className="cf-type-row">
-              <span className="cf-type-label">signal type</span>
-              <div className="cf-type-pills">
-                {CONTRIB_TYPES.map(t => (
-                  <button
-                    key={t}
-                    className={`cf-type-pill ${selectedType === t ? 'cf-type-pill--active' : ''}`}
-                    onClick={() => setSelectedType(t)}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Emotional tag */}
-            <div className="cf-tag-row">
-              <span className="cf-type-label">emotional tag</span>
-              <div className="cf-tag-pills">
-                {TAGS.map(tag => (
-                  <button
-                    key={tag}
-                    className={`cf-tag-pill ${selectedTag === tag ? 'cf-tag-pill--active' : ''}`}
-                    style={{ '--tag-color': TAG_COLORS[tag] } as React.CSSProperties}
-                    onClick={() => setSelectedTag(tag)}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Record button */}
-            <div className="cf-record-row">
-              {isRecording ? (
-                <div className="cf-recording-state">
-                  <div className="cf-rec-dot" />
-                  <span className="cf-rec-time">recording · {recordSeconds}s</span>
-                  <span className="cf-rec-hint">tap to finish (max 15s)</span>
-                </div>
-              ) : justContributed ? (
-                <div className="cf-success-state">
-                  <span className="cf-success-icon">◈</span>
-                  <span className="cf-success-text">signal added to the frequency</span>
-                </div>
-              ) : null}
+      <div className="sea-field">
+        {buoys.map(b => {
+          const near = nearId === b.id
+          const isStable = stabilized.includes(b.id)
+          return (
+            <div
+              key={b.id}
+              className={`sea-buoy sea-buoy--${b.source}${near ? ' near' : ''}${b.fading && !isStable ? ' fading' : ''}${b.deep ? ' deep' : ''}`}
+              style={{ '--top': `${b.top}%`, '--dur': `${b.duration}s`, '--delay': `${b.delay}s` } as CSSProperties}
+            >
               <button
-                className={`cf-record-btn ${isRecording ? 'cf-record-btn--recording' : ''} ${justContributed ? 'cf-record-btn--done' : ''}`}
-                onClick={handleContribute}
-                disabled={justContributed || (isRecording && recordSeconds >= 15)}
+                type="button"
+                className="sea-buoy-light"
+                onPointerEnter={() => driftNear(b)}
+                onPointerLeave={driftAway}
+                onClick={() => (near ? driftAway() : driftNear(b))}
+                aria-label={`drift near a distant ${b.source} signal`}
               >
-                {justContributed ? '◈ transmitted' : isRecording ? '▐▐ finish recording' : '● begin recording'}
+                <i /><i /><i />
               </button>
-              {!isRecording && !justContributed && (
-                <>
-                <button
-                  className="cf-upload-btn"
-                  type="button"
-                  onClick={() => uploadRef.current?.click()}
-                >
-                  ⬡ upload audio file
-                </button>
-                <input
-                  ref={uploadRef}
-                  type="file"
-                  accept="audio/*"
-                  hidden
-                  onChange={e => {
-                    const file = e.target.files?.[0]
-                    e.target.value = ''
-                    if (!file) return
-                    void cfAudio.playBlob(file, { id: `upload-${Date.now()}`, label: file.name.slice(0, 40), source: 'frequencies' })
-                    setCarriers(prev => {
-                      const inactive = prev.findIndex(c => !c.active)
-                      if (inactive === -1) return prev
-                      const updated = [...prev]
-                      updated[inactive] = { ...updated[inactive], active: true, tag: selectedTag, type: 'ambient', resonance: Math.floor(Math.random() * 25 + 70) }
-                      return updated
-                    })
-                    setResonance(r => Math.min(99, r + 4))
-                    setEcoEvent({ id: Date.now().toString(), msg: 'uploaded audio joined the collective' })
-                    setTimeout(() => setEcoEvent(null), 5000)
-                  }}
-                />
-                </>
+              {near && (
+                <div className="sea-fragment">
+                  <p>"{b.fragment}"</p>
+                  <div className="sea-fragment-actions">
+                    <button type="button" onClick={() => saveEcho(b)}>✶ save echo</button>
+                    {b.fading && !isStable && (
+                      <button type="button" onClick={() => stabilize(b)}>◌ stabilize</button>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
-          </div>
-        )}
+          )
+        })}
       </div>
 
-      {/* Active carriers list */}
-      <div className="cf-carriers-strip">
-        <div className="cf-carriers-label">active carriers</div>
-        <div className="cf-carriers-row">
-          {carriers.filter(c => c.active).slice(0, 16).map(c => (
-            <div
-              key={c.id}
-              className={`cf-carrier-chip ${hoveredCarrier === c.id ? 'cf-carrier-chip--hovered' : ''}`}
-              style={{ '--chip-color': c.color } as React.CSSProperties}
-              onMouseEnter={() => setHoveredCarrier(c.id)}
-              onMouseLeave={() => setHoveredCarrier(null)}
-            >
-              <div className="cf-chip-dot" />
-              <span className="cf-chip-handle">{c.handle}</span>
-              <span className="cf-chip-tag">{c.tag}</span>
-            </div>
-          ))}
-          {activeCount > 16 && (
-            <div className="cf-carrier-more">+{activeCount - 16} more</div>
-          )}
-        </div>
-      </div>
+      {ping && <div className="sea-ping" key={ping}>{ping}</div>}
 
-      {/* Ecosystem event */}
-      {ecoEvent && (
-        <div className="cf-eco-event" key={ecoEvent.id}>
-          <span className="cf-eco-icon">◈</span>
-          <span className="cf-eco-msg">{ecoEvent.msg}</span>
-        </div>
-      )}
-
-      {/* Hovered carrier isolation overlay */}
-      {hovered && (
-        <div className="cf-isolation-bar" style={{ borderColor: hovered.color }}>
-          <span className="cf-iso-handle" style={{ color: hovered.color }}>{hovered.handle}</span>
-          <span className="cf-iso-tag">{hovered.tag} · {CONTRIB_LABELS[hovered.type]}</span>
-          <div className="cf-iso-wave">
-            {genWave(hovered.waveformSeed, 32).map((h, i) => (
-              <div key={i} className="cf-iso-bar"
-                style={{ height: `${h * 100}%`, backgroundColor: hovered!.color, opacity: 0.6 + h * 0.4 }} />
-            ))}
-          </div>
-          <span className="cf-iso-reso">{hovered.resonance}% resonance</span>
-        </div>
-      )}
-      <div className="content-well" style={{ paddingBottom: 0, minHeight: 0 }}><LiveTail page="frequencies" /></div>
+      <footer className="sea-controls">
+        <button type="button" onClick={followCurrent}>⇝ follow the current</button>
+        <button type="button" onClick={sendIntoSea}>◉ send a signal into the sea</button>
+      </footer>
     </div>
   )
 }
