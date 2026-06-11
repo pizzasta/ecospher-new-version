@@ -1210,3 +1210,220 @@ body[data-eco-page='unsent'] .eco-now-playing {
     transition: none;
   }
 }
+
+/* ═══ LIVE SIGNAL WINDOWS ════════════════════════════════════ */
+.lsw-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lsw-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.lsw-sub {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: rgba(255, 200, 130, 0.75);
+  animation: cardDecayUrgent 2.6s ease-in-out infinite;
+}
+
+.lsw-notice {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: #67e8f9;
+  animation: lpAmbientIn 0.4s ease both;
+}
+
+.lsw-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lsw-card {
+  position: relative;
+  overflow: hidden;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-color: rgba(255, 45, 120, calc(0.12 + var(--life, 1) * 0.32));
+  box-shadow: 0 0 calc(8px + var(--life, 1) * 18px) rgba(255, 45, 120, calc(var(--life, 1) * 0.14));
+  transition: border-color 1s linear, box-shadow 1s linear, opacity 0.6s ease;
+  animation: lpEnter 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* evolution phases */
+.lsw--fading {
+  filter: saturate(calc(0.55 + var(--life, 1) * 0.45));
+}
+
+.lsw--unstable {
+  filter: saturate(0.6) hue-rotate(-12deg);
+  animation: lswJitter 0.4s steps(2) infinite;
+}
+
+.lsw--unstable::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255, 255, 255, 0.025) 3px 4px);
+  animation: ecoStaticFall 0.4s steps(3) infinite;
+}
+
+@keyframes lswJitter {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(0.6px); }
+}
+
+.lsw--answered {
+  border-color: rgba(0, 212, 255, 0.45);
+  box-shadow: 0 0 26px rgba(0, 212, 255, 0.16);
+  filter: none;
+}
+
+.lsw--kept {
+  border-color: rgba(0, 212, 255, 0.35);
+}
+
+.lsw--expired {
+  animation: signalDissolve 1.8s ease forwards;
+  pointer-events: none;
+}
+
+.lsw-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lsw-handle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  color: var(--pink, #ff2d78);
+}
+
+.lsw-timer {
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: rgba(255, 200, 130, 0.9);
+}
+
+.lsw-timer.urgent {
+  color: #ff5a78;
+  animation: cardDecayUrgent 0.9s ease-in-out infinite;
+}
+
+.lsw-state {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: #67e8f9;
+}
+
+.lsw-state--gone {
+  color: rgba(140, 155, 195, 0.55);
+}
+
+.lsw-content {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary, #f0f4ff);
+  margin: 0;
+}
+
+.lsw-card .lp-wave {
+  margin: 0;
+  height: 24px;
+}
+
+.lsw--unstable .lp-wave i {
+  animation-duration: 0.25s;
+  opacity: 0.6;
+}
+
+.lsw-lifebar {
+  height: 2px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.lsw-lifebar i {
+  display: block;
+  height: 100%;
+  border-radius: 1px;
+  background: linear-gradient(90deg, rgba(0, 212, 255, 0.75), rgba(255, 45, 120, 0.8));
+  transition: width 1s linear;
+}
+
+.lsw-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.lsw-actions button {
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: lowercase;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(220, 228, 250, 0.85);
+  transition: border-color 0.25s ease, box-shadow 0.3s ease, transform 0.15s ease;
+}
+
+.lsw-actions button:hover {
+  border-color: rgba(255, 45, 120, 0.5);
+  box-shadow: 0 0 14px rgba(255, 45, 120, 0.18);
+}
+
+.lsw-actions button:active {
+  transform: scale(0.95);
+}
+
+.lsw-reply {
+  background: rgba(255, 45, 120, 0.14) !important;
+  border-color: rgba(255, 45, 120, 0.5) !important;
+  color: #fff !important;
+}
+
+.lsw-reply.recording {
+  background: rgba(255, 45, 120, 0.3) !important;
+  animation: cardDecayUrgent 0.7s ease-in-out infinite;
+}
+
+.lsw-epitaph {
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(140, 155, 195, 0.6);
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lsw-sub,
+  .lsw--unstable,
+  .lsw--unstable::after,
+  .lsw-timer.urgent,
+  .lsw-reply.recording,
+  .lsw--expired {
+    animation: none;
+  }
+}
