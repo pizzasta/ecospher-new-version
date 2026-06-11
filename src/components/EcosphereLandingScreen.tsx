@@ -1,6 +1,7 @@
 import './EcosphereLandingScreen.css'
 import type { CSSProperties } from 'react'
 import { useCallback, useState } from 'react'
+import { usePointerParallax } from '../hooks/usePointerParallax'
 import { AnimatePresence, motion } from 'framer-motion'
 
 const particleCount = 26
@@ -9,8 +10,16 @@ type EcosphereLandingScreenProps = {
   onEnterComplete?: () => void
 }
 
+const liveIndicators = [
+  { label: 'signal · 88.1 detected', x: '12%', y: '22%', delay: '0s' },
+  { label: '3 carriers drifting', x: '74%', y: '16%', delay: '1.2s' },
+  { label: 'nocturne band open', x: '16%', y: '72%', delay: '2.4s' },
+  { label: 'resonance 67%', x: '78%', y: '68%', delay: '3.4s' },
+]
+
 export default function EcosphereLandingScreen({ onEnterComplete }: EcosphereLandingScreenProps) {
   const [isEntering, setIsEntering] = useState(false)
+  const parallaxRef = usePointerParallax<HTMLElement>()
 
   const beginTransition = useCallback(() => {
     if (isEntering) return
@@ -23,6 +32,7 @@ export default function EcosphereLandingScreen({ onEnterComplete }: EcosphereLan
       animate={isEntering ? { filter: 'blur(18px)', opacity: 0, scale: 1.035 } : { filter: 'blur(0px)', opacity: 1, scale: 1 }}
       aria-label="Ecosphere landing screen"
       className={`ecosphere-landing ${isEntering ? 'is-entering' : ''}`}
+      ref={parallaxRef}
       exit={{ filter: 'blur(18px)', opacity: 0, scale: 1.035 }}
       initial={{ filter: 'blur(10px)', opacity: 0, scale: 1.02 }}
       onAnimationComplete={() => {
@@ -48,6 +58,19 @@ export default function EcosphereLandingScreen({ onEnterComplete }: EcosphereLan
         ))}
       </div>
 
+      <div className="ecosphere-landing__indicators" aria-hidden="true">
+        {liveIndicators.map(ind => (
+          <span
+            key={ind.label}
+            className="ecosphere-landing__indicator"
+            style={{ left: ind.x, top: ind.y, '--ind-delay': ind.delay } as CSSProperties}
+          >
+            <i />
+            {ind.label}
+          </span>
+        ))}
+      </div>
+
       <div className="ecosphere-landing__content">
         <p className="ecosphere-landing__eyebrow">SIGNAL GATE // ONLINE</p>
         <div className="ecosphere-landing__mark" aria-hidden="true">
@@ -57,6 +80,11 @@ export default function EcosphereLandingScreen({ onEnterComplete }: EcosphereLan
         </div>
         <h1>ECOSPHERE</h1>
         <p className="ecosphere-landing__subtitle">anonymous signals drifting through the late-night frequency field.</p>
+        <div className="ecosphere-landing__wave" aria-hidden="true">
+          {Array.from({ length: 24 }, (_, i) => (
+            <em key={i} style={{ '--wd': `${(i % 8) * 0.11}s`, '--wh': `${28 + ((i * 37) % 60)}%` } as CSSProperties} />
+          ))}
+        </div>
         <button className="ecosphere-landing__button" disabled={isEntering} onClick={beginTransition} type="button">
           ENTER THE GATE
         </button>

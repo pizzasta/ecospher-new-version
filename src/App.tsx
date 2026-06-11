@@ -1745,44 +1745,63 @@ function SoulPodScreen({ user, onSignOut }: { user: { email?: string; id: string
           <h2 className="screen-title">Enter Your Pod</h2>
           <p className="screen-sub">authenticate to access your private signal chamber</p>
         </div>
-        <div className="glass" style={{ padding: '24px', borderRadius: '16px', maxWidth: '380px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        <div className="glass pod-auth">
+          <div className="pod-auth-visualizer" aria-hidden="true"><span /><span /><span /></div>
+          <div className="pod-auth-tabs">
             {(['login', 'signup'] as const).map(mode => (
-              <button key={mode} onClick={() => { setAuthMode(mode); setError(null); setMessage(null) }}
-                style={{ flex: 1, padding: '8px', borderRadius: '10px', border: '1px solid', cursor: 'pointer', fontSize: '12px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'all 0.2s ease', background: authMode === mode ? 'rgba(255,45,120,0.18)' : 'rgba(255,255,255,0.04)', borderColor: authMode === mode ? '#ff2d7888' : 'rgba(255,255,255,0.08)', color: authMode === mode ? '#ff2d78' : 'rgba(180,190,220,0.5)' }}>
+              <button
+                key={mode}
+                type="button"
+                className={`pod-auth-tab${authMode === mode ? ' active' : ''}`}
+                onClick={() => { setAuthMode(mode); setError(null); setMessage(null) }}
+              >
                 {mode === 'login' ? 'Sign In' : 'Sign Up'}
               </button>
             ))}
           </div>
-          <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <form onSubmit={handleAuth} className="pod-auth-form">
             {authMode === 'signup' && (
-              <div>
-                <label style={{ fontSize: '10px', color: 'rgba(180,190,220,0.45)', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Signal Name</label>
-                <input type="text" value={signalName} onChange={e => setSignalName(e.target.value)} placeholder="how the ecosystem knows you"
-                  style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#f0f4ff', fontSize: '13px', outline: 'none' }} />
+              <div className="pod-auth-field">
+                <label htmlFor="pod-signal-name">Signal Name</label>
+                <input
+                  id="pod-signal-name"
+                  type="text"
+                  value={signalName}
+                  onChange={e => setSignalName(e.target.value)}
+                  placeholder="how the ecosystem knows you"
+                />
               </div>
             )}
-            <div>
-              <label style={{ fontSize: '10px', color: 'rgba(180,190,220,0.45)', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="your signal address"
-                style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#f0f4ff', fontSize: '13px', outline: 'none' }} />
+            <div className="pod-auth-field">
+              <label htmlFor="pod-email">Email</label>
+              <input
+                id="pod-email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                placeholder="your signal address"
+              />
             </div>
-            <div>
-              <label style={{ fontSize: '10px', color: 'rgba(180,190,220,0.45)', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Password</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="minimum 6 characters"
-                style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#f0f4ff', fontSize: '13px', outline: 'none' }} />
+            <div className="pod-auth-field">
+              <label htmlFor="pod-password">Password</label>
+              <input
+                id="pod-password"
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                placeholder="minimum 6 characters"
+              />
             </div>
-            {error && <div style={{ fontSize: '12px', color: '#ff2d78', padding: '8px 12px', background: 'rgba(255,45,120,0.1)', borderRadius: '8px', border: '1px solid rgba(255,45,120,0.25)' }}>{error}</div>}
-            {message && <div style={{ fontSize: '12px', color: '#00d4ff', padding: '8px 12px', background: 'rgba(0,212,255,0.1)', borderRadius: '8px', border: '1px solid rgba(0,212,255,0.25)' }}>{message}</div>}
-            <button type="submit" disabled={loading}
-              style={{ padding: '12px', background: loading ? 'rgba(255,45,120,0.25)' : 'rgba(255,45,120,0.18)', border: '1px solid #ff2d7866', borderRadius: '12px', color: '#ff2d78', fontSize: '13px', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s ease', letterSpacing: '0.05em' }}>
-              {loading ? 'transmitting...' : authMode === 'login' ? 'Enter Pod' : 'Create Signal'}
+            {error && <div className="pod-auth-notice pod-auth-notice--error">{error}</div>}
+            {message && <div className="pod-auth-notice pod-auth-notice--ok">{message}</div>}
+            <button type="submit" className="pod-auth-submit" disabled={loading}>
+              {loading ? 'transmitting…' : authMode === 'login' ? 'Enter Pod' : 'Create Signal'}
             </button>
           </form>
           {!supabase && (
-            <div style={{ marginTop: '16px', fontSize: '11px', color: 'rgba(180,190,220,0.35)', textAlign: 'center', fontStyle: 'italic' }}>
-              ⚡ Supabase not yet configured — add env vars to enable auth
-            </div>
+            <div className="pod-auth-hint">⚡ Supabase not yet configured — add env vars to enable auth</div>
           )}
         </div>
       </div>
