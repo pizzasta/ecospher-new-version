@@ -10,6 +10,8 @@ import {
 } from '../lib/notifications'
 import type { EcoNotification } from '../lib/notifications'
 import Toast from './Toast'
+import HzBadge from './HzBadge'
+import { PHANTOM_HZ } from '../lib/hzSignature'
 import './NotificationBell.css'
 
 const DROPDOWN_LIMIT = 10
@@ -135,7 +137,10 @@ function NotificationRow({ notification, onRead }: { notification: EcoNotificati
       <span className="notif-glyph" aria-hidden="true">{NOTIFICATION_GLYPHS[notification.type]}</span>
       <div className="notif-body">
         <p>{notification.text}</p>
-        <span>{formatRelativeTime(notification.createdAt)}{notification.type === 'phantom_interaction' ? ' · phantom' : ''}</span>
+        <span>
+          {formatRelativeTime(notification.createdAt)}
+          {notification.type === 'phantom_interaction' && <>{' '}<HzBadge compact {...PHANTOM_HZ} /></>}
+        </span>
       </div>
       {!notification.read && (
         <button type="button" className="notif-read-dot" title="mark as read" aria-label="mark as read" onClick={() => onRead(notification)} />

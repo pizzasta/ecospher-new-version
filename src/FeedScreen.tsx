@@ -8,6 +8,8 @@ import { listenerCount, livedInLines } from './lib/livedIn'
 import { fetchPublicSignals, mirrorActivity, mirrorSignalFade } from './lib/backendBridge'
 import { moderatePublicSignalText } from './lib/signalModeration'
 import { GHOST_ARCHIVE } from './lib/ghostArchive'
+import { hzForHandle } from './lib/hzSignature'
+import HzBadge from './components/HzBadge'
 
 const hiddenKey = 'ecosphere:hiddenSignals'
 function loadHidden(): string[] {
@@ -393,7 +395,8 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick }:
         <div className="card-header">
           <div className="card-handle-row">
             <div className="card-handle" style={{ color: isCorrupted ? '#ff3366' : colors.primary }}>
-              {signal.anonymous ? '⬡' : '◈'} {signal.handle}
+              {signal.anonymous ? '⬡' : '◈'} {signal.handle}{' '}
+              <HzBadge compact {...hzForHandle(signal.handle)} />
             </div>
             <div className="card-status" style={{ color: colors.primary, opacity: 0.7 }}>
               {STATUS_LABELS[signal.status]}

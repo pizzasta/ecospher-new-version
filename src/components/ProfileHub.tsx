@@ -7,7 +7,11 @@ import type { StoredRecording } from '../lib/localAudioStore'
 import { getListenCounts, getProfile, updateBio } from '../lib'
 import { isSupabaseConfigured } from '../lib/supabase-env'
 import { generateLocalBio, requestAiBio } from '../lib/aiBio'
+import { getHzProfile } from '../lib/hzSignature'
+import type { HzProfile } from '../lib/hzSignature'
 import AudioPlayer from './AudioPlayer'
+import HzBadge from './HzBadge'
+import HzSettingsModal from './HzSettingsModal'
 import './ProfileHub.css'
 
 const BIO_KEY = 'ecosphere:bio'
@@ -46,6 +50,12 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   const [aiBioDraft, setAiBioDraft] = useState('')
   const [aiBioSeed, setAiBioSeed] = useState(0)
   const [aiBioBusy, setAiBioBusy] = useState(false)
+  const [hzProfile, setHzProfile] = useState<HzProfile | null>(null)
+  const [hzSettingsOpen, setHzSettingsOpen] = useState(false)
+
+  useEffect(() => {
+    void getHzProfile(username).then(setHzProfile)
+  }, [username])
 
   useEffect(() => {
     // join date: backend profile when available, else first local visit
@@ -130,9 +140,17 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
         <div className="ph-card glass">
           <div className="ph-header-row">
             <h3 className="ph-username">◈ {username}</h3>
-            <span className="ph-resonance" title="current resonance">{(ecosystemState.resonanceLevel + 0.3).toFixed(1)} Hz</span>
+            {hzProfile && (
+              <span className="ph-header-hz">
+                <HzBadge hz={hzProfile.hz} displayName={hzProfile.displayName} color={hzProfile.color} />
+                <button type="button" className="ph-hz-cog" title="hz signature settings" aria-label="hz signature settings" onClick={() => setHzSettingsOpen(true)}>⚙</button>
+              </span>
+            )}
           </div>
           {joined && <p className="ph-joined">on the band since {joined}</p>}
+          {hzSettingsOpen && hzProfile && (
+            <HzSettingsModal profile={hzProfile} onChange={setHzProfile} onClose={() => setHzSettingsOpen(false)} />
+          )}
 
           {!editingBio ? (
             <div className="ph-bio-row">

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiReact } from '../lib/mockApi'
 import { pushLocalNotification } from '../lib/notifications'
+import { PHANTOM_HZ, hzForHandle } from '../lib/hzSignature'
+import HzBadge from './HzBadge'
 import './ActiveCarriers.css'
 
 // "tuned to" — the carriers this user listens for (local-first; the listens
@@ -141,7 +143,10 @@ export default function ActiveCarriers({ onViewMap }: { onViewMap?: () => void }
         {carriers.map(carrier => (
           <li key={carrier.id} className={`carrier-row carrier-row--${carrier.status}`}>
             <div className="carrier-identity">
-              <span className="carrier-name">{carrier.name}</span>
+              <span className="carrier-name">
+                {carrier.name}{' '}
+                <HzBadge compact {...(carrier.id === 'phantom' ? PHANTOM_HZ : hzForHandle(carrier.name))} />
+              </span>
               <span className="carrier-last">{carrier.lastActive}</span>
             </div>
             <span className={`carrier-status carrier-status--${carrier.status}`}>
