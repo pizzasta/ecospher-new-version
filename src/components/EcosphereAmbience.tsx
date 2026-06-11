@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useEcosystemState } from '../hooks/useEcosystemState'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
+import { useEcoPref } from '../hooks/useEcoPrefs'
+import { uiClick, uiPop, uiScrollHiss } from '../lib/uiSound'
 import './EcosphereAmbience.css'
 
 // ─── Signal Weather ───────────────────────────────────────────────────────────
@@ -49,6 +51,7 @@ export default function EcosphereAmbience() {
   const [weather, setWeather] = useState<SignalWeather>(() => currentWeather())
   const [announcement, setAnnouncement] = useState<string | null>(null)
   const [presencePulse, setPresencePulse] = useState<string | null>(null)
+  const lurker = useEcoPref('lurker', false)
   const [listeners, setListeners] = useState(() => 14 + Math.floor(Math.random() * 23))
   const announcedRef = useRef<string | null>(null)
 
@@ -137,6 +140,42 @@ export default function EcosphereAmbience() {
     }
   }, [])
 
+  // sound-responsive UI: radio click on taps, pop on sends, hiss on scroll
+  useEffect(() => {
+    const onClick = (event: MouseEvent) => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      const interactive = target.closest('button, [role="button"], a, .toggle')
+      if (!interactive) return
+      if (interactive.classList.contains('eco-recorder-btn--send')) uiPop()
+      else uiClick()
+    }
+
+    let lastScrollY = window.scrollY
+    let lastTime = performance.now()
+    let scrollFrame: number | null = null
+    const onScroll = () => {
+      if (scrollFrame !== null) return
+      scrollFrame = requestAnimationFrame(() => {
+        scrollFrame = null
+        const now = performance.now()
+        const dt = Math.max(16, now - lastTime)
+        const speed = (Math.abs(window.scrollY - lastScrollY) / dt) * 1000
+        lastScrollY = window.scrollY
+        lastTime = now
+        uiScrollHiss(speed)
+      })
+    }
+
+    document.addEventListener('click', onClick, true)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      document.removeEventListener('click', onClick, true)
+      window.removeEventListener('scroll', onScroll)
+      if (scrollFrame !== null) cancelAnimationFrame(scrollFrame)
+    }
+  }, [])
+
   // click resonance ripples — direct DOM so taps never trigger React renders
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
@@ -171,10 +210,10 @@ export default function EcosphereAmbience() {
         <span className="eco-weather-layer eco-weather-layer-b" />
       </div>
 
-      <div className="eco-presence-chip" title={`signal weather: ${weather.label}`}>
+      <div className={`eco-presence-chip${lurker ? ' eco-presence-chip--lurking' : ''}`} title={`signal weather: ${weather.label}`}>
         <span className="eco-presence-dot" aria-hidden="true" />
         <span className="eco-presence-count">{listeners + Math.round(ecosystemState.roomActivity / 10)}</span>
-        <span className="eco-presence-label">listening · {weather.label}</span>
+        <span className="eco-presence-label">{lurker ? `lurking · unseen · ${weather.label}` : `listening · ${weather.label}`}</span>
       </div>
 
       {ecosystemState.activeAudio && (

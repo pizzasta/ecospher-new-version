@@ -99,3 +99,44 @@ export async function fetchPublicSignals(limit = 12): Promise<RemoteSignal[]> {
     return []
   }
 }
+
+// ─── Realtime ─────────────────────────────────────────────────────────────────
+
+export type EcosphereLiveEvent = { type: string; label: string; createdAt: number }
+
+/**
+ * Subscribe to live public activity (new signals, reactions, uploads) so the
+ * UI updates without a reload. No-op when the backend isn't configured.
+ * Returns an unsubscribe function. The supabase client reconnects its socket
+ * automatically; we also force a resubscribe when the browser comes back
+ * online after a connection drop.
+ */
+export function subscribeToEcosphereActivity(onEvent: (event: EcosphereLiveEvent) => void): () => void {
+  if (!isSupabaseConfigured) return () => {}
+  const client = getOptionalSupabaseClient()
+  if (!client) return () => {}
+
+  const channel = client
+    .channel('ecosphere-live-activity')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_events' }, (payload) => {
+      const row = payload.new as { type?: string; is_public?: boolean; metadata?: { label?: unknown } | null; created_at?: string }
+      if (!row?.is_public) return
+      const label = typeof row.metadata?.label === 'string' ? row.metadata.label : null
+      onEvent({
+        type: row.type ?? 'activity',
+        label: label ?? 'something moved in the ecosphere',
+        createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+      })
+    })
+    .subscribe()
+
+  const onOnline = () => {
+    void channel.subscribe()
+  }
+  window.addEventListener('online', onOnline)
+
+  return () => {
+    window.removeEventListener('online', onOnline)
+    void client.removeChannel(channel)
+  }
+}

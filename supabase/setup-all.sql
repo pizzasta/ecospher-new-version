@@ -418,3 +418,49 @@ from (values
 where not exists (
   select 1 from public.signals s where s.title = v.title
 );
+
+-- ─── Audio message metadata (migration 202606110002) ────────────────────────
+alter table public.audio_files
+  add column if not exists kind text not null default 'signal',
+  add column if not exists room_id text;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'audio_files_kind_check'
+  ) then
+    alter table public.audio_files
+      add constraint audio_files_kind_check
+      check (kind in ('signal', 'echo', 'capsule', 'drift_note'));
+  end if;
+end $$;
+
+create index if not exists audio_files_kind_idx on public.audio_files (kind);
+create index if not exists audio_files_room_idx on public.audio_files (room_id) where room_id is not null;
+
+-- Realtime: stream public activity inserts to connected clients
+do $$
+begin
+  alter publication supabase_realtime add table public.activity_events;
+exception
+  when duplicate_object then null;
+end $$;
+
+-- ─── Security hardening (migration 202606110003) ────────────────────────────
+-- Restrict insert policies to the authenticated role; the public anon key
+-- alone (no session) can no longer write.
+
+drop policy if exists "users can create their own signals" on public.signals;
+create policy "users can create their own signals" on public.signals
+  for insert to authenticated
+  with check (creator_id = auth.uid() or creator_id is null);
+
+drop policy if exists "replays are insertable by signed in users" on public.replays;
+create policy "replays are insertable by signed in users" on public.replays
+  for insert to authenticated
+  with check (listener_id = auth.uid() or listener_id is null);
+
+drop policy if exists "users can create their own activity" on public.activity_events;
+create policy "users can create their own activity" on public.activity_events
+  for insert to authenticated
+  with check (user_id = auth.uid() or user_id is null);

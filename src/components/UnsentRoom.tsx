@@ -7,6 +7,7 @@ import { fetchRemoteRecordings, mirrorRecordingDelete, mirrorRecordingUpload, re
 import { playSample } from '../lib/sampleAudio';
 import VoiceReactionStack from './VoiceReactions';
 import EcosphereVRPanel from './EcosphereVRPanel';
+import { useRecordingSession } from '../hooks/useRecordingSession';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -657,6 +658,7 @@ const soundEngine = new AtmosphericSound();
 
 export const UnsentRoom: React.FC = () => {
   const globalAudio = useGlobalAudio();
+  const recordingSession = useRecordingSession();
   const { archiveEntry, saveToLibrary } = useEcosystemState();
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [signals, setSignals] = useState<UnsentSignal[]>([]);
@@ -848,6 +850,7 @@ export const UnsentRoom: React.FC = () => {
 
       setRecordStart(Date.now());
       setRecordingState('recording');
+      recordingSession.setRecordingActive(true);
 
       if (soundEnabled) { soundEngine.resume(); soundEngine.startHiss(); }
     } catch (err) {
@@ -892,6 +895,7 @@ export const UnsentRoom: React.FC = () => {
       });
       mirrorRecordingUpload(blob, newSignal.signalId, duration);
       setRecordingState('idle');
+      recordingSession.setRecordingActive(false);
       setAnalyser(null);
 
       if (soundEnabled) { soundEngine.stopHiss(); soundEngine.playResonancePulse(); }
@@ -901,7 +905,7 @@ export const UnsentRoom: React.FC = () => {
     mediaRecorderRef.current.stop();
     streamRef.current?.getTracks().forEach(t => t.stop());
     audioCtxRef.current?.close();
-  }, [recordingState, recordStart, soundEnabled, showWhisper]);
+  }, [recordingState, recordStart, soundEnabled, showWhisper, recordingSession]);
 
   // ── Playback (one global audio source) ──────────────────────────────────────
   const handlePlay = useCallback((id: string) => {

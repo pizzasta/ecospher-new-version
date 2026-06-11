@@ -7,6 +7,7 @@ import { playSample } from './lib/sampleAudio'
 import { listenerCount, livedInLines } from './lib/livedIn'
 import { fetchPublicSignals, mirrorActivity } from './lib/backendBridge'
 import { moderatePublicSignalText } from './lib/signalModeration'
+import { GHOST_ARCHIVE } from './lib/ghostArchive'
 
 const hiddenKey = 'ecosphere:hiddenSignals'
 function loadHidden(): string[] {
@@ -67,6 +68,32 @@ const FEED_SIGNALS: FeedSignal[] = [
   { id: 'f7', handle: 'drift_channel', timeAgo: '31m ago', content: 'something about 3am feels like the only honest hour. this is a voice note from inside that.', mood: 'drift', resonance: 85, anonymous: false, duration: '1:12', type: 'voice_note', status: 'live', emotionalBand: 'drift-honest', waveformSeed: 76 },
   { id: 'f8', handle: 'corrupted_band_∅', timeAgo: '???', content: '̸̱͊s̶̯͌ì̸̲g̶̞̓n̴̬͑a̸͔̔l̷͈̑ ̶̰͝d̵̗̿e̷͚͒g̶͈͑r̶̞͐a̵̰͋d̶͙̃e̵̘̚d̷̝̈́...̵͓̂ ̸̯͊c̸͔̅o̸̰͊r̵̮̒r̴̲̐u̷͓͐p̵͉͑t̵̹̄ī̷̬o̷̮̓n̵̟͊ ̴͔̇a̸̩͗c̶͓̅t̶̼͋ī̷̭v̴̙͑e̴̼̓', mood: 'static', resonance: 33, anonymous: true, duration: '0:07', type: 'unresolved_echo', status: 'corrupted', emotionalBand: 'corrupted', waveformSeed: 99 },
 ]
+
+// the ghost archive drifts in below the live signals, ten at a time
+const GHOST_TYPE_BY_MOOD: Record<Mood, SignalType> = {
+  nocturne: 'nocturne_broadcast',
+  bloom: 'memory_fragment',
+  drift: 'drifting_thought',
+  static: 'static_bloom',
+  lost: 'abandoned_carrier',
+}
+
+const GHOST_FEED: FeedSignal[] = GHOST_ARCHIVE.map((ghost, index) => ({
+  id: ghost.id,
+  handle: ghost.handle,
+  timeAgo: ghost.timeAgo,
+  content: ghost.content,
+  mood: ghost.mood,
+  resonance: ghost.resonance,
+  anonymous: ghost.anonymous,
+  duration: ghost.duration,
+  type: GHOST_TYPE_BY_MOOD[ghost.mood],
+  status: index % 4 === 1 ? 'resonating' : 'drifting',
+  emotionalBand: `archive-${ghost.mood}`,
+  waveformSeed: ghost.waveformSeed,
+}))
+
+const GHOST_PAGE_SIZE = 10
 
 const ECOSYSTEM_EVENTS = [
   'a dormant carrier has returned',
@@ -314,7 +341,7 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick }:
   const displayText = useTypewriter(signal.content, !!(signal.typewriterEffect && textVisible))
 
   useEffect(() => {
-    const baseDelay = index * 350 + 200
+    const baseDelay = Math.min(index, 8) * 350 + 200
     const t1 = setTimeout(() => setVisible(true), baseDelay)
     const t2 = setTimeout(() => setWaveformVisible(true), baseDelay + 300)
     const t3 = setTimeout(() => setTextVisible(true), baseDelay + 700)
@@ -331,7 +358,7 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick }:
     <>
       <div
         className={`signal-card ${visible ? 'signal-card--visible' : ''} ${hovered ? 'signal-card--hovered' : ''} ${isCorrupted ? 'signal-card--corrupted' : ''} ${isFading ? 'signal-card--fading' : ''} ${playing ? 'signal-card--playing' : ''} ${wasReplayed ? 'signal-card--replayed' : ''} ${dissolving ? 'signal-card--dissolving' : ''}`}
-        style={{ '--mood-color': colors.primary, '--mood-glow': colors.glow, '--mood-dim': colors.dim, '--entry-delay': `${index * 350}ms` } as React.CSSProperties}
+        style={{ '--mood-color': colors.primary, '--mood-glow': colors.glow, '--mood-dim': colors.dim, '--entry-delay': `${Math.min(index, 8) * 350}ms` } as React.CSSProperties}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onTouchStart={() => setHovered(true)}
@@ -565,7 +592,7 @@ export default function FeedScreen() {
   // Stagger signal entry + arm decay timers on unfaded ephemerals
   useEffect(() => {
     const hidden = new Set(loadHidden())
-    setSignals(FEED_SIGNALS.filter(sig => !hidden.has(sig.id)))
+    setSignals([...FEED_SIGNALS, ...GHOST_FEED.slice(0, GHOST_PAGE_SIZE)].filter(sig => !hidden.has(sig.id)))
     setExpiries(Object.fromEntries(
       FEED_SIGNALS.filter(sig => sig.expiresIn != null).map(sig => [sig.id, Date.now() + (sig.expiresIn ?? 60) * 1000]),
     ))
@@ -605,6 +632,31 @@ export default function FeedScreen() {
     const t = window.setInterval(() => setDecayNow(Date.now()), 1000)
     return () => window.clearInterval(t)
   }, [])
+
+  // ghost archive: scrolling to the drift zone surfaces another page
+  const [ghostCount, setGhostCount] = useState(GHOST_PAGE_SIZE)
+  const driftZoneRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const node = driftZoneRef.current
+    if (!node || !('IntersectionObserver' in window)) return
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        setGhostCount(count => Math.min(GHOST_FEED.length, count + GHOST_PAGE_SIZE))
+      }
+    }, { rootMargin: '200px' })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (ghostCount <= GHOST_PAGE_SIZE) return
+    setSignals(prev => {
+      const known = new Set(prev.map(p => p.id))
+      const hidden = new Set(loadHidden())
+      const next = GHOST_FEED.slice(0, ghostCount).filter(g => !known.has(g.id) && !hidden.has(g.id))
+      return next.length > 0 ? [...prev, ...next] : prev
+    })
+  }, [ghostCount])
 
   useEffect(() => {
     Object.entries(expiries).forEach(([id, expiresAt]) => {
@@ -717,10 +769,12 @@ export default function FeedScreen() {
           })}
         </div>
 
-        {/* Bottom drift zone */}
-        <div className="feed-drift-zone">
+        {/* Bottom drift zone — older archive signals surface as you approach */}
+        <div className="feed-drift-zone" ref={driftZoneRef}>
           <div className="drift-zone-line" />
-          <span className="drift-zone-text">signals drift beyond this point</span>
+          <span className="drift-zone-text">
+            {ghostCount < GHOST_FEED.length ? 'older signals surfacing from the archive…' : 'signals drift beyond this point'}
+          </span>
           <div className="drift-zone-line" />
         </div>
       </div>

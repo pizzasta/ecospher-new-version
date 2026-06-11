@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import EcosphereLandingScreen from './EcosphereLandingScreen'
 import IntroSequence from './IntroSequence'
@@ -6,6 +6,7 @@ import { useEcosystemState } from '../hooks/useEcosystemState'
 import type { EcosystemPage } from '../hooks/useEcosystemState'
 import { migrateLocalDataToBackend, syncProfile } from '../lib'
 import { usePointerParallax } from '../hooks/usePointerParallax'
+import AudioRecorder from './AudioRecorder'
 
 const introSeenStorageKey = 'introSeen'
 const signalIdentityStorageKey = 'signalIdentity'
@@ -435,6 +436,106 @@ function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, 
   )
 }
 
+const firstSignalStorageKey = 'ecosphere:firstSignalDone'
+
+/**
+ * The first-signal ritual: before entering, every new carrier leaves a
+ * ten-second voice note answering "what's a sound you miss?". It plays back
+ * once with a faint reverb — proof the ecosystem heard them.
+ */
+function FirstSignalRitualStep({ onComplete }: { onComplete: () => void }) {
+  const [phase, setPhase] = useState<'recording' | 'echo'>('recording')
+  const [micBlocked, setMicBlocked] = useState(false)
+  const echoCtxRef = useRef<AudioContext | null>(null)
+
+  useEffect(() => () => {
+    if (echoCtxRef.current) void echoCtxRef.current.close()
+  }, [])
+
+  const playWithReverb = async (blob: Blob) => {
+    try {
+      const AudioContextCtor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (!AudioContextCtor) return
+      const ctx = new AudioContextCtor()
+      echoCtxRef.current = ctx
+      const buffer = await ctx.decodeAudioData(await blob.arrayBuffer())
+      const source = ctx.createBufferSource()
+      source.buffer = buffer
+
+      const dry = ctx.createGain()
+      dry.gain.value = 0.85
+      const delay = ctx.createDelay(1)
+      delay.delayTime.value = 0.17
+      const feedback = ctx.createGain()
+      feedback.gain.value = 0.32
+      const wet = ctx.createGain()
+      wet.gain.value = 0.28
+
+      source.connect(dry)
+      dry.connect(ctx.destination)
+      source.connect(delay)
+      delay.connect(feedback)
+      feedback.connect(delay)
+      delay.connect(wet)
+      wet.connect(ctx.destination)
+      source.start()
+    } catch {
+      /* echo playback is a gift, not a requirement */
+    }
+  }
+
+  return (
+    <main className="claim-signal-shell identity-claim-shell">
+      <div className="claim-atmosphere" aria-hidden="true">
+        <span /><span /><span /><span /><span /><span />
+      </div>
+      <div className="boot-static-field" aria-hidden="true" />
+      <div className="boot-fog-field" aria-hidden="true" />
+
+      <section className="identity-claim-screen" aria-label="Record your first signal">
+        <div className="identity-claim-copy">
+          <p>STEP 03 // FIRST TRANSMISSION</p>
+          <h1>{phase === 'echo' ? 'THE ECOSYSTEM HEARD YOU' : "WHAT'S A SOUND YOU MISS?"}</h1>
+          <span>
+            {phase === 'echo'
+              ? 'your first signal is out there now, echoing.'
+              : "ten seconds. say it like you're leaving it on a machine."}
+          </span>
+        </div>
+
+        <div className="identity-claim-panel first-signal-panel">
+          {phase === 'recording' && (
+            <>
+              <AudioRecorder
+                kind="signal"
+                context="first signal"
+                prompt="a kettle. a dial tone. someone's laugh from another room. whatever it is — describe it, or do the impression."
+                minSeconds={3}
+                maxSeconds={12}
+                onComplete={({ blob }) => {
+                  setPhase('echo')
+                  void playWithReverb(blob)
+                }}
+                onDenied={() => setMicBlocked(true)}
+              />
+              {micBlocked && (
+                <button type="button" className="first-signal-silent" onClick={onComplete}>
+                  enter in silence — the ecosystem will wait for your voice
+                </button>
+              )}
+            </>
+          )}
+          {phase === 'echo' && (
+            <button type="button" className="identity-enter-button" onClick={onComplete}>
+              ENTER THE ECOSPHERE
+            </button>
+          )}
+        </div>
+      </section>
+    </main>
+  )
+}
+
 const navLabelToPage: Record<string, EcosystemPage> = {
   anomalies: 'anomalies',
   capsules: 'capsules',
@@ -513,6 +614,8 @@ export default function IntroGate({ children }: { children: ReactNode }) {
   const [landingEntered, setLandingEntered] = useState(false)
   const [introSeen, setIntroSeen] = useState(() => safeStorageGet(introSeenStorageKey) === 'true')
   const [signalIdentity, setSignalIdentity] = useState(() => safeStorageGet(signalIdentityStorageKey) ?? '')
+  // the ritual only gates identities claimed in this session — existing carriers pass through
+  const [needsFirstSignal, setNeedsFirstSignal] = useState(false)
 
   useEffect(() => {
     if (signalIdentity) {
@@ -536,13 +639,22 @@ export default function IntroGate({ children }: { children: ReactNode }) {
     safeStorageSet(signalIdentityStorageKey, nextSignalIdentity)
     safeStorageSet(signalProfileStorageKey, JSON.stringify(nextProfile))
     setSignalIdentity(nextSignalIdentity)
+    if (safeStorageGet(firstSignalStorageKey) !== 'true') {
+      setNeedsFirstSignal(true)
+    }
     void syncProfile(nextSignalIdentity, signalCore)
+  }
+
+  const completeFirstSignal = () => {
+    safeStorageSet(firstSignalStorageKey, 'true')
+    setNeedsFirstSignal(false)
   }
 
   const resetIntroForTesting = () => {
     safeStorageRemove(introSeenStorageKey)
     safeStorageRemove(signalIdentityStorageKey)
     safeStorageRemove(signalProfileStorageKey)
+    safeStorageRemove(firstSignalStorageKey)
     window.location.reload()
   }
 
@@ -568,6 +680,15 @@ export default function IntroGate({ children }: { children: ReactNode }) {
     return (
       <>
         <ClaimSignalIdentityStep onComplete={completeSignalClaim} />
+        <DevOnboardingReset onReset={resetIntroForTesting} />
+      </>
+    )
+  }
+
+  if (needsFirstSignal) {
+    return (
+      <>
+        <FirstSignalRitualStep onComplete={completeFirstSignal} />
         <DevOnboardingReset onReset={resetIntroForTesting} />
       </>
     )

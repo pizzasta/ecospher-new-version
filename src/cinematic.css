@@ -2095,3 +2095,106 @@ body[data-eco-page='unsent'] .eco-now-playing {
 @media (prefers-reduced-motion: reduce) {
   .cassette-reel, .postit, .sea-orb, .sea-orb > button { animation: none; }
 }
+
+/* ═══ VOICE TRANSMISSION PANELS ══════════════════════════════ */
+.obs-transmit {
+  margin-top: 22px;
+  padding: 16px;
+  border-radius: 16px;
+}
+
+.obs-transmit .section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.obs-transmit .eco-recorder {
+  margin-top: 12px;
+}
+
+.obs-transmit-toggle {
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 45, 120, 0.4);
+  background: rgba(255, 45, 120, 0.08);
+  color: var(--pink, #ff2d78);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.obs-transmit-toggle:hover {
+  background: rgba(255, 45, 120, 0.16);
+  box-shadow: 0 0 18px rgba(255, 45, 120, 0.18);
+}
+
+.personal-capsules {
+  margin-top: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.personal-capsules .section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* navigation locks while a recording is live */
+.bottom-nav.nav--recording .nav-item:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .obs-transmit-toggle {
+    transition: none;
+  }
+}
+
+/* realtime echo from other carriers */
+.live-echo-chip {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 230;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  background: rgba(3, 7, 18, 0.85);
+  backdrop-filter: blur(12px);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #67e8f9;
+  animation: recToastIn 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  max-width: min(420px, calc(100vw - 32px));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.live-echo-chip span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #67e8f9;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.6);
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-echo-chip {
+    animation: none;
+  }
+}

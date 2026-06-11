@@ -160,9 +160,35 @@ export async function recordReplay(signalId: string, sourcePage: string) {
 
 // ─── Audio library ────────────────────────────────────────────────────────────
 
-export async function uploadAudio(blob: Blob, options: { title?: string; durationSeconds?: number; isPublic?: boolean } = {}) {
+export type AudioMessageKind = 'signal' | 'echo' | 'capsule' | 'drift_note'
+
+export const AUDIO_UPLOAD_LIMITS = {
+  maxBytes: 2 * 1024 * 1024,
+  minSeconds: 3,
+  maxSeconds: 60,
+} as const
+
+/** Returns null when valid, otherwise a human-readable reason. */
+export function validateAudioUpload(blob: Blob, durationSeconds: number): string | null {
+  if (blob.size === 0) return 'recording is empty'
+  if (blob.size > AUDIO_UPLOAD_LIMITS.maxBytes) {
+    return `recording is too large (${(blob.size / 1024 / 1024).toFixed(1)}MB, max 2MB)`
+  }
+  if (durationSeconds < AUDIO_UPLOAD_LIMITS.minSeconds) {
+    return `recording is too short (min ${AUDIO_UPLOAD_LIMITS.minSeconds}s)`
+  }
+  if (durationSeconds > AUDIO_UPLOAD_LIMITS.maxSeconds + 1) {
+    return `recording is too long (max ${AUDIO_UPLOAD_LIMITS.maxSeconds}s)`
+  }
+  return null
+}
+
+export async function uploadAudio(blob: Blob, options: { title?: string; durationSeconds?: number; isPublic?: boolean; kind?: AudioMessageKind; roomId?: string } = {}) {
   const ctx = await requireUser()
   if (!ctx) return null
+
+  const invalid = validateAudioUpload(blob, options.durationSeconds ?? 0)
+  if (invalid) return null
 
   const extension = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm'
   const path = `${ctx.userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`
@@ -184,6 +210,8 @@ export async function uploadAudio(blob: Blob, options: { title?: string; duratio
       duration_seconds: options.durationSeconds ?? null,
       mime_type: blob.type || 'audio/webm',
       is_public: options.isPublic ?? false,
+      kind: options.kind ?? 'signal',
+      room_id: options.roomId ?? null,
     })
     .select()
     .maybeSingle()

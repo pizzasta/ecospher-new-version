@@ -10,10 +10,14 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-motion': ['framer-motion'],
+        // rolldown (vite 8) requires the function form
+        manualChunks(id: string) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react-dom') || id.includes('/react/')) return 'vendor-react'
+            if (id.includes('@supabase')) return 'vendor-supabase'
+            if (id.includes('framer-motion')) return 'vendor-motion'
+          }
+          return undefined
         },
       },
     },

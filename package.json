@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "vitest run",
     "preview": "vite preview",
     "seed:demo": "supabase db reset",
     "seed:demo:reset": "supabase db reset"
@@ -21,7 +22,7 @@
     "@eslint/js": "^9.29.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.2.1",
+    "@vitejs/plugin-react": "^6.0.2",
     "autoprefixer": "^10.4.17",
     "eslint": "^9.29.0",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -29,8 +30,9 @@
     "globals": "^15.15.0",
     "postcss": "^8.4.33",
     "tailwindcss": "^3.4.1",
-    "typescript-eslint": "^8.34.1",
     "typescript": "^5.3.3",
-    "vite": "^5.1.0"
+    "typescript-eslint": "^8.34.1",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8"
   }
 }
