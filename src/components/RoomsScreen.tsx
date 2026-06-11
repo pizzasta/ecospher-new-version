@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import type { CSSProperties, MutableRefObject } from 'react'
-import { renderSampleAudio } from '../lib/sampleAudio'
+import { playSampleBuffer, stopPreviewBuffer } from '../lib/sampleAudio'
 import '../rooms.css'
 
 // ═══════════════════════════════════════════════════════════════
@@ -474,25 +474,16 @@ function useLiveRoomSim(room: RoomDef, energyRef?: MutableRefObject<number>) {
   return { listeners, resonance, state, weather }
 }
 
-// hover sound preview: one quiet murmur at a time, mouse only
-let hoverPreviewAudio: HTMLAudioElement | null = null
+// hover sound preview: shared AudioContext (unlocked by first tap anywhere),
+// quiet, one at a time, mouse only
 let hoverPreviewTimer: number | null = null
 
 function startHoverPreview(seed: number) {
   stopHoverPreview()
   hoverPreviewTimer = window.setTimeout(() => {
-    void renderSampleAudio('voice', seed, 5000).then(blob => {
-      if (!blob || hoverPreviewTimer === null) return
-      const url = URL.createObjectURL(blob)
-      const audio = new Audio(url)
-      audio.volume = 0.22
-      hoverPreviewAudio = audio
-      const release = () => URL.revokeObjectURL(url)
-      audio.onended = release
-      audio.onerror = release
-      audio.play().catch(release)
-    })
-  }, 180)
+    hoverPreviewTimer = null
+    void playSampleBuffer('voice', seed, 5000, 0.22)
+  }, 160)
 }
 
 function stopHoverPreview() {
@@ -500,10 +491,7 @@ function stopHoverPreview() {
     window.clearTimeout(hoverPreviewTimer)
     hoverPreviewTimer = null
   }
-  if (hoverPreviewAudio) {
-    hoverPreviewAudio.pause()
-    hoverPreviewAudio = null
-  }
+  stopPreviewBuffer()
 }
 
 function wobble(seed: number, tick: number, range: number) {
