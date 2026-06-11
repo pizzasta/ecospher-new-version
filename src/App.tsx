@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { getOptionalSupabaseClient, syncProfile } from './lib'
+import { deleteAccountData, getOptionalSupabaseClient, isSupabaseConfigured, syncProfile } from './lib'
 import { localDateString, useEcosystemState } from './hooks/useEcosystemState'
 import { deleteLocalRecording, deleteReactionAudio, listLocalRecordings, listReactionAudio, saveReactionAudio, saveRecordingLocally } from './lib/localAudioStore'
 import { downloadBlob, exportFilename, renderStoryImage } from './lib/storyExport'
@@ -2410,6 +2410,11 @@ function normalizeIdentity(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
 }
 
+// identities are 3-24 chars of [a-z0-9_], validated wherever they're set
+function isValidIdentity(value: string) {
+  return /^[a-z0-9_]{3,24}$/.test(value)
+}
+
 function SettingsScreen() {
   const { ecosystemState } = useEcosystemState()
   const [prefs, setPrefs] = usePersistentState<EcoPrefs>('ecosphere:settings', defaultPrefs)
@@ -2432,7 +2437,10 @@ function SettingsScreen() {
 
   const renameIdentity = () => {
     const next = normalizeIdentity(identityDraft)
-    if (!next) return
+    if (!isValidIdentity(next)) {
+      showNote('identities need 3–24 characters (letters, numbers, underscores)')
+      return
+    }
     try {
       window.localStorage.setItem('signalIdentity', next)
       const profileRaw = window.localStorage.getItem('ecosphereSignalProfile')
@@ -2469,6 +2477,24 @@ function SettingsScreen() {
     window.location.reload()
   }
 
+  const [confirmCloudWipe, setConfirmCloudWipe] = useState(false)
+  const [cloudWipeBusy, setCloudWipeBusy] = useState(false)
+  const wipeCloudData = () => {
+    if (!confirmCloudWipe) {
+      setConfirmCloudWipe(true)
+      window.setTimeout(() => setConfirmCloudWipe(false), 5000)
+      return
+    }
+    setConfirmCloudWipe(false)
+    setCloudWipeBusy(true)
+    void deleteAccountData().then(ok => {
+      setCloudWipeBusy(false)
+      showNote(ok
+        ? 'cloud data erased · signed out — this device keeps its local copy'
+        : 'some cloud data could not be erased — try again in a moment')
+    })
+  }
+
   return (
     <div className="screen">
       <div className="screen-header">
@@ -2491,7 +2517,7 @@ function SettingsScreen() {
               onChange={e => setIdentityDraft(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') renameIdentity() }}
             />
-            <button type="button" disabled={!normalizeIdentity(identityDraft)} onClick={renameIdentity}>retune</button>
+            <button type="button" disabled={!isValidIdentity(normalizeIdentity(identityDraft))} onClick={renameIdentity}>retune</button>
           </div>
         </div>
 
@@ -2552,6 +2578,17 @@ function SettingsScreen() {
           </div>
           <button type="button" className="setting-action" onClick={resetIntro}>reset intro</button>
         </div>
+        {isSupabaseConfigured && (
+          <div className="setting-row glass setting-row--danger">
+            <div className="setting-info">
+              <div className="setting-label">Erase Cloud Data</div>
+              <div className="setting-detail">delete every recording, signal, and trace of this account from the backend</div>
+            </div>
+            <button type="button" className={`setting-action setting-action--danger${confirmCloudWipe ? ' confirming' : ''}`} disabled={cloudWipeBusy} onClick={wipeCloudData}>
+              {cloudWipeBusy ? 'erasing…' : confirmCloudWipe ? 'tap again to erase' : 'erase cloud'}
+            </button>
+          </div>
+        )}
         <div className="setting-row glass setting-row--danger">
           <div className="setting-info">
             <div className="setting-label">Clear Local Data</div>

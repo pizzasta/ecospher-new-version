@@ -464,3 +464,25 @@ drop policy if exists "users can create their own activity" on public.activity_e
 create policy "users can create their own activity" on public.activity_events
   for insert to authenticated
   with check (user_id = auth.uid() or user_id is null);
+
+-- ─── Account deletion policies (migration 202606110004) ─────────────────────
+drop policy if exists "users can delete their own activity" on public.activity_events;
+create policy "users can delete their own activity" on public.activity_events
+  for delete to authenticated
+  using (user_id = auth.uid());
+
+drop policy if exists "users can delete their own replays" on public.replays;
+create policy "users can delete their own replays" on public.replays
+  for delete to authenticated
+  using (listener_id = auth.uid());
+
+drop policy if exists "users can delete their own profile" on public.profiles;
+create policy "users can delete their own profile" on public.profiles
+  for delete to authenticated
+  using (id = auth.uid());
+
+drop policy if exists "users can manage their relics" on public.user_relics;
+create policy "users can manage their relics" on public.user_relics
+  for all to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());

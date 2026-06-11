@@ -166,11 +166,18 @@ export const AUDIO_UPLOAD_LIMITS = {
   maxBytes: 2 * 1024 * 1024,
   minSeconds: 3,
   maxSeconds: 60,
+  maxUploadsPerMinute: 10,
 } as const
+
+// MediaRecorder emits types like "audio/webm;codecs=opus" — match on prefix
+const ALLOWED_AUDIO_MIME_PREFIXES = ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/mpeg'] as const
 
 /** Returns null when valid, otherwise a human-readable reason. */
 export function validateAudioUpload(blob: Blob, durationSeconds: number): string | null {
   if (blob.size === 0) return 'recording is empty'
+  if (blob.type && !ALLOWED_AUDIO_MIME_PREFIXES.some(prefix => blob.type.startsWith(prefix))) {
+    return 'unsupported audio format'
+  }
   if (blob.size > AUDIO_UPLOAD_LIMITS.maxBytes) {
     return `recording is too large (${(blob.size / 1024 / 1024).toFixed(1)}MB, max 2MB)`
   }
@@ -183,15 +190,34 @@ export function validateAudioUpload(blob: Blob, durationSeconds: number): string
   return null
 }
 
+/** Room ids are slugs; anything else is dropped rather than stored. */
+export function sanitizeRoomId(roomId: string | undefined): string | null {
+  if (!roomId) return null
+  return /^[a-z0-9_-]{1,64}$/i.test(roomId) ? roomId : null
+}
+
+// simple client-side rate limit: at most N uploads per rolling minute
+const uploadTimestamps: number[] = []
+
+function uploadRateLimited(): boolean {
+  const cutoff = Date.now() - 60_000
+  while (uploadTimestamps.length > 0 && uploadTimestamps[0] < cutoff) uploadTimestamps.shift()
+  if (uploadTimestamps.length >= AUDIO_UPLOAD_LIMITS.maxUploadsPerMinute) return true
+  uploadTimestamps.push(Date.now())
+  return false
+}
+
 export async function uploadAudio(blob: Blob, options: { title?: string; durationSeconds?: number; isPublic?: boolean; kind?: AudioMessageKind; roomId?: string } = {}) {
   const ctx = await requireUser()
   if (!ctx) return null
 
   const invalid = validateAudioUpload(blob, options.durationSeconds ?? 0)
   if (invalid) return null
+  if (uploadRateLimited()) return null
 
+  // random UUID filename — original names are never trusted
   const extension = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm'
-  const path = `${ctx.userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`
+  const path = `${ctx.userId}/${crypto.randomUUID()}.${extension}`
   const bucket = supabaseEnv.buckets.signalAudio
 
   const { error: uploadError } = await ctx.db.storage.from(bucket).upload(path, blob, {
@@ -211,7 +237,7 @@ export async function uploadAudio(blob: Blob, options: { title?: string; duratio
       mime_type: blob.type || 'audio/webm',
       is_public: options.isPublic ?? false,
       kind: options.kind ?? 'signal',
-      room_id: options.roomId ?? null,
+      room_id: sanitizeRoomId(options.roomId),
     })
     .select()
     .maybeSingle()
@@ -422,4 +448,60 @@ export async function listArchive() {
     .eq('user_id', ctx.userId)
     .order('archived_at', { ascending: false })
   return data ?? []
+}
+
+// ─── Account deletion ─────────────────────────────────────────────────────────
+
+/**
+ * Erase everything this user owns from the backend: storage objects across
+ * all buckets, then every owned row (dependents first), then the profile,
+ * then the session. Each step is RLS-scoped so it can only ever touch the
+ * caller's own data. Returns false if any step failed (safe to retry).
+ */
+export async function deleteAccountData(): Promise<boolean> {
+  const ctx = await requireUser()
+  if (!ctx) return false
+
+  let ok = true
+
+  for (const bucket of Object.values(supabaseEnv.buckets)) {
+    try {
+      const { data: files } = await ctx.db.storage.from(bucket).list(ctx.userId, { limit: 1000 })
+      if (files && files.length > 0) {
+        const { error } = await ctx.db.storage.from(bucket).remove(files.map(f => `${ctx.userId}/${f.name}`))
+        if (error) ok = false
+      }
+    } catch {
+      ok = false
+    }
+  }
+
+  const deletions: Array<PromiseLike<{ error: unknown }>> = [
+    ctx.db.from('activity_events').delete().eq('user_id', ctx.userId).then(r => ({ error: r.error })),
+    ctx.db.from('replays').delete().eq('listener_id', ctx.userId).then(r => ({ error: r.error })),
+    ctx.db.from('capsules').delete().eq('user_id', ctx.userId).then(r => ({ error: r.error })),
+    ctx.db.from('saved_signals').delete().eq('user_id', ctx.userId).then(r => ({ error: r.error })),
+    ctx.db.from('archive_items').delete().eq('user_id', ctx.userId).then(r => ({ error: r.error })),
+    ctx.db.from('archived_signals').delete().eq('user_id', ctx.userId).then(r => ({ error: r.error })),
+    ctx.db.from('user_relics').delete().eq('user_id', ctx.userId).then(r => ({ error: r.error })),
+  ]
+  for (const result of await Promise.all(deletions)) {
+    if (result.error) ok = false
+  }
+
+  // signals + audio rows after their dependents, profile last
+  const { error: signalsError } = await ctx.db.from('signals').delete().eq('creator_id', ctx.userId)
+  if (signalsError) ok = false
+  const { error: audioError } = await ctx.db.from('audio_files').delete().eq('owner_id', ctx.userId)
+  if (audioError) ok = false
+  const { error: profileError } = await ctx.db.from('profiles').delete().eq('id', ctx.userId)
+  if (profileError) ok = false
+
+  try {
+    await ctx.db.auth.signOut()
+  } catch {
+    /* session may already be gone */
+  }
+
+  return ok
 }
