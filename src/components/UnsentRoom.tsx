@@ -6,6 +6,7 @@ import { downloadBlob, exportFilename, renderStoryImage } from '../lib/storyExpo
 import { fetchRemoteRecordings, mirrorRecordingDelete, mirrorRecordingUpload, remotePlaybackUrl } from '../lib/backendBridge';
 import { playSample } from '../lib/sampleAudio';
 import VoiceReactionStack from './VoiceReactions';
+import EcosphereVRPanel from './EcosphereVRPanel';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1055,6 +1056,17 @@ export const UnsentRoom: React.FC = () => {
           {recordingState === 'recording' && 'recording… speak into the void'}
           {recordingState === 'processing' && 'processing signal…'}
         </p>
+      </section>
+
+      {/* EcosphereVR v4 voice reactions system */}
+      <section className="ur-archive-section ur-vr-section" aria-label="Voice reactions system">
+        <div className="ur-archive-header">
+          <div className="ur-archive-title-row">
+            <h2 className="ur-archive-title">VOICE REACTIONS</h2>
+            <span className="ur-archive-count">live system</span>
+          </div>
+        </div>
+        <EcosphereVRPanel />
       </section>
 
       {/* Infinite anonymous feed */}
