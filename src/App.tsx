@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { getOptionalSupabaseClient, syncProfile } from './lib'
 import { localDateString, useEcosystemState } from './hooks/useEcosystemState'
-import { deleteReactionAudio, listReactionAudio } from './lib/localAudioStore'
+import { deleteReactionAudio, listReactionAudio, saveReactionAudio } from './lib/localAudioStore'
 import { playSample } from './lib/sampleAudio'
 import { lastExaminedBy, listenerCount, livedInLines } from './lib/livedIn'
 import type { StoredReaction } from './lib/localAudioStore'
@@ -258,13 +258,230 @@ function lpTimeAgo(iso: string): string {
 
 // ─── Screens ──────────────────────────────────────────────────────────────────
 const OBS_EVENTS = [
-  'network stable · all bands listening',
-  'a carrier crossed the northern band',
-  'replay activity rising in the feed',
-  'drift field reporting light fog',
-  'two rooms resonating in sync',
-  'archive pressure nominal',
+  'someone replayed this twice',
+  '3 listeners just came online',
+  'nobody answered the 2:14 signal',
+  'heard again tonight, third time',
+  'someone stayed in a room for 2 hours',
+  'an echo response just came in',
 ] as const
+
+// ─── Live Signal Windows: respond before they drift ──────────────────────────
+
+type LiveWindowStatus = 'live' | 'answered' | 'kept' | 'expired'
+
+type LiveWindow = {
+  id: string
+  content: string
+  handle: string
+  totalMs: number
+  expiresAt: number
+  echoes: number
+  seed: number
+  status: LiveWindowStatus
+}
+
+const LIVE_WINDOW_POOL: Array<{ content: string; handle: string }> = [
+  { content: "can't sleep tonight. is anyone out there", handle: 'anonymous' },
+  { content: 'replaying the same memory again', handle: 'driftmemory' },
+  { content: 'first night in the new apartment. too quiet', handle: 'anonymous' },
+  { content: 'i keep almost calling them', handle: 'voicemailafter2' },
+  { content: 'a song from 2014 is stuck in my head', handle: 'lostheadphones' },
+  { content: 'walked past my old house today', handle: 'anonymous' },
+  { content: 'nobody at work knows about any of this', handle: 'breakroomghost' },
+  { content: "it's 3am and the fridge is the only sound", handle: 'fridgehumat3am' },
+  { content: 'something good happened. saying it out loud', handle: 'anonymous' },
+  { content: 'i miss who i was last summer', handle: 'peachstreetlight' },
+  { content: 'still wearing their hoodie', handle: 'hoodiebythelake' },
+  { content: 'told the dog everything. he gets it', handle: 'anonymous' },
+]
+
+function spawnLiveWindow(index: number): LiveWindow {
+  const item = LIVE_WINDOW_POOL[index % LIVE_WINDOW_POOL.length]
+  const totalMs = (30 + Math.floor(Math.random() * 4) * 15) * 1000
+  return {
+    id: `lsw-${index}-${Date.now()}`,
+    content: item.content,
+    handle: item.handle,
+    totalMs,
+    expiresAt: Date.now() + totalMs,
+    echoes: 0,
+    seed: index * 37 + 11,
+    status: 'live',
+  }
+}
+
+function LiveSignalWindows() {
+  const { archiveEntry, reactToSignal, saveSignal, setRareEvent, unlockRelic } = useEcosystemState()
+  const lswAudio = useGlobalAudio()
+  const [windows, setWindows] = useState<LiveWindow[]>(() => [spawnLiveWindow(0), spawnLiveWindow(1)])
+  const [now, setNow] = useState(() => Date.now())
+  const [recordingFor, setRecordingFor] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const spawnIndexRef = useRef(2)
+  const expiredCountRef = useRef(0)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const timersRef = useRef<number[]>([])
+
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 1000)
+    const timers = timersRef.current
+    return () => {
+      window.clearInterval(t)
+      timers.forEach(id => window.clearTimeout(id))
+      if (recorderRef.current?.state === 'recording') recorderRef.current.stop()
+    }
+  }, [])
+
+  const ping = (text: string) => {
+    setNotice(text)
+    timersRef.current.push(window.setTimeout(() => setNotice(null), 4500))
+  }
+
+  const replaceLater = (id: string, delayMs: number) => {
+    timersRef.current.push(window.setTimeout(() => {
+      setWindows(prev => {
+        const next = prev.filter(w => w.id !== id)
+        if (next.length < 2) next.push(spawnLiveWindow(spawnIndexRef.current++))
+        return next
+      })
+    }, delayMs))
+  }
+
+  // expiry: unanswered signals drift into the archive; some crystallize
+  useEffect(() => {
+    windows.forEach(w => {
+      if (w.status !== 'live' || now < w.expiresAt) return
+      setWindows(prev => prev.map(p => (p.id === w.id ? { ...p, status: 'expired' as const } : p)))
+      archiveEntry('signal', `never answered: "${w.content}"`)
+      expiredCountRef.current += 1
+      if (expiredCountRef.current % 3 === 0) {
+        unlockRelic(`unanswered-${w.id}`, 'Unanswered Echo')
+        setRareEvent('an unanswered signal crystallized into a relic')
+      } else {
+        ping('nobody answered. it drifted into the archive.')
+      }
+      replaceLater(w.id, 2000)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [now])
+
+  const listenTo = (w: LiveWindow) => {
+    void playSample(lswAudio, { id: w.id, label: w.handle === 'anonymous' ? 'a live signal' : w.handle, source: 'home' }, 'voice', w.seed, 7000)
+  }
+
+  const echoWindow = (w: LiveWindow) => {
+    setWindows(prev => prev.map(p => (p.id === w.id ? { ...p, echoes: p.echoes + 1, expiresAt: p.expiresAt + 20000, totalMs: p.totalMs + 20000 } : p)))
+    reactToSignal(w.id, 'echoed a live signal · +20s')
+    ping('echo sent · 20 seconds added')
+  }
+
+  const keepWindow = (w: LiveWindow) => {
+    setWindows(prev => prev.map(p => (p.id === w.id ? { ...p, status: 'kept' as const } : p)))
+    saveSignal(w.id, `live signal · "${w.content.slice(0, 30)}"`)
+    ping('saved. this one stays.')
+    replaceLater(w.id, 5000)
+  }
+
+  // 3-second instant voice reply: tap, speak, auto-sends
+  const replyToWindow = async (w: LiveWindow) => {
+    if (recordingFor) return
+    if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      echoWindow(w)
+      ping('no microphone — sent an echo instead')
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      recorderRef.current = recorder
+      const chunks: Blob[] = []
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data) }
+      recorder.onstop = () => {
+        stream.getTracks().forEach(tr => tr.stop())
+        setRecordingFor(null)
+        const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' })
+        if (blob.size > 0) {
+          void saveReactionAudio({
+            id: `obs-reply-${Date.now()}`,
+            target: w.id,
+            durationMs: 3000,
+            createdAt: Date.now(),
+            anonymous: true,
+            filter: 'none',
+            blob,
+          })
+        }
+        setWindows(prev => prev.map(p => (p.id === w.id ? { ...p, status: 'answered' as const } : p)))
+        reactToSignal(w.id, 'answered a live signal with their voice')
+        ping('reply sent. the signal heard you.')
+        replaceLater(w.id, 5000)
+      }
+      recorder.start()
+      setRecordingFor(w.id)
+      timersRef.current.push(window.setTimeout(() => {
+        if (recorder.state === 'recording') recorder.stop()
+      }, 3000))
+    } catch {
+      echoWindow(w)
+      ping('microphone unavailable — sent an echo instead')
+    }
+  }
+
+  return (
+    <div className="lsw-section">
+      <div className="section-head lsw-head">
+        <span className="section-kicker">live right now</span>
+        <span className="lsw-sub">respond before they drift away</span>
+      </div>
+      {notice && <div className="lsw-notice" key={notice}>{notice}</div>}
+      <div className="lsw-stack">
+        {windows.map(w => {
+          const remaining = Math.max(0, w.expiresAt - now)
+          const life = w.status === 'live' ? remaining / w.totalMs : 1
+          const seconds = Math.ceil(remaining / 1000)
+          const phase = w.status !== 'live' ? w.status : life > 0.55 ? 'stable' : life > 0.25 ? 'fading' : 'unstable'
+          const isRecording = recordingFor === w.id
+          return (
+            <div key={w.id} className={`lsw-card glass lsw--${phase}`} style={{ '--life': life.toFixed(3) } as CSSProperties}>
+              <div className="lsw-top">
+                <span className="lsw-handle">{w.handle === 'anonymous' ? '⬡ anonymous' : `◈ ${w.handle}`}</span>
+                {w.status === 'live' && (
+                  <span className={`lsw-timer${seconds <= 15 ? ' urgent' : ''}`}>
+                    {phase === 'unstable' ? 'destabilizing · ' : ''}{seconds}s
+                  </span>
+                )}
+                {w.status === 'answered' && <span className="lsw-state">answered ✓</span>}
+                {w.status === 'kept' && <span className="lsw-state">saved ✶</span>}
+                {w.status === 'expired' && <span className="lsw-state lsw-state--gone">drifted away</span>}
+              </div>
+              <p className="lsw-content">"{w.content}"</p>
+              <LpWaveform seed={w.seed} bars={26} active={w.status === 'live'} tint={phase === 'unstable' ? 'violet' : 'pink'} />
+              {w.status === 'live' && (
+                <div className="lsw-lifebar" aria-hidden="true"><i style={{ width: `${Math.round(life * 100)}%` }} /></div>
+              )}
+              {w.status === 'live' && (
+                <div className="lsw-actions">
+                  <button type="button" onClick={() => listenTo(w)}>▶ listen</button>
+                  <button
+                    type="button"
+                    className={`lsw-reply${isRecording ? ' recording' : ''}`}
+                    onClick={() => { void replyToWindow(w) }}
+                  >
+                    {isRecording ? '● 3s…' : '◉ reply'}
+                  </button>
+                  <button type="button" onClick={() => echoWindow(w)}>∿ echo{w.echoes > 0 ? ` ${w.echoes}` : ''}</button>
+                  <button type="button" onClick={() => keepWindow(w)}>✧ save</button>
+                </div>
+              )}
+              {w.status === 'expired' && <p className="lsw-epitaph">this signal was never answered</p>}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 function dayOfYear(): number {
   const now = new Date()
@@ -301,7 +518,7 @@ function HomeScreen() {
         <span className="title-glow-pink">Signal</span>{' '}
         <span className="title-glow-cyan">Observatory</span>
       </h1>
-      <p className="home-sub">anonymous voice signals · replayed memories · emotional frequencies</p>
+      <p className="home-sub">anonymous voices · live replays · the late-night network</p>
       <AmbientLine lines={activityLines} interval={7000} />
 
       <div className="stat-row">
@@ -339,6 +556,8 @@ function HomeScreen() {
           <div className="obs-daily-warning">tune in today to keep your {streak}-night streak alive</div>
         )}
       </div>
+
+      <LiveSignalWindows />
 
       {nowPlaying && (
         <div className="obs-now-replaying glass">
