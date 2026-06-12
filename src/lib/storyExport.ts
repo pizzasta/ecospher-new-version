@@ -5,6 +5,18 @@ import { renderSampleAudio } from './sampleAudio'
 // canvas.captureStream + MediaRecorder where available, with the image
 // as the guaranteed fallback.
 
+export type ExportScene = 'void' | 'rain' | 'street' | 'room'
+
+// scroll-stopping text overlays in the app's register
+export const HOOK_POOL = [
+  'found in a digital dead zone at 3am',
+  'the most honest thing i heard today',
+  "the internet is too loud. this is the only place that's quiet.",
+  'someone confessed this to the void',
+  'a relic from the late-night band. feels like a time capsule.',
+  'stop doomscrolling. start drifting.',
+] as const
+
 export type StoryExportOptions = {
   handle: string
   caption: string
@@ -12,6 +24,10 @@ export type StoryExportOptions = {
   typeLabel: string
   accentColor?: string
   waveformSeed?: number
+  /** atmospheric b-roll backdrop; plain void when omitted */
+  scene?: ExportScene
+  /** scroll-stopping hook line drawn at the top; omit for none */
+  hook?: string
   /** social overlay line; seeded from a pool when omitted */
   overlay?: string
   /** real audio for the clip; a synthesized voice is used when omitted */
@@ -55,6 +71,83 @@ function buildBars(seed: number, count = 36): number[] {
   })
 }
 
+function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
+  const words = text.split(' ')
+  let line = ''
+  let yy = y
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word
+    if (ctx.measureText(test).width > maxWidth && line) {
+      ctx.fillText(line, x, yy)
+      line = word
+      yy += lineHeight
+    } else {
+      line = test
+    }
+  }
+  if (line) ctx.fillText(line, x, yy)
+}
+
+// atmospheric b-roll, drawn procedurally so exports stay self-contained
+function drawScene(ctx: CanvasRenderingContext2D, scene: ExportScene, t: number, seed: number) {
+  if (scene === 'void') return
+  const rand = seededRand(seed * 7 + 3)
+
+  if (scene === 'rain') {
+    // streaks running down glass + a cold window sheen
+    const sheen = ctx.createLinearGradient(0, 0, W, H)
+    sheen.addColorStop(0, 'rgba(120, 160, 200, 0.05)')
+    sheen.addColorStop(1, 'rgba(40, 60, 90, 0.08)')
+    ctx.fillStyle = sheen
+    ctx.fillRect(0, 0, W, H)
+    ctx.strokeStyle = 'rgba(170, 200, 235, 0.16)'
+    ctx.lineWidth = 2
+    for (let i = 0; i < 38; i += 1) {
+      const x = rand() * W
+      const speed = 300 + rand() * 500
+      const length = 60 + rand() * 120
+      const y = ((rand() * H + t * speed) % (H + length)) - length
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+      ctx.lineTo(x - 6, y + length)
+      ctx.stroke()
+    }
+    return
+  }
+
+  if (scene === 'street') {
+    // dark street: warm bokeh streetlights + wet-ground reflection
+    for (let i = 0; i < 5; i += 1) {
+      const x = (0.12 + rand() * 0.76) * W
+      const y = (0.18 + rand() * 0.4) * H
+      const r = 60 + rand() * 110
+      const warm = ctx.createRadialGradient(x, y, 0, x, y, r)
+      warm.addColorStop(0, 'rgba(255, 190, 110, 0.22)')
+      warm.addColorStop(1, 'rgba(255, 190, 110, 0)')
+      ctx.fillStyle = warm
+      ctx.fillRect(x - r, y - r, r * 2, r * 2)
+      ctx.fillStyle = 'rgba(255, 200, 130, 0.05)'
+      ctx.fillRect(x - 8, y + r * 0.8, 16, H - y)
+    }
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+    ctx.fillRect(0, H * 0.82, W, H * 0.18)
+    return
+  }
+
+  // room: dim amber corner light + drifting dust motes
+  const lamp = ctx.createRadialGradient(W * 0.86, H * 0.12, 0, W * 0.86, H * 0.12, W * 0.9)
+  lamp.addColorStop(0, 'rgba(255, 180, 100, 0.16)')
+  lamp.addColorStop(1, 'rgba(255, 180, 100, 0)')
+  ctx.fillStyle = lamp
+  ctx.fillRect(0, 0, W, H)
+  ctx.fillStyle = 'rgba(255, 230, 190, 0.18)'
+  for (let i = 0; i < 26; i += 1) {
+    const x = (rand() * W + Math.sin(t * 0.4 + i) * 30) % W
+    const y = (rand() * H + t * 16) % H
+    ctx.fillRect(x, y, 2, 2)
+  }
+}
+
 function drawFrame(ctx: CanvasRenderingContext2D, opts: StoryExportOptions, bars: number[], t: number) {
   const accent = opts.accentColor ?? '#ff2d78'
 
@@ -73,6 +166,8 @@ function drawFrame(ctx: CanvasRenderingContext2D, opts: StoryExportOptions, bars
   glow2.addColorStop(1, 'rgba(0, 212, 255, 0)')
   ctx.fillStyle = glow2
   ctx.fillRect(0, 0, W, H)
+
+  drawScene(ctx, opts.scene ?? 'void', t, opts.waveformSeed ?? 42)
 
   // scanlines
   ctx.fillStyle = 'rgba(0, 0, 0, 0.16)'
@@ -101,6 +196,15 @@ function drawFrame(ctx: CanvasRenderingContext2D, opts: StoryExportOptions, bars
   ctx.fillStyle = 'rgba(180, 190, 220, 0.55)'
   ctx.font = '500 28px "Space Grotesk", system-ui, sans-serif'
   ctx.fillText(opts.typeLabel.toLowerCase(), W / 2, 256)
+
+  if (opts.hook) {
+    ctx.font = 'italic 600 40px "Space Grotesk", system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(240, 244, 255, 0.92)'
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)'
+    ctx.shadowBlur = 18
+    wrapText(ctx, `"${opts.hook}"`, W / 2, 330, W - 220, 50)
+    ctx.shadowBlur = 0
+  }
 
   // handle
   ctx.fillStyle = '#f0f4ff'
