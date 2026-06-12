@@ -33,6 +33,7 @@ import SignalToSelf from './components/SignalToSelf'
 import { useLocale } from './hooks/useLocale'
 import { LOCALES, LOCALE_NAMES } from './lib/i18n'
 import { useRecordingSession } from './hooks/useRecordingSession'
+import { useEcoPref } from './hooks/useEcoPrefs'
 import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 import { enablePushNotifications } from './lib/pushNotifications'
 import { SCREEN_PATHS, screenForPath } from './lib/routes'
@@ -3300,11 +3301,13 @@ type EcoPrefs = {
   language: string
   /** 'auto' | 'mobile' | 'desktop' — like a browser's "request desktop site" */
   viewMode: string
+  /** false = the five core destinations + search; true = every tab */
+  fullNav: boolean
   signalVolume: number
   driftSensitivity: number
 }
 
-const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, privateProfile: false, language: 'auto', viewMode: 'auto', signalVolume: 72, driftSensitivity: 60 }
+const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, privateProfile: false, language: 'auto', viewMode: 'auto', fullNav: false, signalVolume: 72, driftSensitivity: 60 }
 
 function normalizeIdentity(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
@@ -3357,6 +3360,7 @@ export function SettingsScreen() {
       nightMode: ['night protocol engaged', 'night protocol off'],
       lurker: ['lurker mode on — recorders resting', 'lurker mode off — voice restored'],
       uiSounds: ['interface sounds on', 'interface sounds muted'],
+      fullNav: ['every tab visible', 'minimal drift nav — everything else lives in search (⌖ / ⌘K)'],
       privateProfile: ['profile hidden from the band', 'profile visible again'],
     }
     if ('viewMode' in patch) {
@@ -3564,6 +3568,13 @@ export function SettingsScreen() {
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
+            <div className="setting-label">{tr('settings.fullNav')}</div>
+            <div className="setting-detail">{tr('settings.fullNav.detail')}</div>
+          </div>
+          <button className={`toggle ${prefs.fullNav ? 'on' : ''}`} onClick={() => update({ fullNav: !prefs.fullNav })} />
+        </div>
+        <div className="setting-row glass">
+          <div className="setting-info">
             <div className="setting-label">{tr('settings.sounds')}</div>
             <div className="setting-detail">{tr('settings.sounds.detail')}</div>
           </div>
@@ -3654,12 +3665,28 @@ export function SettingsScreen() {
 }
 
 // ─── Nav ──────────────────────────────────────────────────────────────────────
+const CORE_NAV: Screen[] = ['pod', 'signals', 'frequencies', 'zones', 'relics']
+
 function Nav({ active, onNav }: { active: Screen; onNav: (s: Screen) => void }) {
   const { recordingActive } = useRecordingSession()
   const { tr } = useLocale()
+  const fullNav = useEcoPref('fullNav', false)
+  const items = fullNav ? navItems : navItems.filter(item => CORE_NAV.includes(item.id))
   return (
-    <nav className={`bottom-nav glass-nav${recordingActive ? ' nav--recording' : ''}`}>
-      {navItems.map(item => (
+    <nav className={`bottom-nav glass-nav${recordingActive ? ' nav--recording' : ''}${fullNav ? '' : ' bottom-nav--minimal'}`}>
+      {!fullNav && (
+        <button
+          type="button"
+          className="nav-item nav-item--search"
+          disabled={recordingActive}
+          title="search the band (⌘K)"
+          onClick={() => window.dispatchEvent(new CustomEvent('ecosphere:search'))}
+        >
+          <span className="nav-glyph">⌖</span>
+          <span className="nav-label">find</span>
+        </button>
+      )}
+      {items.map(item => (
         <button
           key={item.id}
           className={`nav-item ${active === item.id ? 'active' : ''}`}

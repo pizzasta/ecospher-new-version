@@ -18,9 +18,9 @@ describe('settings toggles', () => {
     window.localStorage.clear()
   })
 
-  it('renders all six toggles', () => {
+  it('renders all seven toggles', () => {
     const { container } = mountSettings()
-    expect(container.querySelectorAll('button.toggle')).toHaveLength(6)
+    expect(container.querySelectorAll('button.toggle')).toHaveLength(7)
   })
 
   it('flips state, class, and persisted value on click', () => {
