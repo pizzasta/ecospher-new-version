@@ -34,6 +34,7 @@ import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 import { enablePushNotifications } from './lib/pushNotifications'
 import { SCREEN_PATHS, screenForPath } from './lib/routes'
 import { anonymousMode } from './lib/anonymity'
+import { moderatePublicSignalText } from './lib/signalModeration'
 
 const FeedScreen = lazy(() => import('./FeedScreen'))
 const RoomsScreenComponent = lazy(() => import('./components/RoomsScreen'))
@@ -143,11 +144,16 @@ const deadZones: DeadZone[] = [
 ]
 
 const relics: Relic[] = [
-  { id: 'rl1', name: 'Echo Veil', type: 'Echo Fragment', rarity: 'mythic', resonance: 94, description: 'A translucent memory layer that hums when other signals pass near it.' },
-  { id: 'rl2', name: 'Pulse Crystal VII', type: 'Pulse Crystal', rarity: 'rare', resonance: 82, description: 'A crystalline heartbeat recovered from a living branch of the ecosystem.' },
-  { id: 'rl3', name: 'Lost Carrier', type: 'Lost Transmission', rarity: 'forbidden', resonance: 67, description: 'A sealed transmission that repeats a name the archive no longer recognizes.' },
-  { id: 'rl4', name: 'Static Bloom', type: 'Static Bloom', rarity: 'unstable', resonance: 89, description: 'Pink interference folded into a rare flower-shaped signal artifact.' },
-  { id: 'rl5', name: 'Violet Memory Shard', type: 'Memory Shard', rarity: 'unstable', resonance: 58, description: 'A broken emotional index with a soft violet afterimage.' },
+  { id: 'rl1', name: 'Echo Veil', type: 'Echo Fragment', rarity: 'mythic', resonance: 94, description: 'a 40-second recording where a second voice hums along underneath. nobody has ever placed it.' },
+  { id: 'rl2', name: 'Pulse Crystal VII', type: 'Pulse Crystal', rarity: 'rare', resonance: 82, description: "someone's heartbeat, taped through a coat pocket on a night bus. still keeps time." },
+  { id: 'rl3', name: 'Lost Carrier', type: 'Lost Transmission', rarity: 'forbidden', resonance: 67, description: 'a sealed voicemail that says one name, three times. the number was never registered.' },
+  { id: 'rl4', name: 'Static Bloom', type: 'Static Bloom', rarity: 'unstable', resonance: 89, description: 'radio static that turns into a tune if you stop trying to hear it.' },
+  { id: 'rl5', name: 'Violet Memory Shard', type: 'Memory Shard', rarity: 'unstable', resonance: 58, description: 'half a confession, cut off exactly where it was about to matter.' },
+  { id: 'rl6', name: 'Answering Machine, 1999', type: 'Lost Transmission', rarity: 'rare', resonance: 74, description: 'eleven saved messages from the same person, each one a little kinder than the last.' },
+  { id: 'rl7', name: 'The Hold Music', type: 'Echo Fragment', rarity: 'unstable', resonance: 63, description: 'forty minutes of hold music with one cough at minute 22. people replay the cough.' },
+  { id: 'rl8', name: 'Wind Through a Screen Door', type: 'Field Recording', rarity: 'rare', resonance: 71, description: "someone's whole summer, recorded by accident while the phone sat on a porch table." },
+  { id: 'rl9', name: 'Last Bus Announcement', type: 'Field Recording', rarity: 'mythic', resonance: 88, description: 'the final stop being called on a route that was cancelled the next morning.' },
+  { id: 'rl10', name: 'Sealed Birthday Tape', type: 'Memory Shard', rarity: 'forbidden', resonance: 79, description: 'a tape labeled "for when you\'re 30" that nobody ever came back for.' },
 ]
 
 const navItems: { id: Screen; label: string; glyph: string }[] = [
@@ -1181,6 +1187,19 @@ function CapsulesScreen() {
 
   return (
     <div className="screen">
+      {/* preservation dust drifting up through the vault */}
+      <div className="capsule-dust" aria-hidden="true">
+        {Array.from({ length: 12 }, (_, i) => (
+          <span
+            key={i}
+            style={{
+              left: `${(i * 83 + 7) % 100}%`,
+              animationDuration: `${9 + (i % 5) * 3}s`,
+              animationDelay: `${-(i * 1.7)}s`,
+            }}
+          />
+        ))}
+      </div>
       <div className="screen-header">
         <div className="screen-kicker">VOICE CAPSULES</div>
         <h2 className="screen-title">Capsules</h2>
@@ -1386,19 +1405,29 @@ function PersonalCapsules() {
 type RelicActivity = { replays: number; reactions: Record<string, number>; saved: boolean }
 
 const relicFragments: Record<string, string[]> = {
-  rl1: ['recovered from the east shelf of the archive', 'it hums when another signal passes close', 'the hum is almost a voice. almost.'],
-  rl2: ['a heartbeat, crystallized mid-pulse', 'still ticking at the tempo it was found at', 'warm to the touch after every replay'],
-  rl3: ['sealed by the archive. twice.', 'it repeats a name no index recognizes', 'the name gets clearer the longer you stay'],
-  rl4: ['pink interference, folded into petals', 'it opens slightly during quiet hours', 'do not listen to the center directly'],
-  rl5: ['a broken emotional index', 'violet afterimage persists after playback', 'some entries point at each other forever'],
+  rl1: ['found on a tape with no label, side B', 'the second voice joins eight seconds in', 'whoever it is, they knew the song'],
+  rl2: ['recorded through fabric — you can hear the coat', 'the bus stops twice. the heart never does', 'people sync their breathing to it without noticing'],
+  rl3: ['the voicemail is 19 seconds long', 'same name, three times, calmer each time', 'the callback number connects to nothing'],
+  rl4: ['sounds like static for the first minute', 'the tune is there if you stop hunting for it', 'nobody can whistle it back afterwards'],
+  rl5: ['"okay so the truth is—" and then nothing', 'the cut is clean. deliberate, maybe', 'people finish the sentence differently every time'],
+  rl6: ['message 1 is about a parking spot', 'message 7 is an apology that takes its time', 'message 11 just says "okay. goodnight."'],
+  rl7: ['the cough is at 22:04 exactly', 'one person looped the cough for an hour', 'the song itself is nothing. the waiting is everything'],
+  rl8: ['you can hear a screen door, ice in a glass, somebody laughing two rooms away', 'forty minutes, nothing happens, nobody wants it to', 'summer ends at minute 39 when someone says "it\'s late"'],
+  rl9: ['"last stop. everybody out." then keys', 'the driver hums while closing up', 'the route number was retired the next day'],
+  rl10: ['the label is handwriting, not print', 'still sealed. the shrink-wrap is original', 'whoever it was for turned 30 a long time ago'],
 }
 
 const relicShards: Record<string, string> = {
-  rl1: 'hidden shard · a second hum underneath, half a beat behind. it has been answering you this whole time.',
-  rl2: 'hidden shard · the crystal skips one beat every 47th replay. the skip is the message.',
-  rl3: 'hidden shard · the name is yours, read backwards through static.',
-  rl4: 'hidden shard · at the center of the bloom: four seconds of someone breathing, calm.',
-  rl5: 'hidden shard · one index entry is intact. it points to tonight.',
+  rl1: 'hidden shard · the second voice is half a beat behind on purpose. it was harmonizing.',
+  rl2: 'hidden shard · the heartbeat skips once, at the exact moment the bus doors open.',
+  rl3: 'hidden shard · played backwards, the voicemail is the same name. it works in both directions.',
+  rl4: 'hidden shard · under the static: four seconds of someone breathing, completely calm.',
+  rl5: 'hidden shard · the confession resumes for one word at the very end. the word is "anyway."',
+  rl6: 'hidden shard · message 12 exists. it was never saved, but the beep is on the tape.',
+  rl7: 'hidden shard · right before the cough, someone exhales — they were there the whole time.',
+  rl8: 'hidden shard · at minute 31, somebody very quietly says "remember this."',
+  rl9: 'hidden shard · one passenger never got off. you can hear them decide not to.',
+  rl10: 'hidden shard · the tape rattles. there is something small sealed inside the case with it.',
 }
 
 const relicReactionDefs = [
@@ -1413,7 +1442,20 @@ const relicPostits: Record<string, string[]> = {
   rl3: ['i muted this halfway. came back.', 'this one feels dangerous after 1am'],
   rl4: ['the laugh at the end ruined me', 'i almost sent this to someone'],
   rl5: ['someone was breathing in the background', 'the ending kinda—'],
+  rl6: ['message 7 lives in my head rent free', 'i called my mom after this one'],
+  rl7: ['the cough?? hello??', 'i waited the whole 40 min. worth it'],
+  rl8: ['this is what i miss and i was never there', 'left it on while cleaning. cried a little'],
+  rl9: ['i ride that route. rode.', 'the keys at the end. man.'],
+  rl10: ['DO NOT open this one', 'i think about whoever it was for constantly'],
 }
+
+// shelves: the vault is organized by how dangerous the rarity is
+const RELIC_SHELVES: Array<{ rarity: Relic['rarity']; label: string; note: string }> = [
+  { rarity: 'mythic', label: 'top shelf', note: 'handled with the lights off' },
+  { rarity: 'forbidden', label: 'the locked case', note: 'the archive sealed these twice' },
+  { rarity: 'rare', label: 'middle shelf', note: 'signed out most often' },
+  { rarity: 'unstable', label: 'the workbench', note: 'still being repaired' },
+]
 
 const RELIC_EVENTS = [
   'archive pressure steady',
@@ -1433,6 +1475,32 @@ function RelicsScreen() {
   const [charge, setCharge] = useState<Record<string, number>>(() => Object.fromEntries(relics.map(r => [r.id, r.resonance])))
   const [shelfVisit, setShelfVisit] = usePersistentState<string>('ecosphere:relicShelfVisit', '')
   const [shelfNote, setShelfNote] = useState<string | null>(null)
+  // your own post-its: one note per relic, screened like anything public
+  const [myNotes, setMyNotes] = usePersistentState<Record<string, string>>('ecosphere:relicNotes', {})
+  const [noteDraft, setNoteDraft] = useState('')
+
+  const leaveNote = (id: string) => {
+    const text = noteDraft.trim().slice(0, 60)
+    if (!text) return
+    if (moderatePublicSignalText(text).status === 'flagged') {
+      setShelfNote('that one stays unsaid — the note never sticks')
+      window.setTimeout(() => setShelfNote(null), 5000)
+      setNoteDraft('')
+      return
+    }
+    setMyNotes(prev => ({ ...prev, [id]: text }))
+    setNoteDraft('')
+    setShelfNote('your note is on the case now')
+    window.setTimeout(() => setShelfNote(null), 4000)
+  }
+
+  // the handling ledger: how worn a relic is, who held it last
+  const ledgerLine = (r: Relic, a: RelicActivity) => {
+    const seed = r.id.charCodeAt(2) * 131 + r.resonance
+    const count = 40 + (seed % 270) + a.replays
+    const when = ['just now', '14 min ago', 'an hour ago', 'tonight', 'this evening'][seed % 5]
+    return `handled ${count}× · last held ${a.replays > 0 ? 'by you' : when}`
+  }
 
   // today's featured artifact + what you handled last
   const loanRelic = relics[dayOfYear() % relics.length]
@@ -1503,6 +1571,19 @@ function RelicsScreen() {
 
   return (
     <div className="screen">
+      {/* archive dust hanging in the vault light */}
+      <div className="capsule-dust" aria-hidden="true">
+        {Array.from({ length: 10 }, (_, i) => (
+          <span
+            key={i}
+            style={{
+              left: `${(i * 97 + 13) % 100}%`,
+              animationDuration: `${10 + (i % 4) * 4}s`,
+              animationDelay: `${-(i * 2.1)}s`,
+            }}
+          />
+        ))}
+      </div>
       <div className="screen-header">
         <div className="screen-kicker">SIGNAL RELICS</div>
         <h2 className="screen-title">Relics</h2>
@@ -1530,38 +1611,54 @@ function RelicsScreen() {
       </div>
 
       <LiveTail page="relics" />
-      <div className="relics-grid">
-        {relics.map((r, i) => {
-          const a = activityOf(r.id)
-          const c = charge[r.id] ?? r.resonance
-          return (
-            <button
-              key={r.id}
-              className={`relic-card glass lp-relic lp-enter${selected?.id === r.id ? ' selected' : ''}${a.replays >= 3 ? ' awakened' : ''}${a.saved ? ' kept' : ''}`}
-              style={{ '--glow': (c / 100).toFixed(3), '--replay-boost': (Math.min(a.replays, 6) / 6).toFixed(3), '--idx': i } as CSSProperties}
-              onClick={() => setSelected(r)}
-            >
-              <div className={`cassette${relicAudio.current?.id === `relic-${r.id}` && relicAudio.playing ? ' playing' : ''}`} aria-hidden="true">
-                <span className="cassette-reel" />
-                <span className="cassette-window" />
-                <span className="cassette-reel" />
-              </div>
-              <div className="relic-name">{r.name}</div>
-              <div className="relic-postits" aria-hidden="true">
-                {(relicPostits[r.id] ?? []).slice(0, 2).map((note, ni) => (
-                  <span key={note} className={`postit postit-${ni}`}>{note}</span>
-                ))}
-              </div>
-              <RarityBadge rarity={r.rarity} />
-              <div className="relic-resonance">{Math.round(c)}%</div>
-              {(a.replays > 0 || a.saved) && (
-                <div className="lp-relic-trace">{a.replays > 0 ? `${a.replays}× replayed` : 'kept'}</div>
-              )}
-              {c < 45 && <div className="lp-relic-unstable">unstable · return tomorrow</div>}
-            </button>
-          )
-        })}
-      </div>
+      {RELIC_SHELVES.map(shelf => {
+        const shelfRelics = relics.filter(r => r.rarity === shelf.rarity)
+        if (shelfRelics.length === 0) return null
+        return (
+          <section key={shelf.rarity} className={`relic-shelf relic-shelf--${shelf.rarity}`}>
+            <div className="relic-shelf-head">
+              <span className="relic-shelf-label">{shelf.label}</span>
+              <span className="relic-shelf-note">{shelf.note}</span>
+            </div>
+            <div className="relics-grid">
+              {shelfRelics.map(r => {
+                const i = relics.indexOf(r)
+                const a = activityOf(r.id)
+                const c = charge[r.id] ?? r.resonance
+                return (
+                  <button
+                    key={r.id}
+                    className={`relic-card glass lp-relic lp-enter${selected?.id === r.id ? ' selected' : ''}${a.replays >= 3 ? ' awakened' : ''}${a.saved ? ' kept' : ''}`}
+                    style={{ '--glow': (c / 100).toFixed(3), '--replay-boost': (Math.min(a.replays, 6) / 6).toFixed(3), '--idx': i } as CSSProperties}
+                    onClick={() => setSelected(r)}
+                  >
+                    <div className={`cassette${relicAudio.current?.id === `relic-${r.id}` && relicAudio.playing ? ' playing' : ''}`} aria-hidden="true">
+                      <span className="cassette-reel" />
+                      <span className="cassette-window" />
+                      <span className="cassette-reel" />
+                    </div>
+                    <div className="relic-name">{r.name}</div>
+                    <div className="relic-postits" aria-hidden="true">
+                      {(relicPostits[r.id] ?? []).slice(0, 2).map((note, ni) => (
+                        <span key={note} className={`postit postit-${ni}`}>{note}</span>
+                      ))}
+                      {myNotes[r.id] && <span className="postit postit-mine">{myNotes[r.id]}</span>}
+                    </div>
+                    <RarityBadge rarity={r.rarity} />
+                    <div className="relic-resonance">{Math.round(c)}%</div>
+                    <div className="relic-ledger">{ledgerLine(r, a)}</div>
+                    {(a.replays > 0 || a.saved) && (
+                      <div className="lp-relic-trace">{a.replays > 0 ? `${a.replays}× replayed` : 'kept'}</div>
+                    )}
+                    {c < 45 && <div className="lp-relic-unstable">unstable · return tomorrow</div>}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="relic-shelf-board" aria-hidden="true" />
+          </section>
+        )
+      })}
       {selected && selectedActivity && (
         <div className={`lp-relic-overlay stage-${stage}`} role="dialog" aria-modal="true" onClick={() => setSelected(null)}>
           <div className="lp-relic-scene glass" onClick={e => e.stopPropagation()}>
@@ -1641,6 +1738,34 @@ function RelicsScreen() {
                   {selectedActivity.saved ? '✶ kept in pod' : '✧ keep in pod'}
                 </button>
               </div>
+            )}
+            {stage >= 3 && (
+              <>
+                <div className="relic-wear" aria-label="Handling wear">
+                  <span>handling wear · the tape thins a little every replay</span>
+                  <div className="relic-wear-track"><i style={{ width: `${Math.min(40, selectedActivity.replays * 4) + 6}%` }} /></div>
+                </div>
+                <div className="relic-note-row">
+                  {myNotes[selected.id] ? (
+                    <p className="relic-note-mine">
+                      your note is on the case: “{myNotes[selected.id]}”
+                      <button type="button" onClick={() => setMyNotes(prev => { const next = { ...prev }; delete next[selected.id]; return next })}>peel it off</button>
+                    </p>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        maxLength={60}
+                        placeholder="leave a note on the case…"
+                        value={noteDraft}
+                        onChange={e => setNoteDraft(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') leaveNote(selected.id) }}
+                      />
+                      <button type="button" onClick={() => leaveNote(selected.id)}>stick it</button>
+                    </>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -2043,6 +2168,32 @@ function FrequenciesScreen() {
     say('your signal drifted out past the horizon')
   }
 
+  // the frequency finder: sweep the band, find tonight's four hidden stations
+  const [dial, setDial] = useState(88)
+  const [lockedStation, setLockedStation] = useState<string | null>(null)
+  const [foundStations, setFoundStations] = useState<string[]>([])
+  const stations = useMemo(() => {
+    const d = dayOfYear()
+    return [
+      { at: 26 + ((d * 7) % 44), label: 'somebody humming over engine noise', kind: 'voice' as const },
+      { at: 82 + ((d * 13) % 36), label: 'rain on a tent, two voices under it', kind: 'whisper' as const },
+      { at: 128 + ((d * 29) % 30), label: 'a station that only plays the sea', kind: 'static' as const },
+      { at: 168 + ((d * 11) % 26), label: 'numbers read slowly, then goodnight', kind: 'tone' as const },
+    ]
+  }, [])
+  const tune = (value: number) => {
+    setDial(value)
+    const hit = stations.find(s => Math.abs(s.at - value) <= 2)
+    if (hit && lockedStation !== hit.label) {
+      setLockedStation(hit.label)
+      setFoundStations(prev => (prev.includes(hit.label) ? prev : [...prev, hit.label]))
+      void playSampleBuffer(hit.kind, Math.round(hit.at * 31), 6000, 0.32)
+    } else if (!hit && lockedStation) {
+      setLockedStation(null)
+      stopPreviewBuffer()
+    }
+  }
+
   return (
     <div className={`sea-screen${night ? ' sea-screen--night' : ''}`}>
       <div className="sea-fog sea-fog-a" aria-hidden="true" />
@@ -2050,6 +2201,20 @@ function FrequenciesScreen() {
       <div className="sea-glow" aria-hidden="true" />
       <div className="sea-lightning" aria-hidden="true" />
       <div className="sea-waves" aria-hidden="true"><span /><span /><span /></div>
+      <div className="sea-sonar" aria-hidden="true" />
+      <div className="sea-glints" aria-hidden="true">
+        {Array.from({ length: 14 }, (_, i) => (
+          <span
+            key={i}
+            style={{
+              left: `${(i * 71 + 9) % 100}%`,
+              top: `${30 + ((i * 47) % 60)}%`,
+              animationDuration: `${2.4 + (i % 5) * 0.9}s`,
+              animationDelay: `${-(i * 0.7)}s`,
+            }}
+          />
+        ))}
+      </div>
 
       <header className="sea-header">
         <span className="sea-kicker">FREQUENCY SEA</span>
@@ -2057,6 +2222,38 @@ function FrequenciesScreen() {
         <p className="sea-tide" key={tideIdx}>{SEA_TIDES[tideIdx % SEA_TIDES.length]}{night ? ' · night tide' : ''}</p>
         <p className="sea-purpose">nothing to do here. float — the sea brings things to you.</p>
       </header>
+
+      {/* the frequency finder: an actual dial to sweep */}
+      <div className="sea-tuner" role="group" aria-label="Frequency finder">
+        <div className="sea-tuner-head">
+          <span className="sea-tuner-kicker">FREQUENCY FINDER</span>
+          <span className={`sea-tuner-lock${lockedStation ? ' on' : ''}`}>
+            {lockedStation ? '◉ signal locked' : `sweeping · ${foundStations.length}/4 found tonight`}
+          </span>
+        </div>
+        <div className="sea-tuner-band">
+          <div className="sea-tuner-ticks" aria-hidden="true">
+            {Array.from({ length: 25 }, (_, i) => <i key={i} className={i % 6 === 0 ? 'major' : ''} />)}
+          </div>
+          {stations.filter(s => foundStations.includes(s.label)).map(s => (
+            <span key={s.label} className="sea-tuner-marker" style={{ left: `${((s.at - 20) / 180) * 100}%` }} aria-hidden="true" />
+          ))}
+          <div className="sea-tuner-needle" style={{ left: `${((dial - 20) / 180) * 100}%` }} aria-hidden="true" />
+          <input
+            type="range"
+            min={20}
+            max={200}
+            step={0.5}
+            value={dial}
+            onChange={e => tune(Number(e.target.value))}
+            aria-label="tune the band"
+          />
+        </div>
+        <div className="sea-tuner-readout">
+          <strong>{dial.toFixed(1)} Hz</strong>
+          <em>{lockedStation ?? 'mostly static out here. four stations are hiding — sweep slowly.'}</em>
+        </div>
+      </div>
 
       <div className="sea-field">
         {driftwood && (

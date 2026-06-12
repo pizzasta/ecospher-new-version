@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { useEcosystemState } from '../hooks/useEcosystemState'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { playSample } from '../lib/sampleAudio'
@@ -9,6 +9,7 @@ import { getListenCounts, getProfile } from '../lib'
 import { isSupabaseConfigured } from '../lib/supabase-env'
 import { getHzProfile, getLocalHzProfile } from '../lib/hzSignature'
 import { useEcoPref } from '../hooks/useEcoPrefs'
+import { AVATAR_SIGILS, readAvatar, saveAvatar, sigilGlyph } from '../lib/avatar'
 import type { HzProfile } from '../lib/hzSignature'
 import AudioPlayer from './AudioPlayer'
 import AudioRecorder from './AudioRecorder'
@@ -55,6 +56,9 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   const { ecosystemState } = useEcosystemState()
   const globalAudio = useGlobalAudio()
   const privateProfile = useEcoPref('privateProfile', false)
+  // avatar sigil: a chosen mark instead of a photo — there are no photos here
+  const [avatar, setAvatar] = useState(() => readAvatar())
+  const [sigilOpen, setSigilOpen] = useState(false)
 
   // ── header data ──
   const username = ecosystemState.userSignalIdentity ?? 'unclaimed frequency'
@@ -228,6 +232,311 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
     })
   }, [])
 
+  // the board: every card is a movable tile, order persisted on this device
+  const tiles: Record<string, ReactNode> = {
+    identity: (
+        <div className="ph-card glass">
+          <div className="ph-header-row">
+            <h3 className="ph-username">◈ {username}</h3>
+            <span className="ph-header-hz">
+              <HzBadge hz={hzProfile.hz} displayName={hzProfile.displayName} color={hzProfile.color} />
+              <button type="button" className="ph-hz-cog" title="hz signature settings" aria-label="hz signature settings" onClick={() => setHzSettingsOpen(true)}>⚙</button>
+              <button type="button" className="ph-hz-cog" title="background settings" aria-label="background gradient settings" onClick={() => setGradientOpen(true)}>◰</button>
+            </span>
+          </div>
+          {joined && <p className="ph-joined">on the band since {joined}</p>}
+          {hzSettingsOpen && (
+            <HzSettingsModal profile={hzProfile} onChange={setHzProfile} onClose={() => setHzSettingsOpen(false)} />
+          )}
+          {gradientOpen && (
+            <FrequencyGradientModal
+              settings={gradient}
+              hz={hzProfile.hz}
+              onChange={setGradient}
+              onClose={() => setGradientOpen(false)}
+            />
+          )}
+
+          {/* tape intro: ten seconds of voice instead of a written bio */}
+          <div className="ph-tape">
+            {tapeIntro && !tapeRecording ? (
+              <>
+                <div className="ph-tape-shell" aria-label="Your intro tape">
+                  <span className="ph-cassette-spools" aria-hidden="true"><i /><i /></span>
+                  <div className="ph-tape-body">
+                    <span className="ph-tape-label">intro tape · {Math.max(1, Math.round(tapeIntro.durationMs / 1000))}s · {new Date(tapeIntro.recordedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                    {echoBlobFor(tapeIntro.id)
+                      ? <AudioPlayer src={echoBlobFor(tapeIntro.id)!} seed={tapeIntro.recordedAt % 9973} durationSeconds={tapeIntro.durationMs / 1000} accent={hzProfile.color} />
+                      : <span className="ph-tape-missing">this tape lives on the device that recorded it</span>}
+                  </div>
+                </div>
+                <button type="button" className="ph-tape-rerecord" onClick={() => setTapeRecording(true)}>↻ record over it</button>
+              </>
+            ) : (
+              <>
+                {!tapeRecording && <p className="ph-tape-empty">no intro tape yet. ten seconds — who's there?</p>}
+                <AudioRecorder
+                  kind="signal"
+                  context="intro tape"
+                  prompt="ten seconds, one take. say whatever a stranger should hear first."
+                  minSeconds={3}
+                  maxSeconds={10}
+                  onComplete={({ durationMs, uploadId }) => saveTapeIntro({ id: uploadId, durationMs })}
+                />
+                {tapeRecording && (
+                  <button type="button" className="ph-tape-rerecord" onClick={() => setTapeRecording(false)}>keep the old tape</button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+    ),
+    echoes: (
+        <div className="ph-card glass">
+          <div className="ph-card-head">
+            <span className="ph-card-kicker">ECHO ARCHIVE</span>
+            <span className="ph-card-count">{echoes.length}</span>
+          </div>
+          {echoes.length === 0 && <p className="ph-empty">no echoes yet. your recordings gather here.</p>}
+          <div className="ph-echo-list">
+            {echoes.slice(0, echoLimit).map(echo => (
+              <div key={echo.id} className="ph-echo">
+                <div className="ph-echo-meta">
+                  <span>{new Date(echo.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                  <span>{Math.max(1, Math.round(echo.durationMs / 1000))}s</span>
+                  <button type="button" className="ph-icon-btn ph-icon-btn--danger" title="delete echo" onClick={() => deleteEcho(echo.id)}>✕</button>
+                </div>
+                <AudioPlayer src={echo.blob} title={echo.label} seed={echo.createdAt % 9973} durationSeconds={echo.durationMs / 1000} accent={hzProfile.color} />
+              </div>
+            ))}
+          </div>
+          {echoes.length > echoLimit && (
+            <button type="button" className="ph-load-more" onClick={() => setEchoLimit(n => n + ECHO_PAGE)}>load more</button>
+          )}
+        </div>
+    ),
+    tonightAction: !tonightDone && (
+          <div className="ph-card glass ph-tonight-action">
+            <div className="ph-card-head">
+              <span className="ph-card-kicker">ONE THING TONIGHT</span>
+              <button type="button" className="ph-tonight-skip" onClick={markTonightDone}>not tonight</button>
+            </div>
+            {tonightAction === 'recap' && (
+              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('home') }}>
+                ◉ your frequency recap is ready — play it
+              </button>
+            )}
+            {tonightAction === 'silence' && (
+              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('unsent') }}>
+                ● break the silence — leave ten seconds in the unsent room
+              </button>
+            )}
+            {tonightAction === 'return' && (
+              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); relisten({ id: `tonight-${returns[0].label}`, label: returns[0].label }) }}>
+                ↻ return to "{returns[0]?.label}" one more time
+              </button>
+            )}
+            {tonightAction === 'seal' && (
+              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('capsules') }}>
+                ◎ seal your first transmission
+              </button>
+            )}
+            {tonightAction === 'drop' && (
+              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('capsules') }}>
+                ◬ a rare frequency is open — hear it before it dissolves
+              </button>
+            )}
+            {tonightAction === 'drift' && (
+              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('frequencies') }}>
+                ∿ drift the sea — something will float past
+              </button>
+            )}
+          </div>
+        ),
+    tonight: (
+        <div className="ph-card glass">
+          <div className="ph-card-head">
+            <span className="ph-card-kicker">TONIGHT</span>
+          </div>
+          <ul className="ph-tonight">
+            {tonight.map(line => <li key={line}>{line}</li>)}
+          </ul>
+          {memories.length > 0 && (
+            <div className="ph-memory">
+              {memories.map(line => <p key={line}>{line}</p>)}
+            </div>
+          )}
+          <div className="ph-nights" aria-label="active nights, last 14 days">
+            {activeNights.map(day => (
+              <i
+                key={day.start}
+                title={`${new Date(day.start).toLocaleDateString([], { month: 'short', day: 'numeric' })} · ${day.plays} replay${day.plays === 1 ? '' : 's'}`}
+                style={{ opacity: day.plays === 0 ? 0.12 : 0.3 + (day.plays / maxNightPlays) * 0.7 } as CSSProperties}
+              />
+            ))}
+            <span>active nights · 14d</span>
+          </div>
+        </div>
+    ),
+    history: (
+        <div className="ph-card glass">
+          <div className="ph-card-head">
+            <span className="ph-card-kicker">LISTENING HISTORY</span>
+            <span className="ph-card-count">7 days</span>
+          </div>
+          {history.length === 0 && <p className="ph-empty">nothing replayed this week. the band waits.</p>}
+          <ul className="ph-history">
+            {history.map(entry => (
+              <li key={entry.id}>
+                <span className="ph-history-label">{entry.label}</span>
+                <span className="ph-history-date">{new Date(entry.playedAt).toLocaleDateString([], { weekday: 'short' })}</span>
+                <button type="button" onClick={() => relisten(entry)}>↻ relisten</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+    ),
+    wall: returns.length > 0 && (
+          <div className="ph-card glass">
+            <div className="ph-card-head">
+              <span className="ph-card-kicker">THE WALL OF RETURNS</span>
+              <span className="ph-card-count">chosen by your replays</span>
+            </div>
+            <div className="ph-returns">
+              {returns.map(item => {
+                const wear = item.count / maxReturnCount
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className="ph-cassette"
+                    style={{ '--wear': wear.toFixed(2) } as CSSProperties}
+                    title={`returned ${item.count} times — relisten`}
+                    onClick={() => relisten({ id: `return-${item.label}`, label: item.label })}
+                  >
+                    <span className="ph-cassette-spools" aria-hidden="true"><i /><i /></span>
+                    <span className="ph-cassette-label">{item.label}</span>
+                    <span className="ph-cassette-count">{item.count}× returned</span>
+                    <span className="ph-cassette-wear" aria-hidden="true" />
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ),
+    shelf: (recoveredFragments > 0 || ecosystemState.savedSignals.length > 0) && (
+          <div className="ph-card glass">
+            <div className="ph-card-head">
+              <span className="ph-card-kicker">FROM THE SHELF</span>
+            </div>
+            {recoveredFragments > 0 && (
+              <p className="ph-shelf-line">
+                {recoveredFragments} fragment{recoveredFragments === 1 ? '' : 's'} recovered from dead zones
+              </p>
+            )}
+            {ecosystemState.savedSignals.length > 0 && (
+              <p className="ph-shelf-line">
+                {ecosystemState.savedSignals.length} trace{ecosystemState.savedSignals.length === 1 ? '' : 's'} kept from the feed
+              </p>
+            )}
+          </div>
+        ),
+    vault: (
+        <div className="ph-card glass">
+          <div className="ph-card-head">
+            <span className="ph-card-kicker">CAPSULE VAULT</span>
+          </div>
+          <div className="ph-vault-row">
+            <button type="button" className="ph-vault-stat" onClick={() => onNavigate?.('capsules')}>
+              <strong>{personalCapsules}</strong>
+              <span>sealed transmissions</span>
+            </button>
+            <button type="button" className="ph-vault-stat" onClick={() => onNavigate?.('capsules')}>
+              <strong>{forming}</strong>
+              <span>still forming</span>
+            </button>
+          </div>
+        </div>
+    ),
+    reach: (
+        <div className="ph-card glass">
+          <div className="ph-card-head">
+            <span className="ph-card-kicker">SIGNAL REACH</span>
+          </div>
+          <div className="ph-vault-row">
+            <div className="ph-vault-stat ph-vault-stat--static">
+              <strong>{counts.listeners}</strong>
+              <span>listeners</span>
+            </div>
+            <div className="ph-vault-stat ph-vault-stat--static">
+              <strong>{counts.tunedTo}</strong>
+              <span>tuned to</span>
+            </div>
+          </div>
+          <p className="ph-hint">tune to carriers from the observatory's active carriers panel.</p>
+        </div>
+    ),
+    tuning: (
+        <div className="ph-card glass">
+          <div className="ph-card-head">
+            <span className="ph-card-kicker">TUNING</span>
+          </div>
+          <div className="ph-settings-links">
+            <button type="button" onClick={() => setHzSettingsOpen(true)}>✦ change signature color</button>
+            <button type="button" onClick={() => setGradientOpen(true)}>◰ background colors &amp; design</button>
+            <button type="button" onClick={() => setSigilOpen(open => !open)}>◈ choose your sigil — no photos here, ever</button>
+          </div>
+          {sigilOpen && (
+            <div className="ph-sigil-picker" role="radiogroup" aria-label="Avatar sigil">
+              {AVATAR_SIGILS.map(sigil => (
+                <button
+                  key={sigil.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={avatar === sigil.id}
+                  className={`ph-sigil-option${avatar === sigil.id ? ' active' : ''}`}
+                  title={sigil.label}
+                  style={{ '--sigil-color': hzProfile.color } as CSSProperties}
+                  onClick={() => { saveAvatar(sigil.id); setAvatar(sigil.id) }}
+                >
+                  {sigil.id === 'hz' ? <small>{hzProfile.hz.toFixed(0)}hz</small> : sigil.glyph}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="ph-settings-links">
+            <button type="button" onClick={() => onNavigate?.('settings')}>profile visibility</button>
+            <button type="button" onClick={() => onNavigate?.('settings')}>lurker mode</button>
+            <button type="button" onClick={() => onNavigate?.('settings')}>erase account data</button>
+          </div>
+        </div>
+    ),
+  }
+
+
+  // pinterest-board layout: tile order is yours, saved per device
+  const [boardOrder, setBoardOrder] = useState<string[]>(() => {
+    const defaults = ['identity', 'tonightAction', 'echoes', 'tonight', 'history', 'wall', 'shelf', 'vault', 'reach', 'tuning']
+    try {
+      const stored = JSON.parse(window.localStorage.getItem('ecosphere:hubBoard') ?? '[]') as string[]
+      const valid = stored.filter(id => defaults.includes(id))
+      return [...valid, ...defaults.filter(id => !valid.includes(id))]
+    } catch {
+      return defaults
+    }
+  })
+  const [arranging, setArranging] = useState(false)
+  const moveTile = (id: string, dir: -1 | 1) => {
+    setBoardOrder(prev => {
+      const idx = prev.indexOf(id)
+      const swap = idx + dir
+      if (idx < 0 || swap < 0 || swap >= prev.length) return prev
+      const next = [...prev]
+      ;[next[idx], next[swap]] = [next[swap], next[idx]]
+      try { window.localStorage.setItem('ecosphere:hubBoard', JSON.stringify(next)) } catch { /* session only */ }
+      return next
+    })
+  }
   return (
     <section className="profile-hub" aria-label="Profile hub">
       {privateProfile && (
@@ -295,8 +604,14 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
             ))}
           </div>
           <div className="ph-ring-center">
-            <strong>{hzProfile.hz.toFixed(1)}</strong>
-            <span>Hz</span>
+            {avatar === 'hz' ? (
+              <>
+                <strong>{hzProfile.hz.toFixed(1)}</strong>
+                <span>Hz</span>
+              </>
+            ) : (
+              <span className="ph-sigil" style={{ color: hzProfile.color }}>{sigilGlyph(avatar)}</span>
+            )}
           </div>
         </div>
         <div className="ph-identity">
@@ -314,270 +629,27 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
         </div>
       </div>
 
-      <div className="ph-col">
-        {/* header */}
-        <div className="ph-card glass">
-          <div className="ph-header-row">
-            <h3 className="ph-username">◈ {username}</h3>
-            <span className="ph-header-hz">
-              <HzBadge hz={hzProfile.hz} displayName={hzProfile.displayName} color={hzProfile.color} />
-              <button type="button" className="ph-hz-cog" title="hz signature settings" aria-label="hz signature settings" onClick={() => setHzSettingsOpen(true)}>⚙</button>
-              <button type="button" className="ph-hz-cog" title="background settings" aria-label="background gradient settings" onClick={() => setGradientOpen(true)}>◰</button>
-            </span>
-          </div>
-          {joined && <p className="ph-joined">on the band since {joined}</p>}
-          {hzSettingsOpen && (
-            <HzSettingsModal profile={hzProfile} onChange={setHzProfile} onClose={() => setHzSettingsOpen(false)} />
-          )}
-          {gradientOpen && (
-            <FrequencyGradientModal
-              settings={gradient}
-              hz={hzProfile.hz}
-              onChange={setGradient}
-              onClose={() => setGradientOpen(false)}
-            />
-          )}
-
-          {/* tape intro: ten seconds of voice instead of a written bio */}
-          <div className="ph-tape">
-            {tapeIntro && !tapeRecording ? (
-              <>
-                <div className="ph-tape-shell" aria-label="Your intro tape">
-                  <span className="ph-cassette-spools" aria-hidden="true"><i /><i /></span>
-                  <div className="ph-tape-body">
-                    <span className="ph-tape-label">intro tape · {Math.max(1, Math.round(tapeIntro.durationMs / 1000))}s · {new Date(tapeIntro.recordedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
-                    {echoBlobFor(tapeIntro.id)
-                      ? <AudioPlayer src={echoBlobFor(tapeIntro.id)!} seed={tapeIntro.recordedAt % 9973} durationSeconds={tapeIntro.durationMs / 1000} accent={hzProfile.color} />
-                      : <span className="ph-tape-missing">this tape lives on the device that recorded it</span>}
-                  </div>
-                </div>
-                <button type="button" className="ph-tape-rerecord" onClick={() => setTapeRecording(true)}>↻ record over it</button>
-              </>
-            ) : (
-              <>
-                {!tapeRecording && <p className="ph-tape-empty">no intro tape yet. ten seconds — who's there?</p>}
-                <AudioRecorder
-                  kind="signal"
-                  context="intro tape"
-                  prompt="ten seconds, one take. say whatever a stranger should hear first."
-                  minSeconds={3}
-                  maxSeconds={10}
-                  onComplete={({ durationMs, uploadId }) => saveTapeIntro({ id: uploadId, durationMs })}
-                />
-                {tapeRecording && (
-                  <button type="button" className="ph-tape-rerecord" onClick={() => setTapeRecording(false)}>keep the old tape</button>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* echo archive */}
-        <div className="ph-card glass">
-          <div className="ph-card-head">
-            <span className="ph-card-kicker">ECHO ARCHIVE</span>
-            <span className="ph-card-count">{echoes.length}</span>
-          </div>
-          {echoes.length === 0 && <p className="ph-empty">no echoes yet. your recordings gather here.</p>}
-          <div className="ph-echo-list">
-            {echoes.slice(0, echoLimit).map(echo => (
-              <div key={echo.id} className="ph-echo">
-                <div className="ph-echo-meta">
-                  <span>{new Date(echo.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
-                  <span>{Math.max(1, Math.round(echo.durationMs / 1000))}s</span>
-                  <button type="button" className="ph-icon-btn ph-icon-btn--danger" title="delete echo" onClick={() => deleteEcho(echo.id)}>✕</button>
-                </div>
-                <AudioPlayer src={echo.blob} title={echo.label} seed={echo.createdAt % 9973} durationSeconds={echo.durationMs / 1000} accent={hzProfile.color} />
-              </div>
-            ))}
-          </div>
-          {echoes.length > echoLimit && (
-            <button type="button" className="ph-load-more" onClick={() => setEchoLimit(n => n + ECHO_PAGE)}>load more</button>
-          )}
-        </div>
+      <div className="ph-board-bar">
+        <button type="button" className={`ph-arrange-toggle${arranging ? ' on' : ''}`} onClick={() => setArranging(a => !a)}>
+          {arranging ? '✓ done arranging' : '✥ arrange your board'}
+        </button>
       </div>
-
-      <div className="ph-col">
-        {/* one thing tonight: the hub's single suggested action */}
-        {!tonightDone && (
-          <div className="ph-card glass ph-tonight-action">
-            <div className="ph-card-head">
-              <span className="ph-card-kicker">ONE THING TONIGHT</span>
-              <button type="button" className="ph-tonight-skip" onClick={markTonightDone}>not tonight</button>
+      <div className={`ph-board${arranging ? ' ph-board--arranging' : ''}`}>
+        {boardOrder.map(tileId => {
+          const tile = tiles[tileId]
+          if (!tile) return null
+          return (
+            <div key={tileId} className="ph-tile">
+              {arranging && (
+                <div className="ph-tile-handle" aria-label="move this card">
+                  <button type="button" aria-label="move earlier" onClick={() => moveTile(tileId, -1)}>◀</button>
+                  <button type="button" aria-label="move later" onClick={() => moveTile(tileId, 1)}>▶</button>
+                </div>
+              )}
+              {tile}
             </div>
-            {tonightAction === 'recap' && (
-              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('home') }}>
-                ◉ your frequency recap is ready — play it
-              </button>
-            )}
-            {tonightAction === 'silence' && (
-              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('unsent') }}>
-                ● break the silence — leave ten seconds in the unsent room
-              </button>
-            )}
-            {tonightAction === 'return' && (
-              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); relisten({ id: `tonight-${returns[0].label}`, label: returns[0].label }) }}>
-                ↻ return to "{returns[0]?.label}" one more time
-              </button>
-            )}
-            {tonightAction === 'seal' && (
-              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('capsules') }}>
-                ◎ seal your first transmission
-              </button>
-            )}
-            {tonightAction === 'drop' && (
-              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('capsules') }}>
-                ◬ a rare frequency is open — hear it before it dissolves
-              </button>
-            )}
-            {tonightAction === 'drift' && (
-              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('frequencies') }}>
-                ∿ drift the sea — something will float past
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* tonight: stats with feelings attached */}
-        <div className="ph-card glass">
-          <div className="ph-card-head">
-            <span className="ph-card-kicker">TONIGHT</span>
-          </div>
-          <ul className="ph-tonight">
-            {tonight.map(line => <li key={line}>{line}</li>)}
-          </ul>
-          {memories.length > 0 && (
-            <div className="ph-memory">
-              {memories.map(line => <p key={line}>{line}</p>)}
-            </div>
-          )}
-          <div className="ph-nights" aria-label="active nights, last 14 days">
-            {activeNights.map(day => (
-              <i
-                key={day.start}
-                title={`${new Date(day.start).toLocaleDateString([], { month: 'short', day: 'numeric' })} · ${day.plays} replay${day.plays === 1 ? '' : 's'}`}
-                style={{ opacity: day.plays === 0 ? 0.12 : 0.3 + (day.plays / maxNightPlays) * 0.7 } as CSSProperties}
-              />
-            ))}
-            <span>active nights · 14d</span>
-          </div>
-        </div>
-
-        {/* listening history */}
-        <div className="ph-card glass">
-          <div className="ph-card-head">
-            <span className="ph-card-kicker">LISTENING HISTORY</span>
-            <span className="ph-card-count">7 days</span>
-          </div>
-          {history.length === 0 && <p className="ph-empty">nothing replayed this week. the band waits.</p>}
-          <ul className="ph-history">
-            {history.map(entry => (
-              <li key={entry.id}>
-                <span className="ph-history-label">{entry.label}</span>
-                <span className="ph-history-date">{new Date(entry.playedAt).toLocaleDateString([], { weekday: 'short' })}</span>
-                <button type="button" onClick={() => relisten(entry)}>↻ relisten</button>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* the wall of returns: behavior picks these, not the user */}
-        {returns.length > 0 && (
-          <div className="ph-card glass">
-            <div className="ph-card-head">
-              <span className="ph-card-kicker">THE WALL OF RETURNS</span>
-              <span className="ph-card-count">chosen by your replays</span>
-            </div>
-            <div className="ph-returns">
-              {returns.map(item => {
-                const wear = item.count / maxReturnCount
-                return (
-                  <button
-                    key={item.label}
-                    type="button"
-                    className="ph-cassette"
-                    style={{ '--wear': wear.toFixed(2) } as CSSProperties}
-                    title={`returned ${item.count} times — relisten`}
-                    onClick={() => relisten({ id: `return-${item.label}`, label: item.label })}
-                  >
-                    <span className="ph-cassette-spools" aria-hidden="true"><i /><i /></span>
-                    <span className="ph-cassette-label">{item.label}</span>
-                    <span className="ph-cassette-count">{item.count}× returned</span>
-                    <span className="ph-cassette-wear" aria-hidden="true" />
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* from the shelf: relics + fragments connected to the hub */}
-        {(recoveredFragments > 0 || ecosystemState.savedSignals.length > 0) && (
-          <div className="ph-card glass">
-            <div className="ph-card-head">
-              <span className="ph-card-kicker">FROM THE SHELF</span>
-            </div>
-            {recoveredFragments > 0 && (
-              <p className="ph-shelf-line">
-                {recoveredFragments} fragment{recoveredFragments === 1 ? '' : 's'} recovered from dead zones
-              </p>
-            )}
-            {ecosystemState.savedSignals.length > 0 && (
-              <p className="ph-shelf-line">
-                {ecosystemState.savedSignals.length} trace{ecosystemState.savedSignals.length === 1 ? '' : 's'} kept from the feed
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* capsule vault */}
-        <div className="ph-card glass">
-          <div className="ph-card-head">
-            <span className="ph-card-kicker">CAPSULE VAULT</span>
-          </div>
-          <div className="ph-vault-row">
-            <button type="button" className="ph-vault-stat" onClick={() => onNavigate?.('capsules')}>
-              <strong>{personalCapsules}</strong>
-              <span>sealed transmissions</span>
-            </button>
-            <button type="button" className="ph-vault-stat" onClick={() => onNavigate?.('capsules')}>
-              <strong>{forming}</strong>
-              <span>still forming</span>
-            </button>
-          </div>
-        </div>
-
-        {/* social stats — listeners / tuned to */}
-        <div className="ph-card glass">
-          <div className="ph-card-head">
-            <span className="ph-card-kicker">SIGNAL REACH</span>
-          </div>
-          <div className="ph-vault-row">
-            <div className="ph-vault-stat ph-vault-stat--static">
-              <strong>{counts.listeners}</strong>
-              <span>listeners</span>
-            </div>
-            <div className="ph-vault-stat ph-vault-stat--static">
-              <strong>{counts.tunedTo}</strong>
-              <span>tuned to</span>
-            </div>
-          </div>
-          <p className="ph-hint">tune to carriers from the observatory's active carriers panel.</p>
-        </div>
-
-        {/* settings links */}
-        <div className="ph-card glass">
-          <div className="ph-card-head">
-            <span className="ph-card-kicker">TUNING</span>
-          </div>
-          <div className="ph-settings-links">
-            <button type="button" onClick={() => setHzSettingsOpen(true)}>✦ change signature color</button>
-            <button type="button" onClick={() => setGradientOpen(true)}>◰ background colors &amp; wave</button>
-            <button type="button" onClick={() => onNavigate?.('settings')}>profile visibility</button>
-            <button type="button" onClick={() => onNavigate?.('settings')}>lurker mode</button>
-            <button type="button" onClick={() => onNavigate?.('settings')}>erase account data</button>
-          </div>
-        </div>
+          )
+        })}
       </div>
     </section>
   )

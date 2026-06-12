@@ -1467,3 +1467,653 @@
     animation: none;
   }
 }
+
+/* ═══ CAPSULES: the preservation vault ═══════════════════════ */
+/* these blocks rendered unstyled before — bare text on glass.   */
+
+/* drifting preservation dust over the whole page */
+.capsule-dust {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.capsule-dust span {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 200, 130, 0.5);
+  box-shadow: 0 0 6px rgba(255, 180, 100, 0.4);
+  animation: capsDustRise linear infinite;
+  opacity: 0;
+}
+
+@keyframes capsDustRise {
+  0% { transform: translateY(20vh) translateX(0); opacity: 0; }
+  12% { opacity: 0.55; }
+  88% { opacity: 0.35; }
+  100% { transform: translateY(-86vh) translateX(24px); opacity: 0; }
+}
+
+/* ── the time table: three live clocks ───────────────────────── */
+.capsule-timetable {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.capsule-clock {
+  position: relative;
+  overflow: hidden;
+  padding: 11px 12px 10px;
+  border-radius: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(20, 16, 34, 0.85), rgba(8, 7, 18, 0.9));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: lpEnter 0.6s ease both;
+}
+
+.capsule-clock::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 200, 130, 0.55), transparent);
+}
+
+.capsule-clock::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 220, 160, 0.05) 48%, transparent 62%);
+  background-size: 280% 100%;
+  animation: capsClockSweep 5.5s ease-in-out infinite;
+}
+
+.capsule-clock:nth-child(2)::after { animation-delay: 1.6s; }
+.capsule-clock:nth-child(3)::after { animation-delay: 3.2s; }
+
+@keyframes capsClockSweep {
+  0%, 100% { background-position: 120% 0; }
+  50% { background-position: -60% 0; }
+}
+
+.capsule-clock em {
+  font-style: normal;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 200, 140, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.capsule-clock em::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 190, 110, 0.9);
+  box-shadow: 0 0 6px rgba(255, 180, 100, 0.8);
+  animation: capsClockTick 2.2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes capsClockTick {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+.capsule-clock strong {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-primary, #f0f4ff);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* ── rare frequency drop: the hero vessel ─────────────────────── */
+.rare-drop {
+  position: relative;
+  margin-bottom: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(rgba(10, 8, 22, 0.94), rgba(10, 8, 22, 0.94)) padding-box,
+    conic-gradient(from var(--rare-spin, 0deg), rgba(255, 45, 120, 0.7), rgba(0, 212, 255, 0.55), rgba(155, 93, 229, 0.6), rgba(255, 45, 120, 0.7)) border-box;
+  animation: rareBorderSpin 7s linear infinite, lpEnter 0.6s ease both;
+  overflow: hidden;
+}
+
+@property --rare-spin {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes rareBorderSpin {
+  to { --rare-spin: 360deg; }
+}
+
+.rare-drop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 90% at 85% 0%, rgba(255, 45, 120, 0.12), transparent 60%);
+  pointer-events: none;
+}
+
+.rare-drop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.rare-drop-kicker {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: #ff7aa8;
+  text-shadow: 0 0 12px rgba(255, 45, 120, 0.5);
+}
+
+.rare-drop-timer {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 170, 200, 0.85);
+  font-variant-numeric: tabular-nums;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 45, 120, 0.35);
+  background: rgba(255, 45, 120, 0.08);
+  animation: capsClockTick 1.6s ease-in-out infinite;
+}
+
+.rare-drop-title {
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: var(--text-primary, #f0f4ff);
+  margin-bottom: 10px;
+  background: linear-gradient(90deg, #fff, #ffb8d0 45%, #9ae8ff 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.rare-drop-line {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(225, 232, 250, 0.85);
+}
+
+.rare-drop-btn {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 45, 120, 0.45);
+  background: rgba(255, 45, 120, 0.1);
+  color: #ffd3e2;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease;
+}
+
+.rare-drop-btn:hover {
+  background: rgba(255, 45, 120, 0.2);
+  box-shadow: 0 0 22px rgba(255, 45, 120, 0.3);
+}
+
+.rare-drop-btn:active { transform: scale(0.985); }
+
+.rare-drop-btn--sealed {
+  animation: rareSealedPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes rareSealedPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(255, 45, 120, 0); }
+  50% { box-shadow: 0 0 24px rgba(255, 45, 120, 0.35); }
+}
+
+.rare-drop--open {
+  animation: lpEnter 0.6s ease both;
+}
+
+/* ── ghost signal: spectral banner ────────────────────────────── */
+.ghost-signal-banner {
+  position: relative;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(155, 93, 229, 0.25);
+  background: linear-gradient(180deg, rgba(22, 14, 38, 0.8), rgba(10, 8, 20, 0.9));
+  overflow: hidden;
+  animation: lpEnter 0.6s ease 0.1s both;
+}
+
+.ghost-signal-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(155, 93, 229, 0.03) 3px 4px);
+  pointer-events: none;
+}
+
+.ghost-signal-banner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 38%;
+  left: -40%;
+  background: linear-gradient(90deg, transparent, rgba(155, 93, 229, 0.07), transparent);
+  animation: ghostDrift 7.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ghostDrift {
+  0%, 100% { left: -40%; }
+  50% { left: 100%; }
+}
+
+.ghost-signal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.ghost-signal-kicker {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: rgba(200, 160, 255, 0.85);
+  animation: ghostFlicker 6s steps(1) infinite;
+}
+
+@keyframes ghostFlicker {
+  0%, 92%, 96%, 100% { opacity: 1; }
+  94% { opacity: 0.4; }
+  95% { opacity: 0.85; }
+}
+
+.ghost-signal-age {
+  font-size: 10px;
+  color: rgba(170, 150, 210, 0.6);
+  letter-spacing: 0.06em;
+}
+
+.ghost-signal-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: rgba(235, 225, 255, 0.95);
+  margin-bottom: 4px;
+}
+
+.ghost-signal-line {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(200, 190, 230, 0.7);
+  font-style: italic;
+}
+
+/* ── capsule cards: sealed vessels, not list rows ─────────────── */
+.capsule-card.lp-capsule {
+  border-radius: 15px;
+  background:
+    linear-gradient(180deg, rgba(18, 15, 32, 0.88), rgba(9, 8, 20, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transform-style: preserve-3d;
+}
+
+.capsule-card.lp-capsule:hover {
+  transform: translateY(-3px) perspective(700px) rotateX(1.6deg);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45), 0 0 24px rgba(255, 45, 120, 0.07);
+}
+
+.capsule-card .capsule-glyph {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 45, 120, 0.3);
+  background: radial-gradient(circle at 38% 32%, rgba(255, 45, 120, 0.16), rgba(10, 8, 20, 0.6) 70%);
+  box-shadow: inset 0 0 14px rgba(255, 45, 120, 0.12);
+  font-size: 18px;
+}
+
+.capsule-card .capsule-glyph::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 45, 120, 0.22);
+  animation: capsOrbit 14s linear infinite;
+}
+
+.capsule-card .capsule-glyph::after {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(0, 212, 255, 0.9);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.8);
+  transform-origin: 2px 29px;
+  animation: capsOrbit 6.5s linear infinite;
+}
+
+@keyframes capsOrbit {
+  to { transform: rotate(360deg); }
+}
+
+.capsule-card.forming .capsule-glyph {
+  border-style: dashed;
+  border-color: rgba(0, 212, 255, 0.35);
+  background: radial-gradient(circle at 38% 32%, rgba(0, 212, 255, 0.12), rgba(10, 8, 20, 0.6) 70%);
+}
+
+@media (max-width: 560px) {
+  .capsule-timetable { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .capsule-dust span,
+  .capsule-clock::after,
+  .ghost-signal-banner::after,
+  .capsule-card .capsule-glyph::before,
+  .capsule-card .capsule-glyph::after,
+  .rare-drop-btn--sealed,
+  .rare-drop-timer,
+  .capsule-clock em::before { animation: none; }
+  .rare-drop { animation: lpEnter 0.01ms both; }
+}
+
+/* ═══ RELICS: the archive vault, shelved ═════════════════════ */
+.relic-shelf {
+  position: relative;
+  margin-bottom: 22px;
+}
+
+.relic-shelf-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 9px;
+  padding: 0 2px;
+}
+
+.relic-shelf-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255, 200, 140, 0.75);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.relic-shelf-label::before {
+  content: '';
+  width: 14px;
+  height: 1px;
+  background: rgba(255, 200, 140, 0.5);
+}
+
+.relic-shelf--forbidden .relic-shelf-label { color: rgba(255, 120, 150, 0.8); }
+.relic-shelf--forbidden .relic-shelf-label::before { background: rgba(255, 120, 150, 0.55); }
+.relic-shelf--unstable .relic-shelf-label { color: rgba(160, 220, 255, 0.75); }
+.relic-shelf--unstable .relic-shelf-label::before { background: rgba(160, 220, 255, 0.5); }
+
+.relic-shelf-note {
+  font-size: 10px;
+  font-style: italic;
+  color: rgba(170, 160, 200, 0.5);
+}
+
+/* the board the cases sit on: a lit ledge with falloff */
+.relic-shelf-board {
+  height: 7px;
+  margin-top: -2px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(60, 45, 80, 0.85), rgba(18, 14, 30, 0.95));
+  box-shadow:
+    0 1px 0 rgba(255, 220, 170, 0.12) inset,
+    0 10px 22px -6px rgba(0, 0, 0, 0.7),
+    0 -14px 30px -12px rgba(255, 180, 100, 0.1);
+}
+
+.relic-shelf--forbidden .relic-shelf-board {
+  box-shadow:
+    0 1px 0 rgba(255, 140, 170, 0.14) inset,
+    0 10px 22px -6px rgba(0, 0, 0, 0.7),
+    0 -14px 30px -12px rgba(255, 45, 120, 0.14);
+}
+
+/* the handling ledger stamped on each case */
+.relic-ledger {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgba(190, 175, 215, 0.5);
+  font-variant-numeric: tabular-nums;
+  margin-top: 4px;
+}
+
+/* your post-it stands out from the strangers' */
+.postit-mine {
+  background: rgba(0, 212, 255, 0.14) !important;
+  border-color: rgba(0, 212, 255, 0.4) !important;
+  color: #aee9fb !important;
+  transform: rotate(1.6deg);
+}
+
+/* wear meter in the examine overlay */
+.relic-wear {
+  width: 100%;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.relic-wear span {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 200, 150, 0.55);
+}
+
+.relic-wear-track {
+  height: 3px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.relic-wear-track i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, rgba(255, 200, 130, 0.7), rgba(255, 120, 90, 0.8));
+  transition: width 0.6s ease;
+}
+
+/* leave a note on the case */
+.relic-note-row {
+  width: 100%;
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.relic-note-row input {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #eef2ff;
+  font-size: 12px;
+  outline: none;
+}
+
+.relic-note-row input:focus { border-color: rgba(255, 200, 130, 0.45); }
+
+.relic-note-row button {
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 200, 130, 0.4);
+  background: rgba(255, 200, 130, 0.08);
+  color: #ffe2b8;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.relic-note-mine {
+  margin: 0;
+  flex: 1;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: rgba(225, 232, 250, 0.8);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.relic-note-mine button {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: rgba(190, 180, 215, 0.7);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+/* loan card becomes the spotlit front desk */
+.relic-loan {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 18px;
+  border-radius: 15px;
+  border: 1px solid rgba(255, 200, 130, 0.22);
+}
+
+.relic-loan::before {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: 50%;
+  width: 70%;
+  height: 120%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse 50% 60% at 50% 0%, rgba(255, 210, 150, 0.14), transparent 70%);
+  pointer-events: none;
+  animation: relicSpotBreathe 5s ease-in-out infinite;
+}
+
+@keyframes relicSpotBreathe {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .relic-loan::before { animation: none; }
+}
+
+.relic-loan-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.relic-loan-kicker {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: rgba(255, 210, 150, 0.85);
+  text-shadow: 0 0 10px rgba(255, 180, 100, 0.35);
+}
+
+.relic-loan-why {
+  font-size: 10px;
+  font-style: italic;
+  color: rgba(180, 168, 205, 0.55);
+}
+
+.relic-loan-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.relic-loan-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.relic-loan-info strong {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary, #f0f4ff);
+}
+
+.relic-loan-info span {
+  font-size: 11px;
+  color: rgba(190, 178, 215, 0.6);
+}
+
+.relic-loan-row button {
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 200, 130, 0.45);
+  background: rgba(255, 200, 130, 0.1);
+  color: #ffe2b8;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.relic-loan-row button:hover {
+  background: rgba(255, 200, 130, 0.2);
+  box-shadow: 0 0 18px rgba(255, 180, 100, 0.25);
+}
+
+.relic-loan-memory {
+  margin: 9px 0 0;
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(180, 168, 205, 0.55);
+}
