@@ -35,6 +35,7 @@ import { LOCALES, LOCALE_NAMES } from './lib/i18n'
 import { useRecordingSession } from './hooks/useRecordingSession'
 import { useEcoPref } from './hooks/useEcoPrefs'
 import { useLivePresence } from './hooks/useLivePresence'
+import { leaveTrace } from './lib/pageTrace'
 import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 import { enablePushNotifications } from './lib/pushNotifications'
 import { SCREEN_PATHS, screenForPath } from './lib/routes'
@@ -1828,6 +1829,7 @@ function RelicsScreen() {
     playHero()
     setStorming(true)
     sendLive({ type: 'storm', id: heroRelic.id })
+    leaveTrace(`a replay storm formed around "${heroRelic.name}"`, 'relics')
     setShelfNote('you joined the replay storm — everyone is on the same ten seconds')
     window.setTimeout(() => setStorming(false), 9000)
     window.setTimeout(() => setShelfNote(null), 5000)
@@ -2292,8 +2294,18 @@ function DeadZonesScreen() {
     // listening into a zone can shake a fragment loose
     if (!recovered.includes(zoneId) && Math.random() > 0.35) {
       window.setTimeout(() => {
-        setRecovered(r => (r.includes(zoneId) ? r : [...r, zoneId]))
+        setRecovered(r => {
+          if (r.includes(zoneId)) return r
+          const next = [...r, zoneId]
+          // every third recovery shakes something solid loose: relic material
+          if (next.length % 3 === 0) {
+            unlockZoneRelic(`zone-relic-${zoneId}`, 'Recovered From a Dead Room')
+            leaveTrace('something solid surfaced under the static — it went to the relics shelf', 'zones')
+          }
+          return next
+        })
         saveToLibrary('drift', `zone-${zoneId}`, zoneFragments[zoneId] ?? 'recovered fragment')
+        leaveTrace(`recovered: ${(zoneFragments[zoneId] ?? 'a fragment').slice(0, 50)}`, 'zones')
       }, 3200)
     }
   }
@@ -2529,6 +2541,7 @@ function FrequenciesScreen() {
     if (!driftwood) return
     void playSampleBuffer('whisper', driftwood.seed, 5000, 0.3)
     setPing(`caught: ${driftwood.text}`)
+    leaveTrace(`caught in the sea: ${driftwood.text}`, 'frequencies')
     setDriftwood(null)
   }
 
@@ -2593,6 +2606,17 @@ function FrequenciesScreen() {
 
   const seaPresence = useLivePresence()
   const seaCarriers = seaPresence.perPage['frequencies'] ?? 0
+
+  // something you released in the unsent room can resurface out here
+  const [resurfaced, setResurfaced] = useState<{ label: string; blob: Blob } | null>(null)
+  useEffect(() => {
+    void listLocalRecordings().then(rows => {
+      const yours = rows.filter(r => r.emotionalTag === 'signal' || r.emotionalTag === 'echo').sort((a, b) => b.createdAt - a.createdAt)
+      if (yours.length > 0 && dayOfYear() % 2 === yours[0].createdAt % 2) {
+        setResurfaced({ label: yours[0].label, blob: yours[0].blob })
+      }
+    })
+  }, [])
 
   // proximity: signals get louder, clearer, bigger as you pass close
   const buoyRefs = useRef<Map<number, HTMLDivElement>>(new Map())
@@ -2704,6 +2728,7 @@ function FrequenciesScreen() {
       <div className="sea-foreground" aria-hidden="true">
         <em style={{ top: '30%', animationDuration: '37s' }}>someone saved an echo near here</em>
         <em style={{ top: '64%', animationDuration: '49s', animationDelay: '-21s' }}>"play that part again" — drifting</em>
+        <em style={{ top: '46%', animationDuration: '57s', animationDelay: '-9s' }}>a signal chain is leaking voices into this water</em>
       </div>
       <div className="sea-sonar" aria-hidden="true" />
       <div className="sea-glints" aria-hidden="true">
@@ -2765,6 +2790,21 @@ function FrequenciesScreen() {
       </div>
 
       <div className="sea-field" onPointerMove={handleSeaPointer}>
+        {resurfaced && (
+          <button
+            type="button"
+            className="sea-buoy sea-buoy--yours"
+            style={{ '--top': '38%', '--dur': '52s', '--delay': '-11s' } as CSSProperties}
+            onClick={() => {
+              void playChainBlend([{ blob: resurfaced.blob, volume: 0.4 }])
+              say('something you never sent, still out here. it kept drifting.')
+              leaveTrace(`your unsent signal "${resurfaced.label.slice(0, 36)}" resurfaced in the sea`, 'frequencies')
+            }}
+          >
+            <span className="sea-buoy-light"><i /><i /><i /></span>
+            <span className="sea-subtitle">*something you never sent, still out here*</span>
+          </button>
+        )}
         {driftwood && (
           <button
             type="button"
