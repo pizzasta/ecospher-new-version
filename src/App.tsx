@@ -129,7 +129,7 @@ type Relic = {
 const signals: SignalThread[] = [
   { id: 's1', handle: 'anonymous_03:14', time: '3 min ago', content: 'still awake. the quiet feels different tonight. like something is about to remember itself.', mood: 'nocturne', resonance: 94, anonymous: true },
   { id: 's2', handle: 'signal_veil', time: '11 min ago', content: 'replaying that moment again. the part before everything shifted. i keep landing in the same second.', mood: 'drift', resonance: 87, anonymous: false },
-  { id: 's3', handle: 'anonymous_fade', time: '22 min ago', content: 'static bloom opened near the eastern band. something warm is inside the noise.', mood: 'static', resonance: 79, anonymous: true },
+  { id: 's3', handle: 'anonymous_fade', time: '22 min ago', content: 'found a pocket of warm static on the radio. there is something almost like a song inside it.', mood: 'static', resonance: 79, anonymous: true },
   { id: 's4', handle: 'lost_carrier_7', time: '44 min ago', content: 'there are frequencies you only hear when no one else is listening. late night internet knows this.', mood: 'lost', resonance: 63, anonymous: false },
   { id: 's5', handle: 'anonymous_0:48', time: '1 hr ago', content: "the ecosystem held the channel open. like it was waiting for something i hadn't said yet.", mood: 'bloom', resonance: 91, anonymous: true },
 ]
@@ -2363,10 +2363,10 @@ function FrequenciesScreen() {
   // things the sea carries past you — passive discovery, no action required
   const [driftwood, setDriftwood] = useState<{ id: number; text: string; top: number; seed: number } | null>(null)
   const seaOrbs = useMemo(() => [
-    { presence: 'a quiet listener', replaying: 'still awake. the quiet feels different tonight.', cassette: 'Echo Veil', trace: 'drifting for 18 min · paused twice near you' },
-    { presence: 'someone half asleep', replaying: 'i kept the voicemail. i know.', cassette: 'Pulse Crystal VII', trace: 'crossed your path 4 min ago' },
-    { presence: 'a restless presence', replaying: '(laughing, far away)', cassette: 'Static Bloom', trace: 'following the same current as you' },
-    { presence: 'someone on a long drive', replaying: 'replaying the same memory again.', cassette: 'Memory Burn', trace: 'left a resonance trail heading east' },
+    { presence: 'a quiet listener', replaying: 'still awake. the quiet feels different tonight.', cassette: 'unlabeled tape, side B', trace: 'drifting for 18 min · paused twice near you' },
+    { presence: 'someone half asleep', replaying: 'i kept the voicemail. i know.', cassette: 'heartbeat on the night bus', trace: 'crossed your path 4 min ago' },
+    { presence: 'a restless presence', replaying: '(laughing, far away)', cassette: 'static that turns into a song', trace: 'following the same current as you' },
+    { presence: 'someone on a long drive', replaying: 'replaying the same memory again.', cassette: 'the hold music', trace: 'left a trail heading east' },
   ], [])
   const timersRef = useRef<number[]>([])
 

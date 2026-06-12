@@ -74,7 +74,7 @@ type Particle = {
 const FEED_SIGNALS: FeedSignal[] = [
   { id: 'f1', handle: 'anonymous_03:14', timeAgo: '2m ago', content: 'still awake. the quiet feels different tonight. like something is about to remember itself.', mood: 'nocturne', resonance: 94, anonymous: true, duration: '0:38', type: 'nocturne_broadcast', status: 'resonating', emotionalBand: 'nocturne-depth', waveformSeed: 42, typewriterEffect: true },
   { id: 'f2', handle: 'signal_veil', timeAgo: 'currently resonating', content: 'replaying that moment again. the part before everything shifted. i keep landing in the same second.', mood: 'drift', resonance: 87, anonymous: false, duration: '1:04', type: 'unresolved_echo', status: 'live', emotionalBand: 'drift-loop', waveformSeed: 17 },
-  { id: 'f3', handle: 'anonymous_fade', timeAgo: 'fading', content: 'static bloom opened near the eastern band. something warm is inside the noise.', mood: 'static', resonance: 79, anonymous: true, duration: '0:22', type: 'static_bloom', status: 'fading', emotionalBand: 'static-warm', waveformSeed: 88, expiresIn: 180 },
+  { id: 'f3', handle: 'anonymous_fade', timeAgo: 'fading', content: 'found a pocket of warm static on the radio. there is something almost like a song inside it.', mood: 'static', resonance: 79, anonymous: true, duration: '0:22', type: 'static_bloom', status: 'fading', emotionalBand: 'static-warm', waveformSeed: 88, expiresIn: 180 },
   { id: 'f4', handle: 'lost_carrier_7', timeAgo: 'drifting', content: 'there are frequencies you only hear when no one else is listening. late night internet knows this.', mood: 'lost', resonance: 63, anonymous: false, duration: '0:51', type: 'abandoned_carrier', status: 'drifting', emotionalBand: 'lost-frequency', waveformSeed: 31 },
   { id: 'f5', handle: 'anonymous_0:48', timeAgo: 'archiving soon', content: 'the ecosystem held the channel open. like it was waiting.', mood: 'bloom', resonance: 91, anonymous: true, duration: '0:44', type: 'memory_fragment', status: 'archiving', emotionalBand: 'bloom-memory', waveformSeed: 65, expiresIn: 60, typewriterEffect: true },
   { id: 'f6', handle: 'echo_fragment_9', timeAgo: '14m ago', content: 'dead zone at the edge of the listening field. signal fragments still visible if you stay quiet.', mood: 'nocturne', resonance: 72, anonymous: true, duration: '0:29', type: 'dead_zone', status: 'drifting', emotionalBand: 'void-edge', waveformSeed: 53 },
@@ -125,7 +125,7 @@ const SIGNAL_TYPE_LABELS: Record<SignalType, string> = {
   voice_note: 'voice note',
   drifting_thought: 'drifting thought',
   unresolved_echo: 'unresolved echo',
-  static_bloom: 'static bloom',
+  static_bloom: 'warm static',
   dead_zone: 'dead zone discovery',
   memory_fragment: 'memory fragment',
   nocturne_broadcast: 'nocturne broadcast',
