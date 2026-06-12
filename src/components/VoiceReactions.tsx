@@ -4,6 +4,7 @@ import { useEcosystemState } from '../hooks/useEcosystemState'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { deleteReactionAudio, listReactionAudio, saveReactionAudio } from '../lib/localAudioStore'
 import { anonymousMode } from '../lib/anonymity'
+import { sendLive } from '../lib/liveBus'
 import { playImprintSound, renderSampleAudio } from '../lib/sampleAudio'
 import type { ImprintKind } from '../lib/sampleAudio'
 import './VoiceReactions.css'
@@ -445,6 +446,7 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
       blob: draft.blob,
     })
 
+    sendLive({ type: 'reaction', id: signalId })
     if (target === 'drift') {
       reactToSignal(signalId, 'sent a voice reaction into the drift')
       setNotice(stored ? 'released into the drift · someone may find it' : 'the drift kept it for this session only')

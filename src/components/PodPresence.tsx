@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { useEcoPref } from '../hooks/useEcoPrefs'
+import type { LivePresence } from '../lib/liveBus'
 import './PodPresence.css'
 
 // The live presence chamber: the top of the hub. One breathing orb that IS
@@ -91,6 +92,17 @@ export default function PodPresence({ energy, stage, rippling, streak, identity,
     []
   )
 
+  // real carriers online raise the number of orbs drifting around you
+  const [liveCount, setLiveCount] = useState(0)
+  useEffect(() => {
+    const onPresence = (event: Event) => {
+      const detail = (event as CustomEvent<LivePresence>).detail
+      if (detail) setLiveCount(Math.max(0, detail.total - 1))
+    }
+    window.addEventListener('ecosphere:presence', onPresence)
+    return () => window.removeEventListener('ecosphere:presence', onPresence)
+  }, [])
+
   const listeners = useMemo(
     () => Array.from({ length: 5 }, (_, i) => ({
       id: i,
@@ -122,9 +134,9 @@ export default function PodPresence({ energy, stage, rippling, streak, identity,
         ))}
       </div>
 
-      {/* other live listeners: presence without names */}
+      {/* other live listeners: presence without names — real carriers add orbs */}
       <div className="pp-listeners" aria-hidden="true">
-        {listeners.map(l => (
+        {listeners.slice(0, Math.min(8, Math.max(3, 5 + liveCount))).map(l => (
           <span
             key={l.id}
             className={`pp-listener pp-listener--${l.tint}`}

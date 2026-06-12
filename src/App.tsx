@@ -39,6 +39,8 @@ import { enablePushNotifications } from './lib/pushNotifications'
 import { SCREEN_PATHS, screenForPath } from './lib/routes'
 import { anonymousMode } from './lib/anonymity'
 import { ensureProfileAfterAuth, signInWithGoogle } from './lib/googleAuth'
+import { sendLive } from './lib/liveBus'
+import type { LiveEvent } from './lib/liveBus'
 import { moderatePublicSignalText } from './lib/signalModeration'
 
 const FeedScreen = lazy(() => import('./FeedScreen'))
@@ -1803,6 +1805,7 @@ function RelicsScreen() {
   const enterReplayStorm = () => {
     playHero()
     setStorming(true)
+    sendLive({ type: 'storm', id: heroRelic.id })
     setShelfNote('you joined the replay storm — everyone is on the same ten seconds')
     window.setTimeout(() => setStorming(false), 9000)
     window.setTimeout(() => setShelfNote(null), 5000)
@@ -1819,7 +1822,15 @@ function RelicsScreen() {
     }
     show()
     const t = window.setInterval(show, 16000)
-    return () => window.clearInterval(t)
+    const onLive = (event: Event) => {
+      const detail = (event as CustomEvent<LiveEvent>).detail
+      if (detail?.type === 'storm') {
+        setLiveEvent('a replay storm just pulled someone in — live')
+        window.setTimeout(() => setLiveEvent(null), 7000)
+      }
+    }
+    window.addEventListener('ecosphere:live', onLive)
+    return () => { window.clearInterval(t); window.removeEventListener('ecosphere:live', onLive) }
   }, [])
 
   // trace view inside the examine overlay
