@@ -1658,6 +1658,29 @@ function relicLegend(r: Relic) {
   }
 }
 
+// human history: what people actually did with this tape
+function relicHistory(r: Relic): string {
+  if (r.id === 'rl10') return 'nobody has opened this fully'
+  const seed = r.id.charCodeAt(2) * 71 + r.resonance
+  const lines = [
+    `${8 + (seed % 19)} people stopped listening at the same sentence`,
+    `someone replayed the ending ${9 + (seed % 21)} times`,
+    `${2 + (seed % 4)} users archived this immediately`,
+    `kept alive for ${3 + (seed % 9)} nights straight`,
+    `resurfaced in Can't Sleep ${1 + (seed % 3)} times this week`,
+    `last heard ${['4 minutes ago', 'an hour ago', 'tonight, twice', 'just now'][seed % 4]}`,
+  ]
+  return lines[seed % lines.length]
+}
+
+// status tags: emotional, not RPG inventory
+function relicStatus(r: Relic): string {
+  if (r.id === 'rl10') return 'sealed away'
+  const seed = r.id.charCodeAt(2) * 41 + r.resonance * 7
+  const tags = ['replayed constantly', 'nobody finished this', 'passed around', 'damaged audio', 'too personal', 'keeps resurfacing', 'recovered tonight']
+  return tags[seed % tags.length]
+}
+
 // live archive activity: the page never goes quiet
 const RELIC_LIVE_EVENTS = [
   'replay storm forming over the hold music',
@@ -1732,6 +1755,45 @@ function RelicsScreen() {
     void playSample(relicAudio, { id: `loan-${heroRelic.id}`, label: `relic · ${heroRelic.name}`, source: 'relics' }, 'static', heroRelic.resonance * 7, 6000)
     setStore(prev => ({ ...prev, [heroRelic.id]: { ...(prev[heroRelic.id] ?? { replays: 0, reactions: {}, saved: false }), replays: (prev[heroRelic.id]?.replays ?? 0) + 1 } }))
     unlockEcosystemRelic(heroRelic.id, heroRelic.name)
+  }
+
+  // live listener count on tonight's relic — it climbs while you watch
+  const [heroListeners, setHeroListeners] = useState(() => 40 + (dayOfYear() * 7) % 60)
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      if (Math.random() < 0.5) setHeroListeners(n => n + 1)
+    }, 7000)
+    return () => window.clearInterval(t)
+  }, [])
+
+  // the shelf hums: a faint leak from somewhere every so often
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      if (document.hidden) return
+      void playChainBlend([{ kind: 'static', seed: Math.floor(Math.random() * 5000), durationMs: 2800, volume: 0.045 }])
+    }, 16000)
+    return () => window.clearInterval(t)
+  }, [])
+
+  // hold a tape to hear it leak through the case
+  const leakTimerRef = useRef(0)
+  const leakedRef = useRef(false)
+  const startLeak = (r: Relic) => {
+    leakedRef.current = false
+    leakTimerRef.current = window.setTimeout(() => {
+      leakedRef.current = true
+      void playChainBlend([
+        { kind: 'static', seed: r.resonance * 31, durationMs: 2600, volume: 0.12 },
+        { kind: 'voice', seed: r.resonance * 53 + 7, durationMs: 2400, volume: 0.1, delayMs: 250 },
+      ])
+      setShelfNote(`${r.name} — leaking through the case…`)
+      window.setTimeout(() => setShelfNote(null), 3000)
+    }, 380)
+  }
+  const cancelLeak = () => window.clearTimeout(leakTimerRef.current)
+  const openScrap = (r: Relic) => {
+    if (leakedRef.current) { leakedRef.current = false; return }
+    setSelected(r)
   }
 
   const enterReplayStorm = () => {
@@ -1825,7 +1887,7 @@ function RelicsScreen() {
       <div className="screen-header">
         <div className="screen-kicker">SIGNAL RELICS</div>
         <h2 className="screen-title">Relics</h2>
-        <p className="screen-sub">a relic is a signal the network refused to forget — replayed and revisited until deleting it stopped being an option. handle them. they wear, and they remember who held them.</p>
+        <p className="screen-sub">relics are voice moments the network refused to forget.</p>
       </div>
       <AmbientLine lines={useMemo(() => [...RELIC_EVENTS, ...livedInLines('relics', 3)], [])} />
       {shelfNote && <div className="lp-drift-ping" key={shelfNote}>{shelfNote}</div>}
@@ -1846,19 +1908,29 @@ function RelicsScreen() {
       </div>
 
       <div className="relic-board">
-        {/* tonight's relic: the biggest scrap, pinned crooked at the top */}
-        <button type="button" className={`scrap scrap--hero scrap--${heroRelic.category.replace(/\s/g, '-')}`} onClick={() => setSelected(heroRelic)}>
-          <span className="scrap-tape" aria-hidden="true" />
-          <span className="scrap-anon">ANON · {relicAnonCode(heroRelic)}</span>
-          <strong className="scrap-name">{heroRelic.name}</strong>
-          <span className="scrap-line">{heroRelic.whyRelic}</span>
-          <span className="scrap-wave" aria-hidden="true">
-            {Array.from({ length: 16 }, (_, b) => (
-              <b key={b} style={{ height: `${20 + ((heroRelic.resonance * (b + 3) * 11) % 70)}%` }} />
+        {/* RELIC OF THE NIGHT: one huge breathing cassette */}
+        <button type="button" className={`relic-night scrap--${heroRelic.category.replace(/\s/g, '-')}`} onClick={() => setSelected(heroRelic)}
+          onPointerDown={() => startLeak(heroRelic)} onPointerUp={cancelLeak} onPointerLeave={cancelLeak}
+        >
+          <span className="relic-night-kicker">RELIC OF THE NIGHT</span>
+          <span className="relic-night-live"><i aria-hidden="true" />{heroListeners} people replayed this tonight</span>
+          <span className={`relic-night-cassette${relicAudio.current?.id === `loan-${heroRelic.id}` && relicAudio.playing ? ' playing' : ''}`} aria-hidden="true">
+            <i className="rnc-reel"><b /></i>
+            <span className="rnc-window">
+              {Array.from({ length: 15 }, (_, b) => (
+                <b key={b} style={{ '--rht-h': `${20 + ((heroRelic.resonance * (b + 3) * 11) % 70)}%`, '--rht-d': `${(b % 6) * 0.12}s` } as CSSProperties} />
+              ))}
+            </span>
+            <i className="rnc-reel rnc-reel-b"><b /></i>
+          </span>
+          <strong className="relic-night-name">{heroRelic.name}</strong>
+          <span className="relic-night-why">{heroRelic.whyRelic}</span>
+          <span className="relic-night-history">{relicHistory(heroRelic)} · {heroLegend.stayRate}% stayed until the end</span>
+          <span className="relic-night-subs" aria-hidden="true">
+            {(relicPostits[heroRelic.id] ?? []).map((note, ni) => (
+              <em key={note} className={`rh-comment rh-comment-${ni}`}>{note}</em>
             ))}
           </span>
-          <span className="scrap-foot">{heroLegend.replays} replays · {heroLegend.stayRate}% stayed · loudest at {heroLegend.peak}</span>
-          {storming && <span className="scrap-storm" aria-hidden="true"><i /><i /><i /></span>}
         </button>
         <span className="sticky sticky--pink" style={{ '--tilt': '-5deg' } as CSSProperties}>“{heroRelic.stayQuote}”</span>
         <button type="button" className="sticky sticky--cyan sticky--btn" style={{ '--tilt': '4deg' } as CSSProperties} onClick={enterReplayStorm}>
@@ -1873,14 +1945,23 @@ function RelicsScreen() {
             <Fragment key={r.id}>
               <button
                 type="button"
-                className={`scrap scrap--${r.category.replace(/\s/g, '-')} scrap--size-${i % 3}${a.replays >= 3 ? ' awakened' : ''}${a.saved ? ' kept' : ''}`}
-                style={{ '--tilt': `${((i * 7) % 9) - 4}deg`, '--glow': (c / 100).toFixed(2) } as CSSProperties}
-                onClick={() => setSelected(r)}
+                className={`scrap scrap--${r.category.replace(/\s/g, '-')} scrap--size-${i % 3}${a.replays >= 3 ? ' awakened' : ''}${a.saved ? ' kept' : ''}${i % 5 === 2 ? ' scrap--stacked' : ''}${i % 7 === 3 ? ' scrap--burned' : ''}`}
+                style={{ '--tilt': `${((i * 7) % 11) - 5}deg`, '--glow': (c / 100).toFixed(2) } as CSSProperties}
+                onClick={() => openScrap(r)}
+                onPointerDown={() => startLeak(r)}
+                onPointerUp={cancelLeak}
+                onPointerLeave={cancelLeak}
+                title="hold to hear it leak · tap to take it down"
               >
-                <span className="scrap-tape" aria-hidden="true" />
-                <span className="scrap-anon">ANON · {relicAnonCode(r)}</span>
-                <strong className="scrap-name">{r.name}</strong>
+                <span className="scrap-tape" aria-hidden="true">{`${(r.resonance % 12) + 1}/${(r.resonance % 27) + 1}`}</span>
+                <span className="scrap-anon">ANON · {relicAnonCode(r)} <em className="scrap-status">{relicStatus(r)}</em></span>
+                {i % 6 === 4 ? (
+                  <strong className="scrap-name"><s>{r.type}</s> {r.name}</strong>
+                ) : (
+                  <strong className="scrap-name">{r.name}</strong>
+                )}
                 <span className="scrap-line">{r.description}</span>
+                <span className="scrap-history">{relicHistory(r)}</span>
                 <span className="scrap-wave" aria-hidden="true">
                   {Array.from({ length: 11 }, (_, b) => (
                     <b key={b} style={{ height: `${18 + ((r.resonance * (b + 2) * 13) % 72)}%` }} />
@@ -1891,7 +1972,7 @@ function RelicsScreen() {
                 {c < 45 && <span className="scrap-unstable">tape thinning · come back tomorrow</span>}
               </button>
               {(relicPostits[r.id] ?? [])[i % 2] && (
-                <span className={`sticky sticky--${['yellow', 'green', 'violet', 'pink'][i % 4]}`} style={{ '--tilt': `${((i * 11) % 11) - 5}deg` } as CSSProperties}>
+                <span className={`sticky sticky--${['yellow', 'green', 'violet', 'pink'][i % 4]}${i % 8 === 5 ? ' sticky--falling' : ''}`} style={{ '--tilt': `${((i * 11) % 11) - 5}deg` } as CSSProperties}>
                   {(relicPostits[r.id] ?? [])[i % 2]}
                 </span>
               )}
@@ -1989,6 +2070,20 @@ function RelicsScreen() {
                   {selectedActivity.saved ? '✶ kept in pod' : '✧ keep in pod'}
                 </button>
               </div>
+            )}
+            {stage >= 3 && (charge[selected.id] ?? selected.resonance) < 60 && (
+              <button
+                type="button"
+                className="relic-recover"
+                onClick={() => {
+                  void playChainBlend([{ kind: 'static', seed: selected.resonance * 17, durationMs: 1800, volume: 0.14 }, { kind: 'tone', seed: selected.resonance * 29, durationMs: 1600, volume: 0.12, delayMs: 600 }])
+                  setCharge(prev => ({ ...prev, [selected.id]: Math.min(100, (prev[selected.id] ?? selected.resonance) + 22) }))
+                  setShelfNote('missing section recovered — the tape breathes easier')
+                  window.setTimeout(() => setShelfNote(null), 4000)
+                }}
+              >
+                ⊕ recover missing section — the audio is damaged here
+              </button>
             )}
             {stage >= 3 && (
               <button type="button" className="relic-trace-toggle" onClick={() => setTracing(t => !t)}>
