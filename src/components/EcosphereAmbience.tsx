@@ -55,6 +55,12 @@ export default function EcosphereAmbience() {
   const [weather, setWeather] = useState<SignalWeather>(() => currentWeather())
   const [announcement, setAnnouncement] = useState<string | null>(null)
   const [presencePulse, setPresencePulse] = useState<string | null>(null)
+  const [uploadsPending, setUploadsPending] = useState(0)
+  useEffect(() => {
+    const onUploads = (event: Event) => setUploadsPending((event as CustomEvent<{ pending?: number }>).detail?.pending ?? 0)
+    window.addEventListener('ecosphere:uploads', onUploads)
+    return () => window.removeEventListener('ecosphere:uploads', onUploads)
+  }, [])
   const lurker = useEcoPref('lurker', false)
   const [listeners, setListeners] = useState(() => 14 + Math.floor(Math.random() * 23))
   const announcedRef = useRef<string | null>(null)
@@ -307,6 +313,12 @@ export default function EcosphereAmbience() {
         </div>
       )}
 
+      {uploadsPending > 0 && (
+        <div className="eco-ambient-toast eco-upload-chip" role="status">
+          <i className="eco-upload-spin" aria-hidden="true" />
+          syncing {uploadsPending} recording{uploadsPending === 1 ? '' : 's'}…
+        </div>
+      )}
       {presencePulse && !announcement && !rareEvent && (
         <div className="eco-ambient-toast" role="status" key={presencePulse}>
           <span className="eco-presence-dot" aria-hidden="true" /> {presencePulse}

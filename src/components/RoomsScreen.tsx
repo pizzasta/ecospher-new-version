@@ -1,3 +1,4 @@
+import { createVoiceRecorder } from '../lib/audioBudget'
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import type { CSSProperties, MutableRefObject } from 'react'
 import { playSampleBuffer, stopPreviewBuffer } from '../lib/sampleAudio'
@@ -889,7 +890,7 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
       chunksRef.current = []
-      const rec = new MediaRecorder(stream)
+      const rec = createVoiceRecorder(stream)
       rec.ondataavailable = e => {
         if (e.data.size > 0) chunksRef.current.push(e.data)
       }

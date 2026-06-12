@@ -1,3 +1,4 @@
+import { createVoiceRecorder } from '../lib/audioBudget'
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useGlobalAudio } from '../hooks/useGlobalAudio';
 import { useEcosystemState } from '../hooks/useEcosystemState';
@@ -847,7 +848,7 @@ export const UnsentRoom: React.FC = () => {
       setAnalyser(an);
 
       // MediaRecorder
-      const mr = new MediaRecorder(stream);
+      const mr = createVoiceRecorder(stream);
       mediaRecorderRef.current = mr;
       chunksRef.current = [];
       mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };

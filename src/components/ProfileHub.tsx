@@ -578,7 +578,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
                     context="voice prompt"
                     prompt={featuredPrompt}
                     minSeconds={3}
-                    maxSeconds={30}
+                    maxSeconds={15}
                     onComplete={({ durationMs, uploadId }) => {
                       persistVoiceAnswers([{ id: uploadId, prompt: featuredPrompt, durationMs, recordedAt: Date.now(), shared: false }, ...voiceAnswers])
                       setPromptRecording(false)
