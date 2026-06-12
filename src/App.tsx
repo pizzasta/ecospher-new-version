@@ -4,7 +4,7 @@ import { deleteAccountData, getOptionalSupabaseClient, isSupabaseConfigured, syn
 import { localDateString, useEcosystemState } from './hooks/useEcosystemState'
 import { deleteLocalRecording, deleteReactionAudio, listLocalRecordings, listReactionAudio, saveReactionAudio, saveRecordingLocally } from './lib/localAudioStore'
 import { downloadBlob, exportFilename, renderStoryImage } from './lib/storyExport'
-import { playSample, playSampleBuffer, stopPreviewBuffer } from './lib/sampleAudio'
+import { playChainBlend, playSample, playSampleBuffer, stopChainPlayback, stopPreviewBuffer } from './lib/sampleAudio'
 import { lastExaminedBy, listenerCount, livedInLines } from './lib/livedIn'
 import { subscribeToEcosphereActivity } from './lib/backendBridge'
 import type { StoredReaction } from './lib/localAudioStore'
@@ -2156,7 +2156,24 @@ type SeaBuoy = {
   delay: number
   fading: boolean
   deep: boolean
+  /** emotional signal type: how it glows, moves, and sounds */
+  tone: string
+  /** tiny fragments this signal leaks as you pass */
+  subtitles: string[]
 }
+
+// every signal out here is a kind of human moment, not a frequency
+const SEA_TONES: Array<{ id: string; kind: SeaBuoy['kind']; subtitles: string[] }> = [
+  { id: 'music', kind: 'tone', subtitles: ['*someone humming quietly*', 'this song reminds me of her', '*muffled bassline through water*'] },
+  { id: 'talk', kind: 'voice', subtitles: ['"you still there?"', '"wait that actually hurt"', '"no— go on"'] },
+  { id: 'argument', kind: 'static', subtitles: ['"that\'s not what i meant"', '"can we not. tonight"', '*a pause that costs something*'] },
+  { id: 'comfort', kind: 'whisper', subtitles: ['"it\'s okay. i\'m here"', '*long, easy silence*', '"you don\'t have to explain"'] },
+  { id: 'driving', kind: 'zone', subtitles: ['*car sounds, wet road*', '"one more exit"', '*turn signal, left on forever*'] },
+  { id: 'laughter', kind: 'laugh', subtitles: ['*laughter*', '"STOP— say it again"', '*someone wheezing, far away*'] },
+  { id: 'songwriters', kind: 'tone', subtitles: ['*guitar, retuned twice*', '"play that part again"', '*the same four bars, better each time*'] },
+  { id: 'insomnia', kind: 'voice', subtitles: ['"i never sent it"', '"why am i like this"', '"is anyone else up"'] },
+  { id: 'abandoned', kind: 'static', subtitles: ['*static*', '*a signal left running*', '*nobody has been here for hours*'] },
+]
 
 const SEA_ZONES = [
   'Quiet Waters', 'Sleepless Tide', 'Static Rain', 'Distant Voices',
@@ -2193,47 +2210,41 @@ const SEA_FRAGMENTS: Record<SeaSource, string[]> = {
   ],
 }
 
-const SEA_KIND: Record<SeaSource, SeaBuoy['kind']> = {
-  unsent: 'voice',
-  reaction: 'whisper',
-  deadzone: 'zone',
-  feed: 'voice',
-  room: 'tone',
-}
-
-const SEA_TIDES = [
-  'tide rising · currents pulling east',
-  'heavy current passing through',
-  'calm surface · faint voices underneath',
-  'static rain over the far water',
-  'a signal storm, somewhere past the horizon',
-  'tide easing · echoes carrying further',
-] as const
-
 function makeBuoy(id: number, night: boolean): SeaBuoy {
   const sources: SeaSource[] = ['unsent', 'reaction', 'deadzone', 'feed', 'room']
   const source = sources[id % sources.length]
   const pool = SEA_FRAGMENTS[source]
+  const toneDef = SEA_TONES[(id * 5 + 2) % SEA_TONES.length]
   return {
     id,
     source,
     fragment: pool[(id * 7) % pool.length],
-    kind: SEA_KIND[source],
+    kind: toneDef.kind,
     seed: id * 97 + 13,
-    top: 12 + ((id * 31) % 68),
-    duration: 38 + ((id * 13) % 30),
-    delay: -((id * 9) % 38),
-    fading: id % 4 === 2,
+    top: 10 + ((id * 31) % 74),
+    duration: 34 + ((id * 13) % 34),
+    delay: -((id * 9) % 44),
+    fading: id % 5 === 2,
     deep: night && id % 7 === 5,
+    tone: toneDef.id,
+    subtitles: toneDef.subtitles,
   }
 }
+
+const SEA_STATUS_LINES = [
+  'quiet music detected west',
+  'strongest emotional pull northeast',
+  '3 overlapping late-night conversations',
+  'ocean current unstable tonight',
+  'a laugh carrying further than it should',
+]
 
 function FrequenciesScreen() {
   const { reactToSignal, saveToLibrary } = useEcosystemState()
   const night = (() => { const h = new Date().getHours(); return h >= 22 || h < 5 })()
-  const [buoys, setBuoys] = useState<SeaBuoy[]>(() => Array.from({ length: night ? 9 : 7 }, (_, i) => makeBuoy(i, night)))
+  const [buoys, setBuoys] = useState<SeaBuoy[]>(() => Array.from({ length: night ? 22 : 18 }, (_, i) => makeBuoy(i, night)))
   const [nearId, setNearId] = useState<number | null>(null)
-  const [zoneIdx, setZoneIdx] = useState(() => Math.floor(Date.now() / 40000) % SEA_ZONES.length)
+  const [, setZoneIdx] = useState(() => Math.floor(Date.now() / 40000) % SEA_ZONES.length)
   const [tideIdx, setTideIdx] = useState(0)
   const [ping, setPing] = useState<string | null>(null)
   const [stabilized, setStabilized] = useState<number[]>([])
@@ -2295,6 +2306,7 @@ function FrequenciesScreen() {
       window.clearInterval(z)
       timers.forEach(id => window.clearTimeout(id))
       stopPreviewBuffer()
+      stopChainPlayback()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -2325,15 +2337,81 @@ function FrequenciesScreen() {
     say('signal stabilized · it will not fade tonight')
   }
 
-  const followCurrent = () => {
+  const driftDeeper = () => {
     setZoneIdx(i => (i + 1) % SEA_ZONES.length)
     setBuoys(prev => prev.map(b => (stabilized.includes(b.id) ? b : makeBuoy(b.id + 100 + Math.floor(Math.random() * 50), night))))
-    say(`the current carried you into ${SEA_ZONES[(zoneIdx + 1) % SEA_ZONES.length].toLowerCase()}`)
+    say('the water got deeper. different voices down here.')
   }
 
-  const sendIntoSea = () => {
+  const throwVoice = () => {
     reactToSignal('frequency-sea', 'released a signal into the sea')
-    say('your signal drifted out past the horizon')
+    say('your voice sank into the water — someone may drift through it')
+  }
+
+  // proximity: signals get louder, clearer, bigger as you pass close
+  const buoyRefs = useRef<Map<number, HTMLDivElement>>(new Map())
+  const lastNearRef = useRef<number | null>(null)
+  const lastSoundAtRef = useRef(0)
+  const [muted, setMuted] = useState(false)
+  const [chasedId, setChasedId] = useState<number | null>(null)
+
+  const handleSeaPointer = (event: React.PointerEvent) => {
+    let closest: { b: SeaBuoy; d: number } | null = null
+    for (const b of buoys) {
+      const el = buoyRefs.current.get(b.id)
+      if (!el) continue
+      const rect = el.getBoundingClientRect()
+      const d = Math.hypot(event.clientX - (rect.left + rect.width / 2), event.clientY - (rect.top + rect.height / 2))
+      el.style.setProperty('--prox', Math.max(0, 1 - d / 180).toFixed(2))
+      if (!closest || d < closest.d) closest = { b, d }
+    }
+    if (muted || !closest) return
+    if (closest.d < 130) {
+      const nowTs = Date.now()
+      if (lastNearRef.current !== closest.b.id && nowTs - lastSoundAtRef.current > 750) {
+        lastNearRef.current = closest.b.id
+        lastSoundAtRef.current = nowTs
+        void playChainBlend([{ kind: closest.b.kind, seed: closest.b.seed, durationMs: 4200, volume: 0.1 + Math.max(0, 1 - closest.d / 180) * 0.18 }])
+      }
+    } else if (closest.d > 200) {
+      lastNearRef.current = null
+    }
+  }
+
+  // the sea is never silent: a distant human moment every few seconds
+  useEffect(() => {
+    if (muted) return
+    const KINDS: SeaBuoy['kind'][] = ['voice', 'whisper', 'tone', 'static', 'laugh']
+    const t = window.setInterval(() => {
+      if (document.hidden) return
+      void playChainBlend([{ kind: KINDS[Math.floor(Math.random() * KINDS.length)], seed: Math.floor(Math.random() * 9000), durationMs: 3600, volume: 0.07 }])
+    }, 9000)
+    return () => window.clearInterval(t)
+  }, [muted])
+
+  const chaseSignal = () => {
+    const candidates = buoys.filter(b => !b.fading)
+    const target = candidates[Math.floor(Date.now() / 1000) % Math.max(1, candidates.length)] ?? buoys[0]
+    if (!target) return
+    setChasedId(target.id)
+    if (!muted) void playChainBlend([{ kind: target.kind, seed: target.seed, durationMs: 6000, volume: 0.3 }])
+    say('you turned toward it. it got a little clearer.')
+  }
+
+  const toggleMute = () => {
+    setMuted(m => {
+      if (!m) stopChainPlayback()
+      return !m
+    })
+    setPing(null)
+  }
+
+  const surface = () => {
+    stopChainPlayback()
+    stopPreviewBuffer()
+    setChasedId(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    say('you surfaced. the sea keeps moving underneath.')
   }
 
   // the frequency finder: sweep the band, find tonight's four hidden stations
@@ -2369,6 +2447,18 @@ function FrequenciesScreen() {
       <div className="sea-glow" aria-hidden="true" />
       <div className="sea-lightning" aria-hidden="true" />
       <div className="sea-waves" aria-hidden="true"><span /><span /><span /></div>
+      <div className="sea-aurora" aria-hidden="true" />
+      <div className="sea-stars" aria-hidden="true">
+        {Array.from({ length: 14 }, (_, i) => (
+          <b key={i} style={{ left: `${(i * 67 + 3) % 100}%`, top: `${(i * 37) % 38}%`, animationDelay: `${-(i * 0.9)}s` } as CSSProperties} />
+        ))}
+      </div>
+      <div className="sea-currents" aria-hidden="true"><span /><span /><span /></div>
+      <div className="sea-giants" aria-hidden="true"><span /><span /><span /></div>
+      <div className="sea-foreground" aria-hidden="true">
+        <em style={{ top: '30%', animationDuration: '37s' }}>someone saved an echo near here</em>
+        <em style={{ top: '64%', animationDuration: '49s', animationDelay: '-21s' }}>"play that part again" — drifting</em>
+      </div>
       <div className="sea-sonar" aria-hidden="true" />
       <div className="sea-glints" aria-hidden="true">
         {Array.from({ length: 14 }, (_, i) => (
@@ -2386,9 +2476,12 @@ function FrequenciesScreen() {
 
       <header className="sea-header">
         <span className="sea-kicker">FREQUENCY SEA</span>
-        <h1 className="sea-zone" key={zoneIdx}>{SEA_ZONES[zoneIdx]}</h1>
-        <p className="sea-tide" key={tideIdx}>{SEA_TIDES[tideIdx % SEA_TIDES.length]}{night ? ' · night tide' : ''}</p>
-        <p className="sea-purpose">nothing to do here. float — the sea brings things to you.</p>
+        <h1 className="sea-zone">live emotional audio drifting nearby</h1>
+        <p className="sea-purpose">move through distant voices without entering them. you don't join anything out here — you overhear it, pass through it, let it go.</p>
+        <p className="sea-status" key={tideIdx} role="status">
+          <i aria-hidden="true" />
+          {tideIdx % 3 === 0 ? `${buoys.length} drifting signals nearby` : SEA_STATUS_LINES[tideIdx % SEA_STATUS_LINES.length]}{night ? ' · night tide' : ''}
+        </p>
       </header>
 
       {/* the frequency finder: an actual dial to sweep */}
@@ -2423,7 +2516,7 @@ function FrequenciesScreen() {
         </div>
       </div>
 
-      <div className="sea-field">
+      <div className="sea-field" onPointerMove={handleSeaPointer}>
         {driftwood && (
           <button
             type="button"
@@ -2462,7 +2555,8 @@ function FrequenciesScreen() {
           return (
             <div
               key={b.id}
-              className={`sea-buoy sea-buoy--${b.source}${near ? ' near' : ''}${b.fading && !isStable ? ' fading' : ''}${b.deep ? ' deep' : ''}`}
+              ref={el => { if (el) buoyRefs.current.set(b.id, el); else buoyRefs.current.delete(b.id) }}
+              className={`sea-buoy sea-buoy--${b.source} sea-buoy--tone-${b.tone}${near ? ' near' : ''}${chasedId === b.id ? ' chased' : ''}${b.fading && !isStable ? ' fading' : ''}${b.deep ? ' deep' : ''}`}
               style={{ '--top': `${b.top}%`, '--dur': `${b.duration}s`, '--delay': `${b.delay}s` } as CSSProperties}
             >
               <button
@@ -2475,13 +2569,16 @@ function FrequenciesScreen() {
               >
                 <i /><i /><i />
               </button>
+              <span className="sea-subtitle" aria-hidden="true" key={(tideIdx + b.id) % b.subtitles.length}>
+                {b.subtitles[(tideIdx + b.id) % b.subtitles.length]}
+              </span>
               {near && (
                 <div className="sea-fragment">
                   <p>"{b.fragment}"</p>
                   <div className="sea-fragment-actions">
                     <button type="button" onClick={() => saveEcho(b)}>✶ save echo</button>
                     {b.fading && !isStable && (
-                      <button type="button" onClick={() => stabilize(b)}>◌ stabilize</button>
+                      <button type="button" onClick={() => stabilize(b)}>◌ stay nearby</button>
                     )}
                   </div>
                 </div>
@@ -2493,10 +2590,15 @@ function FrequenciesScreen() {
 
       {ping && <div className="sea-ping" key={ping}>{ping}</div>}
 
-      <footer className="sea-controls">
+      <footer className="sea-controls sea-dock">
         <span className="sea-floor-status">current pulling {['east', 'north', 'out', 'west'][tideIdx % 4]} · {listenerCount('sea', Math.floor(Date.now() / 60000))} others floating tonight</span>
-        <button type="button" onClick={followCurrent}>⇝ follow the current</button>
-        <button type="button" onClick={sendIntoSea}>◉ send a signal into the sea</button>
+        <div className="sea-dock-row">
+          <button type="button" onClick={driftDeeper}>↓ drift deeper</button>
+          <button type="button" onClick={chaseSignal}>⌖ chase this signal</button>
+          <button type="button" className={muted ? 'sea-muted' : ''} onClick={toggleMute}>{muted ? '◉ unmute the water' : '◌ mute nearby chatter'}</button>
+          <button type="button" onClick={throwVoice}>● throw your voice into the water</button>
+          <button type="button" onClick={surface}>↑ surface</button>
+        </div>
       </footer>
     </div>
   )
