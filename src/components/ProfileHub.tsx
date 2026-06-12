@@ -103,6 +103,24 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
     try { return (JSON.parse(window.localStorage.getItem('ecosphere:zoneFragments') ?? '[]') as unknown[]).length } catch { return 0 }
   }, [])
 
+  // active nights: 14-day replay heatmap from real listening timestamps
+  const activeNights = useMemo(() => {
+    const days = Array.from({ length: 14 }, (_, i) => {
+      const day = new Date()
+      day.setHours(0, 0, 0, 0)
+      day.setDate(day.getDate() - (13 - i))
+      return { start: day.getTime(), plays: 0 }
+    })
+    for (const listen of ecosystemState.listeningHistory) {
+      const t = new Date(listen.playedAt).getTime()
+      for (const day of days) {
+        if (t >= day.start && t < day.start + 24 * 60 * 60 * 1000) { day.plays += 1; break }
+      }
+    }
+    return days
+  }, [ecosystemState.listeningHistory])
+  const maxNightPlays = Math.max(1, ...activeNights.map(d => d.plays))
+
   useEffect(() => {
     // join date: backend profile when available, else first local visit
     if (!readLocal(FIRST_SEEN_KEY)) writeLocal(FIRST_SEEN_KEY, String(Date.now()))
@@ -315,6 +333,16 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
               {memories.map(line => <p key={line}>{line}</p>)}
             </div>
           )}
+          <div className="ph-nights" aria-label="active nights, last 14 days">
+            {activeNights.map(day => (
+              <i
+                key={day.start}
+                title={`${new Date(day.start).toLocaleDateString([], { month: 'short', day: 'numeric' })} · ${day.plays} replay${day.plays === 1 ? '' : 's'}`}
+                style={{ opacity: day.plays === 0 ? 0.12 : 0.3 + (day.plays / maxNightPlays) * 0.7 } as CSSProperties}
+              />
+            ))}
+            <span>active nights · 14d</span>
+          </div>
         </div>
 
         {/* listening history */}

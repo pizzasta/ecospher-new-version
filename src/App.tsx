@@ -19,6 +19,7 @@ import ProfileHub from './components/ProfileHub'
 import NotificationBell from './components/NotificationBell'
 import ListenerTraces from './components/ListenerTraces'
 import { humanizeActivity } from './lib/listeningIdentity'
+import { DEEP_NIGHT_LINES, isDeepNight } from './lib/nightMode'
 import { useRecordingSession } from './hooks/useRecordingSession'
 import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 import { enablePushNotifications } from './lib/pushNotifications'
@@ -607,7 +608,11 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
   useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 3000); return () => clearInterval(t) }, [])
   const liveActivity = humanizeActivity(ecosystemState.recentInteractions, 5).map(a => a.text)
   const activityLines = useMemo(
-    () => (liveActivity.length >= 2 ? [...liveActivity, ...livedInLines('home', 2)] : [...OBS_EVENTS, ...livedInLines('home', 3)]),
+    () => {
+      const base = liveActivity.length >= 2 ? [...liveActivity, ...livedInLines('home', 2)] : [...OBS_EVENTS, ...livedInLines('home', 3)]
+      // after midnight the band reports different things
+      return isDeepNight() ? [...DEEP_NIGHT_LINES.slice(0, 3), ...base] : base
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [liveActivity.length],
   )

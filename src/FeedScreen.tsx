@@ -311,7 +311,7 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
   )
 }
 // ─── Signal Card Component ────────────────────────────────────────────────────
-function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick }: { signal: FeedSignal; index: number; decayRemaining: number | null; dissolving: boolean; presenceTick: number }) {
+function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, livePulse = false }: { signal: FeedSignal; index: number; decayRemaining: number | null; dissolving: boolean; presenceTick: number; livePulse?: boolean }) {
   const { ecosystemState, saveSignal, unsaveFromLibrary } = useEcosystemState()
   const globalAudio = useGlobalAudio()
   const [visible, setVisible] = useState(false)
@@ -382,7 +382,7 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick }:
   return (
     <>
       <div
-        className={`signal-card ${visible ? 'signal-card--visible' : ''} ${hovered ? 'signal-card--hovered' : ''} ${isCorrupted ? 'signal-card--corrupted' : ''} ${isFading ? 'signal-card--fading' : ''} ${playing ? 'signal-card--playing' : ''} ${wasReplayed ? 'signal-card--replayed' : ''} ${dissolving || fading ? 'signal-card--dissolving' : ''}`}
+        className={`signal-card ${visible ? 'signal-card--visible' : ''} ${hovered ? 'signal-card--hovered' : ''} ${isCorrupted ? 'signal-card--corrupted' : ''} ${isFading ? 'signal-card--fading' : ''} ${playing ? 'signal-card--playing' : ''} ${wasReplayed ? 'signal-card--replayed' : ''} ${dissolving || fading ? 'signal-card--dissolving' : ''} ${livePulse ? 'signal-card--live-pulse' : ''}`}
         style={{ '--mood-color': colors.primary, '--mood-glow': colors.glow, '--mood-dim': colors.dim, '--entry-delay': `${Math.min(index, 8) * 350}ms` } as React.CSSProperties}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -464,6 +464,12 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick }:
 
         {/* listener traces — only on replayed / heavily replayed signals */}
         <ListenerTraces signalId={signal.id} resonance={signal.resonance} replayed={wasReplayed} />
+
+        {livePulse && (
+          <span className="card-replay-pulse" role="status">
+            <i aria-hidden="true" /> someone is replaying this right now
+          </span>
+        )}
 
         {/* Export action */}
         <div className={`card-export-row ${hovered ? 'card-export-row--visible' : ''}`}>
@@ -669,6 +675,25 @@ export default function FeedScreen() {
     return () => window.clearInterval(t)
   }, [])
 
+  // live replay pulses: every so often, one card is visibly being replayed
+  const [livePulseId, setLivePulseId] = useState<string | null>(null)
+  useEffect(() => {
+    let clearTimer: number | undefined
+    const schedule = () => window.setTimeout(() => {
+      setSignals(current => {
+        if (current.length > 0) {
+          const pick = current[Math.floor(Math.random() * Math.min(current.length, 12))]
+          setLivePulseId(pick.id)
+          clearTimer = window.setTimeout(() => setLivePulseId(null), 6500)
+        }
+        return current
+      })
+      timer = schedule()
+    }, 40000 + Math.random() * 40000)
+    let timer = schedule()
+    return () => { window.clearTimeout(timer); window.clearTimeout(clearTimer) }
+  }, [])
+
   // ghost archive: scrolling to the drift zone surfaces another page
   const [ghostCount, setGhostCount] = useState(GHOST_PAGE_SIZE)
   const driftZoneRef = useRef<HTMLDivElement | null>(null)
@@ -800,6 +825,7 @@ export default function FeedScreen() {
                 decayRemaining={remaining}
                 dissolving={dissolving.includes(signal.id)}
                 presenceTick={Math.floor(decayNow / 8000)}
+                livePulse={livePulseId === signal.id}
               />
             )
           })}

@@ -4,6 +4,7 @@ import { useEcosystemState } from '../hooks/useEcosystemState'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { useEcoPref } from '../hooks/useEcoPrefs'
 import { uiClick, uiPop, uiScrollHiss } from '../lib/uiSound'
+import { isDeepNight, nightIntensity } from '../lib/nightMode'
 import './EcosphereAmbience.css'
 
 // ─── Signal Weather ───────────────────────────────────────────────────────────
@@ -137,6 +138,23 @@ export default function EcosphereAmbience() {
       window.removeEventListener('ecosphere:prefs', onPrefs)
       delete document.body.dataset.ecoNight
       document.body.style.removeProperty('--eco-motion')
+    }
+  }, [])
+
+  // nighttime intensification: one body-level variable the whole app reads
+  useEffect(() => {
+    const apply = () => {
+      const depth = nightIntensity()
+      document.body.style.setProperty('--eco-night-depth', depth.toFixed(2))
+      if (isDeepNight()) document.body.dataset.ecoDeepnight = 'on'
+      else delete document.body.dataset.ecoDeepnight
+    }
+    apply()
+    const timer = window.setInterval(apply, 60000)
+    return () => {
+      window.clearInterval(timer)
+      document.body.style.removeProperty('--eco-night-depth')
+      delete document.body.dataset.ecoDeepnight
     }
   }, [])
 
