@@ -40,6 +40,7 @@ import { moderatePublicSignalText } from './lib/signalModeration'
 const FeedScreen = lazy(() => import('./FeedScreen'))
 const RoomsScreenComponent = lazy(() => import('./components/RoomsScreen'))
 const UnsentRoom = lazy(() => import('./components/UnsentRoom'))
+const SignalChainsScreen = lazy(() => import('./components/SignalChainsScreen'))
 
 function ScreenLoading() {
   return (
@@ -68,6 +69,7 @@ const SCREEN_TITLES: Record<Screen, string> = {
   frequencies: 'Frequency Sea',
   anomalies: 'Anomalies',
   settings: 'Settings',
+  chains: 'Signal Chains',
 }
 import './unsent-room.css'
 import './rooms.css'
@@ -75,7 +77,7 @@ import './living-pages.css'
 import './cinematic.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'unsent' | 'capsules' | 'relics' | 'pod' | 'zones' | 'frequencies' | 'anomalies' | 'settings'
+type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'unsent' | 'capsules' | 'relics' | 'pod' | 'zones' | 'frequencies' | 'anomalies' | 'settings' | 'chains'
 type Mood = 'nocturne' | 'bloom' | 'drift' | 'static' | 'lost'
 
 type SignalThread = {
@@ -171,6 +173,7 @@ const navItems: { id: Screen; label: string; glyph: string }[] = [
   { id: 'drift', label: 'Drift', glyph: '◌' },
   { id: 'rooms', label: 'Rooms', glyph: '▣' },
   { id: 'unsent', label: 'Unsent', glyph: '◎' },
+  { id: 'chains', label: 'Chains', glyph: '∞' },
   { id: 'frequencies', label: 'Frequencies', glyph: '≋' },
   { id: 'capsules', label: 'Capsules', glyph: '⬡' },
   { id: 'relics', label: 'Relics', glyph: '◈' },
@@ -3388,6 +3391,7 @@ export default function App() {
     rooms: <RoomsScreenComponent />,
     unsent: <UnsentRoom />,
     capsules: <CapsulesScreen />,
+    chains: <SignalChainsScreen />,
     relics: <RelicsScreen />,
     zones: <DeadZonesScreen />,
     frequencies: <FrequenciesScreen />,
