@@ -676,3 +676,59 @@
     transition: none;
   }
 }
+
+/* tape intro: ten seconds instead of a bio */
+.ph-tape {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ph-tape-shell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(40, 36, 30, 0.65), rgba(22, 20, 18, 0.75));
+}
+
+.ph-tape-shell:hover .ph-cassette-spools i {
+  animation-play-state: running;
+}
+
+.ph-tape-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ph-tape-label {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  color: rgba(200, 185, 150, 0.7);
+}
+
+.ph-tape-missing,
+.ph-tape-empty {
+  margin: 0;
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(140, 155, 195, 0.55);
+}
+
+.ph-tape-rerecord {
+  align-self: flex-start;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(220, 228, 250, 0.75);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}

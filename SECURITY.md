@@ -73,3 +73,31 @@ if full erasure is required). "Clear Local Data" wipes this device.
 - Per-user reaction de-duplication needs a backend reactions table with a
   unique constraint (reactions are currently local-first).
 - Sentry (or similar) for security-event logging in production.
+
+## Child safety
+Layered precautions, enforced at every level the app controls:
+
+- **18+ age gate** before onboarding. Self-attestation (the strongest check
+  a client can run); declining is remembered and sticky, not a retry prompt.
+- **No private channels, by design.** There are no DMs, no friend requests,
+  no photo sharing, no user search, and no way to browse or contact a
+  specific person. Predation requires a private channel; this app has none.
+  Treat this as a load-bearing safety property when adding features.
+- **Predator-pattern screening** in the AI moderation rules (client AND the
+  database trigger from `202606110011`): age solicitation ("how old are
+  you", "asl"), off-platform contact pulls (snap/kik/instagram/whatsapp/
+  telegram/discord), photo requests, meet-up pressure, and minor
+  self-identification. Flagged content can never become public and the
+  warning explains why without echoing the content.
+- **Every free-text vector is screened**: public signals (client + server
+  trigger), room whispers, and passing thoughts.
+- **Anonymity as protection**: no real names, no photos, no profiles
+  browsable by name, no location features.
+- **Instant reporting** with a dedicated "child safety" reason — content
+  hides immediately, no human review needed to act.
+- **Data minimalism**: no birthdates collected, no contact graphs, audio
+  private by default.
+
+Known limits: self-attestation cannot verify age, and audio content is not
+transcribed/screened (an Edge Function with a speech-to-text + moderation
+pass is the upgrade path if the app grows).

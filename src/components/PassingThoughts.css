@@ -137,3 +137,9 @@
     transition: none;
   }
 }
+
+.pt-blocked {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(255, 200, 130, 0.85);
+}

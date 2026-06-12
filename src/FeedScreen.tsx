@@ -544,7 +544,7 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
 
         {reporting && (
           <div className="card-report-row" role="group" aria-label="Report reason">
-            {['harassment', 'spam', 'unsafe content', 'other'].map(reason => (
+            {['harassment', 'spam', 'unsafe content', 'child safety', 'other'].map(reason => (
               <button key={reason} type="button" onClick={() => submitReport(reason)}>{reason}</button>
             ))}
           </div>

@@ -6,6 +6,7 @@ import { useEcoPref } from '../hooks/useEcoPrefs'
 import { temporalWindow } from '../lib/temporalWindow'
 import { futureSignals } from '../lib/futureSignals'
 import { usePredictiveText } from '../hooks/usePredictiveText'
+import { moderatePublicSignalText } from '../lib/signalModeration'
 import '../rooms.css'
 
 // ═══════════════════════════════════════════════════════════════
@@ -750,6 +751,11 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
 
   const handleWhisperSubmit = () => {
     const text = whisperText.trim()
+    if (text && moderatePublicSignalText(text).status === 'flagged') {
+      showNotice('that one stays unsaid. the room keeps drifting.')
+      setWhisperText('')
+      return
+    }
     if (!text) return
     spawnWhisper(text, true)
     setWhisperText('')

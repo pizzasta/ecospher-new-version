@@ -34,3 +34,33 @@ describe('automated signal moderation', () => {
     expect(result.warning).toBeTruthy()
   })
 })
+
+describe('child safety screening', () => {
+  it('flags age solicitation and asl', () => {
+    expect(moderatePublicSignalText('hey how old are you').flags).toContain('child_safety')
+    expect(moderatePublicSignalText('asl').flags).toContain('child_safety')
+  })
+
+  it('flags off-platform contact pulls', () => {
+    expect(moderatePublicSignalText('add me on snapchat').flags).toContain('child_safety')
+    expect(moderatePublicSignalText('dm me on instagram').flags).toContain('child_safety')
+    expect(moderatePublicSignalText('whats your kik? message me').flags).toContain('child_safety')
+  })
+
+  it('flags photo requests and meet-up pressure', () => {
+    expect(moderatePublicSignalText('send me a pic').flags).toContain('child_safety')
+    expect(moderatePublicSignalText('where do you live? we should meet up').flags).toContain('child_safety')
+  })
+
+  it('flags and shields minor self-identification', () => {
+    const result = moderatePublicSignalText("im 14 btw")
+    expect(result.flags).toContain('child_safety')
+    expect(result.status).toBe('flagged')
+    expect(result.warning).toMatch(/no private contact/)
+  })
+
+  it('does not flag ordinary late-night talk', () => {
+    expect(moderatePublicSignalText('i met up with my own thoughts again tonight').status).toBe('passed')
+    expect(moderatePublicSignalText('the photo on my fridge is crooked').status).toBe('passed')
+  })
+})
