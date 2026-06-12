@@ -2257,17 +2257,17 @@ body[data-eco-page='unsent'] .eco-now-playing {
 /* --eco-night-depth (0..1) is set on <body> by EcosphereAmbience.
    Everything keys off it: the app is genuinely different at 3am. */
 
-.crt-vignette {
-  opacity: calc(1 + var(--eco-night-depth, 0) * 0.7);
+body[data-eco-deepnight='on'] .crt-vignette {
+  background: radial-gradient(ellipse 100% 100% at 50% 50%, transparent 48%, rgba(0, 0, 0, 0.78) 100%);
 }
 
-.eco-weather-layer {
-  opacity: calc(0.5 + var(--eco-night-depth, 0) * 0.4);
+body[data-eco-deepnight='on'] .eco-weather-layer {
+  filter: saturate(1.3) brightness(1.25);
 }
 
 /* frequency sea gets denser and darker after midnight */
-.sea-fog {
-  opacity: calc(0.5 + var(--eco-night-depth, 0) * 0.45);
+body[data-eco-deepnight='on'] .sea-fog {
+  filter: blur(50px) brightness(1.45);
 }
 
 .sea-glow {
@@ -2285,7 +2285,7 @@ body[data-eco-deepnight='on'] .zone-card {
 }
 
 /* deep-night atmosphere sinks slightly */
-body[data-eco-deepnight='on'] .atmosphere {
+body[data-eco-deepnight='on']:not([data-eco-night='on']) .atmosphere {
   filter: brightness(0.82) saturate(0.92);
 }
 

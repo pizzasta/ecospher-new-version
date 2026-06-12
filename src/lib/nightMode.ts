@@ -13,7 +13,25 @@ export function nightIntensity(now: Date = new Date()): number {
 }
 
 export function isDeepNight(now: Date = new Date()): boolean {
-  return nightIntensity(now) >= 0.8
+  return effectiveNightIntensity(now) >= 0.8
+}
+
+/**
+ * Intensity with the preview override applied. Set localStorage
+ * 'ecosphere:nightOverride' to '1' (or any 0..1 value) to preview the
+ * deep-night ecosystem in daylight; remove it to return to the clock.
+ */
+export function effectiveNightIntensity(now: Date = new Date()): number {
+  try {
+    if (typeof window !== 'undefined') {
+      const raw = window.localStorage.getItem('ecosphere:nightOverride')
+      if (raw != null) {
+        const value = raw === 'on' ? 1 : Number(raw)
+        if (Number.isFinite(value)) return Math.min(1, Math.max(0, value))
+      }
+    }
+  } catch { /* storage unavailable */ }
+  return nightIntensity(now)
 }
 
 // observatory ambient lines that only exist after dark
