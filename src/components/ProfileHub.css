@@ -949,3 +949,99 @@ body[data-eco-page='pod'] .screen {
 @media (prefers-reduced-motion: reduce) {
   .ph-board--arranging .ph-tile { animation: none; }
 }
+
+/* ── voice prompts: deep questions, answered out loud ──────────── */
+.ph-prompt-question {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: rgba(240, 244, 255, 0.95);
+}
+
+.ph-prompt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ph-prompt-answer {
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 45, 120, 0.45);
+  background: rgba(255, 45, 120, 0.1);
+  color: #ffd3e2;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.ph-prompt-answer:hover {
+  background: rgba(255, 45, 120, 0.2);
+  box-shadow: 0 0 18px rgba(255, 45, 120, 0.25);
+}
+
+.ph-prompt-shuffle,
+.ph-prompt-skip {
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: rgba(190, 200, 230, 0.6);
+  font-size: 11px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.ph-prompt-skip { margin-top: 8px; }
+
+.ph-prompt-note {
+  margin: 10px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: rgba(150, 165, 200, 0.55);
+}
+
+.ph-prompt-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 12px;
+}
+
+.ph-prompt-entry-q {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-style: italic;
+  color: rgba(200, 210, 235, 0.75);
+}
+
+.ph-prompt-entry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.ph-prompt-share {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(190, 200, 230, 0.65);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ph-prompt-share.on {
+  border-color: rgba(0, 212, 255, 0.5);
+  color: #9ae8ff;
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.2);
+}

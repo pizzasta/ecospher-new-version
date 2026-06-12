@@ -52,6 +52,23 @@ export function readTunedTo(): string[] {
  * bio + AI bio, echo archive, 7-day listening history, capsule vault counts,
  * and listener / tuned-to stats. Two columns on desktop, one on mobile.
  */
+// deep questions worth thirty seconds of honesty — answered out loud,
+// kept private by default, shareable to your page if you choose
+const VOICE_PROMPTS = [
+  "what's something you believe but can't prove?",
+  'who were you at fifteen that you miss?',
+  "describe the moment you knew everything was about to change.",
+  "what do you keep apologizing for that wasn't your fault?",
+  'what does home sound like?',
+  'tell me about a door you didn\'t open.',
+  'what are you still waiting for?',
+  "what's the kindest thing a stranger ever did for you?",
+  'which memory would you give up last?',
+  'what would you say to the person you almost became?',
+  "what's a question you hope nobody ever asks you?",
+  'when did you last feel completely unhurried?',
+]
+
 export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: string) => void }) {
   const { ecosystemState } = useEcosystemState()
   const globalAudio = useGlobalAudio()
@@ -182,6 +199,21 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   }, [])
 
   const echoBlobFor = (id: string): Blob | null => echoes.find(e => e.id === id)?.blob ?? null
+
+  // ── voice prompts: deep questions answered out loud, shared or kept ──
+  const [voiceAnswers, setVoiceAnswers] = useState<Array<{ id: string; prompt: string; durationMs: number; recordedAt: number; shared: boolean }>>(() => {
+    try { return JSON.parse(window.localStorage.getItem('ecosphere:voicePrompts') ?? '[]') } catch { return [] }
+  })
+  const persistVoiceAnswers = (next: Array<{ id: string; prompt: string; durationMs: number; recordedAt: number; shared: boolean }>) => {
+    setVoiceAnswers(next)
+    try { window.localStorage.setItem('ecosphere:voicePrompts', JSON.stringify(next)) } catch { /* session only */ }
+  }
+  const [promptShuffle, setPromptShuffle] = useState(0)
+  const [promptRecording, setPromptRecording] = useState(false)
+  const dayIndex = Math.floor(Date.now() / 86400000)
+  const answeredPrompts = voiceAnswers.map(a => a.prompt)
+  const openPrompts = VOICE_PROMPTS.filter(p => !answeredPrompts.includes(p))
+  const featuredPrompt = openPrompts.length > 0 ? openPrompts[(dayIndex + promptShuffle) % openPrompts.length] : null
 
   const deleteEcho = (id: string) => {
     void deleteLocalRecording(id).then(() => setEchoes(prev => prev.filter(e => e.id !== id)))
@@ -476,6 +508,72 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
           <p className="ph-hint">tune to carriers from the observatory's active carriers panel.</p>
         </div>
     ),
+    prompts: (
+        <div className="ph-card glass ph-prompts">
+          <div className="ph-card-head">
+            <span className="ph-card-kicker">VOICE PROMPTS</span>
+            <span className="ph-card-count">{voiceAnswers.length} answered</span>
+          </div>
+          {featuredPrompt ? (
+            <>
+              <p className="ph-prompt-question">“{featuredPrompt}”</p>
+              {promptRecording ? (
+                <>
+                  <AudioRecorder
+                    kind="signal"
+                    context="voice prompt"
+                    prompt={featuredPrompt}
+                    minSeconds={3}
+                    maxSeconds={30}
+                    onComplete={({ durationMs, uploadId }) => {
+                      persistVoiceAnswers([{ id: uploadId, prompt: featuredPrompt, durationMs, recordedAt: Date.now(), shared: false }, ...voiceAnswers])
+                      setPromptRecording(false)
+                    }}
+                  />
+                  <button type="button" className="ph-prompt-skip" onClick={() => setPromptRecording(false)}>not this one</button>
+                </>
+              ) : (
+                <div className="ph-prompt-actions">
+                  <button type="button" className="ph-prompt-answer" onClick={() => setPromptRecording(true)}>● answer out loud — 30s max</button>
+                  <button type="button" className="ph-prompt-shuffle" title="different question" onClick={() => setPromptShuffle(n => n + 1)}>↻ ask me something else</button>
+                </div>
+              )}
+              <p className="ph-prompt-note">answers stay private unless you put them on your page.</p>
+            </>
+          ) : (
+            <p className="ph-empty">you've answered every question the band has. more arrive eventually.</p>
+          )}
+          {voiceAnswers.length > 0 && (
+            <div className="ph-prompt-list">
+              {voiceAnswers.map(answer => (
+                <div key={answer.id} className="ph-prompt-entry">
+                  <p className="ph-prompt-entry-q">“{answer.prompt}”</p>
+                  {echoBlobFor(answer.id)
+                    ? <AudioPlayer src={echoBlobFor(answer.id)!} seed={answer.recordedAt % 9973} durationSeconds={answer.durationMs / 1000} accent={hzProfile.color} />
+                    : <span className="ph-tape-missing">this answer lives on the device that recorded it</span>}
+                  <div className="ph-prompt-entry-row">
+                    <button
+                      type="button"
+                      className={`ph-prompt-share${answer.shared ? ' on' : ''}`}
+                      onClick={() => persistVoiceAnswers(voiceAnswers.map(a => (a.id === answer.id ? { ...a, shared: !a.shared } : a)))}
+                    >
+                      {answer.shared ? '◉ on your page' : '◌ just for you'}
+                    </button>
+                    <button
+                      type="button"
+                      className="ph-icon-btn ph-icon-btn--danger"
+                      title="delete this answer"
+                      onClick={() => persistVoiceAnswers(voiceAnswers.filter(a => a.id !== answer.id))}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+    ),
     tuning: (
         <div className="ph-card glass">
           <div className="ph-card-head">
@@ -516,7 +614,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
 
   // pinterest-board layout: tile order is yours, saved per device
   const [boardOrder, setBoardOrder] = useState<string[]>(() => {
-    const defaults = ['identity', 'tonightAction', 'echoes', 'tonight', 'history', 'wall', 'shelf', 'vault', 'reach', 'tuning']
+    const defaults = ['identity', 'tonightAction', 'prompts', 'echoes', 'tonight', 'history', 'wall', 'shelf', 'vault', 'reach', 'tuning']
     try {
       const stored = JSON.parse(window.localStorage.getItem('ecosphere:hubBoard') ?? '[]') as string[]
       const valid = stored.filter(id => defaults.includes(id))
