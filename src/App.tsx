@@ -2544,23 +2544,10 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
         <p className="screen-sub">this page doesn't show who you say you are. it shows how you listen.</p>
       </div>
       <ProfileHub onNavigate={screen => onNavigate?.(screen as Screen)} />
-      <SignalToSelf accent={podHz?.color ?? '#66ccff'} />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: '12px', marginBottom: '4px' }}>
-        <div>
-          <div style={{ fontSize: '10px', color: 'rgba(180,190,220,0.45)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '2px' }}>
-            {user ? 'authenticated signal' : 'local signal'}
-          </div>
-          <div style={{ fontSize: '12px', color: '#00d4ff' }}>{user?.email ?? eco.userSignalIdentity ?? 'unclaimed frequency'}</div>
-        </div>
-        {user ? (
-          <button onClick={onSignOut} style={{ fontSize: '11px', color: 'rgba(180,190,220,0.4)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', transition: 'all 0.2s ease' }}>
-            sign out
-          </button>
-        ) : (
-          <span style={{ fontSize: '10px', color: 'rgba(180,190,220,0.4)', letterSpacing: '0.08em' }}>stored on this device</span>
-        )}
+      <div className="pod-core-head">
+        <span className="pod-core-kicker">POD CORE</span>
+        <em>your glow — fed by listening, boosted by touch</em>
       </div>
-      <AmbientLine lines={POD_EVENTS} />
       <div className="pod-orb-container">
         <button
           type="button"
@@ -2688,6 +2675,23 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
         </div>
       )}
       <LiveTail page="pod" onNavigate={onNavigate} />
+      <SignalToSelf accent={podHz?.color ?? '#66ccff'} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: '12px', marginBottom: '4px' }}>
+        <div>
+          <div style={{ fontSize: '10px', color: 'rgba(180,190,220,0.45)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '2px' }}>
+            {user ? 'authenticated signal' : 'local signal'}
+          </div>
+          <div style={{ fontSize: '12px', color: '#00d4ff' }}>{user?.email ?? eco.userSignalIdentity ?? 'unclaimed frequency'}</div>
+        </div>
+        {user ? (
+          <button onClick={onSignOut} style={{ fontSize: '11px', color: 'rgba(180,190,220,0.4)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+            sign out
+          </button>
+        ) : (
+          <span style={{ fontSize: '10px', color: 'rgba(180,190,220,0.4)', letterSpacing: '0.08em' }}>stored on this device</span>
+        )}
+      </div>
+      <AmbientLine lines={POD_EVENTS} />
     </div>
   )
 }
