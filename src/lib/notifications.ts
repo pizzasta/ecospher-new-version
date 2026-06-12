@@ -6,7 +6,7 @@ import { getOptionalSupabaseClient } from './supabase'
 import { isSupabaseConfigured } from './supabase-env'
 import { ensureBackendSession } from './session'
 
-export type NotificationType = 'new_reaction' | 'new_listener' | 'new_listener_follow' | 'new_capsule' | 'phantom_interaction'
+export type NotificationType = 'new_reaction' | 'new_listener' | 'new_listener_follow' | 'new_capsule' | 'phantom_interaction' | 'return_moment' | 'recap'
 
 export type EcoNotification = {
   id: string
@@ -23,6 +23,8 @@ export const NOTIFICATION_GLYPHS: Record<NotificationType, string> = {
   new_listener_follow: '◈',
   new_capsule: '◬',
   phantom_interaction: '∅',
+  return_moment: '◔',
+  recap: '∿',
 }
 
 const TYPE_TEXT: Record<NotificationType, string> = {
@@ -31,6 +33,8 @@ const TYPE_TEXT: Record<NotificationType, string> = {
   new_listener_follow: 'a carrier is now tuned to you',
   new_capsule: 'a capsule arrived for you',
   phantom_interaction: 'carrier_null touched your frequency',
+  return_moment: 'something happened while you were gone',
+  recap: 'your nightly recap is ready',
 }
 
 export function formatRelativeTime(timestamp: number, now = Date.now()): string {
