@@ -67,6 +67,15 @@ function writeLocalHz(profile: HzProfile) {
   try { window.dispatchEvent(new CustomEvent('ecosphere:hz', { detail: profile })) } catch { /* non-browser */ }
 }
 
+/** Synchronous local profile — instant render; backend refresh follows. */
+export function getLocalHzProfile(identity: string): HzProfile {
+  const local = readLocalHz()
+  if (typeof local.hz === 'number') {
+    return { hz: local.hz, displayName: local.displayName ?? null, color: local.color ?? HZ_DEFAULT_COLOR }
+  }
+  return hzForHandle(identity)
+}
+
 /** Current Hz profile: backend row when available, else local, else seeded. */
 export async function getHzProfile(identity: string): Promise<HzProfile> {
   if (isSupabaseConfigured) {

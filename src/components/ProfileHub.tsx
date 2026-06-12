@@ -8,7 +8,7 @@ import type { StoredRecording } from '../lib/localAudioStore'
 import { getListenCounts, getProfile, updateBio } from '../lib'
 import { isSupabaseConfigured } from '../lib/supabase-env'
 import { generateLocalBio, requestAiBio } from '../lib/aiBio'
-import { getHzProfile } from '../lib/hzSignature'
+import { getHzProfile, getLocalHzProfile } from '../lib/hzSignature'
 import type { HzProfile } from '../lib/hzSignature'
 import AudioPlayer from './AudioPlayer'
 import ColorWave from './ColorWave'
@@ -61,7 +61,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   const [aiBioDraft, setAiBioDraft] = useState('')
   const [aiBioSeed, setAiBioSeed] = useState(0)
   const [aiBioBusy, setAiBioBusy] = useState(false)
-  const [hzProfile, setHzProfile] = useState<HzProfile | null>(null)
+  const [hzProfile, setHzProfile] = useState<HzProfile>(() => getLocalHzProfile(ecosystemState.userSignalIdentity ?? 'unclaimed'))
   const [hzSettingsOpen, setHzSettingsOpen] = useState(false)
   const [gradient, setGradient] = useState<GradientSettings>(() => readGradientSettings())
   const [gradientOpen, setGradientOpen] = useState(false)
@@ -72,7 +72,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
     void loadGradientSettings().then(setGradient)
   }, [username])
 
-  const [gradientStart, gradientEnd] = resolveGradientColors(gradient, hzProfile?.hz ?? 110)
+  const [gradientStart, gradientEnd] = resolveGradientColors(gradient, hzProfile.hz)
 
   // ── echo archive ──
   const [echoes, setEchoes] = useState<StoredRecording[]>([])
@@ -206,7 +206,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
           : { background: `linear-gradient(${Math.round(gradientAngle)}deg, ${gradientStart}, ${gradientEnd})` }}
       >
         {gradient.style === 'wave' && (
-          <ColorWave variant="local" colors={[gradientStart, gradientEnd, hzProfile?.color]} />
+          <ColorWave variant="local" colors={[gradientStart, gradientEnd, hzProfile.color]} />
         )}
       </div>
       {grains.length > 0 && (
@@ -232,21 +232,21 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
 
       {/* centerpiece: the identity ring — your frequency, breathing */}
       <div className="ph-centerpiece">
-        <div className="ph-ring" style={{ '--ring-color': hzProfile?.color ?? '#66ccff' } as CSSProperties} aria-hidden="true">
+        <div className="ph-ring" style={{ '--ring-color': hzProfile.color } as CSSProperties} aria-hidden="true">
           <div className="ph-ring-bars">
             {Array.from({ length: 36 }, (_, i) => (
               <i
                 key={i}
                 style={{
                   '--bar-angle': `${i * 10}deg`,
-                  '--bar-scale': `${0.35 + (((Math.round((hzProfile?.hz ?? 110) * 10) * (i + 7)) % 60) / 100)}`,
+                  '--bar-scale': `${0.35 + (((Math.round(hzProfile.hz * 10) * (i + 7)) % 60) / 100)}`,
                   '--bar-delay': `${(i % 9) * 0.35}s`,
                 } as CSSProperties}
               />
             ))}
           </div>
           <div className="ph-ring-center">
-            <strong>{(hzProfile?.hz ?? 110).toFixed(1)}</strong>
+            <strong>{hzProfile.hz.toFixed(1)}</strong>
             <span>Hz</span>
           </div>
         </div>
@@ -270,22 +270,20 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
         <div className="ph-card glass">
           <div className="ph-header-row">
             <h3 className="ph-username">◈ {username}</h3>
-            {hzProfile && (
-              <span className="ph-header-hz">
-                <HzBadge hz={hzProfile.hz} displayName={hzProfile.displayName} color={hzProfile.color} />
-                <button type="button" className="ph-hz-cog" title="hz signature settings" aria-label="hz signature settings" onClick={() => setHzSettingsOpen(true)}>⚙</button>
-                <button type="button" className="ph-hz-cog" title="background settings" aria-label="background gradient settings" onClick={() => setGradientOpen(true)}>◰</button>
-              </span>
-            )}
+            <span className="ph-header-hz">
+              <HzBadge hz={hzProfile.hz} displayName={hzProfile.displayName} color={hzProfile.color} />
+              <button type="button" className="ph-hz-cog" title="hz signature settings" aria-label="hz signature settings" onClick={() => setHzSettingsOpen(true)}>⚙</button>
+              <button type="button" className="ph-hz-cog" title="background settings" aria-label="background gradient settings" onClick={() => setGradientOpen(true)}>◰</button>
+            </span>
           </div>
           {joined && <p className="ph-joined">on the band since {joined}</p>}
-          {hzSettingsOpen && hzProfile && (
+          {hzSettingsOpen && (
             <HzSettingsModal profile={hzProfile} onChange={setHzProfile} onClose={() => setHzSettingsOpen(false)} />
           )}
           {gradientOpen && (
             <FrequencyGradientModal
               settings={gradient}
-              hz={hzProfile?.hz ?? 110}
+              hz={hzProfile.hz}
               onChange={setGradient}
               onClose={() => setGradientOpen(false)}
             />
@@ -338,7 +336,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
                   <span>{Math.max(1, Math.round(echo.durationMs / 1000))}s</span>
                   <button type="button" className="ph-icon-btn ph-icon-btn--danger" title="delete echo" onClick={() => deleteEcho(echo.id)}>✕</button>
                 </div>
-                <AudioPlayer src={echo.blob} title={echo.label} seed={echo.createdAt % 9973} durationSeconds={echo.durationMs / 1000} accent={hzProfile?.color} />
+                <AudioPlayer src={echo.blob} title={echo.label} seed={echo.createdAt % 9973} durationSeconds={echo.durationMs / 1000} accent={hzProfile.color} />
               </div>
             ))}
           </div>
@@ -482,6 +480,8 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
             <span className="ph-card-kicker">TUNING</span>
           </div>
           <div className="ph-settings-links">
+            <button type="button" onClick={() => setHzSettingsOpen(true)}>✦ change signature color</button>
+            <button type="button" onClick={() => setGradientOpen(true)}>◰ background colors &amp; wave</button>
             <button type="button" onClick={() => onNavigate?.('settings')}>profile visibility</button>
             <button type="button" onClick={() => onNavigate?.('settings')}>lurker mode</button>
             <button type="button" onClick={() => onNavigate?.('settings')}>erase account data</button>
