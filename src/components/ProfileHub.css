@@ -532,3 +532,106 @@
   color: rgba(140, 155, 195, 0.5);
   white-space: nowrap;
 }
+
+/* ═══ VISITOR STATIC — presence as texture, never as a list ══ */
+.ph-visitor-static {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.ph-visitor-static i {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  animation: phGrainFlicker 6s ease-in-out infinite;
+}
+
+.ph-visitor-static i:nth-child(3n) { animation-delay: 2s; }
+.ph-visitor-static i:nth-child(4n) { animation-delay: 4s; }
+
+@keyframes phGrainFlicker {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.6); }
+}
+
+/* ═══ THE WALL OF RETURNS — worn cassettes, wear = replays ═══ */
+.ph-returns {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ph-cassette {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(40, 36, 30, 0.65), rgba(22, 20, 18, 0.75));
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  overflow: hidden;
+}
+
+.ph-cassette-spools {
+  display: flex;
+  gap: 14px;
+}
+
+.ph-cassette-spools i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(220, 210, 190, 0.4);
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.7) 30%, rgba(120, 110, 95, 0.3) 32%);
+  animation: phSpoolTurn 5s linear infinite;
+  animation-play-state: paused;
+}
+
+.ph-cassette:hover .ph-cassette-spools i {
+  animation-play-state: running;
+}
+
+@keyframes phSpoolTurn {
+  to { transform: rotate(360deg); }
+}
+
+.ph-cassette-label {
+  font-size: 12px;
+  color: rgba(235, 228, 210, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ph-cassette-count {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: rgba(200, 185, 150, 0.6);
+  white-space: nowrap;
+}
+
+/* tape wear: scratches whose presence scales with replay count */
+.ph-cassette-wear {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: calc(var(--wear, 0.5) * 0.55);
+  background:
+    repeating-linear-gradient(94deg, transparent 0 17px, rgba(255, 255, 255, 0.05) 17px 18px),
+    repeating-linear-gradient(180deg, transparent 0 5px, rgba(0, 0, 0, 0.12) 5px 6px),
+    radial-gradient(ellipse 40% 70% at 80% 20%, rgba(255, 255, 255, 0.04), transparent 70%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-visitor-static i,
+  .ph-cassette-spools i {
+    animation: none;
+  }
+}

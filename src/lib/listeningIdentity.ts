@@ -230,3 +230,17 @@ export function humanizeActivity(interactions: IdentityInteraction[], limit = 8)
   }
   return out
 }
+
+/**
+ * The Wall of Returns: the fragments this person keeps coming back to.
+ * Auto-curated from replay behavior — never chosen, never curatable.
+ */
+export function topReturns(listens: IdentityListen[], limit = 3): Array<{ label: string; count: number }> {
+  const counts = new Map<string, number>()
+  for (const listen of listens) counts.set(listen.label, (counts.get(listen.label) ?? 0) + 1)
+  return [...counts.entries()]
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([label, count]) => ({ label, count }))
+}
