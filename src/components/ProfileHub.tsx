@@ -309,7 +309,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
                   <span>{Math.max(1, Math.round(echo.durationMs / 1000))}s</span>
                   <button type="button" className="ph-icon-btn ph-icon-btn--danger" title="delete echo" onClick={() => deleteEcho(echo.id)}>✕</button>
                 </div>
-                <AudioPlayer src={echo.blob} title={echo.label} seed={echo.createdAt % 9973} durationSeconds={echo.durationMs / 1000} />
+                <AudioPlayer src={echo.blob} title={echo.label} seed={echo.createdAt % 9973} durationSeconds={echo.durationMs / 1000} accent={hzProfile?.color} />
               </div>
             ))}
           </div>

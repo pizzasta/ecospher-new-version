@@ -645,3 +645,80 @@
     transition: none;
   }
 }
+
+/* ═══ RARE FREQUENCY DROP — 24h, then never again ════════════ */
+.rare-drop {
+  margin: 14px 0 4px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 200, 130, 0.35);
+  background: linear-gradient(135deg, rgba(255, 200, 130, 0.08), rgba(255, 45, 120, 0.04));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rare-drop-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rare-drop-kicker {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: rgba(255, 200, 130, 0.95);
+}
+
+.rare-drop-timer {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.1em;
+  color: rgba(255, 200, 130, 0.7);
+}
+
+.rare-drop-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary, #f0f4ff);
+}
+
+.rare-drop-line {
+  margin: 0;
+  font-size: 12px;
+  font-style: italic;
+  color: rgba(230, 236, 255, 0.8);
+}
+
+.rare-drop-btn {
+  align-self: flex-start;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 200, 130, 0.5);
+  background: rgba(255, 200, 130, 0.1);
+  color: rgba(255, 220, 170, 0.95);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.rare-drop-btn--sealed {
+  animation: rareDropPulse 2.6s ease-in-out infinite;
+  will-change: opacity;
+}
+
+@keyframes rareDropPulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rare-drop-btn--sealed {
+    animation: none;
+    will-change: auto;
+  }
+}

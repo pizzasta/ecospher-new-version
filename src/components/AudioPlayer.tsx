@@ -25,9 +25,11 @@ type AudioPlayerProps = {
   seed?: number
   /** fallback when the source's metadata duration is unavailable (streams) */
   durationSeconds?: number
+  /** tint (e.g. the owner's hz color) for the toggle + played waveform */
+  accent?: string
 }
 
-export default function AudioPlayer({ src, title, seed = 21, durationSeconds }: AudioPlayerProps) {
+export default function AudioPlayer({ src, title, seed = 21, durationSeconds, accent }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [playing, setPlaying] = useState(false)
   const [elapsed, setElapsed] = useState(0)
@@ -83,7 +85,10 @@ export default function AudioPlayer({ src, title, seed = 21, durationSeconds }: 
   const progress = total > 0 ? Math.min(1, elapsed / total) : 0
 
   return (
-    <div className={`eco-audio-player${playing ? ' playing' : ''}`}>
+    <div
+      className={`eco-audio-player${playing ? ' playing' : ''}`}
+      style={accent ? ({ '--player-accent': accent } as CSSProperties) : undefined}
+    >
       <audio ref={audioRef} src={url} preload="metadata" />
       <button type="button" className="eco-player-toggle" onClick={toggle} aria-label={playing ? 'pause' : 'play'}>
         {playing ? '❚❚' : '▶'}

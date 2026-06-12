@@ -2324,3 +2324,15 @@ body[data-eco-deepnight='on'] .atmosphere {
     animation: none;
   }
 }
+
+/* offline: listening to memory cache */
+.live-echo-chip--offline {
+  top: 52px;
+  border-color: rgba(255, 200, 130, 0.35);
+  color: rgba(255, 200, 130, 0.9);
+}
+
+.live-echo-chip--offline span {
+  background: rgba(255, 200, 130, 0.9);
+  box-shadow: 0 0 10px rgba(255, 200, 130, 0.5);
+}

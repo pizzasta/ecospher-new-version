@@ -20,6 +20,11 @@ import NotificationBell from './components/NotificationBell'
 import ListenerTraces from './components/ListenerTraces'
 import { humanizeActivity } from './lib/listeningIdentity'
 import { DEEP_NIGHT_LINES, isDeepNight } from './lib/nightMode'
+import { currentDrop, dropTimeLeft, isDropOpened, markDropOpened, markDropSeen } from './lib/frequencyDrops'
+import { pushLocalNotification } from './lib/notifications'
+import { getHzProfile } from './lib/hzSignature'
+import type { HzProfile } from './lib/hzSignature'
+import SignalToSelf from './components/SignalToSelf'
 import { useRecordingSession } from './hooks/useRecordingSession'
 import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 import { enablePushNotifications } from './lib/pushNotifications'
@@ -1064,6 +1069,35 @@ const CAPSULE_EVENTS = [
 function CapsulesScreen() {
   const typeGlyph: Record<string, string> = { voice: '◎', memory: '◐', echo: '◑' }
   const { openCapsule: recordCapsuleOpen } = useEcosystemState()
+  const dropAudio = useGlobalAudio()
+
+  // limited-edition frequency drop: 24h window, then gone forever
+  const [drop, setDrop] = useState(() => currentDrop())
+  const [dropTick, setDropTick] = useState(() => Date.now())
+  const [dropOpen, setDropOpen] = useState(() => { const d = currentDrop(); return d ? isDropOpened(d.id) : false })
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      const next = currentDrop()
+      setDrop(next)
+      setDropTick(Date.now())
+      if (next && markDropSeen(next.id)) {
+        pushLocalNotification('new_capsule', 'a rare frequency is forming — 24 hours only')
+      }
+    }, 60000)
+    const first = currentDrop()
+    if (first && markDropSeen(first.id)) {
+      pushLocalNotification('new_capsule', 'a rare frequency is forming — 24 hours only')
+    }
+    return () => window.clearInterval(t)
+  }, [])
+
+  const openDrop = () => {
+    if (!drop) return
+    markDropOpened(drop.id)
+    setDropOpen(true)
+    recordCapsuleOpen(drop.id, drop.title)
+    void playSample(dropAudio, { id: drop.id, label: `rare frequency · ${drop.title}`, source: 'capsules' }, drop.kind, drop.seed, 9000)
+  }
   const [phases, setPhases] = useState<Record<string, CapsulePhase>>({})
   const [preservation, setPreservation] = useState<Record<string, number>>({})
   const [shimmerId, setShimmerId] = useState<string | null>(null)
@@ -1148,6 +1182,27 @@ function CapsulesScreen() {
         <p className="screen-sub">preserved moments, carried forward</p>
       </div>
       <AmbientLine lines={useMemo(() => [...CAPSULE_EVENTS, ...livedInLines('capsules', 2)], [])} />
+
+      {drop && (
+        <div className={`rare-drop glass${dropOpen ? ' rare-drop--open' : ''}`} role="region" aria-label="Rare frequency drop">
+          <div className="rare-drop-head">
+            <span className="rare-drop-kicker">RARE FREQUENCY · 24H ONLY</span>
+            <span className="rare-drop-timer">dissolves in {dropTimeLeft(drop, dropTick)}</span>
+          </div>
+          <div className="rare-drop-title">{drop.title}</div>
+          {dropOpen ? (
+            <>
+              <p className="rare-drop-line">{drop.line}</p>
+              <button type="button" className="rare-drop-btn" onClick={openDrop}>↻ play it again while it lasts</button>
+            </>
+          ) : (
+            <button type="button" className="rare-drop-btn rare-drop-btn--sealed" onClick={openDrop}>
+              ◉ open it — after {dropTimeLeft(drop, dropTick)} it never exists again
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="ghost-signal-banner glass" role="note" aria-label="Ghost signal of the day">
         <div className="ghost-signal-head">
           <span className="ghost-signal-kicker">GHOST SIGNAL OF THE DAY</span>
@@ -2068,6 +2123,11 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
   const [podPulses, setPodPulses] = usePersistentState<number>('ecosphere:podPulses', 0)
   const [rippling, setRippling] = useState(false)
 
+  const [podHz, setPodHz] = useState<HzProfile | null>(null)
+  useEffect(() => {
+    void getHzProfile(eco.userSignalIdentity ?? 'unclaimed').then(setPodHz)
+  }, [eco.userSignalIdentity])
+
   const podEnergy = Math.min(1, (eco.resonanceLevel + podPulses * 2 + eco.streak.count * 4) / 130)
   const podStage = podEnergy > 0.7 ? 'radiant' : podEnergy > 0.4 ? 'awake' : 'resting'
 
@@ -2183,6 +2243,7 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
         <p className="screen-sub">your signals, saves, recordings, and activity — all in one place</p>
       </div>
       <ProfileHub onNavigate={screen => onNavigate?.(screen as Screen)} />
+      <SignalToSelf accent={podHz?.color ?? '#66ccff'} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: '12px', marginBottom: '4px' }}>
         <div>
           <div style={{ fontSize: '10px', color: 'rgba(180,190,220,0.45)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '2px' }}>
@@ -2760,6 +2821,22 @@ export default function App() {
     document.title = `Ecosphere · ${SCREEN_TITLES[screen]}`
   }, [screen])
 
+  // offline mode: register the cache worker once; banner while disconnected
+  const [offline, setOffline] = useState(() => !navigator.onLine)
+  useEffect(() => {
+    if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+      void navigator.serviceWorker.register('/sw.js').catch(() => { /* cache is a bonus, not a requirement */ })
+    }
+    const onOnline = () => setOffline(false)
+    const onOffline = () => setOffline(true)
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+    }
+  }, [])
+
   // realtime: public activity from other carriers surfaces as a live echo
   const [liveEcho, setLiveEcho] = useState<string | null>(null)
   useEffect(() => {
@@ -2825,6 +2902,13 @@ export default function App() {
         <div className="live-echo-chip" role="status">
           <span aria-hidden="true" />
           {liveEcho}
+        </div>
+      )}
+
+      {offline && (
+        <div className="live-echo-chip live-echo-chip--offline" role="status">
+          <span aria-hidden="true" />
+          you're disconnected · listening to memory cache
         </div>
       )}
 

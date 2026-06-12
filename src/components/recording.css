@@ -135,9 +135,9 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 212, 255, 0.4);
-  background: rgba(0, 212, 255, 0.08);
-  color: #67e8f9;
+  border: 1px solid color-mix(in srgb, var(--player-accent, #00d4ff) 40%, transparent);
+  background: color-mix(in srgb, var(--player-accent, #00d4ff) 8%, transparent);
+  color: var(--player-accent, #67e8f9);
   font-size: 11px;
   cursor: pointer;
   flex-shrink: 0;
@@ -145,8 +145,8 @@
 }
 
 .eco-audio-player.playing .eco-player-toggle {
-  box-shadow: 0 0 16px rgba(0, 212, 255, 0.3);
-  background: rgba(0, 212, 255, 0.16);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--player-accent, #00d4ff) 30%, transparent);
+  background: color-mix(in srgb, var(--player-accent, #00d4ff) 16%, transparent);
 }
 
 .eco-player-main {
@@ -184,7 +184,7 @@
 }
 
 .eco-player-wave i.played {
-  background: linear-gradient(180deg, #67e8f9, rgba(155, 93, 229, 0.7));
+  background: linear-gradient(180deg, var(--player-accent, #67e8f9), rgba(155, 93, 229, 0.7));
 }
 
 .eco-player-seek {
