@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { deleteAccountData, getOptionalSupabaseClient, isSupabaseConfigured, syncProfile, updateProfileFlags } from './lib'
 import { localDateString, useEcosystemState } from './hooks/useEcosystemState'
@@ -155,16 +155,16 @@ const deadZones: DeadZone[] = [
 // a relic is a signal the network refused to forget — replayed, revisited,
 // reacted to until deleting it stopped being an option
 const relics: Relic[] = [
-  { id: 'rl1', name: 'Echo Veil', type: 'Echo Fragment', rarity: 'mythic', resonance: 94, category: 'background comfort', description: 'a 40-second recording where a second voice hums along underneath. nobody has ever placed it.', whyRelic: 'people kept leaving it on while doing other things. it never got turned off.', stayQuote: 'i stayed through the whole thing.' },
-  { id: 'rl2', name: 'Pulse Crystal VII', type: 'Pulse Crystal', rarity: 'rare', resonance: 82, category: 'insomnia', description: "someone's heartbeat, taped through a coat pocket on a night bus. still keeps time.", whyRelic: 'insomniacs sync their breathing to it. replay counts spike between 2 and 4am.', stayQuote: 'this is the only thing that slows me down.' },
-  { id: 'rl3', name: 'Lost Carrier', type: 'Lost Transmission', rarity: 'forbidden', resonance: 67, category: 'deleted too late', description: 'a sealed voicemail that says one name, three times. the number was never registered.', whyRelic: 'it was deleted twice. both times, someone had already saved a copy.', stayQuote: 'the ending sounded real.' },
-  { id: 'rl4', name: 'Static Bloom', type: 'Static Bloom', rarity: 'unstable', resonance: 89, category: 'background comfort', description: 'radio static that turns into a tune if you stop trying to hear it.', whyRelic: 'nobody can explain it, so everybody replays it to check.', stayQuote: 'i heard it on the third listen and yelled.' },
-  { id: 'rl5', name: 'Violet Memory Shard', type: 'Memory Shard', rarity: 'unstable', resonance: 58, category: 'unfinished thought', description: 'half a confession, cut off exactly where it was about to matter.', whyRelic: 'everyone replays the same ten seconds, waiting for the sentence to finish.', stayQuote: 'this one hurt more in silence.' },
-  { id: 'rl6', name: 'Answering Machine, 1999', type: 'Lost Transmission', rarity: 'rare', resonance: 74, category: 'heartbreak', description: 'eleven saved messages from the same person, each one a little kinder than the last.', whyRelic: 'people listen to all eleven in order. nobody skips.', stayQuote: 'message 7 broke me.' },
-  { id: 'rl7', name: 'The Hold Music', type: 'Echo Fragment', rarity: 'unstable', resonance: 63, category: 'background comfort', description: 'forty minutes of hold music with one cough at minute 22. people replay the cough.', whyRelic: 'a replay chain formed around minute 22 and never dissolved.', stayQuote: 'i waited the whole 40 minutes. worth it.' },
-  { id: 'rl8', name: 'Wind Through a Screen Door', type: 'Field Recording', rarity: 'rare', resonance: 71, category: 'background comfort', description: "someone's whole summer, recorded by accident while the phone sat on a porch table.", whyRelic: 'listeners stay an average of 31 minutes. nothing happens. that\'s why.', stayQuote: 'this is what i miss and i was never there.' },
-  { id: 'rl9', name: 'Last Bus Announcement', type: 'Field Recording', rarity: 'mythic', resonance: 88, category: 'late night driving', description: 'the final stop being called on a route that was cancelled the next morning.', whyRelic: 'people who rode that route found it. then people who didn\'t.', stayQuote: 'i replayed this before getting out of the car.' },
-  { id: 'rl10', name: 'Sealed Birthday Tape', type: 'Memory Shard', rarity: 'forbidden', resonance: 79, category: 'almost sent', description: 'a tape labeled "for when you\'re 30" that nobody ever came back for.', whyRelic: 'nobody has ever heard it. it became a relic unopened.', stayQuote: 'i think about whoever it was for constantly.' },
+  { id: 'rl1', name: 'unlabeled tape, side B', type: 'found audio', rarity: 'mythic', resonance: 94, category: 'background comfort', description: 'a 40-second recording where a second voice hums along underneath. nobody has ever placed it.', whyRelic: 'people kept leaving it on while doing other things. it never got turned off.', stayQuote: 'i stayed through the whole thing.' },
+  { id: 'rl2', name: 'heartbeat on the night bus', type: 'accidental recording', rarity: 'rare', resonance: 82, category: 'insomnia', description: "someone's heartbeat, taped through a coat pocket on a night bus. still keeps time.", whyRelic: 'insomniacs sync their breathing to it. replay counts spike between 2 and 4am.', stayQuote: 'this is the only thing that slows me down.' },
+  { id: 'rl3', name: 'voicemail, number unknown', type: 'voicemail', rarity: 'forbidden', resonance: 67, category: 'deleted too late', description: 'a sealed voicemail that says one name, three times. the number was never registered.', whyRelic: 'it was deleted twice. both times, someone had already saved a copy.', stayQuote: 'the ending sounded real.' },
+  { id: 'rl4', name: 'static that turns into a song', type: 'radio rip', rarity: 'unstable', resonance: 89, category: 'background comfort', description: 'radio static that turns into a tune if you stop trying to hear it.', whyRelic: 'nobody can explain it, so everybody replays it to check.', stayQuote: 'i heard it on the third listen and yelled.' },
+  { id: 'rl5', name: 'half a confession', type: 'cut-off recording', rarity: 'unstable', resonance: 58, category: 'unfinished thought', description: 'half a confession, cut off exactly where it was about to matter.', whyRelic: 'everyone replays the same ten seconds, waiting for the sentence to finish.', stayQuote: 'this one hurt more in silence.' },
+  { id: 'rl6', name: 'answering machine, 1999', type: 'saved messages', rarity: 'rare', resonance: 74, category: 'heartbreak', description: 'eleven saved messages from the same person, each one a little kinder than the last.', whyRelic: 'people listen to all eleven in order. nobody skips.', stayQuote: 'message 7 broke me.' },
+  { id: 'rl7', name: 'the hold music', type: 'found audio', rarity: 'unstable', resonance: 63, category: 'background comfort', description: 'forty minutes of hold music with one cough at minute 22. people replay the cough.', whyRelic: 'a replay chain formed around minute 22 and never dissolved.', stayQuote: 'i waited the whole 40 minutes. worth it.' },
+  { id: 'rl8', name: 'wind through a screen door', type: 'field recording', rarity: 'rare', resonance: 71, category: 'background comfort', description: "someone's whole summer, recorded by accident while the phone sat on a porch table.", whyRelic: 'listeners stay an average of 31 minutes. nothing happens. that\'s why.', stayQuote: 'this is what i miss and i was never there.' },
+  { id: 'rl9', name: 'last bus announcement', type: 'field recording', rarity: 'mythic', resonance: 88, category: 'late night driving', description: 'the final stop being called on a route that was cancelled the next morning.', whyRelic: 'people who rode that route found it. then people who didn\'t.', stayQuote: 'i replayed this before getting out of the car.' },
+  { id: 'rl10', name: 'sealed birthday tape', type: 'still sealed', rarity: 'forbidden', resonance: 79, category: 'almost sent', description: 'a tape labeled "for when you\'re 30" that nobody ever came back for.', whyRelic: 'nobody has ever heard it. it became a relic unopened.', stayQuote: 'i think about whoever it was for constantly.' },
 ]
 
 const navItems: { id: Screen; label: string; glyph: string }[] = [
@@ -238,13 +238,6 @@ function MoodBadge({ mood }: { mood: Mood | string }) {
 }
 
 // ─── Rarity badge ─────────────────────────────────────────────────────────────
-function RarityBadge({ rarity }: { rarity: string }) {
-  const map: Record<string, string> = {
-    mythic: 'badge-pink', rare: 'badge-cyan', unstable: 'badge-violet',
-    forbidden: 'badge-red', common: 'badge-grey',
-  }
-  return <span className={`badge ${map[rarity] ?? 'badge-grey'}`}>{rarity}</span>
-}
 
 // ─── Signal bar ───────────────────────────────────────────────────────────────
 function SignalBar({ value, color = 'pink' }: { value: number; color?: 'pink' | 'cyan' | 'violet' }) {
@@ -1626,16 +1619,6 @@ const relicPostits: Record<string, string[]> = {
   rl10: ['DO NOT open this one', 'i think about whoever it was for constantly'],
 }
 
-// the archive is shelved by feeling, not by rarity
-const RELIC_CATEGORIES: Array<{ id: string; note: string }> = [
-  { id: 'heartbreak', note: 'the ones that hurt more in silence' },
-  { id: 'insomnia', note: 'played on repeat between 2 and 4am' },
-  { id: 'almost sent', note: 'recorded for someone who never heard it' },
-  { id: 'late night driving', note: 'for empty roads and last stops' },
-  { id: 'unfinished thought', note: 'cut off before the point' },
-  { id: 'deleted too late', note: 'someone had already saved a copy' },
-  { id: 'background comfort', note: 'left on while life happens' },
-]
 
 // trace the relic: where it spread, deterministic per relic
 const TRACE_ROOMS = ["Can't Sleep", '3am Thoughts', 'Missing Someone', 'Background Voices', 'Burned Out', 'Late Night Driving', 'Comfort Room', 'Overthinking Everything']
@@ -1650,6 +1633,13 @@ function relicTrace(r: Relic) {
     chainLength: 4 + (seed % 9),
     returned: 2 + (seed % 5),
   }
+}
+
+// every relic is filed under an anonymous code, never a person
+function relicAnonCode(r: Relic): string {
+  const seed = r.id.charCodeAt(2) * 2654435761 + r.resonance * 97
+  const hex = (n: number) => ((seed >> n) & 0xffff).toString(16).toUpperCase().padStart(4, '0')
+  return `${hex(2)}-${hex(9)}`
 }
 
 // deterministic display stats: a relic carries its own legend
@@ -1670,14 +1660,14 @@ function relicLegend(r: Relic) {
 
 // live archive activity: the page never goes quiet
 const RELIC_LIVE_EVENTS = [
-  'replay storm forming over The Hold Music',
+  'replay storm forming over the hold music',
   "resurfaced in Can't Sleep two minutes ago",
   'archived 211 times tonight',
   'a replay chain is spreading from minute 22',
   'listeners returning after 3 days away',
   'someone replayed the same relic 9 times in a row',
-  'reaction cluster growing on Answering Machine, 1999',
-  'someone stayed 31 minutes inside Wind Through a Screen Door',
+  'reaction cluster growing on answering machine, 1999',
+  'someone stayed 31 minutes inside wind through a screen door',
 ]
 
 // relics of tonight: signals currently becoming unforgettable
@@ -1847,123 +1837,79 @@ function RelicsScreen() {
         </div>
       )}
 
-      {/* the hero relic: tonight the whole archive gathers around one tape */}
-      <section className={`relic-hero${storming ? ' relic-hero--storm' : ''}`} aria-label="Tonight's relic">
-        <div className="relic-hero-atmo" aria-hidden="true"><span /><span /><span /></div>
-        <div className="relic-hero-kicker">TONIGHT THE ARCHIVE IS GATHERED AROUND</div>
-        <div className={`relic-hero-tape${relicAudio.current?.id === `loan-${heroRelic.id}` && relicAudio.playing ? ' playing' : ''}`} aria-hidden="true">
-          <span className="rht-reel rht-reel-a"><i /></span>
-          <span className="rht-window">
-            {Array.from({ length: 13 }, (_, b) => (
-              <b key={b} style={{ '--rht-h': `${22 + ((heroRelic.resonance * (b + 3) * 11) % 66)}%`, '--rht-d': `${(b % 6) * 0.12}s` } as CSSProperties} />
+      {/* the board: everything pinned at once, nothing formal */}
+      <div className="relic-board-top">
+        <span className="relic-live-chip"><i aria-hidden="true" />LIVE ECHOES · {FORMING_RELICS.length - 1}</span>
+        <button type="button" className={`relic-tunein${storming ? ' storming' : ''}`} onClick={playHero}>
+          ((•)) TUNE IN — tonight everyone is on “{heroRelic.name}”
+        </button>
+      </div>
+
+      <div className="relic-board">
+        {/* tonight's relic: the biggest scrap, pinned crooked at the top */}
+        <button type="button" className={`scrap scrap--hero scrap--${heroRelic.category.replace(/\s/g, '-')}`} onClick={() => setSelected(heroRelic)}>
+          <span className="scrap-tape" aria-hidden="true" />
+          <span className="scrap-anon">ANON · {relicAnonCode(heroRelic)}</span>
+          <strong className="scrap-name">{heroRelic.name}</strong>
+          <span className="scrap-line">{heroRelic.whyRelic}</span>
+          <span className="scrap-wave" aria-hidden="true">
+            {Array.from({ length: 16 }, (_, b) => (
+              <b key={b} style={{ height: `${20 + ((heroRelic.resonance * (b + 3) * 11) % 70)}%` }} />
             ))}
           </span>
-          <span className="rht-reel rht-reel-b"><i /></span>
-          <span className="rht-shimmer" />
-        </div>
-        <h3 className="relic-hero-title">{heroRelic.name}</h3>
-        <p className="relic-hero-quote">“{heroRelic.stayQuote}”</p>
-        <div className="relic-hero-stats">
-          <span><strong>{heroLegend.replays}</strong> replays</span>
-          <span><strong>{heroLegend.stayRate}%</strong> stayed until the end</span>
-          <span>most replayed at <strong>{heroLegend.peak}</strong></span>
-        </div>
-        <p className="relic-hero-why">{heroRelic.whyRelic}</p>
-        <div className="relic-hero-reactions" aria-label="reactions">
-          {heroLegend.reactions.map(rx => (
-            <span key={rx.tag} className="relic-hero-rx">{rx.tag} · {rx.n}</span>
-          ))}
-        </div>
-        <div className="relic-hero-comments" aria-hidden="true">
-          {(relicPostits[heroRelic.id] ?? []).map((note, ni) => (
-            <em key={note} className={`rh-comment rh-comment-${ni}`}>{note}</em>
-          ))}
-        </div>
-        <div className="relic-hero-actions">
-          <button type="button" className="rh-btn rh-btn--play" onClick={playHero}>▶ replay relic</button>
-          <button type="button" className="rh-btn" onClick={() => { saveToLibrary('relic', heroRelic.id, heroRelic.name); setShelfNote('fragment saved to your pod'); window.setTimeout(() => setShelfNote(null), 4000) }}>✧ save fragment</button>
-          <button type="button" className="rh-btn" onClick={() => { setSelected(heroRelic); setTracing(true) }}>⌖ trace listeners</button>
-          <button type="button" className="rh-btn rh-btn--storm" onClick={enterReplayStorm}>◉ enter replay storm</button>
-        </div>
-        {storming && (
-          <div className="relic-storm" aria-hidden="true">
-            <span /><span /><span /><span /><span />
-          </div>
-        )}
-      </section>
+          <span className="scrap-foot">{heroLegend.replays} replays · {heroLegend.stayRate}% stayed · loudest at {heroLegend.peak}</span>
+          {storming && <span className="scrap-storm" aria-hidden="true"><i /><i /><i /></span>}
+        </button>
+        <span className="sticky sticky--pink" style={{ '--tilt': '-5deg' } as CSSProperties}>“{heroRelic.stayQuote}”</span>
+        <button type="button" className="sticky sticky--cyan sticky--btn" style={{ '--tilt': '4deg' } as CSSProperties} onClick={enterReplayStorm}>
+          ◉ enter the replay storm
+        </button>
 
-      {/* relics of tonight: signals currently becoming unforgettable */}
-      <section className="relic-tonight" aria-label="Relics forming tonight">
-        <div className="relic-shelf-head">
-          <span className="relic-shelf-label">RELICS OF TONIGHT</span>
-          <span className="relic-shelf-note">becoming unforgettable right now — not relics yet</span>
-        </div>
-        <div className="relic-tonight-row">
-          {FORMING_RELICS.slice(dayOfYear() % 2, (dayOfYear() % 2) + 3).map((forming, i) => (
-            <button
-              key={forming.id}
-              type="button"
-              className="relic-forming"
-              style={{ '--form-idx': i } as CSSProperties}
-              onClick={() => { void playSampleBuffer(forming.kind, forming.id.charCodeAt(2) * 211, 5000, 0.3); setShelfNote('you heard it before it became a relic'); window.setTimeout(() => setShelfNote(null), 4000) }}
-            >
-              <span className="relic-forming-pulse" aria-hidden="true" />
-              <strong>{forming.title}</strong>
-              <em>{forming.heat}</em>
-            </button>
-          ))}
-        </div>
-      </section>
+        {relics.filter(r => r.id !== heroRelic.id).map((r, i) => {
+          const a = activityOf(r.id)
+          const c = charge[r.id] ?? r.resonance
+          const legend = relicLegend(r)
+          return (
+            <Fragment key={r.id}>
+              <button
+                type="button"
+                className={`scrap scrap--${r.category.replace(/\s/g, '-')} scrap--size-${i % 3}${a.replays >= 3 ? ' awakened' : ''}${a.saved ? ' kept' : ''}`}
+                style={{ '--tilt': `${((i * 7) % 9) - 4}deg`, '--glow': (c / 100).toFixed(2) } as CSSProperties}
+                onClick={() => setSelected(r)}
+              >
+                <span className="scrap-tape" aria-hidden="true" />
+                <span className="scrap-anon">ANON · {relicAnonCode(r)}</span>
+                <strong className="scrap-name">{r.name}</strong>
+                <span className="scrap-line">{r.description}</span>
+                <span className="scrap-wave" aria-hidden="true">
+                  {Array.from({ length: 11 }, (_, b) => (
+                    <b key={b} style={{ height: `${18 + ((r.resonance * (b + 2) * 13) % 72)}%` }} />
+                  ))}
+                </span>
+                <span className="scrap-foot">{r.category} · {legend.replays} replays · {ledgerLine(r, a)}</span>
+                {myNotes[r.id] && <span className="sticky sticky--mine sticky--on-scrap">{myNotes[r.id]}</span>}
+                {c < 45 && <span className="scrap-unstable">tape thinning · come back tomorrow</span>}
+              </button>
+              {(relicPostits[r.id] ?? [])[i % 2] && (
+                <span className={`sticky sticky--${['yellow', 'green', 'violet', 'pink'][i % 4]}`} style={{ '--tilt': `${((i * 11) % 11) - 5}deg` } as CSSProperties}>
+                  {(relicPostits[r.id] ?? [])[i % 2]}
+                </span>
+              )}
+              {i % 4 === 1 && (
+                <button
+                  type="button"
+                  className="sticky sticky--live"
+                  style={{ '--tilt': `${((i * 13) % 7) - 3}deg` } as CSSProperties}
+                  onClick={() => { const f = FORMING_RELICS[i % FORMING_RELICS.length]; void playSampleBuffer(f.kind, f.id.charCodeAt(2) * 211, 5000, 0.3); setShelfNote('you heard it before it became a relic'); window.setTimeout(() => setShelfNote(null), 4000) }}
+                >
+                  <i aria-hidden="true" />LIVE · {FORMING_RELICS[i % FORMING_RELICS.length].title}
+                </button>
+              )}
+            </Fragment>
+          )
+        })}
+      </div>
 
-      <LiveTail page="relics" />
-      {RELIC_CATEGORIES.map(shelf => {
-        const shelfRelics = relics.filter(r => r.category === shelf.id)
-        if (shelfRelics.length === 0) return null
-        return (
-          <section key={shelf.id} className="relic-shelf">
-            <div className="relic-shelf-head">
-              <span className="relic-shelf-label">{shelf.id}</span>
-              <span className="relic-shelf-note">{shelf.note}</span>
-            </div>
-            <div className="relics-grid">
-              {shelfRelics.map(r => {
-                const i = relics.indexOf(r)
-                const a = activityOf(r.id)
-                const c = charge[r.id] ?? r.resonance
-                return (
-                  <button
-                    key={r.id}
-                    className={`relic-card glass lp-relic lp-enter${selected?.id === r.id ? ' selected' : ''}${a.replays >= 3 ? ' awakened' : ''}${a.saved ? ' kept' : ''}`}
-                    style={{ '--glow': (c / 100).toFixed(3), '--replay-boost': (Math.min(a.replays, 6) / 6).toFixed(3), '--idx': i } as CSSProperties}
-                    onClick={() => setSelected(r)}
-                  >
-                    <div className={`cassette${relicAudio.current?.id === `relic-${r.id}` && relicAudio.playing ? ' playing' : ''}`} aria-hidden="true">
-                      <span className="cassette-reel" />
-                      <span className="cassette-window" />
-                      <span className="cassette-reel" />
-                    </div>
-                    <div className="relic-name">{r.name}</div>
-                    <div className="relic-postits" aria-hidden="true">
-                      {(relicPostits[r.id] ?? []).slice(0, 2).map((note, ni) => (
-                        <span key={note} className={`postit postit-${ni}`}>{note}</span>
-                      ))}
-                      {myNotes[r.id] && <span className="postit postit-mine">{myNotes[r.id]}</span>}
-                    </div>
-                    <div className="relic-stayquote">“{r.stayQuote}”</div>
-                    <div className="relic-resonance" title="replay heat">{Math.round(c)}%</div>
-                    <div className="relic-ledger">{ledgerLine(r, a)} · {relicLegend(r).replays} replays</div>
-                    {(a.replays > 0 || a.saved) && (
-                      <div className="lp-relic-trace">{a.replays > 0 ? `${a.replays}× replayed` : 'kept'}</div>
-                    )}
-                    {c < 45 && <div className="lp-relic-unstable">unstable · return tomorrow</div>}
-                  </button>
-                )
-              })}
-            </div>
-            <div className="relic-shelf-board" aria-hidden="true" />
-          </section>
-        )
-      })}
       {selected && selectedActivity && (
         <div className={`lp-relic-overlay stage-${stage}`} role="dialog" aria-modal="true" onClick={() => setSelected(null)}>
           <div className="lp-relic-scene glass" onClick={e => e.stopPropagation()}>
@@ -1972,7 +1918,7 @@ function RelicsScreen() {
               <div className="relic-orb" />
             </div>
             <div className="lp-relic-scene-name">{selected.name}</div>
-            <div className="lp-relic-scene-type">{selected.type} · <RarityBadge rarity={selected.rarity} /> · {Math.round(charge[selected.id] ?? selected.resonance)}% charge</div>
+            <div className="lp-relic-scene-type">{selected.type} · ANON {relicAnonCode(selected)} · {Math.round(charge[selected.id] ?? selected.resonance)}% replay heat</div>
             <div className="lp-relic-examined">{lastExaminedBy(selected.id)}</div>
             <div className="relic-postits relic-postits--overlay" aria-hidden="true">
               {(relicPostits[selected.id] ?? []).map((note, ni) => (
