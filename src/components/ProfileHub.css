@@ -1,15 +1,7 @@
 /* ═══ PROFILE HUB — listeners, echoes, vault ═════════════════ */
 .profile-hub {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: 14px;
+  display: block;
   margin-bottom: 24px;
-}
-
-@media (max-width: 720px) {
-  .profile-hub {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 .ph-col {
@@ -313,20 +305,34 @@
   isolation: isolate;
 }
 
+/* the background is the whole page, not just the hub section */
 .ph-gradient-layer {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: -1;
-  opacity: 0.55;
+  z-index: 0;
+  opacity: 0.92;
+  pointer-events: none;
   will-change: background;
 }
 
-/* dark overlay keeps card text readable over any gradient */
+/* lift the pod screen's content above the fixed background layer */
+body[data-eco-page='pod'] .screen {
+  position: relative;
+  z-index: 1;
+}
+
+/* readability scrim: light at the top so the colors actually show,
+   heavier behind the card columns */
 .ph-gradient-layer::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(3, 7, 18, 0.55);
+  background: linear-gradient(180deg, rgba(3, 7, 18, 0.22), rgba(3, 7, 18, 0.5));
+}
+
+/* cards go translucent inside the hub so the background reads through */
+.profile-hub .ph-card.glass {
+  background: rgba(6, 9, 20, 0.55);
 }
 
 /* ═══ IDENTITY CENTERPIECE — the ring that breathes ══════════ */
@@ -822,4 +828,124 @@
   .ph-live-comet { animation: none; opacity: 0; }
   .ph-live-visitor { animation: none; }
   .ph-live-visitor i { animation: none; }
+}
+
+/* ── avatar sigils: no photos, ever ─────────────────────────── */
+.ph-sigil {
+  font-size: 30px;
+  line-height: 1;
+  text-shadow: 0 0 18px currentColor;
+}
+
+.ph-sigil-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+
+.ph-sigil-option {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--sigil-color, #00d4ff);
+  font-size: 20px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.ph-sigil-option small {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: rgba(200, 212, 240, 0.7);
+}
+
+.ph-sigil-option:hover { transform: translateY(-1px); }
+
+.ph-sigil-option.active {
+  border-color: var(--sigil-color, #00d4ff);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--sigil-color, #00d4ff) 45%, transparent);
+}
+
+/* ── the board: masonry tiles you can rearrange ─────────────── */
+.ph-board {
+  columns: 300px 2;
+  column-gap: 14px;
+}
+
+.ph-tile {
+  position: relative;
+  break-inside: avoid;
+  margin-bottom: 14px;
+}
+
+.ph-board-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 4px 0 12px;
+}
+
+.ph-arrange-toggle {
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(200, 212, 240, 0.75);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.ph-arrange-toggle.on {
+  border-color: rgba(0, 212, 255, 0.5);
+  color: #9ae8ff;
+  box-shadow: 0 0 14px rgba(0, 212, 255, 0.2);
+}
+
+.ph-board--arranging .ph-tile {
+  outline: 1px dashed rgba(0, 212, 255, 0.35);
+  outline-offset: 3px;
+  border-radius: 16px;
+  animation: phTileWiggle 2.8s ease-in-out infinite;
+}
+
+.ph-board--arranging .ph-tile:nth-child(2n) { animation-delay: 0.4s; }
+.ph-board--arranging .ph-tile:nth-child(3n) { animation-delay: 0.8s; }
+
+@keyframes phTileWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(0.25deg); }
+  75% { transform: rotate(-0.25deg); }
+}
+
+.ph-tile-handle {
+  position: absolute;
+  top: -9px;
+  right: 10px;
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+}
+
+.ph-tile-handle button {
+  width: 26px;
+  height: 22px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 212, 255, 0.45);
+  background: rgba(4, 10, 24, 0.95);
+  color: #9ae8ff;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.ph-tile-handle button:hover {
+  background: rgba(0, 212, 255, 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-board--arranging .ph-tile { animation: none; }
 }
