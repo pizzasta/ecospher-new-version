@@ -1395,3 +1395,166 @@
     transition: none;
   }
 }
+
+/* ─── On the mic + reaction vibes ────────────────────────────── */
+.eco-mic-strip {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding-bottom: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.eco-mic-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.eco-mic-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+  font-family: monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: rgba(200, 185, 230, 0.55);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+}
+
+.eco-mic-chip--you .eco-mic-tag {
+  color: rgba(var(--room-accent-rgb), 0.9);
+}
+
+.eco-mic-chip--talking {
+  border-color: rgba(var(--room-accent-rgb), 0.55);
+  box-shadow: 0 0 16px rgba(var(--room-accent-rgb), 0.25);
+  color: #fff;
+}
+
+.eco-mic-rings {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 10px;
+}
+
+.eco-mic-rings i {
+  width: 2.5px;
+  border-radius: 2px;
+  background: rgba(200, 185, 230, 0.3);
+  height: 30%;
+}
+
+.eco-mic-chip--talking .eco-mic-rings i {
+  background: rgba(var(--room-accent-rgb), 0.9);
+  animation: eco-mic-bar 0.9s ease-in-out infinite;
+}
+
+.eco-mic-chip--talking .eco-mic-rings i:nth-child(2) { animation-delay: 0.15s; }
+.eco-mic-chip--talking .eco-mic-rings i:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes eco-mic-bar {
+  0%, 100% { height: 30%; }
+  50% { height: 100%; }
+}
+
+.eco-mic-live {
+  font-style: normal;
+  font-size: 0.54rem;
+  letter-spacing: 0.16em;
+  color: rgba(var(--room-accent-rgb), 0.85);
+  animation: eco-dot-pulse 1.6s ease-in-out infinite;
+}
+
+.eco-mic-vibes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  font-size: 0.78rem;
+  min-height: 1.1rem;
+}
+
+.eco-mic-vibe {
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 0 10px rgba(var(--room-accent-rgb), 0.5);
+  animation: eco-vibe-in 0.25s ease-out both;
+}
+
+@keyframes eco-vibe-in {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.eco-vibe-target {
+  text-align: center;
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  color: rgba(190, 175, 225, 0.45);
+}
+
+.eco-vibe-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.7rem;
+  border-radius: 50px;
+  border: 1px solid rgba(var(--room-accent-rgb), 0.3);
+  background: rgba(var(--room-accent-rgb), 0.05);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.eco-vibe-btn em {
+  font-style: normal;
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  color: rgba(200, 185, 230, 0.6);
+  white-space: nowrap;
+}
+
+.eco-vibe-btn:hover {
+  background: rgba(var(--room-accent-rgb), 0.15);
+  box-shadow: 0 0 14px rgba(var(--room-accent-rgb), 0.4);
+}
+
+.eco-vibe-btn:active {
+  transform: scale(0.88);
+}
+
+.eco-reaction-pop--mine {
+  font-size: 1.5rem;
+  text-shadow: 0 0 18px rgba(var(--room-accent-rgb), 0.9);
+}
+
+.eco-card-join {
+  margin-top: 0.55rem;
+  text-align: center;
+  font-size: 0.56rem;
+  letter-spacing: 0.2em;
+  color: rgba(var(--room-accent-rgb), 0.65);
+}
+
+@media (max-width: 640px) {
+  .eco-vibe-btn em { display: none; }
+  .eco-vibe-btn { font-size: 0.9rem; padding: 0.4rem 0.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eco-mic-chip--talking .eco-mic-rings i { animation: none; height: 80%; }
+  .eco-mic-live,
+  .eco-mic-vibe { animation: none; }
+}

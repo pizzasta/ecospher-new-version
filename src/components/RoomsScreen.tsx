@@ -66,6 +66,12 @@ interface ReactionPop {
   id: number
   glyph: string
   left: number
+  mine: boolean
+}
+
+interface VibeDef {
+  glyph: string
+  label: string
 }
 
 interface SignalNode {
@@ -240,7 +246,16 @@ const STATE_GLYPH: Record<RoomStateName, string> = {
 }
 
 
-const REACTION_GLYPHS = ['∿', '✦', '◌', '⋯', '◑']
+// reaction vibes: aimed at whoever's on the mic when someone is talking,
+// otherwise they just land on the room
+const VIBES: VibeDef[] = [
+  { glyph: '❤️', label: 'felt that' },
+  { glyph: '🔥', label: 'go off' },
+  { glyph: '😭', label: 'too real' },
+  { glyph: '💀', label: "i'm dead" },
+  { glyph: '👏', label: 'say it' },
+  { glyph: '✨', label: 'needed this' },
+]
 
 const NODE_FRAGMENTS = [
   'someone said the real thing here',
@@ -550,6 +565,7 @@ function RoomCard({ room, index, tick, onEnter }: { room: RoomDef; index: number
           {speakers === 0 ? 'nobody talking yet' : `${speakers} talking`}
         </span>
       </footer>
+      <div className="eco-card-join">tap to join · leave whenever</div>
     </article>
   )
 }
@@ -583,6 +599,11 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
   const [recElapsed, setRecElapsed] = useState(0)
   const recElapsedRef = useRef(0)
   const [touchedNode, setTouchedNode] = useState<number | null>(null)
+  const [talkerTag, setTalkerTag] = useState<string | null>(null)
+  const [liveVibes, setLiveVibes] = useState<Record<string, number>>({})
+  const talkerRef = useRef<string | null>(null)
+  const youVibesRef = useRef<Record<string, number>>({})
+  talkerRef.current = talkerTag
 
   const shellRef = useRef<HTMLDivElement>(null)
   const idRef = useRef(0)
@@ -644,6 +665,64 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
       })),
     [room.id] // eslint-disable-line react-hooks/exhaustive-deps
   )
+
+  const spawnVibePop = useCallback((glyph: string, mine: boolean) => {
+    const id = ++idRef.current
+    setPops(prev => [...prev.slice(-11), { id, glyph, left: 12 + Math.random() * 76, mine }])
+    window.setTimeout(() => setPops(prev => prev.filter(p => p.id !== id)), 1700)
+  }, [])
+
+  const addVibeTally = useCallback((glyph: string) => {
+    setLiveVibes(prev => ({ ...prev, [glyph]: (prev[glyph] ?? 0) + 1 }))
+    if (talkerRef.current === 'you') {
+      youVibesRef.current[glyph] = (youVibesRef.current[glyph] ?? 0) + 1
+    }
+  }, [])
+
+  // someone is usually on the mic: a carrier talks for a stretch, goes
+  // quiet, someone else picks it up. recording puts you on the mic.
+  useEffect(() => {
+    if (recStatus === 'recording') {
+      setTalkerTag('you')
+      return () => setTalkerTag(null)
+    }
+    let alive = true
+    let timer = 0
+    const tags = carriers.slice(0, 3).map(c => c.tag)
+    const goQuiet = () => {
+      if (!alive) return
+      setTalkerTag(null)
+      timer = window.setTimeout(speak, 1800 + Math.random() * 4200)
+    }
+    const speak = () => {
+      if (!alive) return
+      setTalkerTag(tags[Math.floor(Math.random() * tags.length)])
+      timer = window.setTimeout(goQuiet, 4500 + Math.random() * 6500)
+    }
+    timer = window.setTimeout(speak, 1200 + Math.random() * 2400)
+    return () => {
+      alive = false
+      window.clearTimeout(timer)
+    }
+  }, [recStatus, room.id, carriers])
+
+  // vibes belong to whoever's talking — tallies reset when the mic changes hands
+  useEffect(() => {
+    setLiveVibes({})
+  }, [talkerTag])
+
+  // the room reacts while someone (including you) is talking
+  useEffect(() => {
+    if (!talkerTag) return
+    const t = window.setInterval(() => {
+      if (Math.random() < 0.55) {
+        const v = VIBES[Math.floor(Math.random() * VIBES.length)]
+        spawnVibePop(v.glyph, false)
+        addVibeTally(v.glyph)
+      }
+    }, 2600)
+    return () => window.clearInterval(t)
+  }, [talkerTag, spawnVibePop, addVibeTally])
 
   // tune the drone to this room when it mounts (layered audio per room id)
   useEffect(() => {
@@ -762,10 +841,9 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
     bumpEnergy(5)
   }
 
-  const handleReaction = (glyph: string) => {
-    const id = ++idRef.current
-    setPops(prev => [...prev.slice(-9), { id, glyph, left: 12 + Math.random() * 76 }])
-    window.setTimeout(() => setPops(prev => prev.filter(p => p.id !== id)), 1700)
+  const handleVibe = (vibe: VibeDef) => {
+    spawnVibePop(vibe.glyph, true)
+    if (talkerRef.current) addVibeTally(vibe.glyph)
     bumpEnergy(7)
   }
 
@@ -839,12 +917,17 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
         streamRef.current = null
         recordingSession.setRecordingActive(false)
         spawnWhisper('a new fragment settles into the room', false)
+        const gotVibes = Object.entries(youVibesRef.current)
+        if (gotVibes.length > 0) {
+          showNotice(`while you talked: ${gotVibes.map(([g, c]) => (c > 1 ? `${g} ×${c}` : g)).join('  ')}`)
+        }
         bumpEnergy(10)
       }
       recorderRef.current = rec
       rec.start()
       recElapsedRef.current = 0
       setRecElapsed(0)
+      youVibesRef.current = {}
       setRecStatus('recording')
       recordingSession.setRecordingActive(true)
     } catch {
@@ -925,7 +1008,7 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
       {/* reaction pops */}
       <div className="eco-pop-field" aria-hidden="true">
         {pops.map(p => (
-          <span key={p.id} className="eco-reaction-pop" style={{ left: `${p.left}%` }}>
+          <span key={p.id} className={`eco-reaction-pop${p.mine ? ' eco-reaction-pop--mine' : ''}`} style={{ left: `${p.left}%` }}>
             {p.glyph}
           </span>
         ))}
@@ -969,6 +1052,32 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
           </div>
           <span className="eco-meter-num">{energy}%</span>
         </div>
+      </div>
+
+      {/* on the mic: live talkers + vibes aimed at them */}
+      <div className="eco-mic-strip">
+        <span className="eco-section-label">on the mic</span>
+        <div className="eco-mic-row">
+          {carriers.slice(0, 3).map(c => (
+            <div key={c.id} className={`eco-mic-chip${talkerTag === c.tag ? ' eco-mic-chip--talking' : ''}`}>
+              <span className="eco-mic-rings" aria-hidden="true"><i /><i /><i /></span>
+              <span className="eco-mic-tag">{c.tag}</span>
+              {talkerTag === c.tag && <em className="eco-mic-live">talking…</em>}
+            </div>
+          ))}
+          <div className={`eco-mic-chip eco-mic-chip--you${talkerTag === 'you' ? ' eco-mic-chip--talking' : ''}`}>
+            <span className="eco-mic-rings" aria-hidden="true"><i /><i /><i /></span>
+            <span className="eco-mic-tag">you</span>
+            {talkerTag === 'you' && <em className="eco-mic-live">talking…</em>}
+          </div>
+        </div>
+        {talkerTag && Object.keys(liveVibes).length > 0 && (
+          <div className="eco-mic-vibes" aria-live="polite">
+            {Object.entries(liveVibes).map(([g, c]) => (
+              <span key={g} className="eco-mic-vibe">{g}{c > 1 ? ` ×${c}` : ''}</span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* active carriers */}
@@ -1024,12 +1133,22 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
 
       {/* interaction dock */}
       <div className="eco-room-dock">
+        <div className="eco-vibe-target" aria-live="polite">
+          {talkerTag === 'you'
+            ? "you're on the mic — the room is reacting"
+            : talkerTag
+              ? `${talkerTag} is talking — send a vibe`
+              : 'nobody on the mic — vibe at the room'}
+        </div>
         <div className="eco-dock-row eco-dock-row--reactions">
-          {REACTION_GLYPHS.map(g => (
-            <button key={g} type="button" className="eco-reaction-btn" onClick={() => handleReaction(g)}>
-              {g}
+          {VIBES.map(v => (
+            <button key={v.glyph} type="button" className="eco-vibe-btn" onClick={() => handleVibe(v)} title={v.label}>
+              <span aria-hidden="true">{v.glyph}</span>
+              <em>{v.label}</em>
             </button>
           ))}
+        </div>
+        <div className="eco-dock-row">
           <button
             type="button"
             className={`eco-record-btn ${recStatus === 'recording' ? 'eco-record-btn--live' : ''}`}
