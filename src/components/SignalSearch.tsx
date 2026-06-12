@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { buildSearchIndex, discoverySuggestions, searchSignals } from '../lib/searchIndex'
 import type { DiscoveryRow, SearchEntry } from '../lib/searchIndex'
 import { playSampleBuffer, stopPreviewBuffer } from '../lib/sampleAudio'
 import { dueReturns, removeReturn, waitingReturns } from '../lib/returnQueue'
+import { semanticSearch } from '../lib/semanticSearch'
+import type { SemanticResult } from '../lib/semanticSearch'
 import type { ReturnMark } from '../lib/returnQueue'
 import './SignalSearch.css'
 
@@ -38,7 +40,24 @@ export default function SignalSearch({ onNavigate }: { onNavigate: (page: string
     setReturnsDue(dueReturns())
     setReturnsWaiting(waitingReturns())
   }, [open])
-  const rows: Array<SearchEntry & { reason?: string }> = query.trim() ? results : discovery
+  // semantic layer: what FEELS like the query (vector search, when wired)
+  const [semanticRows, setSemanticRows] = useState<SemanticResult[]>([])
+  useEffect(() => {
+    if (!open || query.trim().length < 3) { setSemanticRows([]); return }
+    let cancelled = false
+    const t = window.setTimeout(() => {
+      void semanticSearch(query).then(found => {
+        if (!cancelled) setSemanticRows(found)
+      })
+    }, 320)
+    return () => { cancelled = true; window.clearTimeout(t) }
+  }, [open, query])
+
+  const keywordIds = new Set(results.map(r => r.id.replace(/^sem-/, '')))
+  const semanticExtra = semanticRows.filter(r => !keywordIds.has(r.id.replace(/^sem-/, ''))).slice(0, 4)
+  const rows: Array<SearchEntry & { reason?: string }> = query.trim()
+    ? [...results, ...semanticExtra.map(r => ({ ...r, reason: `felt like “${query.trim()}”` }))]
+    : discovery
 
   // global openers: ⌘K / Ctrl+K and the ecosphere:search event
   useEffect(() => {
@@ -163,8 +182,11 @@ export default function SignalSearch({ onNavigate }: { onNavigate: (page: string
           )}
           {!query.trim() && rows.length > 0 && <span className="sig-search-section">tonight, for you</span>}
           {rows.map((row, i) => (
+            <Fragment key={row.id}>
+            {query.trim() && semanticExtra.length > 0 && i === results.length && (
+              <span className="sig-search-section sig-search-section--felt">felt like this</span>
+            )}
             <button
-              key={row.id}
               type="button"
               className={`sig-result${i === cursor ? ' active' : ''}`}
               onMouseEnter={() => { setCursor(i); previewRow(row) }}
@@ -178,6 +200,7 @@ export default function SignalSearch({ onNavigate }: { onNavigate: (page: string
               </span>
               <span className="sig-result-page">{PAGE_LABEL[row.page] ?? row.page}</span>
             </button>
+            </Fragment>
           ))}
           {query.trim() && rows.length === 0 && (
             <p className="sig-search-empty">nothing on that frequency. try a feeling — "quiet", "unresolved", "driving at night".</p>
