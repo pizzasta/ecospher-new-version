@@ -732,3 +732,20 @@
   letter-spacing: 0.08em;
   cursor: pointer;
 }
+
+/* ── private profile state (Settings → private profile) ───────── */
+.ph-private-chip {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto 14px;
+  width: fit-content;
+  max-width: 92%;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px dashed rgba(255, 45, 120, 0.45);
+  background: rgba(255, 45, 120, 0.08);
+  color: rgba(255, 200, 222, 0.9);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-align: center;
+}

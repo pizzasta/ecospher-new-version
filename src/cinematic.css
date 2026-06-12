@@ -622,8 +622,21 @@ body[data-eco-night='on'] .atmosphere {
   filter: brightness(calc((0.92 + var(--eco-resonance, 0.42) * 0.3) * 0.72)) saturate(0.85);
 }
 
+/* the flip has to be unmistakable: a full-screen dim wash above content
+   (z 400) but below dialogs (tour 420, help 430) — taps pass through */
+body[data-eco-night='on']::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 130% 90% at 50% 0%, rgba(10, 4, 26, 0.22), transparent 62%),
+    rgba(5, 2, 14, 0.3);
+}
+
 body[data-eco-night='on'] .crt-vignette {
-  opacity: 1.4;
+  background: radial-gradient(ellipse 100% 100% at 50% 50%, transparent 44%, rgba(0, 0, 0, 0.78) 100%);
 }
 
 .cinematic-depth {

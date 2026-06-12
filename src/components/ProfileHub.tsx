@@ -8,6 +8,7 @@ import type { StoredRecording } from '../lib/localAudioStore'
 import { getListenCounts, getProfile } from '../lib'
 import { isSupabaseConfigured } from '../lib/supabase-env'
 import { getHzProfile, getLocalHzProfile } from '../lib/hzSignature'
+import { useEcoPref } from '../hooks/useEcoPrefs'
 import type { HzProfile } from '../lib/hzSignature'
 import AudioPlayer from './AudioPlayer'
 import AudioRecorder from './AudioRecorder'
@@ -52,6 +53,7 @@ export function readTunedTo(): string[] {
 export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: string) => void }) {
   const { ecosystemState } = useEcosystemState()
   const globalAudio = useGlobalAudio()
+  const privateProfile = useEcoPref('privateProfile', false)
 
   // ── header data ──
   const username = ecosystemState.userSignalIdentity ?? 'unclaimed frequency'
@@ -203,6 +205,11 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
 
   return (
     <section className="profile-hub" aria-label="Profile hub">
+      {privateProfile && (
+        <div className="ph-private-chip">
+          ⬡ hidden from the band — only you can see this page right now
+        </div>
+      )}
       <div
         className="ph-gradient-layer"
         aria-hidden="true"
