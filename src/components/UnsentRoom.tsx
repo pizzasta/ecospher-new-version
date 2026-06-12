@@ -10,6 +10,7 @@ import EcosphereVRPanel from './EcosphereVRPanel';
 import PassingThoughts from './PassingThoughts';
 import ListenerTraces from './ListenerTraces';
 import { useRecordingSession } from '../hooks/useRecordingSession';
+import { currentPrompt } from '../lib/weeklyPrompt';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -661,6 +662,7 @@ const soundEngine = new AtmosphericSound();
 
 export const UnsentRoom: React.FC = () => {
   const globalAudio = useGlobalAudio();
+  const weeklyPrompt = currentPrompt();
   const recordingSession = useRecordingSession();
   const { archiveEntry, saveToLibrary } = useEcosystemState();
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
@@ -1046,6 +1048,13 @@ export const UnsentRoom: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* Prompt of the week: posed on socials, answered only here */}
+      <div className="ur-weekly-prompt" role="note" aria-label="Prompt of the week">
+        <span className="ur-weekly-kicker">PROMPT OF THE WEEK</span>
+        <p className="ur-weekly-text">{weeklyPrompt.text}</p>
+        <span className="ur-weekly-meta">answer it below · resets in {weeklyPrompt.daysLeft}d · #UnsentSignals</span>
+      </div>
 
       {/* Recording section */}
       <section className="ur-recording-section" aria-label="Recording interface">

@@ -1199,3 +1199,37 @@
     animation: none;
   }
 }
+
+/* ═══ PROMPT OF THE WEEK — the funnel from outside ═══════════ */
+.ur-weekly-prompt {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 45, 120, 0.3);
+  background: linear-gradient(135deg, rgba(255, 45, 120, 0.08), rgba(155, 93, 229, 0.04));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ur-weekly-kicker {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: var(--pink, #ff2d78);
+}
+
+.ur-weekly-text {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1.45;
+  color: rgba(240, 244, 255, 0.92);
+}
+
+.ur-weekly-meta {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: rgba(140, 155, 195, 0.55);
+}
