@@ -115,6 +115,12 @@ type Relic = {
   rarity: 'common' | 'rare' | 'unstable' | 'mythic' | 'forbidden'
   resonance: number
   description: string
+  /** emotional shelf this relic lives on */
+  category: string
+  /** the one-line answer to 'why did this become a relic' */
+  whyRelic: string
+  /** what a listener said about staying */
+  stayQuote: string
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -144,17 +150,19 @@ const deadZones: DeadZone[] = [
   { id: 'z6', name: 'Wrong Person', corruption: 47, status: 'recoverable', description: 'sent it to the wrong chat. it was meant for you anyway.', lastSignal: 'deleted 12 seconds after sending' },
 ]
 
+// a relic is a signal the network refused to forget — replayed, revisited,
+// reacted to until deleting it stopped being an option
 const relics: Relic[] = [
-  { id: 'rl1', name: 'Echo Veil', type: 'Echo Fragment', rarity: 'mythic', resonance: 94, description: 'a 40-second recording where a second voice hums along underneath. nobody has ever placed it.' },
-  { id: 'rl2', name: 'Pulse Crystal VII', type: 'Pulse Crystal', rarity: 'rare', resonance: 82, description: "someone's heartbeat, taped through a coat pocket on a night bus. still keeps time." },
-  { id: 'rl3', name: 'Lost Carrier', type: 'Lost Transmission', rarity: 'forbidden', resonance: 67, description: 'a sealed voicemail that says one name, three times. the number was never registered.' },
-  { id: 'rl4', name: 'Static Bloom', type: 'Static Bloom', rarity: 'unstable', resonance: 89, description: 'radio static that turns into a tune if you stop trying to hear it.' },
-  { id: 'rl5', name: 'Violet Memory Shard', type: 'Memory Shard', rarity: 'unstable', resonance: 58, description: 'half a confession, cut off exactly where it was about to matter.' },
-  { id: 'rl6', name: 'Answering Machine, 1999', type: 'Lost Transmission', rarity: 'rare', resonance: 74, description: 'eleven saved messages from the same person, each one a little kinder than the last.' },
-  { id: 'rl7', name: 'The Hold Music', type: 'Echo Fragment', rarity: 'unstable', resonance: 63, description: 'forty minutes of hold music with one cough at minute 22. people replay the cough.' },
-  { id: 'rl8', name: 'Wind Through a Screen Door', type: 'Field Recording', rarity: 'rare', resonance: 71, description: "someone's whole summer, recorded by accident while the phone sat on a porch table." },
-  { id: 'rl9', name: 'Last Bus Announcement', type: 'Field Recording', rarity: 'mythic', resonance: 88, description: 'the final stop being called on a route that was cancelled the next morning.' },
-  { id: 'rl10', name: 'Sealed Birthday Tape', type: 'Memory Shard', rarity: 'forbidden', resonance: 79, description: 'a tape labeled "for when you\'re 30" that nobody ever came back for.' },
+  { id: 'rl1', name: 'Echo Veil', type: 'Echo Fragment', rarity: 'mythic', resonance: 94, category: 'background comfort', description: 'a 40-second recording where a second voice hums along underneath. nobody has ever placed it.', whyRelic: 'people kept leaving it on while doing other things. it never got turned off.', stayQuote: 'i stayed through the whole thing.' },
+  { id: 'rl2', name: 'Pulse Crystal VII', type: 'Pulse Crystal', rarity: 'rare', resonance: 82, category: 'insomnia', description: "someone's heartbeat, taped through a coat pocket on a night bus. still keeps time.", whyRelic: 'insomniacs sync their breathing to it. replay counts spike between 2 and 4am.', stayQuote: 'this is the only thing that slows me down.' },
+  { id: 'rl3', name: 'Lost Carrier', type: 'Lost Transmission', rarity: 'forbidden', resonance: 67, category: 'deleted too late', description: 'a sealed voicemail that says one name, three times. the number was never registered.', whyRelic: 'it was deleted twice. both times, someone had already saved a copy.', stayQuote: 'the ending sounded real.' },
+  { id: 'rl4', name: 'Static Bloom', type: 'Static Bloom', rarity: 'unstable', resonance: 89, category: 'background comfort', description: 'radio static that turns into a tune if you stop trying to hear it.', whyRelic: 'nobody can explain it, so everybody replays it to check.', stayQuote: 'i heard it on the third listen and yelled.' },
+  { id: 'rl5', name: 'Violet Memory Shard', type: 'Memory Shard', rarity: 'unstable', resonance: 58, category: 'unfinished thought', description: 'half a confession, cut off exactly where it was about to matter.', whyRelic: 'everyone replays the same ten seconds, waiting for the sentence to finish.', stayQuote: 'this one hurt more in silence.' },
+  { id: 'rl6', name: 'Answering Machine, 1999', type: 'Lost Transmission', rarity: 'rare', resonance: 74, category: 'heartbreak', description: 'eleven saved messages from the same person, each one a little kinder than the last.', whyRelic: 'people listen to all eleven in order. nobody skips.', stayQuote: 'message 7 broke me.' },
+  { id: 'rl7', name: 'The Hold Music', type: 'Echo Fragment', rarity: 'unstable', resonance: 63, category: 'background comfort', description: 'forty minutes of hold music with one cough at minute 22. people replay the cough.', whyRelic: 'a replay chain formed around minute 22 and never dissolved.', stayQuote: 'i waited the whole 40 minutes. worth it.' },
+  { id: 'rl8', name: 'Wind Through a Screen Door', type: 'Field Recording', rarity: 'rare', resonance: 71, category: 'background comfort', description: "someone's whole summer, recorded by accident while the phone sat on a porch table.", whyRelic: 'listeners stay an average of 31 minutes. nothing happens. that\'s why.', stayQuote: 'this is what i miss and i was never there.' },
+  { id: 'rl9', name: 'Last Bus Announcement', type: 'Field Recording', rarity: 'mythic', resonance: 88, category: 'late night driving', description: 'the final stop being called on a route that was cancelled the next morning.', whyRelic: 'people who rode that route found it. then people who didn\'t.', stayQuote: 'i replayed this before getting out of the car.' },
+  { id: 'rl10', name: 'Sealed Birthday Tape', type: 'Memory Shard', rarity: 'forbidden', resonance: 79, category: 'almost sent', description: 'a tape labeled "for when you\'re 30" that nobody ever came back for.', whyRelic: 'nobody has ever heard it. it became a relic unopened.', stayQuote: 'i think about whoever it was for constantly.' },
 ]
 
 const navItems: { id: Screen; label: string; glyph: string }[] = [
@@ -1450,12 +1458,66 @@ const relicPostits: Record<string, string[]> = {
   rl10: ['DO NOT open this one', 'i think about whoever it was for constantly'],
 }
 
-// shelves: the vault is organized by how dangerous the rarity is
-const RELIC_SHELVES: Array<{ rarity: Relic['rarity']; label: string; note: string }> = [
-  { rarity: 'mythic', label: 'top shelf', note: 'handled with the lights off' },
-  { rarity: 'forbidden', label: 'the locked case', note: 'the archive sealed these twice' },
-  { rarity: 'rare', label: 'middle shelf', note: 'signed out most often' },
-  { rarity: 'unstable', label: 'the workbench', note: 'still being repaired' },
+// the archive is shelved by feeling, not by rarity
+const RELIC_CATEGORIES: Array<{ id: string; note: string }> = [
+  { id: 'heartbreak', note: 'the ones that hurt more in silence' },
+  { id: 'insomnia', note: 'played on repeat between 2 and 4am' },
+  { id: 'almost sent', note: 'recorded for someone who never heard it' },
+  { id: 'late night driving', note: 'for empty roads and last stops' },
+  { id: 'unfinished thought', note: 'cut off before the point' },
+  { id: 'deleted too late', note: 'someone had already saved a copy' },
+  { id: 'background comfort', note: 'left on while life happens' },
+]
+
+// trace the relic: where it spread, deterministic per relic
+const TRACE_ROOMS = ["Can't Sleep", '3am Thoughts', 'Missing Someone', 'Background Voices', 'Burned Out', 'Late Night Driving', 'Comfort Room', 'Overthinking Everything']
+const TRACE_SPIKES = ['1:12am', '2:47am', '3:33am', '12:58am', '4:05am']
+
+function relicTrace(r: Relic) {
+  const seed = r.id.charCodeAt(2) * 53 + r.resonance
+  const rooms = Array.from(new Set([0, 1, 2].map(i => TRACE_ROOMS[(seed * (i + 3) + i * 7) % TRACE_ROOMS.length])))
+  return {
+    rooms,
+    spike: TRACE_SPIKES[seed % TRACE_SPIKES.length],
+    chainLength: 4 + (seed % 9),
+    returned: 2 + (seed % 5),
+  }
+}
+
+// deterministic display stats: a relic carries its own legend
+function relicLegend(r: Relic) {
+  const seed = r.id.charCodeAt(2) * 97 + r.resonance * 3
+  return {
+    replays: `${(3 + (seed % 19)) + ((seed % 10) / 10)}k`,
+    stayRate: 78 + (seed % 19),
+    peak: TRACE_SPIKES[seed % TRACE_SPIKES.length],
+    reactions: [
+      { tag: 'felt that', n: 120 + (seed % 700) },
+      { tag: 'same', n: 80 + (seed % 400) },
+      { tag: 'late', n: 40 + (seed % 200) },
+      { tag: 'replayed', n: 200 + (seed % 900) },
+    ],
+  }
+}
+
+// live archive activity: the page never goes quiet
+const RELIC_LIVE_EVENTS = [
+  'replay storm forming over The Hold Music',
+  "resurfaced in Can't Sleep two minutes ago",
+  'archived 211 times tonight',
+  'a replay chain is spreading from minute 22',
+  'listeners returning after 3 days away',
+  'someone replayed the same relic 9 times in a row',
+  'reaction cluster growing on Answering Machine, 1999',
+  'someone stayed 31 minutes inside Wind Through a Screen Door',
+]
+
+// relics of tonight: signals currently becoming unforgettable
+const FORMING_RELICS = [
+  { id: 'fr1', title: 'a voicemail that starts with a long breath', heat: 'replay count climbing · 312 in the last hour', kind: 'voice' as const },
+  { id: 'fr2', title: 'two people saying goodnight four different ways', heat: 'listeners staying unusually long', kind: 'whisper' as const },
+  { id: 'fr3', title: 'a laugh that turns into the other thing', heat: 'replay chain detected · spreading', kind: 'static' as const },
+  { id: 'fr4', title: 'the quiet after "anyway—"', heat: 'reactions surging · mostly "same"', kind: 'tone' as const },
 ]
 
 const RELIC_EVENTS = [
@@ -1503,24 +1565,41 @@ function RelicsScreen() {
     return `handled ${count}× · last held ${a.replays > 0 ? 'by you' : when}`
   }
 
-  // today's featured artifact + what you handled last
-  const loanRelic = relics[dayOfYear() % relics.length]
-  const lastHandled = useMemo(() => {
-    const entries = Object.entries(store).filter(([, a]) => a.replays > 0)
-    if (entries.length === 0) return null
-    const [id, activity] = entries[entries.length - 1]
-    const relic = relics.find(r => r.id === id)
-    return relic ? { name: relic.name, replays: activity.replays } : null
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // tonight's hero relic — the one the whole archive is gathered around
+  const heroRelic = relics[dayOfYear() % relics.length]
+  const heroLegend = relicLegend(heroRelic)
+  const [storming, setStorming] = useState(false)
 
-  const handleLoanRelic = () => {
-    void playSample(relicAudio, { id: `loan-${loanRelic.id}`, label: `from the shelf · ${loanRelic.name}`, source: 'relics' }, 'static', loanRelic.resonance * 7, 6000)
-    setStore(prev => ({ ...prev, [loanRelic.id]: { ...(prev[loanRelic.id] ?? { replays: 0, reactions: {}, saved: false }), replays: (prev[loanRelic.id]?.replays ?? 0) + 1 } }))
-    unlockEcosystemRelic(loanRelic.id, loanRelic.name)
-    setShelfNote(`${loanRelic.name} is warm in your hands`)
+  const playHero = () => {
+    void playSample(relicAudio, { id: `loan-${heroRelic.id}`, label: `relic · ${heroRelic.name}`, source: 'relics' }, 'static', heroRelic.resonance * 7, 6000)
+    setStore(prev => ({ ...prev, [heroRelic.id]: { ...(prev[heroRelic.id] ?? { replays: 0, reactions: {}, saved: false }), replays: (prev[heroRelic.id]?.replays ?? 0) + 1 } }))
+    unlockEcosystemRelic(heroRelic.id, heroRelic.name)
+  }
+
+  const enterReplayStorm = () => {
+    playHero()
+    setStorming(true)
+    setShelfNote('you joined the replay storm — everyone is on the same ten seconds')
+    window.setTimeout(() => setStorming(false), 9000)
     window.setTimeout(() => setShelfNote(null), 5000)
   }
+
+  // live archive activity drifting across the page
+  const [liveEvent, setLiveEvent] = useState<string | null>(null)
+  useEffect(() => {
+    let n = Math.floor(Math.random() * RELIC_LIVE_EVENTS.length)
+    const show = () => {
+      setLiveEvent(RELIC_LIVE_EVENTS[n % RELIC_LIVE_EVENTS.length])
+      n += 1
+      window.setTimeout(() => setLiveEvent(null), 7000)
+    }
+    show()
+    const t = window.setInterval(show, 16000)
+    return () => window.clearInterval(t)
+  }, [])
+
+  // trace view inside the examine overlay
+  const [tracing, setTracing] = useState(false)
 
   // returning on a new day re-stabilizes the shelf — a reason to come back tomorrow
   useEffect(() => {
@@ -1553,7 +1632,7 @@ function RelicsScreen() {
 
   // cinematic layered reveal: glow → waveform → fragments
   useEffect(() => {
-    if (!selected) { setStage(0); return }
+    if (!selected) { setStage(0); setTracing(false); return }
     setStage(1)
     const t1 = window.setTimeout(() => setStage(2), 800)
     const t2 = window.setTimeout(() => setStage(3), 1700)
@@ -1588,37 +1667,94 @@ function RelicsScreen() {
       <div className="screen-header">
         <div className="screen-kicker">SIGNAL RELICS</div>
         <h2 className="screen-title">Relics</h2>
-        <p className="screen-sub">the tapes the network refused to delete. handle them — they wear, they remember who held them.</p>
+        <p className="screen-sub">a relic is a signal the network refused to forget — replayed and revisited until deleting it stopped being an option. handle them. they wear, and they remember who held them.</p>
       </div>
       <AmbientLine lines={useMemo(() => [...RELIC_EVENTS, ...livedInLines('relics', 3)], [])} />
       {shelfNote && <div className="lp-drift-ping" key={shelfNote}>{shelfNote}</div>}
 
-      {/* left out on the shelf: today's featured artifact — a daily reason to handle something */}
-      <div className="relic-loan glass">
-        <div className="relic-loan-head">
-          <span className="relic-loan-kicker">LEFT OUT ON THE SHELF</span>
-          <span className="relic-loan-why">most handled this night cycle</span>
+      {liveEvent && (
+        <div className="relic-live-event" key={liveEvent} role="status">
+          <i aria-hidden="true" />
+          {liveEvent}
         </div>
-        <div className="relic-loan-row">
-          <div className="relic-loan-info">
-            <strong>{loanRelic.name}</strong>
-            <span>{loanRelic.type} · resonance {Math.round(charge[loanRelic.id] ?? loanRelic.resonance)}%</span>
+      )}
+
+      {/* the hero relic: tonight the whole archive gathers around one tape */}
+      <section className={`relic-hero${storming ? ' relic-hero--storm' : ''}`} aria-label="Tonight's relic">
+        <div className="relic-hero-atmo" aria-hidden="true"><span /><span /><span /></div>
+        <div className="relic-hero-kicker">TONIGHT THE ARCHIVE IS GATHERED AROUND</div>
+        <div className={`relic-hero-tape${relicAudio.current?.id === `loan-${heroRelic.id}` && relicAudio.playing ? ' playing' : ''}`} aria-hidden="true">
+          <span className="rht-reel rht-reel-a"><i /></span>
+          <span className="rht-window">
+            {Array.from({ length: 13 }, (_, b) => (
+              <b key={b} style={{ '--rht-h': `${22 + ((heroRelic.resonance * (b + 3) * 11) % 66)}%`, '--rht-d': `${(b % 6) * 0.12}s` } as CSSProperties} />
+            ))}
+          </span>
+          <span className="rht-reel rht-reel-b"><i /></span>
+          <span className="rht-shimmer" />
+        </div>
+        <h3 className="relic-hero-title">{heroRelic.name}</h3>
+        <p className="relic-hero-quote">“{heroRelic.stayQuote}”</p>
+        <div className="relic-hero-stats">
+          <span><strong>{heroLegend.replays}</strong> replays</span>
+          <span><strong>{heroLegend.stayRate}%</strong> stayed until the end</span>
+          <span>most replayed at <strong>{heroLegend.peak}</strong></span>
+        </div>
+        <p className="relic-hero-why">{heroRelic.whyRelic}</p>
+        <div className="relic-hero-reactions" aria-label="reactions">
+          {heroLegend.reactions.map(rx => (
+            <span key={rx.tag} className="relic-hero-rx">{rx.tag} · {rx.n}</span>
+          ))}
+        </div>
+        <div className="relic-hero-comments" aria-hidden="true">
+          {(relicPostits[heroRelic.id] ?? []).map((note, ni) => (
+            <em key={note} className={`rh-comment rh-comment-${ni}`}>{note}</em>
+          ))}
+        </div>
+        <div className="relic-hero-actions">
+          <button type="button" className="rh-btn rh-btn--play" onClick={playHero}>▶ replay relic</button>
+          <button type="button" className="rh-btn" onClick={() => { saveToLibrary('relic', heroRelic.id, heroRelic.name); setShelfNote('fragment saved to your pod'); window.setTimeout(() => setShelfNote(null), 4000) }}>✧ save fragment</button>
+          <button type="button" className="rh-btn" onClick={() => { setSelected(heroRelic); setTracing(true) }}>⌖ trace listeners</button>
+          <button type="button" className="rh-btn rh-btn--storm" onClick={enterReplayStorm}>◉ enter replay storm</button>
+        </div>
+        {storming && (
+          <div className="relic-storm" aria-hidden="true">
+            <span /><span /><span /><span /><span />
           </div>
-          <button type="button" onClick={handleLoanRelic}>▶ handle it</button>
-        </div>
-        {lastHandled && (
-          <p className="relic-loan-memory">you left {lastHandled.name} out last time · {lastHandled.replays} replay{lastHandled.replays === 1 ? '' : 's'} on the counter</p>
         )}
-      </div>
+      </section>
+
+      {/* relics of tonight: signals currently becoming unforgettable */}
+      <section className="relic-tonight" aria-label="Relics forming tonight">
+        <div className="relic-shelf-head">
+          <span className="relic-shelf-label">RELICS OF TONIGHT</span>
+          <span className="relic-shelf-note">becoming unforgettable right now — not relics yet</span>
+        </div>
+        <div className="relic-tonight-row">
+          {FORMING_RELICS.slice(dayOfYear() % 2, (dayOfYear() % 2) + 3).map((forming, i) => (
+            <button
+              key={forming.id}
+              type="button"
+              className="relic-forming"
+              style={{ '--form-idx': i } as CSSProperties}
+              onClick={() => { void playSampleBuffer(forming.kind, forming.id.charCodeAt(2) * 211, 5000, 0.3); setShelfNote('you heard it before it became a relic'); window.setTimeout(() => setShelfNote(null), 4000) }}
+            >
+              <span className="relic-forming-pulse" aria-hidden="true" />
+              <strong>{forming.title}</strong>
+              <em>{forming.heat}</em>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <LiveTail page="relics" />
-      {RELIC_SHELVES.map(shelf => {
-        const shelfRelics = relics.filter(r => r.rarity === shelf.rarity)
+      {RELIC_CATEGORIES.map(shelf => {
+        const shelfRelics = relics.filter(r => r.category === shelf.id)
         if (shelfRelics.length === 0) return null
         return (
-          <section key={shelf.rarity} className={`relic-shelf relic-shelf--${shelf.rarity}`}>
+          <section key={shelf.id} className="relic-shelf">
             <div className="relic-shelf-head">
-              <span className="relic-shelf-label">{shelf.label}</span>
+              <span className="relic-shelf-label">{shelf.id}</span>
               <span className="relic-shelf-note">{shelf.note}</span>
             </div>
             <div className="relics-grid">
@@ -1645,9 +1781,9 @@ function RelicsScreen() {
                       ))}
                       {myNotes[r.id] && <span className="postit postit-mine">{myNotes[r.id]}</span>}
                     </div>
-                    <RarityBadge rarity={r.rarity} />
-                    <div className="relic-resonance">{Math.round(c)}%</div>
-                    <div className="relic-ledger">{ledgerLine(r, a)}</div>
+                    <div className="relic-stayquote">“{r.stayQuote}”</div>
+                    <div className="relic-resonance" title="replay heat">{Math.round(c)}%</div>
+                    <div className="relic-ledger">{ledgerLine(r, a)} · {relicLegend(r).replays} replays</div>
                     {(a.replays > 0 || a.saved) && (
                       <div className="lp-relic-trace">{a.replays > 0 ? `${a.replays}× replayed` : 'kept'}</div>
                     )}
@@ -1740,6 +1876,34 @@ function RelicsScreen() {
                 </button>
               </div>
             )}
+            {stage >= 3 && (
+              <button type="button" className="relic-trace-toggle" onClick={() => setTracing(t => !t)}>
+                {tracing ? '◌ stop tracing' : '⌖ trace the relic'}
+              </button>
+            )}
+            {stage >= 3 && tracing && (() => {
+              const trace = relicTrace(selected)
+              return (
+                <div className="relic-trace-panel" aria-label="Where this relic spread">
+                  <div className="rt-map" aria-hidden="true">
+                    <svg viewBox="0 0 300 110" preserveAspectRatio="none">
+                      <path className="rt-path" d={`M 18 88 C 70 ${20 + (selected.resonance % 40)}, 150 ${80 - (selected.resonance % 35)}, 282 ${24 + (selected.resonance % 30)}`} />
+                      <circle className="rt-node" cx="18" cy="88" r="3.5" />
+                      <circle className="rt-node rt-node--b" cx={70 + (selected.resonance % 60)} cy={50 + (selected.resonance % 24)} r="3" />
+                      <circle className="rt-node rt-node--c" cx="282" cy={24 + (selected.resonance % 30)} r="3.5" />
+                    </svg>
+                    <span className="rt-orb rt-orb-a" />
+                    <span className="rt-orb rt-orb-b" />
+                  </div>
+                  <ul className="rt-log">
+                    <li>first replayed in <b>{trace.rooms[0]}</b></li>
+                    {trace.rooms[1] && <li>spread to <b>{trace.rooms[1]}</b>{trace.rooms[2] ? <> · then <b>{trace.rooms[2]}</b></> : null}</li>}
+                    <li>replay storm peaked at <b>{trace.spike}</b> · chain of {trace.chainLength}</li>
+                    <li>{trace.returned} listeners came back days later for this exact tape</li>
+                  </ul>
+                </div>
+              )
+            })()}
             {stage >= 3 && (
               <>
                 <div className="relic-wear" aria-label="Handling wear">
