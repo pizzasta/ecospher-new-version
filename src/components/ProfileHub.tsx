@@ -18,11 +18,14 @@ import FrequencyGradientModal from './FrequencyGradientModal'
 import { loadGradientSettings, readGradientSettings, resolveGradientColors } from '../lib/frequencyGradient'
 import type { GradientSettings } from '../lib/frequencyGradient'
 import { useFrequencyGradient } from '../hooks/useFrequencyGradient'
-import { deriveAtmosphere, deriveTraits, memoryLines, tonightLines, topReturns } from '../lib/listeningIdentity'
+import { deriveAtmosphere, deriveTraits, memoryLines, pickTonightAction, tonightLines, topReturns } from '../lib/listeningIdentity'
 import type { IdentityInput } from '../lib/listeningIdentity'
 import { daySeed, grainPositions, visitorGrainCount } from '../lib/visitorStatic'
 import type { Grain } from '../lib/visitorStatic'
 import { readLastVoiceAt, silentDays } from '../lib/weightOfSilence'
+import { recapAvailable } from '../lib/frequencyRecap'
+import { currentDrop } from '../lib/frequencyDrops'
+import { localDayKey } from '../lib/frequencyRecap'
 import './ProfileHub.css'
 
 const BIO_KEY = 'ecosphere:bio'
@@ -187,6 +190,23 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
     } catch { return 0 }
   }, [])
 
+  // one thing tonight: the hub's single suggested action, dismissable per day
+  const [tonightDone, setTonightDone] = useState(() => {
+    try { return window.localStorage.getItem('ecosphere:tonightDone') === localDayKey() } catch { return false }
+  })
+  const tonightAction = useMemo(() => pickTonightAction({
+    recapAvailable: recapAvailable(),
+    silentDays: silentDays(readLastVoiceAt()),
+    topReturn: returns[0]?.label ?? null,
+    personalCapsules,
+    dropLive: currentDrop() != null,
+  }), [returns, personalCapsules])
+  const markTonightDone = () => {
+    try { window.localStorage.setItem('ecosphere:tonightDone', localDayKey()) } catch { /* session only */ }
+    setTonightDone(true)
+  }
+
+
   // ── social stats: listeners / tuned to ──
   const [counts, setCounts] = useState<{ listeners: number; tunedTo: number }>({ listeners: 0, tunedTo: readTunedTo().length })
   useEffect(() => {
@@ -347,6 +367,46 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
       </div>
 
       <div className="ph-col">
+        {/* one thing tonight: the hub's single suggested action */}
+        {!tonightDone && (
+          <div className="ph-card glass ph-tonight-action">
+            <div className="ph-card-head">
+              <span className="ph-card-kicker">ONE THING TONIGHT</span>
+              <button type="button" className="ph-tonight-skip" onClick={markTonightDone}>not tonight</button>
+            </div>
+            {tonightAction === 'recap' && (
+              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('home') }}>
+                ◉ your frequency recap is ready — play it
+              </button>
+            )}
+            {tonightAction === 'silence' && (
+              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('unsent') }}>
+                ● break the silence — leave ten seconds in the unsent room
+              </button>
+            )}
+            {tonightAction === 'return' && (
+              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); relisten({ id: `tonight-${returns[0].label}`, label: returns[0].label }) }}>
+                ↻ return to "{returns[0]?.label}" one more time
+              </button>
+            )}
+            {tonightAction === 'seal' && (
+              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('capsules') }}>
+                ◎ seal your first transmission
+              </button>
+            )}
+            {tonightAction === 'drop' && (
+              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('capsules') }}>
+                ◬ a rare frequency is open — hear it before it dissolves
+              </button>
+            )}
+            {tonightAction === 'drift' && (
+              <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('frequencies') }}>
+                ∿ drift the sea — something will float past
+              </button>
+            )}
+          </div>
+        )}
+
         {/* tonight: stats with feelings attached */}
         <div className="ph-card glass">
           <div className="ph-card-head">

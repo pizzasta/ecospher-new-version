@@ -244,3 +244,29 @@ export function topReturns(listens: IdentityListen[], limit = 3): Array<{ label:
     .slice(0, limit)
     .map(([label, count]) => ({ label, count }))
 }
+
+// ─── one thing tonight ────────────────────────────────────────────────────────
+
+export type TonightActionKey = 'recap' | 'silence' | 'return' | 'seal' | 'drop' | 'drift'
+
+export type TonightActionState = {
+  recapAvailable: boolean
+  silentDays: number | null
+  topReturn: string | null
+  personalCapsules: number
+  dropLive: boolean
+}
+
+/**
+ * The hub offers exactly one thing to do tonight, picked from real state.
+ * Priority: hear your recap > break a silence > deepen a return >
+ * seal your first capsule > catch the rare drop > just drift.
+ */
+export function pickTonightAction(state: TonightActionState): TonightActionKey {
+  if (state.recapAvailable) return 'recap'
+  if (state.silentDays != null && state.silentDays >= 2) return 'silence'
+  if (state.topReturn) return 'return'
+  if (state.personalCapsules === 0) return 'seal'
+  if (state.dropLive) return 'drop'
+  return 'drift'
+}
