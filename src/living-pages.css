@@ -3369,3 +3369,25 @@
   .relic-board::before { animation: none; }
   .sticky--falling { --tilt: 0deg; margin-top: 14px; }
 }
+
+/* real carriers on the radar: golden, unmistakably alive */
+.do-carriers { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+
+.do-carrier-real {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffd166;
+  box-shadow: 0 0 12px rgba(255, 209, 102, 0.9), 0 0 26px rgba(255, 209, 102, 0.4);
+  animation: doCarrierDrift 26s ease-in-out infinite alternate;
+}
+
+@keyframes doCarrierDrift {
+  from { transform: translate(0, 0); }
+  to { transform: translate(34px, -22px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .do-carrier-real { animation: none; }
+}

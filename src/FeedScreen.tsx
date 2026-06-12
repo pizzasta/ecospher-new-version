@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useEcosystemState } from './hooks/useEcosystemState'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
 import VoiceReactionStack from './components/VoiceReactions'
@@ -13,6 +13,7 @@ import { hzForHandle } from './lib/hzSignature'
 import HzBadge from './components/HzBadge'
 import ListenerTraces from './components/ListenerTraces'
 import { RETURN_TAGS, addReturn, listReturns, removeReturn } from './lib/returnQueue'
+import { DECAY_LABELS, decayLevel, decayText, heatFor, preserveSignal, presenceLine, whyFoundYou } from './lib/signalLife'
 
 const hiddenKey = 'ecosphere:hiddenSignals'
 function loadHidden(): string[] {
@@ -352,7 +353,7 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
 }
 // ─── Signal Card Component ────────────────────────────────────────────────────
 function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, livePulse = false }: { signal: FeedSignal; index: number; decayRemaining: number | null; dissolving: boolean; presenceTick: number; livePulse?: boolean }) {
-  const { ecosystemState, saveSignal, unsaveFromLibrary } = useEcosystemState()
+  const { ecosystemState, saveSignal, unsaveFromLibrary, reactToSignal } = useEcosystemState()
   const globalAudio = useGlobalAudio()
   const [visible, setVisible] = useState(false)
   const [waveformVisible, setWaveformVisible] = useState(false)
@@ -394,7 +395,13 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
   }
   const colors = MOOD_COLORS[signal.mood]
   const waveform = generateWaveform(signal.waveformSeed)
-  const displayText = useTypewriter(signal.content, !!(signal.typewriterEffect && textVisible))
+  // signal life: decay (until preserved) + replay heat + a human reason
+  const [decay, setDecay] = useState(() => (signal.status === 'corrupted' ? 0 : decayLevel(signal.id)))
+  const heat = useMemo(() => heatFor(signal.id), [signal.id])
+  const lifeLine = useMemo(() => (index % 3 === 0 ? whyFoundYou(signal.id) : index % 3 === 1 ? presenceLine(signal.id) : null), [signal.id, index])
+  const decayedContent = useMemo(() => decayText(signal.content, decay, signal.id), [signal.content, decay, signal.id])
+
+  const displayText = useTypewriter(decayedContent, !!(signal.typewriterEffect && textVisible))
 
   useEffect(() => {
     const baseDelay = Math.min(index, 8) * 350 + 200
@@ -424,7 +431,7 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
   return (
     <>
       <div
-        className={`signal-card ${visible ? 'signal-card--visible' : ''} ${hovered ? 'signal-card--hovered' : ''} ${isCorrupted ? 'signal-card--corrupted' : ''} ${isFading ? 'signal-card--fading' : ''} ${playing ? 'signal-card--playing' : ''} ${wasReplayed ? 'signal-card--replayed' : ''} ${dissolving || fading ? 'signal-card--dissolving' : ''} ${livePulse ? 'signal-card--live-pulse' : ''}`}
+        className={`signal-card ${visible ? 'signal-card--visible' : ''} ${hovered ? 'signal-card--hovered' : ''} ${isCorrupted ? 'signal-card--corrupted' : ''} ${isFading ? 'signal-card--fading' : ''} ${playing ? 'signal-card--playing' : ''} ${wasReplayed ? 'signal-card--replayed' : ''} ${dissolving || fading ? 'signal-card--dissolving' : ''} ${livePulse ? 'signal-card--live-pulse' : ''} signal-card--decay-${decay} signal-card--heat-${heat.level}`}
         style={{ '--mood-color': colors.primary, '--mood-glow': colors.glow, '--mood-dim': colors.dim, '--entry-delay': `${Math.min(index, 8) * 350}ms` } as React.CSSProperties}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -497,9 +504,33 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
           {isCorrupted ? (
             <span className="corrupted-text">{signal.content}</span>
           ) : (
-            <span>{displayText}</span>
+            <span className={decay >= 2 ? 'decay-text' : undefined}>{displayText}</span>
           )}
+          {decay >= 3 && <span className="decay-static" aria-hidden="true" />}
         </div>
+
+        {/* signal life: heat, decay, and the reason it found you */}
+        {(heat.line || decay > 0 || lifeLine) && (
+          <div className="card-life-row">
+            {heat.line && <span className="card-heat-line">∿ {heat.line}</span>}
+            {decay > 0 && (
+              <button
+                type="button"
+                className="card-preserve"
+                onClick={e => {
+                  e.stopPropagation()
+                  preserveSignal(signal.id)
+                  const wasGone = decay >= 3
+                  setDecay(0)
+                  if (wasGone) reactToSignal(signal.id, 'pulled a signal back from static — relic material')
+                }}
+              >
+                ◍ {DECAY_LABELS[decay]}
+              </button>
+            )}
+            {lifeLine && <span className="card-why-line">{lifeLine}</span>}
+          </div>
+        )}
 
         {/* Voice reactions */}
         <VoiceReactionStack signalId={signal.id} moodColor={colors.primary} />
@@ -764,7 +795,21 @@ export default function FeedScreen() {
       timer = schedule()
     }, 40000 + Math.random() * 40000)
     let timer = schedule()
-    return () => { window.clearTimeout(timer); window.clearTimeout(clearTimer) }
+    // real replays from the live bus land as immediate pulses
+    const onLive = (event: Event) => {
+      const detail = (event as CustomEvent<{ type?: string }>).detail
+      if (detail?.type !== 'replay') return
+      setSignals(current => {
+        if (current.length > 0) {
+          const pick = current[Math.floor(Math.random() * Math.min(current.length, 12))]
+          setLivePulseId(pick.id)
+          clearTimer = window.setTimeout(() => setLivePulseId(null), 6500)
+        }
+        return current
+      })
+    }
+    window.addEventListener('ecosphere:live', onLive)
+    return () => { window.clearTimeout(timer); window.clearTimeout(clearTimer); window.removeEventListener('ecosphere:live', onLive) }
   }, [])
 
   // ghost archive: scrolling to the drift zone surfaces another page

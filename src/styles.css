@@ -9519,3 +9519,75 @@ body[data-eco-view='mobile'] .helpbot-panel { width: min(440px, 96vw); }
 
 .card-return-row button:hover { border-color: rgba(0, 212, 255, 0.7); }
 .card-return-row .card-return-clear { border-color: rgba(255, 255, 255, 0.15); color: rgba(190, 200, 230, 0.6); }
+
+/* ─── Signal life: decay + replay heat + human reasons ──────────────────────── */
+.signal-card--decay-1 .card-content { opacity: 0.78; }
+.signal-card--decay-2 .card-content { opacity: 0.62; }
+.signal-card--decay-3 .card-content { opacity: 0.5; filter: blur(0.4px); }
+
+.signal-card--decay-2 .waveform-bar:nth-child(4n),
+.signal-card--decay-3 .waveform-bar:nth-child(3n) { opacity: 0.12 !important; }
+
+.decay-text { letter-spacing: 0.02em; }
+
+.decay-static {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(255, 255, 255, 0.05) 2px 3px);
+  mix-blend-mode: overlay;
+  animation: ppGrainShift 1.2s steps(4) infinite;
+}
+
+.card-life-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 10px;
+}
+
+.card-heat-line {
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  color: rgba(255, 150, 190, 0.8);
+  font-variant-numeric: tabular-nums;
+}
+
+.signal-card--heat-2 .card-heat-line,
+.signal-card--heat-3 .card-heat-line { text-shadow: 0 0 10px rgba(255, 45, 120, 0.5); }
+
+.signal-card--heat-2 .card-neon-edge { filter: brightness(1.25); }
+
+.signal-card--heat-3 { animation: signalHeatStorm 2.6s ease-in-out infinite; }
+
+@keyframes signalHeatStorm {
+  0%, 100% { box-shadow: 0 0 0 rgba(255, 45, 120, 0); }
+  50% { box-shadow: 0 0 26px rgba(255, 45, 120, 0.16); }
+}
+
+.signal-card--heat-3 .waveform-bar { filter: brightness(1.35) saturate(1.2); }
+
+.card-preserve {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px dashed rgba(255, 200, 130, 0.5);
+  background: rgba(255, 170, 100, 0.06);
+  color: #ffd9ae;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card-preserve:hover { background: rgba(255, 170, 100, 0.14); box-shadow: 0 0 12px rgba(255, 170, 100, 0.2); }
+
+.card-why-line {
+  font-size: 10px;
+  font-style: italic;
+  color: rgba(170, 185, 215, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .decay-static, .signal-card--heat-3 { animation: none; }
+}
