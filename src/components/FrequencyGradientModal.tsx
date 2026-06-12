@@ -46,6 +46,30 @@ export default function FrequencyGradientModal({ settings, hz, onChange, onClose
           style={{ background: `linear-gradient(${previewAngle}deg, ${previewStart}, ${previewEnd})` } as CSSProperties}
         />
 
+        <div className="hz-field">
+          <span>design</span>
+          <div className="fg-speeds" role="radiogroup" aria-label="Background design">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={draft.style === 'gradient'}
+              className={`fg-speed${draft.style === 'gradient' ? ' active' : ''}`}
+              onClick={() => patch({ style: 'gradient' })}
+            >
+              gradient
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={draft.style === 'wave'}
+              className={`fg-speed${draft.style === 'wave' ? ' active' : ''}`}
+              onClick={() => patch({ style: 'wave' })}
+            >
+              wave (animated)
+            </button>
+          </div>
+        </div>
+
         <div className="hz-field fg-row">
           <span>color lock — {draft.locked ? 'manual colors' : `auto from ${hz.toFixed(1)} Hz`}</span>
           <button

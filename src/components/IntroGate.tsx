@@ -7,6 +7,7 @@ import type { EcosystemPage } from '../hooks/useEcosystemState'
 import { migrateLocalDataToBackend, syncProfile } from '../lib'
 import { usePointerParallax } from '../hooks/usePointerParallax'
 import AudioRecorder from './AudioRecorder'
+import ColorWave from './ColorWave'
 
 const introSeenStorageKey = 'introSeen'
 const signalIdentityStorageKey = 'signalIdentity'
@@ -338,6 +339,7 @@ function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, 
       </div>
       <div className="boot-static-field" aria-hidden="true" />
       <div className="boot-fog-field" aria-hidden="true" />
+      <ColorWave />
       <div className="identity-frequency-field" aria-hidden="true">
         <div className="identity-frequency-lines" />
         {Array.from({ length: 10 }, (_, index) => (
@@ -493,6 +495,7 @@ function FirstSignalRitualStep({ onComplete }: { onComplete: () => void }) {
       </div>
       <div className="boot-static-field" aria-hidden="true" />
       <div className="boot-fog-field" aria-hidden="true" />
+      <ColorWave />
 
       <section className="identity-claim-screen" aria-label="Record your first signal">
         <div className="identity-claim-copy">

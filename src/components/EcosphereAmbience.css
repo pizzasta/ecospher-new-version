@@ -260,21 +260,21 @@
 .eco-color-wave span:nth-child(1) {
   left: -10%;
   top: 0%;
-  background: radial-gradient(circle, rgba(255, 45, 120, 0.16), transparent 65%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--wave-c1, #ff2d78) 16%, transparent), transparent 65%);
   animation: ecoWaveDriftA 26s ease-in-out infinite alternate;
 }
 
 .eco-color-wave span:nth-child(2) {
   right: -12%;
   top: 24%;
-  background: radial-gradient(circle, rgba(0, 212, 255, 0.13), transparent 65%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--wave-c2, #00d4ff) 13%, transparent), transparent 65%);
   animation: ecoWaveDriftB 36s ease-in-out infinite alternate;
 }
 
 .eco-color-wave span:nth-child(3) {
   left: 22%;
   bottom: -14%;
-  background: radial-gradient(circle, rgba(155, 93, 229, 0.14), transparent 65%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--wave-c3, #9b5de9) 14%, transparent), transparent 65%);
   animation: ecoWaveDriftC 46s ease-in-out infinite alternate;
 }
 
@@ -301,4 +301,31 @@
     animation: none;
     will-change: auto;
   }
+}
+
+/* local variant: fills its positioned parent instead of the viewport */
+.eco-color-wave--local {
+  position: absolute;
+  inset: -30%;
+  z-index: 0;
+  filter: blur(60px);
+  opacity: 0.8;
+}
+
+.eco-color-wave--local span {
+  width: 80%;
+  height: 80%;
+}
+
+/* local waves carry the owner's colors at full presence */
+.eco-color-wave--local span:nth-child(1) {
+  background: radial-gradient(circle, color-mix(in srgb, var(--wave-c1, #ff2d78) 40%, transparent), transparent 65%);
+}
+
+.eco-color-wave--local span:nth-child(2) {
+  background: radial-gradient(circle, color-mix(in srgb, var(--wave-c2, #00d4ff) 34%, transparent), transparent 65%);
+}
+
+.eco-color-wave--local span:nth-child(3) {
+  background: radial-gradient(circle, color-mix(in srgb, var(--wave-c3, #9b5de9) 36%, transparent), transparent 65%);
 }

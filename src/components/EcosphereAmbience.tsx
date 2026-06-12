@@ -4,6 +4,7 @@ import { useEcosystemState } from '../hooks/useEcosystemState'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { useEcoPref } from '../hooks/useEcoPrefs'
 import { uiClick, uiPop, uiScrollHiss } from '../lib/uiSound'
+import ColorWave from './ColorWave'
 import { effectiveNightIntensity, isDeepNight } from '../lib/nightMode'
 import './EcosphereAmbience.css'
 
@@ -229,9 +230,7 @@ export default function EcosphereAmbience() {
       </div>
 
       {/* color wave: blurred gradient blobs crossing each other like liquid light */}
-      <div className="eco-color-wave" aria-hidden="true">
-        <span /><span /><span />
-      </div>
+      <ColorWave />
 
       <div className={`eco-presence-chip${lurker ? ' eco-presence-chip--lurking' : ''}`} title={`signal weather: ${weather.label}`}>
         <span className="eco-presence-dot" aria-hidden="true" />
