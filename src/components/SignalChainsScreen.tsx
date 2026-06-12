@@ -6,6 +6,8 @@ import { listLocalRecordings } from '../lib/localAudioStore'
 import { renderStoryImage, downloadBlob, exportFilename } from '../lib/storyExport'
 import AudioRecorder from './AudioRecorder'
 import { useEcoPref } from '../hooks/useEcoPrefs'
+import { sendLive } from '../lib/liveBus'
+import type { LiveEvent } from '../lib/liveBus'
 import '../chains.css'
 
 // ═══════════════════════════════════════════════════════════════
@@ -202,6 +204,21 @@ export default function SignalChainsScreen() {
 
   useEffect(() => () => stopChainPlayback(), [])
 
+  // real carriers joining chains, live — soft bump, no feed
+  useEffect(() => {
+    const onLive = (event: Event) => {
+      const detail = (event as CustomEvent<LiveEvent>).detail
+      if (detail?.type !== 'chain_layer' || !detail.id) return
+      setChains(prev => prev.map(c => (c.id === detail.id && c.state !== 'archived'
+        ? { ...c, contributors: Math.min(20, c.contributors + 1) }
+        : c)))
+      say('a stranger just layered into a chain — live')
+    }
+    window.addEventListener('ecosphere:live', onLive)
+    return () => window.removeEventListener('ecosphere:live', onLive)
+     
+  }, [])
+
   const listenToChain = async (chain: Chain) => {
     if (playingId === chain.id) {
       stopChainPlayback()
@@ -235,6 +252,7 @@ export default function SignalChainsScreen() {
       [chain.id]: { ...(reactions[chain.id] ?? {}), [reaction]: ((reactions[chain.id] ?? {})[reaction] ?? 0) + 1 },
     }
     setReactions(next)
+    sendLive({ type: 'reaction', id: chain.id })
     try { window.localStorage.setItem('ecosphere:chainReactions', JSON.stringify(next)) } catch { /* session only */ }
     const id = ++popIdRef.current
     setPops(prev => [...prev.slice(-7), { id, text: reaction, left: 14 + Math.random() * 70 }])
@@ -366,6 +384,7 @@ export default function SignalChainsScreen() {
                         saveMyLayer({ id: uploadId, chainId: chain.id, durationMs, recordedAt: Date.now() })
                         setChains(prev => prev.map(c => (c.id === chain.id ? { ...c, contributors: Math.min(20, c.contributors + 1) } : c)))
                         setJoiningId(null)
+                        sendLive({ type: 'chain_layer', id: chain.id })
                         say('blended in — rough edges kept, exactly as recorded')
                       }}
                     />

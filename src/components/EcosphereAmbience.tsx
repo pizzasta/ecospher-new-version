@@ -6,6 +6,8 @@ import { useEcoPref } from '../hooks/useEcoPrefs'
 import { uiClick, uiPop, uiScrollHiss } from '../lib/uiSound'
 import ColorWave from './ColorWave'
 import { effectiveNightIntensity, isDeepNight } from '../lib/nightMode'
+import { liveToastFor, setLivePage, startLiveBus, stopLiveBus } from '../lib/liveBus'
+import type { LiveEvent, LivePresence } from '../lib/liveBus'
 import './EcosphereAmbience.css'
 
 // ─── Signal Weather ───────────────────────────────────────────────────────────
@@ -110,6 +112,40 @@ export default function EcosphereAmbience() {
     }
     schedule()
     return () => window.clearTimeout(timeout)
+  }, [])
+
+  // the live bus: real presence + ambient broadcasts from other carriers
+  const liveToastAtRef = useRef(0)
+  useEffect(() => {
+    startLiveBus(currentPage)
+    return () => stopLiveBus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => { setLivePage(currentPage) }, [currentPage])
+  useEffect(() => {
+    const onPresence = (event: Event) => {
+      const detail = (event as CustomEvent<LivePresence>).detail
+      if (detail && detail.total > 0) {
+        // real carriers raise the floor; the simulated tide still breathes
+        setListeners(n => Math.max(n, detail.total + 5))
+      }
+    }
+    const onLive = (event: Event) => {
+      const detail = (event as CustomEvent<LiveEvent>).detail
+      if (!detail) return
+      // ambient, never spammy: at most one live toast per 45 seconds
+      const now = Date.now()
+      if (now - liveToastAtRef.current < 45000) return
+      liveToastAtRef.current = now
+      setPresencePulse(liveToastFor(detail))
+      window.setTimeout(() => setPresencePulse(null), 5200)
+    }
+    window.addEventListener('ecosphere:presence', onPresence)
+    window.addEventListener('ecosphere:live', onLive)
+    return () => {
+      window.removeEventListener('ecosphere:presence', onPresence)
+      window.removeEventListener('ecosphere:live', onLive)
+    }
   }, [])
 
   // active listener count drifts gently

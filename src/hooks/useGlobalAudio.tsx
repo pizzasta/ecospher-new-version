@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useEcosystemState } from './useEcosystemState'
+import { sendLive } from '../lib/liveBus'
 import type { ActiveAudio } from './useEcosystemState'
 
 export type GlobalAudioStatus = {
@@ -85,6 +86,7 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
 
   const startAudio = useCallback(async (audio: HTMLAudioElement, meta: ActiveAudio) => {
     audio.volume = preferredVolume()
+    sendLive({ type: 'replay', id: meta.id })
 
     audio.ontimeupdate = () => {
       if (audio.duration > 0 && Number.isFinite(audio.duration)) {
