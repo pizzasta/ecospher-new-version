@@ -19,6 +19,7 @@ import ProfileHub from './components/ProfileHub'
 import NotificationBell from './components/NotificationBell'
 import FirstTour from './components/FirstTour'
 import HelpBot from './components/HelpBot'
+import PodPresence from './components/PodPresence'
 import ListenerTraces from './components/ListenerTraces'
 import { humanizeActivity } from './lib/listeningIdentity'
 import { DEEP_NIGHT_LINES, isDeepNight } from './lib/nightMode'
@@ -2538,41 +2539,16 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
 
   return (
     <div className="screen">
-      <div className="screen-header">
-        <div className="screen-kicker">SOUL POD</div>
-        <h2 className="screen-title">Your Hub</h2>
-        <p className="screen-sub">this page doesn't show who you say you are. it shows how you listen.</p>
-      </div>
+      <PodPresence
+        energy={podEnergy}
+        stage={podStage}
+        rippling={rippling}
+        streak={eco.streak.count}
+        identity={eco.userSignalIdentity}
+        hzColor={podHz?.color}
+        onTouch={touchPod}
+      />
       <ProfileHub onNavigate={screen => onNavigate?.(screen as Screen)} />
-      <div className="pod-core-head">
-        <span className="pod-core-kicker">POD CORE</span>
-        <em>your glow — fed by listening, boosted by touch</em>
-      </div>
-      <div className="pod-orb-container">
-        <button
-          type="button"
-          className={`pod-orb lp-pod-orb lp-pod--${podStage}${rippling ? ' rippling' : ''}`}
-          style={{ '--pod-energy': podEnergy.toFixed(3) } as CSSProperties}
-          onClick={touchPod}
-          aria-label="touch your pod"
-        >
-          <div className="pod-orb-inner" />
-          <div className="pod-orb-ring" />
-          <span className="lp-pod-ripple" aria-hidden="true" />
-        </button>
-        <div className="pod-orb-label">
-          {podStage === 'radiant' ? `radiant · ${eco.streak.count} night streak` : podStage === 'awake' ? 'active · keep listening' : 'tap to boost your glow'}
-        </div>
-        <div className="lp-pod-signature" aria-label="your waveform signature">
-          <LpWaveform
-            seed={(eco.userSignalIdentity ?? 'signal').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 7)}
-            bars={30}
-            active={podStage !== 'resting'}
-            tint={podStage === 'radiant' ? 'cyan' : 'pink'}
-          />
-          <small>{eco.userSignalIdentity ? `signature · ${eco.userSignalIdentity}` : 'signature · unclaimed'}</small>
-        </div>
-      </div>
       <div className="hub-actions">
         {[
           { label: '◉ record signal', page: 'unsent' as Screen },
