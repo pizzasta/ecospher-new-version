@@ -11,6 +11,7 @@ import { generateLocalBio, requestAiBio } from '../lib/aiBio'
 import { getHzProfile } from '../lib/hzSignature'
 import type { HzProfile } from '../lib/hzSignature'
 import AudioPlayer from './AudioPlayer'
+import ColorWave from './ColorWave'
 import HzBadge from './HzBadge'
 import HzSettingsModal from './HzSettingsModal'
 import FrequencyGradientModal from './FrequencyGradientModal'
@@ -200,8 +201,14 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
       <div
         className="ph-gradient-layer"
         aria-hidden="true"
-        style={{ background: `linear-gradient(${Math.round(gradientAngle)}deg, ${gradientStart}, ${gradientEnd})` }}
-      />
+        style={gradient.style === 'wave'
+          ? { background: '#06080f' }
+          : { background: `linear-gradient(${Math.round(gradientAngle)}deg, ${gradientStart}, ${gradientEnd})` }}
+      >
+        {gradient.style === 'wave' && (
+          <ColorWave variant="local" colors={[gradientStart, gradientEnd, hzProfile?.color]} />
+        )}
+      </div>
       {grains.length > 0 && (
         <div
           className="ph-visitor-static"

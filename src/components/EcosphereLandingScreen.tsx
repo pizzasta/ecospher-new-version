@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import { useCallback, useState } from 'react'
 import { usePointerParallax } from '../hooks/usePointerParallax'
 import { AnimatePresence, motion } from 'framer-motion'
+import ColorWave from './ColorWave'
 
 const particleCount = 26
 
@@ -40,6 +41,7 @@ export default function EcosphereLandingScreen({ onEnterComplete }: EcosphereLan
       }}
       transition={{ duration: 1.25, ease: [0.22, 1, 0.36, 1] }}
     >
+      <ColorWave />
       <div className="ecosphere-landing__grid" aria-hidden="true" />
       <div className="ecosphere-landing__glow ecosphere-landing__glow--pink" aria-hidden="true" />
       <div className="ecosphere-landing__glow ecosphere-landing__glow--cyan" aria-hidden="true" />

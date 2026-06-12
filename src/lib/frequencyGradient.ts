@@ -5,6 +5,8 @@ import { getOptionalSupabaseClient } from './supabase'
 import { ensureBackendSession } from './session'
 import { isSupabaseConfigured } from './supabase-env'
 
+export type GradientStyle = 'gradient' | 'wave'
+
 export type GradientSettings = {
   locked: boolean
   colorStart: string | null
@@ -12,6 +14,8 @@ export type GradientSettings = {
   angle: number | null
   /** seconds per full rotation; 0 = drift off */
   speed: number
+  /** 'gradient' = rotating linear; 'wave' = flowing blurred blobs */
+  style: GradientStyle
 }
 
 export const GRADIENT_SPEEDS = [
@@ -27,6 +31,7 @@ export const DEFAULT_GRADIENT: GradientSettings = {
   colorEnd: null,
   angle: null,
   speed: 60,
+  style: 'gradient',
 }
 
 /** Default Hz → color band mapping (20-200 Hz). */
@@ -52,6 +57,7 @@ export function validateGradientSettings(settings: GradientSettings): string | n
   }
   if (settings.angle != null && (settings.angle < 0 || settings.angle > 360)) return 'angle must be 0-360'
   if (!GRADIENT_SPEEDS.some(s => s.value === settings.speed)) return 'invalid drift speed'
+  if (settings.style !== 'gradient' && settings.style !== 'wave') return 'invalid design'
   return null
 }
 
@@ -96,6 +102,7 @@ export async function saveGradientSettings(settings: GradientSettings): Promise<
             color_end: settings.colorEnd,
             angle: settings.angle,
             speed: settings.speed,
+            style: settings.style,
           },
         }).eq('id', userId)
       } catch { /* synced on next save */ }
@@ -111,7 +118,7 @@ export async function loadGradientSettings(): Promise<GradientSettings> {
     if (client && userId) {
       try {
         const { data } = await client.from('profiles').select('gradient_settings').eq('id', userId).maybeSingle()
-        const remote = data?.gradient_settings as { locked?: boolean; color_start?: string | null; color_end?: string | null; angle?: number | null; speed?: number } | null
+        const remote = data?.gradient_settings as { locked?: boolean; color_start?: string | null; color_end?: string | null; angle?: number | null; speed?: number; style?: string } | null
         if (remote && typeof remote === 'object') {
           const settings: GradientSettings = {
             locked: remote.locked ?? false,
@@ -119,6 +126,7 @@ export async function loadGradientSettings(): Promise<GradientSettings> {
             colorEnd: remote.color_end ?? null,
             angle: remote.angle ?? null,
             speed: typeof remote.speed === 'number' ? remote.speed : 60,
+            style: remote.style === 'wave' ? 'wave' : 'gradient',
           }
           try { window.localStorage.setItem(GRADIENT_KEY, JSON.stringify(settings)) } catch { /* session only */ }
           return settings

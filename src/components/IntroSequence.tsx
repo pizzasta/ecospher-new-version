@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import TypewriterText from './TypewriterText'
+import ColorWave from './ColorWave'
 
 type IntroSequenceProps = {
   onComplete: () => void
@@ -377,6 +378,7 @@ export default function IntroSequence({ onComplete, onSkip }: IntroSequenceProps
       <div className="claim-atmosphere" aria-hidden="true">
         <span /><span /><span /><span /><span /><span />
       </div>
+      <ColorWave />
       <div className="boot-static-field" aria-hidden="true" />
       <div className="boot-fog-field" aria-hidden="true" />
 
