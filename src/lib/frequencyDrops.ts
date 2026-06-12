@@ -38,6 +38,13 @@ export type ActiveDrop = {
 
 /** The drop that is live right now, or null between windows. */
 export function currentDrop(now = Date.now()): ActiveDrop | null {
+  // preview override: localStorage 'ecosphere:dropOverride' = 'open'
+  try {
+    if (typeof window !== 'undefined' && window.localStorage.getItem('ecosphere:dropOverride') === 'open') {
+      return { id: 'drop-preview', ...DROPS[0], seed: 881, startedAt: now, endsAt: now + WINDOW_MS }
+    }
+  } catch { /* storage unavailable */ }
+
   if (now < EPOCH) return null
   const cycle = Math.floor((now - EPOCH) / PERIOD_MS)
   const start = EPOCH + cycle * PERIOD_MS
