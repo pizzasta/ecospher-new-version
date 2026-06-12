@@ -1,3 +1,7 @@
+// NOTE: these rules are mirrored server-side in
+// supabase/migrations/202606110010_server_guardian.sql (moderate_signal_text)
+// — change both together. The trigger is the enforcement; this is the UX.
+
 export type SignalSafetyFlag = 'harassment' | 'threats' | 'explicit_personal_information' | 'spam' | 'unsafe_content'
 
 export type SignalModerationResult = {
