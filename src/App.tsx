@@ -18,6 +18,7 @@ import DeepListen from './components/DeepListen'
 import ProfileHub from './components/ProfileHub'
 import NotificationBell from './components/NotificationBell'
 import FirstTour from './components/FirstTour'
+import HelpBot from './components/HelpBot'
 import ListenerTraces from './components/ListenerTraces'
 import { humanizeActivity } from './lib/listeningIdentity'
 import { DEEP_NIGHT_LINES, isDeepNight } from './lib/nightMode'
@@ -2642,6 +2643,7 @@ export function SettingsScreen() {
   const [note, setNote] = useState<string | null>(null)
   const [confirmWipe, setConfirmWipe] = useState(false)
   const [pushBusy, setPushBusy] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
 
   // broadcast preference changes so global systems (audio volume,
   // night protocol, motion intensity) pick them up immediately
@@ -2863,6 +2865,16 @@ export function SettingsScreen() {
           <input type="range" min={0} max={100} value={prefs.driftSensitivity} onChange={e => update({ driftSensitivity: +e.target.value })} className="range-input" />
         </div>
 
+        <div className="setting-row glass">
+          <div className="setting-info">
+            <div className="setting-label">{tr('settings.help')}</div>
+            <div className="setting-detail">{tr('settings.help.detail')}</div>
+          </div>
+          <button type="button" className="setting-action" onClick={() => setHelpOpen(true)}>
+            {tr('settings.help.action')}
+          </button>
+        </div>
+
         <div className="setting-row glass setting-row--danger">
           <div className="setting-info">
             <div className="setting-label">{tr('settings.replayOnboarding')}</div>
@@ -2893,6 +2905,8 @@ export function SettingsScreen() {
       </div>
 
       {note && <div className="setting-note">{note}</div>}
+
+      {helpOpen && <HelpBot onClose={() => setHelpOpen(false)} />}
 
       <div className="settings-footer">
         <div className="settings-version">ecosphere v2.0 · signal observatory</div>
