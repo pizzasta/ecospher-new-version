@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useEcosystemState } from './hooks/useEcosystemState'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
 import VoiceReactionStack from './components/VoiceReactions'
-import { downloadBlob, exportFilename, renderStoryImage, renderStoryVideo } from './lib/storyExport'
+import { HOOK_POOL, downloadBlob, exportFilename, renderStoryImage, renderStoryVideo } from './lib/storyExport'
+import type { ExportScene } from './lib/storyExport'
 import { playSample } from './lib/sampleAudio'
 import { listenerCount, livedInLines } from './lib/livedIn'
 import { fetchPublicSignals, mirrorActivity, mirrorSignalFade } from './lib/backendBridge'
@@ -218,12 +219,22 @@ function WaveformBar({ height, active, color, animated, index }: {
 }
 
 // ─── Export Modal ─────────────────────────────────────────────────────────────
+const EXPORT_SCENES: { id: ExportScene; label: string }[] = [
+  { id: 'void', label: 'void' },
+  { id: 'rain', label: 'rain on glass' },
+  { id: 'street', label: 'dark street' },
+  { id: 'room', label: 'dim room' },
+]
+
 function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => void }) {
   const [exporting, setExporting] = useState<ExportType | null>(null)
   const [done, setDone] = useState(false)
   const [exportError, setExportError] = useState(false)
+  const [scene, setScene] = useState<ExportScene>('void')
+  const [hookIndex, setHookIndex] = useState(() => signal.waveformSeed % (HOOK_POOL.length + 1))
   const colors = MOOD_COLORS[signal.mood]
   const waveform = generateWaveform(signal.waveformSeed, 20)
+  const hook = hookIndex < HOOK_POOL.length ? HOOK_POOL[hookIndex] : null
 
   const handleExport = async (type: ExportType) => {
     setExporting(type)
@@ -235,6 +246,8 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
       typeLabel: SIGNAL_TYPE_LABELS[signal.type],
       accentColor: colors.primary,
       waveformSeed: signal.waveformSeed,
+      scene,
+      hook: hook ?? undefined,
     }
 
     // vertical clip when the browser can record canvas; story card otherwise
@@ -283,7 +296,33 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
             </div>
             <div className="export-title">{exportError ? 'export failed — try again' : 'package this signal'}</div>
             <div className="export-buttons">
-              {exports.map(ex => (
+              <div className="export-vignette-controls">
+              <div className="export-scene-row" role="radiogroup" aria-label="Backdrop scene">
+                {EXPORT_SCENES.map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={scene === option.id}
+                    className={`export-scene-chip${scene === option.id ? ' active' : ''}`}
+                    onClick={() => setScene(option.id)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="export-hook-row"
+                title="cycle hook overlay"
+                onClick={() => setHookIndex(i => (i + 1) % (HOOK_POOL.length + 1))}
+              >
+                <em>hook</em>
+                <span>{hook ?? 'no hook overlay'}</span>
+                <i aria-hidden="true">↻</i>
+              </button>
+            </div>
+            {exports.map(ex => (
                 <button key={ex.type} className="export-btn" style={{ '--btn-color': colors.primary } as React.CSSProperties} onClick={() => handleExport(ex.type)}>
                   <span className="export-btn-icon">{ex.icon}</span>
                   {ex.label}
