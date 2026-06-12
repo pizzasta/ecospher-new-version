@@ -8,6 +8,7 @@ import { playSample } from '../lib/sampleAudio';
 import VoiceReactionStack from './VoiceReactions';
 import EcosphereVRPanel from './EcosphereVRPanel';
 import PassingThoughts from './PassingThoughts';
+import ListenerTraces from './ListenerTraces';
 import { useRecordingSession } from '../hooks/useRecordingSession';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -576,6 +577,7 @@ const UnsentFeed: React.FC = () => {
               </button>
             </div>
             <VoiceReactionStack signalId={f.id} moodColor="#ff1493" />
+            <ListenerTraces signalId={f.id} resonance={70 + (f.seed % 30)} replayed={false} />
           </article>
         ))}
       </div>
