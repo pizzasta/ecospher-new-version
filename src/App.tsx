@@ -17,6 +17,7 @@ import FrequencyRecap from './components/FrequencyRecap'
 import DeepListen from './components/DeepListen'
 import ProfileHub from './components/ProfileHub'
 import NotificationBell from './components/NotificationBell'
+import FirstTour from './components/FirstTour'
 import ListenerTraces from './components/ListenerTraces'
 import { humanizeActivity } from './lib/listeningIdentity'
 import { DEEP_NIGHT_LINES, isDeepNight } from './lib/nightMode'
@@ -2700,6 +2701,9 @@ export function SettingsScreen() {
       window.localStorage.removeItem('signalIdentity')
       window.localStorage.removeItem('ecosphereSignalProfile')
       window.localStorage.removeItem('ecosphereBackendMigrated')
+      window.localStorage.removeItem('ecosphere:tourDone')
+      window.localStorage.removeItem('ecosphere:rulesAccepted')
+      window.localStorage.removeItem('ecosphere:firstSignalDone')
     } catch { /* storage unavailable */ }
     window.location.reload()
   }
@@ -2956,6 +2960,15 @@ export default function App() {
     document.title = `Ecosphere · ${SCREEN_TITLES[screen]}`
   }, [screen])
 
+  // first-visit tour: one pass through what each page is for
+  const [tourOpen, setTourOpen] = useState(() => {
+    try { return window.localStorage.getItem('ecosphere:tourDone') !== 'yes' } catch { return false }
+  })
+  const finishTour = () => {
+    try { window.localStorage.setItem('ecosphere:tourDone', 'yes') } catch { /* session only */ }
+    setTourOpen(false)
+  }
+
   // offline mode: register the cache worker once; banner while disconnected
   const [offline, setOffline] = useState(() => !navigator.onLine)
   useEffect(() => {
@@ -3032,6 +3045,8 @@ export default function App() {
       <EcosphereAmbience />
 
       <NotificationBell />
+
+      {tourOpen && <FirstTour onDone={finishTour} />}
 
       {liveEcho && (
         <div className="live-echo-chip" role="status">

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ecosphere · Privacy</title>
+<style>
+  body { background:#030712; color:#dfe6f5; font-family:'Space Grotesk',system-ui,sans-serif; max-width:640px; margin:0 auto; padding:48px 20px 80px; line-height:1.65; }
+  h1 { font-size:22px; color:#ff2d78; letter-spacing:.04em; }
+  h2 { font-size:14px; color:#67e8f9; letter-spacing:.12em; text-transform:uppercase; margin-top:32px; }
+  p, li { font-size:14px; color:rgba(223,230,245,.82); }
+  a { color:#67e8f9; }
+  .back { display:inline-block; margin-bottom:24px; font-size:12px; letter-spacing:.1em; }
+  .updated { font-size:11px; color:rgba(140,155,195,.55); }
+</style>
+</head>
+<body>
+<a class="back" href="/">← back to the band</a>
+<h1>Privacy</h1>
+<p class="updated">last updated: june 2026</p>
+
+<h2>Designed around not knowing you</h2>
+<p>Ecosphere is anonymous by design. We don't ask for your name, photo, birthdate, phone number, or location, and the app has no way to search for or contact a specific person.</p>
+
+<h2>What lives on your device</h2>
+<p>Most of your data never leaves your browser: your signal identity, preferences, listening history, recordings (IndexedDB), saved signals, and customizations are stored locally. "Clear Local Data" in Settings erases all of it.</p>
+
+<h2>What the backend stores (when connected)</h2>
+<p>When a backend is configured, the service stores: an anonymous account id, your chosen signal name, recordings you make (private by default), your saves/replays/reactions, notifications, and your profile customizations (bio tape, colors). Audio files live in private storage accessed via short-lived signed links. Row-level security restricts every record to its owner or to explicitly public content.</p>
+
+<h2>What we don't do</h2>
+<ul>
+  <li>No ads, no sale of data, no third-party trackers.</li>
+  <li>No contact lists, no social graph imports.</li>
+  <li>No reading of private content by humans — moderation is automated.</li>
+</ul>
+
+<h2>Deletion</h2>
+<p>Settings → Erase Cloud Data deletes your recordings, signals, reactions, notifications, subscriptions, and profile from the backend, then signs you out. Settings → Clear Local Data wipes this device. Together they remove everything you've made.</p>
+
+<h2>Microphone</h2>
+<p>The microphone is used only when you press record (or explicitly start calibration), and the permission is requested only at that moment. Nothing is captured in the background.</p>
+
+<h2>Questions</h2>
+<p>This service stores the minimum it can. If a future feature changes that, this page changes first.</p>
+
+<p><a href="/terms.html">Terms →</a></p>
+</body>
+</html>
