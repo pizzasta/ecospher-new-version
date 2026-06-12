@@ -764,7 +764,21 @@ export default function FeedScreen() {
       timer = schedule()
     }, 40000 + Math.random() * 40000)
     let timer = schedule()
-    return () => { window.clearTimeout(timer); window.clearTimeout(clearTimer) }
+    // real replays from the live bus land as immediate pulses
+    const onLive = (event: Event) => {
+      const detail = (event as CustomEvent<{ type?: string }>).detail
+      if (detail?.type !== 'replay') return
+      setSignals(current => {
+        if (current.length > 0) {
+          const pick = current[Math.floor(Math.random() * Math.min(current.length, 12))]
+          setLivePulseId(pick.id)
+          clearTimer = window.setTimeout(() => setLivePulseId(null), 6500)
+        }
+        return current
+      })
+    }
+    window.addEventListener('ecosphere:live', onLive)
+    return () => { window.clearTimeout(timer); window.clearTimeout(clearTimer); window.removeEventListener('ecosphere:live', onLive) }
   }, [])
 
   // ghost archive: scrolling to the drift zone surfaces another page

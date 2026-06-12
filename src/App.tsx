@@ -34,6 +34,7 @@ import { useLocale } from './hooks/useLocale'
 import { LOCALES, LOCALE_NAMES } from './lib/i18n'
 import { useRecordingSession } from './hooks/useRecordingSession'
 import { useEcoPref } from './hooks/useEcoPrefs'
+import { useLivePresence } from './hooks/useLivePresence'
 import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 import { enablePushNotifications } from './lib/pushNotifications'
 import { SCREEN_PATHS, screenForPath } from './lib/routes'
@@ -865,6 +866,8 @@ function DriftScreen() {
   const [stayedId, setStayedId] = useState<string | null>(null)
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
   const [liveEvents, setLiveEvents] = useState<Array<{ id: number; text: string; x: number; y: number }>>([])
+  const livePresence = useLivePresence()
+  const carriersHere = livePresence.perPage['drift'] ?? 0
   const signalRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
   const fieldRef = useRef<HTMLDivElement>(null)
   const lastNearRef = useRef<string | null>(null)
@@ -1172,7 +1175,20 @@ function DriftScreen() {
           <span key={ev.id} className="do-event" style={{ left: `${ev.x}%`, top: `${ev.y}%` }}>{ev.text}</span>
         ))}
 
-        <div className="do-hint">{drifting ? 'drifting…' : 'hold the water and move · tap a signal to overhear it'}</div>
+        {carriersHere > 1 && (
+          <div className="do-carriers" aria-hidden="true">
+            {Array.from({ length: Math.min(5, carriersHere - 1) }, (_, i) => (
+              <span key={i} className="do-carrier-real" style={{ left: `${18 + (i * 31) % 64}%`, top: `${20 + (i * 43) % 58}%`, animationDelay: `${-(i * 7)}s` }} />
+            ))}
+          </div>
+        )}
+        <div className="do-hint">
+          {drifting
+            ? 'drifting…'
+            : carriersHere > 1
+              ? `${carriersHere - 1} real carrier${carriersHere === 2 ? '' : 's'} drifting this water with you · hold and move`
+              : 'hold the water and move · tap a signal to overhear it'}
+        </div>
       </div>
 
       {ping && <div className="lp-drift-ping" key={ping}>{ping}</div>}
@@ -1769,7 +1785,13 @@ function RelicsScreen() {
     const t = window.setInterval(() => {
       if (Math.random() < 0.5) setHeroListeners(n => n + 1)
     }, 7000)
-    return () => window.clearInterval(t)
+    // real replays and storms move the counter the moment they happen
+    const onLive = (event: Event) => {
+      const detail = (event as CustomEvent<LiveEvent>).detail
+      if (detail?.type === 'replay' || detail?.type === 'storm') setHeroListeners(n => n + 1)
+    }
+    window.addEventListener('ecosphere:live', onLive)
+    return () => { window.clearInterval(t); window.removeEventListener('ecosphere:live', onLive) }
   }, [])
 
   // the shelf hums: a faint leak from somewhere every so often
@@ -2569,6 +2591,9 @@ function FrequenciesScreen() {
     say('your voice sank into the water — someone may drift through it')
   }
 
+  const seaPresence = useLivePresence()
+  const seaCarriers = seaPresence.perPage['frequencies'] ?? 0
+
   // proximity: signals get louder, clearer, bigger as you pass close
   const buoyRefs = useRef<Map<number, HTMLDivElement>>(new Map())
   const lastNearRef = useRef<number | null>(null)
@@ -2701,7 +2726,9 @@ function FrequenciesScreen() {
         <p className="sea-purpose">move through distant voices without entering them. you don't join anything out here — you overhear it, pass through it, let it go.</p>
         <p className="sea-status" key={tideIdx} role="status">
           <i aria-hidden="true" />
-          {tideIdx % 3 === 0 ? `${buoys.length} drifting signals nearby` : SEA_STATUS_LINES[tideIdx % SEA_STATUS_LINES.length]}{night ? ' · night tide' : ''}
+          {seaCarriers > 1 && tideIdx % 2 === 1
+            ? `${seaCarriers - 1} real listener${seaCarriers === 2 ? '' : 's'} floating here with you`
+            : tideIdx % 3 === 0 ? `${buoys.length} drifting signals nearby` : SEA_STATUS_LINES[tideIdx % SEA_STATUS_LINES.length]}{night ? ' · night tide' : ''}
         </p>
       </header>
 
