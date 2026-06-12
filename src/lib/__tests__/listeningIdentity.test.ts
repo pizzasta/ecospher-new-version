@@ -94,3 +94,21 @@ describe('humanized activity', () => {
     }
   })
 })
+
+describe('one thing tonight', () => {
+  const base = { recapAvailable: false, silentDays: null, topReturn: null, personalCapsules: 1, dropLive: false }
+
+  it('prioritizes the recap, then silence, then returns', async () => {
+    const { pickTonightAction } = await import('../listeningIdentity')
+    expect(pickTonightAction({ ...base, recapAvailable: true, silentDays: 5 })).toBe('recap')
+    expect(pickTonightAction({ ...base, silentDays: 3, topReturn: 'x' })).toBe('silence')
+    expect(pickTonightAction({ ...base, topReturn: 'x' })).toBe('return')
+  })
+
+  it('falls through seal and drop to drifting', async () => {
+    const { pickTonightAction } = await import('../listeningIdentity')
+    expect(pickTonightAction({ ...base, personalCapsules: 0 })).toBe('seal')
+    expect(pickTonightAction({ ...base, dropLive: true })).toBe('drop')
+    expect(pickTonightAction(base)).toBe('drift')
+  })
+})

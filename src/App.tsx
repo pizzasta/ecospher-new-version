@@ -2341,7 +2341,7 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
       <div className="screen-header">
         <div className="screen-kicker">SOUL POD</div>
         <h2 className="screen-title">Your Hub</h2>
-        <p className="screen-sub">your signals, saves, recordings, and activity — all in one place</p>
+        <p className="screen-sub">this page doesn't show who you say you are. it shows how you listen.</p>
       </div>
       <ProfileHub onNavigate={screen => onNavigate?.(screen as Screen)} />
       <SignalToSelf accent={podHz?.color ?? '#66ccff'} />
