@@ -193,6 +193,16 @@ function drawFrame(ctx: CanvasRenderingContext2D, opts: StoryExportOptions, bars
   ctx.font = '500 26px "Space Grotesk", system-ui, sans-serif'
   ctx.fillText('transmitted through ecosphere', W / 2, H - 140)
 
+  // artifact timestamp — exports should feel like recovered objects
+  const stamp = new Date()
+  ctx.font = '26px "Space Grotesk", system-ui, sans-serif'
+  ctx.fillStyle = 'rgba(140, 155, 195, 0.55)'
+  ctx.fillText(
+    `recovered ${stamp.toLocaleDateString([], { month: 'short', day: 'numeric' })} · ${stamp.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toLowerCase()}`,
+    W / 2,
+    H - 96,
+  )
+
   // signature glitch: rare single-frame horizontal tear
   if (Math.floor(t * 10) % 47 === 0) {
     const y = (H * 0.3 + (t * 137) % (H * 0.4)) | 0
