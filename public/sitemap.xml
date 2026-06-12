@@ -11,5 +11,7 @@
   <url><loc>https://ecospher-new-version.vercel.app/zones</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://ecospher-new-version.vercel.app/anomalies</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
   <url><loc>https://ecospher-new-version.vercel.app/pod</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://ecospher-new-version.vercel.app/terms.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://ecospher-new-version.vercel.app/privacy.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://ecospher-new-version.vercel.app/observatory-demo/</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
 </urlset>

@@ -11,6 +11,8 @@ import ColorWave from './ColorWave'
 
 const introSeenStorageKey = 'introSeen'
 const ageGateStorageKey = 'ecosphere:ageGate'
+const rulesAcceptedStorageKey = 'ecosphere:rulesAccepted'
+const RULES_VERSION = 'v1'
 const signalIdentityStorageKey = 'signalIdentity'
 const signalProfileStorageKey = 'ecosphereSignalProfile'
 
@@ -316,6 +318,43 @@ function AgeGateStep({ onAdult }: { onAdult: () => void }) {
           >
             i'm under 18
           </button>
+        </div>
+      </section>
+    </main>
+  )
+}
+
+/** The band's rules: community guidelines + legal acceptance, one screen. */
+function RulesStep({ onAccept }: { onAccept: () => void }) {
+  return (
+    <main className="claim-signal-shell rules-shell">
+      <ColorWave />
+      <section className="identity-claim-screen rules-screen" aria-label="Community rules">
+        <div className="identity-claim-copy">
+          <p>BEFORE YOU TUNE IN</p>
+          <h1>the rules of the band.</h1>
+          <span>short, serious, enforced automatically.</span>
+        </div>
+        <ul className="rules-list">
+          <li><b>everyone here is anonymous.</b> keep it that way — no real names, no contact info, yours or anyone else's.</li>
+          <li><b>18+ only.</b> anything involving minors is removed automatically and instantly.</li>
+          <li><b>no harassment, threats, or sexual content</b> on the public band. an automated guardian screens everything public — no humans read your signals, and there's no appeals desk.</li>
+          <li><b>what you record is yours.</b> private by default. delete everything, any time, in settings.</li>
+          <li><b>this is not a crisis service.</b> if you or someone else is in danger, call your local emergency number.</li>
+        </ul>
+        <div className="rules-actions">
+          <button
+            type="button"
+            className="identity-enter-button"
+            onClick={() => { safeStorageSet(rulesAcceptedStorageKey, RULES_VERSION); onAccept() }}
+          >
+            I AGREE — TUNE ME IN
+          </button>
+          <p className="rules-legal">
+            by entering you accept the{' '}
+            <a href="/terms.html" target="_blank" rel="noreferrer">terms</a> and{' '}
+            <a href="/privacy.html" target="_blank" rel="noreferrer">privacy</a> notes.
+          </p>
         </div>
       </section>
     </main>
@@ -672,6 +711,7 @@ function EcosystemLoopBridge() {
 
 export default function IntroGate({ children }: { children: ReactNode }) {
   const [isAdult, setIsAdult] = useState(() => safeStorageGet(ageGateStorageKey) === 'adult')
+  const [rulesAccepted, setRulesAccepted] = useState(() => safeStorageGet(rulesAcceptedStorageKey) === RULES_VERSION)
   const [landingEntered, setLandingEntered] = useState(false)
   const [introSeen, setIntroSeen] = useState(() => safeStorageGet(introSeenStorageKey) === 'true')
   const [signalIdentity, setSignalIdentity] = useState(() => safeStorageGet(signalIdentityStorageKey) ?? '')
@@ -717,11 +757,17 @@ export default function IntroGate({ children }: { children: ReactNode }) {
     safeStorageRemove(signalProfileStorageKey)
     safeStorageRemove(firstSignalStorageKey)
     safeStorageRemove(ageGateStorageKey)
+    safeStorageRemove(rulesAcceptedStorageKey)
+    try { window.localStorage.removeItem('ecosphere:tourDone') } catch { /* storage unavailable */ }
     window.location.reload()
   }
 
   if (!isAdult) {
     return <AgeGateStep onAdult={() => setIsAdult(true)} />
+  }
+
+  if (!rulesAccepted) {
+    return <RulesStep onAccept={() => setRulesAccepted(true)} />
   }
 
   if (!introSeen && !landingEntered) {
