@@ -9371,3 +9371,26 @@ html, body, #root {
 .feed-screen--ambient .feed-particle-canvas {
   opacity: 0.95;
 }
+
+/* ─── View mode: pinned mobile layout = a centered phone frame ─────────────── */
+body[data-eco-view='mobile'] #root {
+  max-width: 480px;
+  margin: 0 auto;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 0 80px rgba(0, 0, 0, 0.6);
+}
+
+body[data-eco-view='mobile'] .bottom-nav {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+}
+
+body[data-eco-view='mobile'] .bottom-nav-new,
+body[data-eco-view='mobile'] .floating-mini-player {
+  max-width: 448px;
+}
+
+body[data-eco-view='mobile'] .ph-board { columns: 1; }
+body[data-eco-view='mobile'] .helpbot-panel { width: min(440px, 96vw); }
