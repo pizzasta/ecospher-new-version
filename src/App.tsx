@@ -35,6 +35,7 @@ import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 import { enablePushNotifications } from './lib/pushNotifications'
 import { SCREEN_PATHS, screenForPath } from './lib/routes'
 import { anonymousMode } from './lib/anonymity'
+import { ensureProfileAfterAuth, signInWithGoogle } from './lib/googleAuth'
 import { moderatePublicSignalText } from './lib/signalModeration'
 
 const FeedScreen = lazy(() => import('./FeedScreen'))
@@ -2892,6 +2893,7 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
   const [password, setPassword] = useState('')
   const [signalName, setSignalName] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleBusy, setGoogleBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const { ecosystemState, toggleLibraryFavorite, unsaveFromLibrary } = useEcosystemState()
@@ -2951,6 +2953,27 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
         </div>
         <div className="glass pod-auth">
           <div className="pod-auth-visualizer" aria-hidden="true"><span /><span /><span /></div>
+          <button
+            type="button"
+            className="pod-google-btn"
+            disabled={googleBusy}
+            onClick={() => {
+              setGoogleBusy(true)
+              setError(null)
+              void signInWithGoogle().then(result => {
+                if (!result.ok) {
+                  setGoogleBusy(false)
+                  setError(result.error)
+                }
+                // on success the browser is leaving for google — keep the busy state
+              })
+            }}
+          >
+            <span className="pod-google-mark" aria-hidden="true">G</span>
+            {googleBusy ? 'opening google…' : 'Continue with Google'}
+          </button>
+          <p className="pod-google-note">your google email stays private — the band only ever sees your signal name.</p>
+          <div className="pod-auth-divider" aria-hidden="true"><i />or<i /></div>
           <div className="pod-auth-tabs">
             {(['login', 'signup'] as const).map(mode => (
               <button
@@ -3299,6 +3322,16 @@ export function SettingsScreen() {
   const [confirmWipe, setConfirmWipe] = useState(false)
   const [pushBusy, setPushBusy] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  // signed-in (non-anonymous) session: email shown only HERE, never publicly
+  const [sessionInfo, setSessionInfo] = useState<string | null>(null)
+  useEffect(() => {
+    const client = getOptionalSupabaseClient()
+    if (!client) return
+    void client.auth.getUser().then(({ data }) => {
+      const u = data.user
+      if (u && !u.is_anonymous) setSessionInfo(u.email ?? 'signed in')
+    }).catch(() => { /* local-only */ })
+  }, [])
 
   // broadcast preference changes so global systems (audio volume,
   // night protocol, motion intensity) pick them up immediately
@@ -3549,6 +3582,25 @@ export function SettingsScreen() {
           <input type="range" min={0} max={100} value={prefs.driftSensitivity} onChange={e => update({ driftSensitivity: +e.target.value })} className="range-input" />
         </div>
 
+        {sessionInfo && (
+          <div className="setting-row glass">
+            <div className="setting-info">
+              <div className="setting-label">{tr('settings.session')}</div>
+              <div className="setting-detail">{sessionInfo} — {tr('settings.session.detail')}</div>
+            </div>
+            <button
+              type="button"
+              className="setting-action"
+              onClick={() => {
+                const client = getOptionalSupabaseClient()
+                if (!client) return
+                void client.auth.signOut().then(() => window.location.reload())
+              }}
+            >
+              {tr('settings.session.action')}
+            </button>
+          </div>
+        )}
         <div className="setting-row glass">
           <div className="setting-info">
             <div className="setting-label">{tr('settings.help')}</div>
@@ -3698,16 +3750,42 @@ export default function App() {
     }
   }, [])
 
+  // google/oauth sign-in: busy + error surfaces for the whole flow
+  const [authBusy, setAuthBusy] = useState<string | null>(null)
+  const [authError, setAuthError] = useState<string | null>(null)
+
   useEffect(() => {
     const supabase = getOptionalSupabaseClient()
     if (!supabase) return
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user) setUser({ id: data.session.user.id, email: data.session.user.email })
     })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ? { id: session.user.id, email: session.user.email } : null)
+      // a real (non-anonymous) sign-in just landed — build the hub, then route
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user && !session.user.is_anonymous) {
+        const userId = session.user.id
+        window.setTimeout(() => {
+          setAuthBusy('signed in — connecting your hub…')
+          void ensureProfileAfterAuth(userId).then(result => {
+            setAuthBusy(null)
+            if (result.status === 'failed') {
+              setAuthError('signed in, but your hub could not be created — it will retry next visit')
+              window.setTimeout(() => setAuthError(null), 7000)
+              return
+            }
+            if (result.status === 'needs-claim') {
+              // brand-new signal on a fresh device: the claim screen takes over
+              window.location.reload()
+              return
+            }
+            if (window.location.pathname !== SCREEN_PATHS.pod) navigate('pod')
+          })
+        }, 0)
+      }
     })
     return () => subscription.unsubscribe()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleSignOut = async () => {
@@ -3744,6 +3822,13 @@ export default function App() {
       <EcosphereAmbience />
 
       <NotificationBell />
+      {authBusy && (
+        <div className="auth-veil" role="status">
+          <span className="auth-veil-spinner" aria-hidden="true" />
+          {authBusy}
+        </div>
+      )}
+      {authError && <div className="auth-veil auth-veil--error" role="alert">{authError}</div>}
 
       {tourOpen && <FirstTour onDone={finishTour} />}
 
