@@ -121,6 +121,36 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   const returns = useMemo(() => topReturns(ecosystemState.listeningHistory), [ecosystemState.listeningHistory])
   const maxReturnCount = Math.max(2, ...returns.map(r => r.count))
 
+  // identity readout: pattern, hours, tendency — derived, never asked
+  const listeningPattern = useMemo(() => {
+    const plays = ecosystemState.listeningHistory.length
+    if (plays === 0) return 'still forming'
+    const unique = new Set(ecosystemState.listeningHistory.map(l => l.label ?? l.id)).size
+    return plays / Math.max(1, unique) >= 1.8 ? 'loops more than it explores' : 'explores more than it loops'
+  }, [ecosystemState.listeningHistory])
+  const activeHoursLabel = useMemo(() => {
+    const hours = ecosystemState.listeningHistory.map(l => new Date(l.playedAt).getHours())
+    if (hours.length === 0) return 'unmapped'
+    const buckets: Array<[string, (h: number) => boolean]> = [
+      ['deep night · 12–5am', h => h < 5],
+      ['late evening · 9pm–12', h => h >= 21],
+      ['evening · 6–9pm', h => h >= 18 && h < 21],
+      ['daylight hours', h => h >= 5 && h < 18],
+    ]
+    let best = buckets[0][0]
+    let bestCount = -1
+    for (const [label, test] of buckets) {
+      const count = hours.filter(test).length
+      if (count > bestCount) { best = label; bestCount = count }
+    }
+    return best
+  }, [ecosystemState.listeningHistory])
+  const replayTendency = useMemo(() => {
+    if (returns.length === 0) return 'no anchors yet'
+    const top = returns[0]
+    return `returns to the same voice · ${top.count}× and counting`
+  }, [returns])
+
   // visitor static: anonymous grains left by everyone who passed through (24h)
   const [grains, setGrains] = useState<Grain[]>([])
   useEffect(() => {
@@ -386,13 +416,23 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
           </div>
         ),
     tonight: (
-        <div className="ph-card glass">
+        <div className="ph-card glass ph-recap">
           <div className="ph-card-head">
-            <span className="ph-card-kicker">TONIGHT</span>
+            <span className="ph-card-kicker">TONIGHT'S RECAP</span>
+            <span className="ph-card-count">watched, kindly</span>
           </div>
-          <ul className="ph-tonight">
-            {tonight.map(line => <li key={line}>{line}</li>)}
-          </ul>
+          <div className="ph-recap-cards">
+            {tonight.map((line, i) => (
+              <div key={line} className="ph-recap-card" style={{ '--recap-idx': i } as CSSProperties}>
+                <span className="ph-recap-wave" aria-hidden="true">
+                  {Array.from({ length: 9 }, (_, b) => (
+                    <b key={b} style={{ '--rw-h': `${25 + ((line.length * (b + 3) * 13) % 65)}%`, '--rw-d': `${(b % 5) * 0.14}s` } as CSSProperties} />
+                  ))}
+                </span>
+                {line}
+              </div>
+            ))}
+          </div>
           {memories.length > 0 && (
             <div className="ph-memory">
               {memories.map(line => <p key={line}>{line}</p>)}
@@ -417,14 +457,26 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
             <span className="ph-card-count">7 days</span>
           </div>
           {history.length === 0 && <p className="ph-empty">nothing replayed this week. the band waits.</p>}
-          <ul className="ph-history">
-            {history.map(entry => (
-              <li key={entry.id}>
-                <span className="ph-history-label">{entry.label}</span>
-                <span className="ph-history-date">{new Date(entry.playedAt).toLocaleDateString([], { weekday: 'short' })}</span>
-                <button type="button" onClick={() => relisten(entry)}>↻ relisten</button>
-              </li>
-            ))}
+          <ul className="ph-history ph-history--memories">
+            {history.map((entry, i) => {
+              const playCount = ecosystemState.listeningHistory.filter(l => (l.label ?? l.id) === (entry.label ?? entry.id)).length
+              const ageHours = (Date.now() - new Date(entry.playedAt).getTime()) / 3600000
+              const trace = playCount > 2 ? 'returned again' : ageHours < 6 ? 'still resonating' : ageHours < 48 ? 'faded gently' : 'almost archived'
+              const seed = (entry.label ?? entry.id).split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 3)
+              return (
+                <li key={entry.id} style={{ '--mem-idx': i } as CSSProperties}>
+                  <span className="ph-mem-wave" aria-hidden="true">
+                    {Array.from({ length: 11 }, (_, b) => (
+                      <b key={b} style={{ height: `${20 + ((seed * (b + 2) * 17) % 70)}%` }} />
+                    ))}
+                  </span>
+                  <span className="ph-history-label">{entry.label}</span>
+                  <span className="ph-mem-trace">{trace}{playCount > 1 ? ` · ${playCount}×` : ''}</span>
+                  <span className="ph-history-date">{new Date(entry.playedAt).toLocaleDateString([], { weekday: 'short' })}</span>
+                  <button type="button" onClick={() => relisten(entry)}>↻ relisten</button>
+                </li>
+              )
+            })}
           </ul>
         </div>
     ),
@@ -448,7 +500,9 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
                   >
                     <span className="ph-cassette-spools" aria-hidden="true"><i /><i /></span>
                     <span className="ph-cassette-label">{item.label}</span>
-                    <span className="ph-cassette-count">{item.count}× returned</span>
+                    <span className="ph-cassette-count">
+                      {item.count >= 5 ? `you came back to this ${item.count} times` : item.count >= 3 ? `still replaying after days · ${item.count}×` : 'you never archived this one'}
+                    </span>
                     <span className="ph-cassette-wear" aria-hidden="true" />
                   </button>
                 )
@@ -580,8 +634,8 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
             <span className="ph-card-kicker">TUNING</span>
           </div>
           <div className="ph-settings-links">
-            <button type="button" onClick={() => setHzSettingsOpen(true)}>✦ change signature color</button>
-            <button type="button" onClick={() => setGradientOpen(true)}>◰ background colors &amp; design</button>
+            <button type="button" onClick={() => setHzSettingsOpen(true)}>✦ shift signal colors</button>
+            <button type="button" onClick={() => setGradientOpen(true)}>◰ tune your atmosphere</button>
             <button type="button" onClick={() => setSigilOpen(open => !open)}>◈ choose your sigil — no photos here, ever</button>
           </div>
           {sigilOpen && (
@@ -603,9 +657,9 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
             </div>
           )}
           <div className="ph-settings-links">
-            <button type="button" onClick={() => onNavigate?.('settings')}>profile visibility</button>
-            <button type="button" onClick={() => onNavigate?.('settings')}>lurker mode</button>
-            <button type="button" onClick={() => onNavigate?.('settings')}>erase account data</button>
+            <button type="button" onClick={() => onNavigate?.('settings')}>◌ lower your signal visibility</button>
+            <button type="button" onClick={() => onNavigate?.('settings')}>⬡ drift invisibly</button>
+            <button type="button" onClick={() => onNavigate?.('settings')}>✕ disappear from the band</button>
           </div>
         </div>
     ),
@@ -713,17 +767,30 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
           </div>
         </div>
         <div className="ph-identity">
+          <span className="ph-identity-kicker">YOUR SIGNAL IDENTITY</span>
           <div className="ph-atmosphere" role="status">
             <i aria-hidden="true" />
             {atmosphere}
           </div>
           {traits.length > 0 ? (
             <ul className="ph-traits">
-              {traits.map(trait => <li key={trait}>{trait}</li>)}
+              {traits.map(trait => (
+                <li key={trait}>
+                  <span className="ph-trait-wave" aria-hidden="true"><b /><b /><b /><b /></span>
+                  {trait}
+                </li>
+              ))}
             </ul>
           ) : (
             <p className="ph-empty">the ecosystem is still learning how you listen.</p>
           )}
+          <dl className="ph-identity-readout">
+            <div><dt>signature frequency</dt><dd>{hzProfile.hz.toFixed(1)} Hz · {hzProfile.displayName}</dd></div>
+            <div><dt>emotional weather</dt><dd>{atmosphere}</dd></div>
+            <div><dt>listening pattern</dt><dd>{listeningPattern}</dd></div>
+            <div><dt>active hours</dt><dd>{activeHoursLabel}</dd></div>
+            <div><dt>replay tendency</dt><dd>{replayTendency}</dd></div>
+          </dl>
         </div>
       </div>
 

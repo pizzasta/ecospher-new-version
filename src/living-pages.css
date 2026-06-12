@@ -2141,3 +2141,457 @@
   font-size: 11px;
   color: rgba(180, 168, 205, 0.55);
 }
+
+/* ═══ RELICS REDESIGN — the living cassette archive ══════════ */
+
+/* live system activity drifting in */
+.relic-live-event {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 45, 120, 0.3);
+  background: rgba(6, 8, 20, 0.92);
+  backdrop-filter: blur(12px);
+  color: rgba(255, 200, 222, 0.9);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  max-width: 92vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: relicEventIn 0.5s ease both, relicEventOut 0.7s ease 6.2s both;
+}
+
+.relic-live-event i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff2d78;
+  box-shadow: 0 0 9px rgba(255, 45, 120, 0.8);
+  animation: capsClockTick 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes relicEventIn { from { opacity: 0; transform: translateX(-50%) translateY(-8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+@keyframes relicEventOut { to { opacity: 0; } }
+
+/* ── hero relic ─────────────────────────────────────────────── */
+.relic-hero {
+  position: relative;
+  margin-bottom: 20px;
+  padding: 24px 18px 20px;
+  border-radius: 18px;
+  overflow: hidden;
+  text-align: center;
+  border: 1px solid rgba(255, 45, 120, 0.22);
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(50, 18, 50, 0.55), transparent 70%),
+    linear-gradient(180deg, rgba(14, 10, 26, 0.92), rgba(7, 6, 16, 0.96));
+}
+
+.relic-hero-atmo span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(34px);
+  opacity: 0.4;
+}
+
+.relic-hero-atmo span:nth-child(1) { width: 200px; height: 140px; left: -5%; top: 20%; background: rgba(255, 45, 120, 0.2); animation: ppFogDrift 18s ease-in-out infinite alternate; }
+.relic-hero-atmo span:nth-child(2) { width: 180px; height: 120px; right: -4%; top: 50%; background: rgba(0, 212, 255, 0.14); animation: ppFogDrift 24s ease-in-out infinite alternate-reverse; }
+.relic-hero-atmo span:nth-child(3) { width: 160px; height: 110px; left: 40%; bottom: -10%; background: rgba(155, 93, 229, 0.16); animation: ppFogDrift 29s ease-in-out infinite alternate; }
+
+.relic-hero-kicker {
+  position: relative;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.26em;
+  color: rgba(255, 150, 190, 0.75);
+  margin-bottom: 14px;
+}
+
+/* the big tape */
+.relic-hero-tape {
+  position: relative;
+  width: min(340px, 86%);
+  margin: 0 auto 14px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(30, 24, 46, 0.9), rgba(14, 11, 26, 0.95));
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.55),
+    0 0 34px rgba(255, 45, 120, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.rht-reel {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: radial-gradient(circle, rgba(8, 7, 16, 0.9) 38%, rgba(40, 34, 60, 0.8));
+}
+
+.rht-reel i {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255, 255, 255, 0.22) 0 8deg, transparent 8deg 60deg);
+  animation: capsOrbit 5.5s linear infinite;
+}
+
+.rht-reel-b i { animation-duration: 7s; }
+.relic-hero-tape.playing .rht-reel i { animation-duration: 1.6s; }
+
+.rht-window {
+  flex: 1;
+  height: 44px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(4, 4, 10, 0.6);
+  padding: 5px 8px;
+}
+
+.rht-window b {
+  width: 3px;
+  border-radius: 2px;
+  height: var(--rht-h, 50%);
+  background: linear-gradient(180deg, #ff2d78, rgba(0, 212, 255, 0.85));
+  opacity: 0.8;
+  animation: phTraitWave 1.9s ease-in-out infinite;
+  animation-delay: var(--rht-d, 0s);
+  transform-origin: bottom;
+}
+
+.rht-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 38%, rgba(255, 255, 255, 0.07) 50%, transparent 62%);
+  background-size: 240% 100%;
+  animation: phRecapSheen 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.relic-hero-title {
+  position: relative;
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  color: var(--text-primary, #f0f4ff);
+  text-shadow: 0 0 22px rgba(255, 45, 120, 0.3);
+}
+
+.relic-hero-quote {
+  position: relative;
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-style: italic;
+  color: rgba(220, 228, 250, 0.8);
+}
+
+.relic-hero-stats {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 7px 18px;
+  margin-bottom: 10px;
+  font-size: 11px;
+  color: rgba(180, 190, 220, 0.65);
+}
+
+.relic-hero-stats strong {
+  color: #9ae8ff;
+  font-variant-numeric: tabular-nums;
+}
+
+.relic-hero-why {
+  position: relative;
+  margin: 0 auto 12px;
+  max-width: 460px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(255, 190, 215, 0.7);
+}
+
+.relic-hero-reactions {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.relic-hero-rx {
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: rgba(200, 212, 240, 0.75);
+}
+
+/* drifting replay comments */
+.relic-hero-comments {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.rh-comment {
+  position: absolute;
+  font-size: 10px;
+  font-style: italic;
+  color: rgba(170, 185, 220, 0.4);
+  white-space: nowrap;
+  animation: rhCommentDrift linear infinite;
+}
+
+.rh-comment-0 { top: 24%; animation-duration: 26s; }
+.rh-comment-1 { top: 62%; animation-duration: 34s; animation-delay: -14s; }
+
+@keyframes rhCommentDrift {
+  from { left: 102%; }
+  to { left: -60%; }
+}
+
+.relic-hero-actions {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rh-btn {
+  padding: 9px 14px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(215, 224, 245, 0.85);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease;
+}
+
+.rh-btn:hover { border-color: rgba(0, 212, 255, 0.4); box-shadow: 0 0 14px rgba(0, 212, 255, 0.15); }
+.rh-btn:active { transform: scale(0.97); }
+
+.rh-btn--play {
+  border-color: rgba(255, 45, 120, 0.5);
+  background: rgba(255, 45, 120, 0.12);
+  color: #ffd3e2;
+  font-weight: 700;
+}
+
+.rh-btn--storm { border-color: rgba(155, 93, 229, 0.45); color: #d9c2ff; }
+
+/* the storm: everyone on the same ten seconds */
+.relic-hero--storm { animation: relicStormShake 0.5s ease-in-out 3; }
+
+@keyframes relicStormShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1.5px); }
+  75% { transform: translateX(1.5px); }
+}
+
+.relic-storm span {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  width: 60px;
+  height: 60px;
+  margin: -30px 0 0 -30px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 45, 120, 0.6);
+  animation: relicStormRing 1.8s ease-out infinite;
+}
+
+.relic-storm span:nth-child(2) { animation-delay: 0.35s; border-color: rgba(0, 212, 255, 0.5); }
+.relic-storm span:nth-child(3) { animation-delay: 0.7s; }
+.relic-storm span:nth-child(4) { animation-delay: 1.05s; border-color: rgba(155, 93, 229, 0.5); }
+.relic-storm span:nth-child(5) { animation-delay: 1.4s; }
+
+@keyframes relicStormRing {
+  from { transform: scale(0.4); opacity: 0.9; }
+  to { transform: scale(5); opacity: 0; }
+}
+
+/* ── relics of tonight ──────────────────────────────────────── */
+.relic-tonight { margin-bottom: 22px; }
+
+.relic-tonight-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.relic-forming {
+  position: relative;
+  overflow: hidden;
+  padding: 14px;
+  border-radius: 13px;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  background: rgba(6, 12, 26, 0.8);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: relicFormingPulse 1.7s ease-in-out infinite, lpEnter 0.5s ease both;
+  animation-delay: calc(var(--form-idx, 0) * 0.3s), calc(var(--form-idx, 0) * 100ms);
+}
+
+@keyframes relicFormingPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(0, 212, 255, 0); border-color: rgba(0, 212, 255, 0.3); }
+  50% { box-shadow: 0 0 22px rgba(0, 212, 255, 0.25); border-color: rgba(0, 212, 255, 0.6); }
+}
+
+.relic-forming strong {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: rgba(235, 242, 255, 0.95);
+  line-height: 1.45;
+}
+
+.relic-forming em {
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: #7ff0b0;
+}
+
+.relic-forming-pulse {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #00d4ff;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.9);
+  animation: capsClockTick 0.9s ease-in-out infinite;
+}
+
+/* ── cards: scattered, not gridded ──────────────────────────── */
+.relics-grid .relic-card:nth-child(2n) { transform: rotate(0.5deg) translateY(3px); }
+.relics-grid .relic-card:nth-child(3n) { transform: rotate(-0.5deg) translateY(-2px); }
+.relics-grid .relic-card:hover { transform: rotate(0deg) translateY(-4px); z-index: 2; }
+
+.relic-stayquote {
+  font-size: 10.5px;
+  font-style: italic;
+  color: rgba(190, 200, 235, 0.6);
+  margin-top: 3px;
+}
+
+/* ── trace the relic ────────────────────────────────────────── */
+.relic-trace-toggle {
+  margin-top: 12px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 212, 255, 0.4);
+  background: rgba(0, 212, 255, 0.07);
+  color: #9ae8ff;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.relic-trace-panel {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 212, 255, 0.18);
+  background: rgba(4, 9, 22, 0.75);
+  animation: lpEnter 0.4s ease both;
+}
+
+.rt-map {
+  position: relative;
+  height: 88px;
+  margin-bottom: 10px;
+}
+
+.rt-map svg { width: 100%; height: 100%; }
+
+.rt-path {
+  fill: none;
+  stroke: rgba(0, 212, 255, 0.55);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 5;
+  filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.5));
+  animation: rtPathFlow 3s linear infinite;
+}
+
+@keyframes rtPathFlow { to { stroke-dashoffset: -22; } }
+
+.rt-node { fill: #ff2d78; filter: drop-shadow(0 0 5px rgba(255, 45, 120, 0.8)); }
+.rt-node--b { fill: #9b5de9; }
+.rt-node--c { fill: #00d4ff; filter: drop-shadow(0 0 5px rgba(0, 212, 255, 0.8)); }
+
+.rt-orb {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.9);
+  animation: rtOrbTravel 4.5s ease-in-out infinite;
+}
+
+.rt-orb-a { top: 70%; left: 6%; }
+.rt-orb-b { top: 30%; left: 50%; animation-delay: -2.2s; }
+
+@keyframes rtOrbTravel {
+  0% { transform: translate(0, 0); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 0.8; }
+  100% { transform: translate(120px, -28px); opacity: 0; }
+}
+
+.rt-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: rgba(200, 212, 240, 0.7);
+}
+
+.rt-log b { color: #9ae8ff; font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) {
+  .relic-hero-atmo span, .rht-reel i, .rht-window b, .rht-shimmer,
+  .rh-comment, .relic-storm span, .relic-forming, .relic-forming-pulse,
+  .rt-path, .rt-orb, .relic-live-event i { animation: none; }
+  .relic-forming { animation: none; }
+  .relic-hero--storm { animation: none; }
+  .relics-grid .relic-card:nth-child(2n), .relics-grid .relic-card:nth-child(3n) { transform: none; }
+}

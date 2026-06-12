@@ -416,3 +416,46 @@ export function playImprintSound(kind: ImprintKind) {
       break
   }
 }
+
+// ─── Signal chains: many layers at once, imperfections kept ──────────────────
+
+export type ChainLayerSource =
+  | { kind: SampleKind; seed: number; durationMs: number; volume?: number; delayMs?: number }
+  | { blob: Blob; volume?: number; delayMs?: number }
+
+let chainSources: AudioBufferSourceNode[] = []
+
+export function stopChainPlayback() {
+  chainSources.forEach(src => { try { src.stop() } catch { /* already done */ } })
+  chainSources = []
+}
+
+/**
+ * Blend several layers into one playback — staggered starts, uneven volumes,
+ * nothing quantized. Real recorded blobs and rendered textures mix together.
+ */
+export async function playChainBlend(layers: ChainLayerSource[]): Promise<boolean> {
+  const ctx = getSharedAudioContext()
+  if (!ctx || ctx.state !== 'running') return false
+  stopChainPlayback()
+  let started = false
+  for (const layer of layers) {
+    try {
+      const blob = 'blob' in layer
+        ? layer.blob
+        : await renderSampleAudio(layer.kind, layer.seed, layer.durationMs)
+      if (!blob) continue
+      const buffer = await ctx.decodeAudioData(await blob.arrayBuffer())
+      const src = ctx.createBufferSource()
+      src.buffer = buffer
+      const gain = ctx.createGain()
+      gain.gain.value = layer.volume ?? 0.2
+      src.connect(gain)
+      gain.connect(ctx.destination)
+      src.start(ctx.currentTime + (layer.delayMs ?? 0) / 1000)
+      chainSources.push(src)
+      started = true
+    } catch { /* a layer failing never silences the chain */ }
+  }
+  return started
+}

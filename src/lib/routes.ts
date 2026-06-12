@@ -5,6 +5,7 @@
 export type ScreenRoute =
   | 'home' | 'signals' | 'drift' | 'rooms' | 'unsent' | 'capsules'
   | 'relics' | 'pod' | 'zones' | 'frequencies' | 'anomalies' | 'settings'
+  | 'chains'
 
 export const SCREEN_PATHS: Record<ScreenRoute, string> = {
   home: '/',
@@ -19,6 +20,7 @@ export const SCREEN_PATHS: Record<ScreenRoute, string> = {
   frequencies: '/frequencies',
   anomalies: '/anomalies',
   settings: '/settings',
+  chains: '/chains',
 }
 
 const PATH_TO_SCREEN: Record<string, ScreenRoute> = Object.fromEntries(
