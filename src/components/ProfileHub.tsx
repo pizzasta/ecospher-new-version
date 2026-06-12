@@ -8,10 +8,12 @@ import type { StoredRecording } from '../lib/localAudioStore'
 import { getListenCounts, getProfile } from '../lib'
 import { isSupabaseConfigured } from '../lib/supabase-env'
 import { getHzProfile, getLocalHzProfile } from '../lib/hzSignature'
+import { useEcoPref } from '../hooks/useEcoPrefs'
 import type { HzProfile } from '../lib/hzSignature'
 import AudioPlayer from './AudioPlayer'
 import AudioRecorder from './AudioRecorder'
 import ColorWave from './ColorWave'
+import ProfileScene from './ProfileScene'
 import HzBadge from './HzBadge'
 import HzSettingsModal from './HzSettingsModal'
 import FrequencyGradientModal from './FrequencyGradientModal'
@@ -52,6 +54,7 @@ export function readTunedTo(): string[] {
 export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: string) => void }) {
   const { ecosystemState } = useEcosystemState()
   const globalAudio = useGlobalAudio()
+  const privateProfile = useEcoPref('privateProfile', false)
 
   // ── header data ──
   const username = ecosystemState.userSignalIdentity ?? 'unclaimed frequency'
@@ -101,6 +104,30 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   const [grains, setGrains] = useState<Grain[]>([])
   useEffect(() => {
     void visitorGrainCount().then(count => setGrains(grainPositions(count, daySeed())))
+  }, [])
+
+  // live presence: while you watch your page, visitors drift through —
+  // a comet crosses, a status line names them (anonymously), then it fades
+  const [liveVisitor, setLiveVisitor] = useState<{ id: number; tag: string } | null>(null)
+  useEffect(() => {
+    const TAGS = ['a night listener', 'someone from the band', 'a passing carrier', 'an unnamed frequency', 'someone who keeps coming back']
+    let alive = true
+    let timer = 0
+    let fadeTimer = 0
+    const visit = () => {
+      if (!alive) return
+      setLiveVisitor({ id: Date.now(), tag: TAGS[Math.floor(Math.random() * TAGS.length)] })
+      // every live visit also thickens the static a touch
+      setGrains(prev => (prev.length < 40 ? [...prev, ...grainPositions(1, Date.now() % 100000)] : prev))
+      fadeTimer = window.setTimeout(() => { if (alive) setLiveVisitor(null) }, 9000)
+      timer = window.setTimeout(visit, 35000 + Math.random() * 55000)
+    }
+    timer = window.setTimeout(visit, 9000 + Math.random() * 9000)
+    return () => {
+      alive = false
+      window.clearTimeout(timer)
+      window.clearTimeout(fadeTimer)
+    }
   }, [])
   const recoveredFragments = useMemo(() => {
     try { return (JSON.parse(window.localStorage.getItem('ecosphere:zoneFragments') ?? '[]') as unknown[]).length } catch { return 0 }
@@ -203,17 +230,34 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
 
   return (
     <section className="profile-hub" aria-label="Profile hub">
+      {privateProfile && (
+        <div className="ph-private-chip">
+          ⬡ hidden from the band — only you can see this page right now
+        </div>
+      )}
       <div
         className="ph-gradient-layer"
         aria-hidden="true"
-        style={gradient.style === 'wave'
-          ? { background: '#06080f' }
-          : { background: `linear-gradient(${Math.round(gradientAngle)}deg, ${gradientStart}, ${gradientEnd})` }}
+        style={gradient.style === 'gradient'
+          ? { background: `linear-gradient(${Math.round(gradientAngle)}deg, ${gradientStart}, ${gradientEnd})` }
+          : { background: '#06080f' }}
       >
         {gradient.style === 'wave' && (
           <ColorWave variant="local" colors={[gradientStart, gradientEnd, hzProfile.color]} />
         )}
+        {(gradient.style === 'grid' || gradient.style === 'stars' || gradient.style === 'tunnel') && (
+          <ProfileScene design={gradient.style} colors={[gradientStart, gradientEnd, hzProfile.color]} />
+        )}
       </div>
+      {liveVisitor && (
+        <>
+          <span className="ph-live-comet" aria-hidden="true" style={{ '--comet-color': hzProfile.color } as CSSProperties} />
+          <div className="ph-live-visitor" role="status">
+            <i aria-hidden="true" />
+            {liveVisitor.tag} is on your page right now
+          </div>
+        </>
+      )}
       {grains.length > 0 && (
         <div
           className="ph-visitor-static"

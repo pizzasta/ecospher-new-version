@@ -5,7 +5,16 @@ import { getOptionalSupabaseClient } from './supabase'
 import { ensureBackendSession } from './session'
 import { isSupabaseConfigured } from './supabase-env'
 
-export type GradientStyle = 'gradient' | 'wave'
+export type GradientStyle = 'gradient' | 'wave' | 'grid' | 'stars' | 'tunnel'
+
+/** Every background design the hub offers, in display order. */
+export const GRADIENT_STYLES: Array<{ value: GradientStyle; label: string }> = [
+  { value: 'gradient', label: 'gradient' },
+  { value: 'wave', label: 'color wave' },
+  { value: 'grid', label: '3d grid' },
+  { value: 'stars', label: 'starfield' },
+  { value: 'tunnel', label: 'wormhole' },
+]
 
 export type GradientSettings = {
   locked: boolean
@@ -14,7 +23,7 @@ export type GradientSettings = {
   angle: number | null
   /** seconds per full rotation; 0 = drift off */
   speed: number
-  /** 'gradient' = rotating linear; 'wave' = flowing blurred blobs */
+  /** 'gradient' = rotating linear; 'wave' = flowing blobs; 'grid'/'stars'/'tunnel' = 3d scenes */
   style: GradientStyle
 }
 
@@ -57,7 +66,7 @@ export function validateGradientSettings(settings: GradientSettings): string | n
   }
   if (settings.angle != null && (settings.angle < 0 || settings.angle > 360)) return 'angle must be 0-360'
   if (!GRADIENT_SPEEDS.some(s => s.value === settings.speed)) return 'invalid drift speed'
-  if (settings.style !== 'gradient' && settings.style !== 'wave') return 'invalid design'
+  if (!GRADIENT_STYLES.some(s => s.value === settings.style)) return 'invalid design'
   return null
 }
 
@@ -126,7 +135,7 @@ export async function loadGradientSettings(): Promise<GradientSettings> {
             colorEnd: remote.color_end ?? null,
             angle: remote.angle ?? null,
             speed: typeof remote.speed === 'number' ? remote.speed : 60,
-            style: remote.style === 'wave' ? 'wave' : 'gradient',
+            style: GRADIENT_STYLES.some(s => s.value === remote.style) ? remote.style as GradientStyle : 'gradient',
           }
           try { window.localStorage.setItem(GRADIENT_KEY, JSON.stringify(settings)) } catch { /* session only */ }
           return settings

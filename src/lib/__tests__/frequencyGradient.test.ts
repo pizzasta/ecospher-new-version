@@ -30,9 +30,12 @@ describe('gradient settings validation', () => {
     expect(validateGradientSettings({ ...DEFAULT_GRADIENT, locked: true, colorStart: '#112233', colorEnd: '#445566' })).toBeNull()
   })
 
-  it('accepts both designs and rejects unknown ones', () => {
+  it('accepts every design and rejects unknown ones', () => {
     expect(validateGradientSettings({ ...DEFAULT_GRADIENT, style: 'wave' })).toBeNull()
     expect(validateGradientSettings({ ...DEFAULT_GRADIENT, style: 'gradient' })).toBeNull()
+    expect(validateGradientSettings({ ...DEFAULT_GRADIENT, style: 'grid' })).toBeNull()
+    expect(validateGradientSettings({ ...DEFAULT_GRADIENT, style: 'stars' })).toBeNull()
+    expect(validateGradientSettings({ ...DEFAULT_GRADIENT, style: 'tunnel' })).toBeNull()
     // @ts-expect-error runtime guard for values from storage
     expect(validateGradientSettings({ ...DEFAULT_GRADIENT, style: 'plasma' })).toMatch(/design/)
   })

@@ -71,6 +71,18 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
     setActiveAudio(null)
   }, [setActiveAudio, teardown])
 
+  // the settings volume slider applies to whatever is playing right now
+  useEffect(() => {
+    const onPrefs = (event: Event) => {
+      const v = Number((event as CustomEvent<{ signalVolume?: number }>).detail?.signalVolume)
+      if (audioRef.current && Number.isFinite(v)) {
+        audioRef.current.volume = Math.min(1, Math.max(0, v / 100))
+      }
+    }
+    window.addEventListener('ecosphere:prefs', onPrefs)
+    return () => window.removeEventListener('ecosphere:prefs', onPrefs)
+  }, [])
+
   const startAudio = useCallback(async (audio: HTMLAudioElement, meta: ActiveAudio) => {
     audio.volume = preferredVolume()
 

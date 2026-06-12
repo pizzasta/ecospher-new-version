@@ -340,7 +340,7 @@ function RulesStep({ onAccept }: { onAccept: () => void }) {
           <li><b>18+ only.</b> anything involving minors is removed automatically and instantly.</li>
           <li><b>no harassment, threats, or sexual content</b> on the public band. an automated guardian screens everything public — no humans read your signals, and there's no appeals desk.</li>
           <li><b>what you record is yours.</b> private by default. delete everything, any time, in settings.</li>
-          <li><b>this is not a crisis service.</b> if you or someone else is in danger, call your local emergency number.</li>
+          <li><b>if tonight feels heavier than usual, you deserve more than strangers on a band.</b> we're glad you're here, and we want you safe more than we want you tuned in — a real person is ready at 988 (US, call or text), 116 123 (samaritans, UK & ROI), or findahelpline.com anywhere. the band will still be here after.</li>
         </ul>
         <div className="rules-actions">
           <button

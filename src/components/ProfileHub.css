@@ -732,3 +732,94 @@
   letter-spacing: 0.08em;
   cursor: pointer;
 }
+
+/* ── private profile state (Settings → private profile) ───────── */
+.ph-private-chip {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto 14px;
+  width: fit-content;
+  max-width: 92%;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px dashed rgba(255, 45, 120, 0.45);
+  background: rgba(255, 45, 120, 0.08);
+  color: rgba(255, 200, 222, 0.9);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+/* ── live presence: someone is on your page right now ──────────── */
+.ph-live-visitor {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto 10px;
+  width: fit-content;
+  max-width: 92%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  background: rgba(0, 212, 255, 0.07);
+  color: rgba(170, 230, 250, 0.9);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  animation: phVisitorIn 0.5s ease both, phVisitorOut 0.8s ease 8.2s both;
+}
+
+.ph-live-visitor i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00d4ff;
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.8);
+  animation: phVisitorPulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes phVisitorIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes phVisitorOut {
+  to { opacity: 0; }
+}
+
+@keyframes phVisitorPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+
+.ph-live-comet {
+  position: absolute;
+  z-index: 1;
+  top: 24%;
+  left: -8%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--comet-color, #00d4ff);
+  box-shadow:
+    0 0 10px var(--comet-color, #00d4ff),
+    -14px 3px 16px -4px var(--comet-color, #00d4ff),
+    -30px 7px 22px -8px var(--comet-color, #00d4ff);
+  pointer-events: none;
+  animation: phCometCross 8.5s cubic-bezier(0.3, 0.1, 0.5, 1) both;
+}
+
+@keyframes phCometCross {
+  0% { transform: translate(0, 0); opacity: 0; }
+  8% { opacity: 0.9; }
+  92% { opacity: 0.9; }
+  100% { transform: translate(118vw, 14vh); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-live-comet { animation: none; opacity: 0; }
+  .ph-live-visitor { animation: none; }
+  .ph-live-visitor i { animation: none; }
+}

@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import { useEcosystemState } from '../hooks/useEcosystemState'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { deleteReactionAudio, listReactionAudio, saveReactionAudio } from '../lib/localAudioStore'
+import { anonymousMode } from '../lib/anonymity'
 import { playImprintSound, renderSampleAudio } from '../lib/sampleAudio'
 import type { ImprintKind } from '../lib/sampleAudio'
 import './VoiceReactions.css'
@@ -200,7 +201,8 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
   const [progress, setProgress] = useState(0)
   const [phase, setPhase] = useState<RecorderPhase>('idle')
   const [elapsed, setElapsed] = useState(0)
-  const [anonymous, setAnonymous] = useState(false)
+  // global anonymous mode (Settings) seeds the per-reaction choice
+  const [anonymous, setAnonymous] = useState(() => anonymousMode())
   const [filter, setFilter] = useState<ReactionFilter>('none')
   const [notice, setNotice] = useState<string | null>(null)
   const [imprints, setImprints] = useState<Record<string, number>>(() => {

@@ -33,6 +33,7 @@ import { useRecordingSession } from './hooks/useRecordingSession'
 import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 import { enablePushNotifications } from './lib/pushNotifications'
 import { SCREEN_PATHS, screenForPath } from './lib/routes'
+import { anonymousMode } from './lib/anonymity'
 
 const FeedScreen = lazy(() => import('./FeedScreen'))
 const RoomsScreenComponent = lazy(() => import('./components/RoomsScreen'))
@@ -502,7 +503,7 @@ function LiveSignalWindows() {
             target: w.id,
             durationMs: 3000,
             createdAt: Date.now(),
-            anonymous: true,
+            anonymous: anonymousMode(),
             filter: 'none',
             blob,
           })
@@ -2670,6 +2671,12 @@ export function SettingsScreen() {
       privateProfile: ['profile hidden from the band', 'profile visible again'],
     }
     for (const key of Object.keys(patch) as Array<keyof EcoPrefs>) {
+      // vibration silently does nothing on devices without the API (iPhones) —
+      // say so instead of pretending it turned on
+      if (key === 'vibrate' && patch.vibrate && !('vibrate' in navigator)) {
+        showNote("saved — but this device doesn't support vibration")
+        continue
+      }
       const pair = confirmations[key]
       if (pair) showNote(patch[key] ? pair[0] : pair[1])
     }
