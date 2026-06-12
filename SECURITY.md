@@ -93,8 +93,11 @@ Layered precautions, enforced at every level the app controls:
   trigger), room whispers, and passing thoughts.
 - **Anonymity as protection**: no real names, no photos, no profiles
   browsable by name, no location features.
-- **Instant reporting** with a dedicated "child safety" reason — content
-  hides immediately, no human review needed to act.
+- **Sexual content screening** (`202606110012`): explicit terms and
+  solicitation flag `sexual_content` and can never become public —
+  deliberately narrow so late-night expletives ("fuck this week") pass.
+- **Instant reporting** with dedicated "sexual content" and "child safety"
+  reasons — content hides immediately, no human review needed to act.
 - **Data minimalism**: no birthdates collected, no contact graphs, audio
   private by default.
 

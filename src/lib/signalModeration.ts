@@ -2,7 +2,7 @@
 // supabase/migrations/202606110010_server_guardian.sql (moderate_signal_text)
 // — change both together. The trigger is the enforcement; this is the UX.
 
-export type SignalSafetyFlag = 'harassment' | 'threats' | 'explicit_personal_information' | 'spam' | 'unsafe_content' | 'child_safety'
+export type SignalSafetyFlag = 'harassment' | 'threats' | 'explicit_personal_information' | 'spam' | 'unsafe_content' | 'child_safety' | 'sexual_content'
 
 export type SignalModerationResult = {
   status: 'passed' | 'flagged'
@@ -34,6 +34,18 @@ export function moderatePublicSignalText(text: string): SignalModerationResult {
     flags.add('unsafe_content')
   }
 
+  // explicit sexual content + solicitation. deliberately narrow: bare
+  // expletives ("fuck this day") are late-night vocabulary, not sexual
+  // content — only unambiguous terms and solicitations flag.
+  if (
+    /\b(nudes?|sexting|sext\b|horny|dick pic|nude (pic|pics|photo|photos)|naked (pic|pics|photo|photos))\b/.test(normalizedText) ||
+    /\b(blow ?job|hand ?job|jerk(ing)? off|cum(ming)?\b|tits|pussy|cock\b)/.test(normalizedText) ||
+    /\b(send (me )?something (sexy|hot)|wanna sext|fuck (me|you tonight)|netflix and chill\?)/.test(normalizedText) ||
+    /\b(onlyfans|check (out )?my of\b)/.test(normalizedText)
+  ) {
+    flags.add('sexual_content')
+  }
+
   // predator-pattern screen: age solicitation, off-platform contact pulls,
   // photo requests, meet-up pressure, minor self-identification
   if (
@@ -59,6 +71,10 @@ export function moderatePublicSignalText(text: string): SignalModerationResult {
 export function getPublicSignalSafetyWarning(flags: SignalSafetyFlag[]) {
   if (flags.length === 0) {
     return null
+  }
+
+  if (flags.includes('sexual_content')) {
+    return "This isn't that kind of frequency. Sexual content stays off the public band."
   }
 
   if (flags.includes('child_safety')) {

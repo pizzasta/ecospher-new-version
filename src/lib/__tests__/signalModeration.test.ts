@@ -64,3 +64,24 @@ describe('child safety screening', () => {
     expect(moderatePublicSignalText('the photo on my fridge is crooked').status).toBe('passed')
   })
 })
+
+describe('sexual content screening', () => {
+  it('flags explicit solicitation and content', () => {
+    expect(moderatePublicSignalText('send nudes').flags).toContain('sexual_content')
+    expect(moderatePublicSignalText('anyone wanna sext').flags).toContain('sexual_content')
+    expect(moderatePublicSignalText('so horny tonight').flags).toContain('sexual_content')
+    expect(moderatePublicSignalText('check out my onlyfans').flags).toContain('sexual_content')
+  })
+
+  it('blocks public visibility with a clear warning', () => {
+    const result = moderatePublicSignalText('send me something sexy')
+    expect(result.status).toBe('flagged')
+    expect(result.warning).toMatch(/that kind of frequency/)
+  })
+
+  it('does not flag late-night expletives or innocent phrasing', () => {
+    expect(moderatePublicSignalText('fuck this whole week honestly').status).toBe('passed')
+    expect(moderatePublicSignalText('the naked truth is i miss them').status).toBe('passed')
+    expect(moderatePublicSignalText('my cat knocked the cup off again').status).toBe('passed')
+  })
+})
