@@ -17,8 +17,10 @@ import FrequencyGradientModal from './FrequencyGradientModal'
 import { loadGradientSettings, readGradientSettings, resolveGradientColors } from '../lib/frequencyGradient'
 import type { GradientSettings } from '../lib/frequencyGradient'
 import { useFrequencyGradient } from '../hooks/useFrequencyGradient'
-import { deriveAtmosphere, deriveTraits, memoryLines, tonightLines } from '../lib/listeningIdentity'
+import { deriveAtmosphere, deriveTraits, memoryLines, tonightLines, topReturns } from '../lib/listeningIdentity'
 import type { IdentityInput } from '../lib/listeningIdentity'
+import { daySeed, grainPositions, visitorGrainCount } from '../lib/visitorStatic'
+import type { Grain } from '../lib/visitorStatic'
 import { readLastVoiceAt, silentDays } from '../lib/weightOfSilence'
 import './ProfileHub.css'
 
@@ -90,15 +92,15 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   const tonight = useMemo(() => tonightLines(identityInput), [identityInput])
   const memories = useMemo(() => memoryLines(identityInput), [identityInput])
 
-  // most replayed fragment + recovered count, for the shelf card
-  const mostReplayed = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const listen of ecosystemState.listeningHistory) counts.set(listen.label, (counts.get(listen.label) ?? 0) + 1)
-    let best: string | null = null
-    let bestCount = 1
-    for (const [label, count] of counts) if (count > bestCount) { best = label; bestCount = count }
-    return best ? { label: best, count: bestCount } : null
-  }, [ecosystemState.listeningHistory])
+  // the wall of returns: top replayed fragments — behavior picks them, not the user
+  const returns = useMemo(() => topReturns(ecosystemState.listeningHistory), [ecosystemState.listeningHistory])
+  const maxReturnCount = Math.max(2, ...returns.map(r => r.count))
+
+  // visitor static: anonymous grains left by everyone who passed through (24h)
+  const [grains, setGrains] = useState<Grain[]>([])
+  useEffect(() => {
+    void visitorGrainCount().then(count => setGrains(grainPositions(count, daySeed())))
+  }, [])
   const recoveredFragments = useMemo(() => {
     try { return (JSON.parse(window.localStorage.getItem('ecosphere:zoneFragments') ?? '[]') as unknown[]).length } catch { return 0 }
   }, [])
@@ -200,6 +202,26 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
         aria-hidden="true"
         style={{ background: `linear-gradient(${Math.round(gradientAngle)}deg, ${gradientStart}, ${gradientEnd})` }}
       />
+      {grains.length > 0 && (
+        <div
+          className="ph-visitor-static"
+          aria-hidden="true"
+          title="the static is everyone who passed through your frequency in the last 24 hours"
+        >
+          {grains.map((grain, index) => (
+            <i
+              key={index}
+              style={{
+                left: `${grain.x}%`,
+                top: `${grain.y}%`,
+                width: `${grain.size}px`,
+                height: `${grain.size}px`,
+                opacity: grain.opacity,
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* centerpiece: the identity ring — your frequency, breathing */}
       <div className="ph-centerpiece">
@@ -363,17 +385,42 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
           </ul>
         </div>
 
+        {/* the wall of returns: behavior picks these, not the user */}
+        {returns.length > 0 && (
+          <div className="ph-card glass">
+            <div className="ph-card-head">
+              <span className="ph-card-kicker">THE WALL OF RETURNS</span>
+              <span className="ph-card-count">chosen by your replays</span>
+            </div>
+            <div className="ph-returns">
+              {returns.map(item => {
+                const wear = item.count / maxReturnCount
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className="ph-cassette"
+                    style={{ '--wear': wear.toFixed(2) } as CSSProperties}
+                    title={`returned ${item.count} times — relisten`}
+                    onClick={() => relisten({ id: `return-${item.label}`, label: item.label })}
+                  >
+                    <span className="ph-cassette-spools" aria-hidden="true"><i /><i /></span>
+                    <span className="ph-cassette-label">{item.label}</span>
+                    <span className="ph-cassette-count">{item.count}× returned</span>
+                    <span className="ph-cassette-wear" aria-hidden="true" />
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* from the shelf: relics + fragments connected to the hub */}
-        {(mostReplayed || recoveredFragments > 0) && (
+        {(recoveredFragments > 0 || ecosystemState.savedSignals.length > 0) && (
           <div className="ph-card glass">
             <div className="ph-card-head">
               <span className="ph-card-kicker">FROM THE SHELF</span>
             </div>
-            {mostReplayed && (
-              <p className="ph-shelf-line">
-                most replayed fragment: <em>{mostReplayed.label}</em> · {mostReplayed.count}×
-              </p>
-            )}
             {recoveredFragments > 0 && (
               <p className="ph-shelf-line">
                 {recoveredFragments} fragment{recoveredFragments === 1 ? '' : 's'} recovered from dead zones
