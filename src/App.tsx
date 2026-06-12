@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { deleteAccountData, getOptionalSupabaseClient, isSupabaseConfigured, syncProfile, updateProfileFlags } from './lib'
 import { localDateString, useEcosystemState } from './hooks/useEcosystemState'
@@ -129,7 +129,7 @@ type Relic = {
 const signals: SignalThread[] = [
   { id: 's1', handle: 'anonymous_03:14', time: '3 min ago', content: 'still awake. the quiet feels different tonight. like something is about to remember itself.', mood: 'nocturne', resonance: 94, anonymous: true },
   { id: 's2', handle: 'signal_veil', time: '11 min ago', content: 'replaying that moment again. the part before everything shifted. i keep landing in the same second.', mood: 'drift', resonance: 87, anonymous: false },
-  { id: 's3', handle: 'anonymous_fade', time: '22 min ago', content: 'static bloom opened near the eastern band. something warm is inside the noise.', mood: 'static', resonance: 79, anonymous: true },
+  { id: 's3', handle: 'anonymous_fade', time: '22 min ago', content: 'found a pocket of warm static on the radio. there is something almost like a song inside it.', mood: 'static', resonance: 79, anonymous: true },
   { id: 's4', handle: 'lost_carrier_7', time: '44 min ago', content: 'there are frequencies you only hear when no one else is listening. late night internet knows this.', mood: 'lost', resonance: 63, anonymous: false },
   { id: 's5', handle: 'anonymous_0:48', time: '1 hr ago', content: "the ecosystem held the channel open. like it was waiting for something i hadn't said yet.", mood: 'bloom', resonance: 91, anonymous: true },
 ]
@@ -155,16 +155,16 @@ const deadZones: DeadZone[] = [
 // a relic is a signal the network refused to forget — replayed, revisited,
 // reacted to until deleting it stopped being an option
 const relics: Relic[] = [
-  { id: 'rl1', name: 'Echo Veil', type: 'Echo Fragment', rarity: 'mythic', resonance: 94, category: 'background comfort', description: 'a 40-second recording where a second voice hums along underneath. nobody has ever placed it.', whyRelic: 'people kept leaving it on while doing other things. it never got turned off.', stayQuote: 'i stayed through the whole thing.' },
-  { id: 'rl2', name: 'Pulse Crystal VII', type: 'Pulse Crystal', rarity: 'rare', resonance: 82, category: 'insomnia', description: "someone's heartbeat, taped through a coat pocket on a night bus. still keeps time.", whyRelic: 'insomniacs sync their breathing to it. replay counts spike between 2 and 4am.', stayQuote: 'this is the only thing that slows me down.' },
-  { id: 'rl3', name: 'Lost Carrier', type: 'Lost Transmission', rarity: 'forbidden', resonance: 67, category: 'deleted too late', description: 'a sealed voicemail that says one name, three times. the number was never registered.', whyRelic: 'it was deleted twice. both times, someone had already saved a copy.', stayQuote: 'the ending sounded real.' },
-  { id: 'rl4', name: 'Static Bloom', type: 'Static Bloom', rarity: 'unstable', resonance: 89, category: 'background comfort', description: 'radio static that turns into a tune if you stop trying to hear it.', whyRelic: 'nobody can explain it, so everybody replays it to check.', stayQuote: 'i heard it on the third listen and yelled.' },
-  { id: 'rl5', name: 'Violet Memory Shard', type: 'Memory Shard', rarity: 'unstable', resonance: 58, category: 'unfinished thought', description: 'half a confession, cut off exactly where it was about to matter.', whyRelic: 'everyone replays the same ten seconds, waiting for the sentence to finish.', stayQuote: 'this one hurt more in silence.' },
-  { id: 'rl6', name: 'Answering Machine, 1999', type: 'Lost Transmission', rarity: 'rare', resonance: 74, category: 'heartbreak', description: 'eleven saved messages from the same person, each one a little kinder than the last.', whyRelic: 'people listen to all eleven in order. nobody skips.', stayQuote: 'message 7 broke me.' },
-  { id: 'rl7', name: 'The Hold Music', type: 'Echo Fragment', rarity: 'unstable', resonance: 63, category: 'background comfort', description: 'forty minutes of hold music with one cough at minute 22. people replay the cough.', whyRelic: 'a replay chain formed around minute 22 and never dissolved.', stayQuote: 'i waited the whole 40 minutes. worth it.' },
-  { id: 'rl8', name: 'Wind Through a Screen Door', type: 'Field Recording', rarity: 'rare', resonance: 71, category: 'background comfort', description: "someone's whole summer, recorded by accident while the phone sat on a porch table.", whyRelic: 'listeners stay an average of 31 minutes. nothing happens. that\'s why.', stayQuote: 'this is what i miss and i was never there.' },
-  { id: 'rl9', name: 'Last Bus Announcement', type: 'Field Recording', rarity: 'mythic', resonance: 88, category: 'late night driving', description: 'the final stop being called on a route that was cancelled the next morning.', whyRelic: 'people who rode that route found it. then people who didn\'t.', stayQuote: 'i replayed this before getting out of the car.' },
-  { id: 'rl10', name: 'Sealed Birthday Tape', type: 'Memory Shard', rarity: 'forbidden', resonance: 79, category: 'almost sent', description: 'a tape labeled "for when you\'re 30" that nobody ever came back for.', whyRelic: 'nobody has ever heard it. it became a relic unopened.', stayQuote: 'i think about whoever it was for constantly.' },
+  { id: 'rl1', name: 'unlabeled tape, side B', type: 'found audio', rarity: 'mythic', resonance: 94, category: 'background comfort', description: 'a 40-second recording where a second voice hums along underneath. nobody has ever placed it.', whyRelic: 'people kept leaving it on while doing other things. it never got turned off.', stayQuote: 'i stayed through the whole thing.' },
+  { id: 'rl2', name: 'heartbeat on the night bus', type: 'accidental recording', rarity: 'rare', resonance: 82, category: 'insomnia', description: "someone's heartbeat, taped through a coat pocket on a night bus. still keeps time.", whyRelic: 'insomniacs sync their breathing to it. replay counts spike between 2 and 4am.', stayQuote: 'this is the only thing that slows me down.' },
+  { id: 'rl3', name: 'voicemail, number unknown', type: 'voicemail', rarity: 'forbidden', resonance: 67, category: 'deleted too late', description: 'a sealed voicemail that says one name, three times. the number was never registered.', whyRelic: 'it was deleted twice. both times, someone had already saved a copy.', stayQuote: 'the ending sounded real.' },
+  { id: 'rl4', name: 'static that turns into a song', type: 'radio rip', rarity: 'unstable', resonance: 89, category: 'background comfort', description: 'radio static that turns into a tune if you stop trying to hear it.', whyRelic: 'nobody can explain it, so everybody replays it to check.', stayQuote: 'i heard it on the third listen and yelled.' },
+  { id: 'rl5', name: 'half a confession', type: 'cut-off recording', rarity: 'unstable', resonance: 58, category: 'unfinished thought', description: 'half a confession, cut off exactly where it was about to matter.', whyRelic: 'everyone replays the same ten seconds, waiting for the sentence to finish.', stayQuote: 'this one hurt more in silence.' },
+  { id: 'rl6', name: 'answering machine, 1999', type: 'saved messages', rarity: 'rare', resonance: 74, category: 'heartbreak', description: 'eleven saved messages from the same person, each one a little kinder than the last.', whyRelic: 'people listen to all eleven in order. nobody skips.', stayQuote: 'message 7 broke me.' },
+  { id: 'rl7', name: 'the hold music', type: 'found audio', rarity: 'unstable', resonance: 63, category: 'background comfort', description: 'forty minutes of hold music with one cough at minute 22. people replay the cough.', whyRelic: 'a replay chain formed around minute 22 and never dissolved.', stayQuote: 'i waited the whole 40 minutes. worth it.' },
+  { id: 'rl8', name: 'wind through a screen door', type: 'field recording', rarity: 'rare', resonance: 71, category: 'background comfort', description: "someone's whole summer, recorded by accident while the phone sat on a porch table.", whyRelic: 'listeners stay an average of 31 minutes. nothing happens. that\'s why.', stayQuote: 'this is what i miss and i was never there.' },
+  { id: 'rl9', name: 'last bus announcement', type: 'field recording', rarity: 'mythic', resonance: 88, category: 'late night driving', description: 'the final stop being called on a route that was cancelled the next morning.', whyRelic: 'people who rode that route found it. then people who didn\'t.', stayQuote: 'i replayed this before getting out of the car.' },
+  { id: 'rl10', name: 'sealed birthday tape', type: 'still sealed', rarity: 'forbidden', resonance: 79, category: 'almost sent', description: 'a tape labeled "for when you\'re 30" that nobody ever came back for.', whyRelic: 'nobody has ever heard it. it became a relic unopened.', stayQuote: 'i think about whoever it was for constantly.' },
 ]
 
 const navItems: { id: Screen; label: string; glyph: string }[] = [
@@ -238,13 +238,6 @@ function MoodBadge({ mood }: { mood: Mood | string }) {
 }
 
 // ─── Rarity badge ─────────────────────────────────────────────────────────────
-function RarityBadge({ rarity }: { rarity: string }) {
-  const map: Record<string, string> = {
-    mythic: 'badge-pink', rare: 'badge-cyan', unstable: 'badge-violet',
-    forbidden: 'badge-red', common: 'badge-grey',
-  }
-  return <span className={`badge ${map[rarity] ?? 'badge-grey'}`}>{rarity}</span>
-}
 
 // ─── Signal bar ───────────────────────────────────────────────────────────────
 function SignalBar({ value, color = 'pink' }: { value: number; color?: 'pink' | 'cyan' | 'violet' }) {
@@ -790,14 +783,48 @@ function HomeVoiceTransmit() {
   )
 }
 
-const driftNodeDefs = [
-  { id: 'dn1', label: "Can't Sleep", x: 18, y: 34, intensity: 62, delay: '14 talking' },
-  { id: 'dn2', label: 'People Venting', x: 72, y: 24, intensity: 77, delay: 'busy' },
-  { id: 'dn3', label: 'Quiet Conversations', x: 44, y: 58, intensity: 41, delay: 'calm' },
-  { id: 'dn4', label: 'Music Playing Nearby', x: 80, y: 68, intensity: 88, delay: 'loud' },
-  { id: 'dn5', label: 'Deep Talks', x: 27, y: 78, intensity: 54, delay: 'close' },
-  { id: 'dn6', label: 'Lonely Tonight', x: 58, y: 40, intensity: 58, delay: 'open' },
+// the radar reads human moments, not room names
+const DRIFT_SIGNAL_DEFS: Array<{ label: string; kind: 'voice' | 'whisper' | 'laugh' | 'static' | 'zone' | 'tone' }> = [
+  { label: 'someone crying quietly', kind: 'whisper' },
+  { label: 'driving with music loud', kind: 'zone' },
+  { label: 'an unfinished sentence', kind: 'voice' },
+  { label: 'silence, but nobody leaves', kind: 'static' },
+  { label: 'everyone too tired to sleep', kind: 'whisper' },
+  { label: 'arguing, softly', kind: 'static' },
+  { label: 'someone replaying a memory', kind: 'voice' },
+  { label: 'an unreleased song, looping', kind: 'tone' },
+  { label: 'group laughing in the distance', kind: 'laugh' },
+  { label: 'someone humming alone', kind: 'tone' },
+  { label: 'talking about someone not there', kind: 'voice' },
+  { label: 'nobody hanging up', kind: 'static' },
 ]
+
+type DriftSignal = {
+  id: string
+  label: string
+  kind: 'voice' | 'whisper' | 'laugh' | 'static' | 'zone' | 'tone'
+  seed: number
+  x: number
+  y: number
+  foggy: boolean
+}
+
+function buildDriftSignals(): DriftSignal[] {
+  const day = Math.floor(Date.now() / 86400000)
+  return Array.from({ length: 26 }, (_, i) => {
+    const def = DRIFT_SIGNAL_DEFS[(i * 7 + day) % DRIFT_SIGNAL_DEFS.length]
+    const seed = day * 13 + i * 31
+    return {
+      id: `ds-${i}`,
+      label: def.label,
+      kind: def.kind,
+      seed: seed * 97 + 11,
+      x: 6 + ((seed * 17) % 88),
+      y: 8 + ((seed * 29) % 80),
+      foggy: i % 6 === 4,
+    }
+  })
+}
 
 type DriftHotspot = { id: string; x: number; y: number; fragment: string }
 const driftHotspots: DriftHotspot[] = [
@@ -807,29 +834,44 @@ const driftHotspots: DriftHotspot[] = [
 ]
 
 const DRIFT_EVENTS = [
-  'a lot of people just joined one room',
-  'someone started playing music nearby',
-  'quiet relationship conversation detected',
-  'new late-night room opened',
-  'small group talking about anxiety',
-  'people are staying longer than usual tonight',
+  'someone replayed this 11 times',
+  '2 strangers stayed silent together for 14 minutes',
+  'music leaking from the east current',
+  'a signal resurfaced after disappearing',
+  'someone drifted closer after hearing this',
+  'nobody has spoken, but nobody left',
+  'a late-night room suddenly went quiet',
+  'a laugh carried further than it should',
 ] as const
 
 function DriftScreen() {
   const { discoverDrift, unlockRelic } = useEcosystemState()
   const driftAudio = useGlobalAudio()
+  const [signals, setSignals] = useState<DriftSignal[]>(() => buildDriftSignals())
   const [driftReactions, setDriftReactions] = useState<StoredReaction[]>([])
-  const [energy, setEnergy] = useState<Record<string, number>>({})
   const [offsets, setOffsets] = useState<Record<string, { dx: number; dy: number }>>({})
   const [found, setFound] = usePersistentState<string[]>('ecosphere:driftFound', [])
   const [ping, setPing] = useState<string | null>(null)
+  const [drifting, setDrifting] = useState(false)
+  const [quietMode, setQuietMode] = useState(false)
+  const [muted, setMuted] = useState(false)
+  const [chasedId, setChasedId] = useState<string | null>(null)
+  const [stayedId, setStayedId] = useState<string | null>(null)
+  const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
+  const [liveEvents, setLiveEvents] = useState<Array<{ id: number; text: string; x: number; y: number }>>([])
+  const signalRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+  const fieldRef = useRef<HTMLDivElement>(null)
+  const lastNearRef = useRef<string | null>(null)
+  const lastSoundAtRef = useRef(0)
+  const eventIdRef = useRef(0)
 
+  // signals wander; the water never holds still
   useEffect(() => {
     const wander = () => {
       setOffsets(() => {
         const next: Record<string, { dx: number; dy: number }> = {}
-        for (const n of driftNodeDefs) {
-          next[n.id] = { dx: (Math.random() - 0.5) * 34, dy: (Math.random() - 0.5) * 24 }
+        for (const sig of signals) {
+          next[sig.id] = { dx: (Math.random() - 0.5) * 42, dy: (Math.random() - 0.5) * 30 }
         }
         return next
       })
@@ -837,12 +879,74 @@ function DriftScreen() {
     wander()
     const t = window.setInterval(wander, 6500)
     return () => window.clearInterval(t)
+  }, [signals])
+
+  // live drift events surface somewhere on the water, then sink
+  useEffect(() => {
+    const spawn = () => {
+      const id = ++eventIdRef.current
+      setLiveEvents(prev => [...prev.slice(-2), {
+        id,
+        text: DRIFT_EVENTS[Math.floor(Math.random() * DRIFT_EVENTS.length)],
+        x: 12 + Math.random() * 66,
+        y: 10 + Math.random() * 74,
+      }])
+      window.setTimeout(() => setLiveEvents(prev => prev.filter(e => e.id !== id)), 8000)
+    }
+    spawn()
+    const t = window.setInterval(spawn, 11000)
+    return () => window.clearInterval(t)
   }, [])
 
-  const exciteNode = (id: string, label: string, seed: number) => {
-    setEnergy(e => ({ ...e, [id]: Math.min((e[id] ?? 0) + 1, 8) }))
-    void playSample(driftAudio, { id: `overhear-${id}`, label: `overhearing · ${label.toLowerCase()}`, source: 'drift' }, 'voice', seed * 67 + 5, 5000)
-    setPing(`overhearing ${label.toLowerCase()} — open rooms to join`)
+  // the water is never silent unless you ask it to be
+  useEffect(() => {
+    if (muted || quietMode) return
+    const KINDS: DriftSignal['kind'][] = ['voice', 'whisper', 'tone', 'static', 'laugh']
+    const t = window.setInterval(() => {
+      if (document.hidden) return
+      void playChainBlend([{ kind: KINDS[Math.floor(Math.random() * KINDS.length)], seed: Math.floor(Math.random() * 9000), durationMs: 3400, volume: 0.06 }])
+    }, 9500)
+    return () => window.clearInterval(t)
+  }, [muted, quietMode])
+
+  useEffect(() => () => { stopChainPlayback(); stopPreviewBuffer() }, [])
+
+  const say = (text: string) => {
+    setPing(text)
+    window.setTimeout(() => setPing(null), 4500)
+  }
+
+  // DRIFT MODE: hold the water and move — proximity drives clarity and audio
+  const handleDriftMove = (event: React.PointerEvent) => {
+    const field = fieldRef.current
+    if (!field) return
+    const fieldRect = field.getBoundingClientRect()
+    setCursor({ x: ((event.clientX - fieldRect.left) / fieldRect.width) * 100, y: ((event.clientY - fieldRect.top) / fieldRect.height) * 100 })
+    let closest: { sig: DriftSignal; d: number } | null = null
+    for (const sig of signals) {
+      const el = signalRefs.current.get(sig.id)
+      if (!el) continue
+      const rect = el.getBoundingClientRect()
+      const d = Math.hypot(event.clientX - (rect.left + rect.width / 2), event.clientY - (rect.top + rect.height / 2))
+      el.style.setProperty('--prox', Math.max(0, 1 - d / 190).toFixed(2))
+      if (!closest || d < closest.d) closest = { sig, d }
+    }
+    if (!drifting || muted || quietMode || !closest) return
+    if (closest.d < 140) {
+      const nowTs = Date.now()
+      if (lastNearRef.current !== closest.sig.id && nowTs - lastSoundAtRef.current > 700) {
+        lastNearRef.current = closest.sig.id
+        lastSoundAtRef.current = nowTs
+        void playChainBlend([{ kind: closest.sig.kind, seed: closest.sig.seed, durationMs: 4200, volume: 0.1 + Math.max(0, 1 - closest.d / 190) * 0.2 }])
+      }
+    } else if (closest.d > 210) {
+      lastNearRef.current = null
+    }
+  }
+
+  const overhear = (sig: DriftSignal) => {
+    void playSample(driftAudio, { id: `overhear-${sig.id}`, label: `overhearing · ${sig.label}`, source: 'drift' }, sig.kind === 'zone' ? 'zone' : sig.kind, sig.seed, 5200)
+    say(`overhearing ${sig.label} — from a distance. you never fully arrive.`)
   }
 
   // voice reactions released into the drift surface here as floating fragments
@@ -860,13 +964,13 @@ function DriftScreen() {
       label: 'a voice somebody released here',
       source: 'drift',
     })
-    setPing('a stray voice fragment, still warm')
+    say('a stray voice fragment, still warm')
   }
 
   const releaseDriftReaction = (reaction: StoredReaction) => {
     setDriftReactions(prev => prev.filter(r => r.id !== reaction.id))
     void deleteReactionAudio(reaction.id)
-    setPing('the fragment dissolved back into the fog')
+    say('the fragment dissolved back into the fog')
   }
 
   // ── field scans: a pull of the lever every 30 minutes ──────────────────────
@@ -897,7 +1001,7 @@ function DriftScreen() {
           'only your own echo out there. for now.',
           'the field is quiet. it knows you checked.',
         ]
-        setPing(nothing[Math.floor(Math.random() * nothing.length)])
+        say(nothing[Math.floor(Math.random() * nothing.length)])
       } else if (roll < 0.78) {
         const fragments = [
           'a scan caught: someone counting backwards from ten, softly',
@@ -909,22 +1013,22 @@ function DriftScreen() {
         ]
         const line = fragments[Math.floor(Math.random() * fragments.length)]
         discoverDrift(`scan-${Date.now()}`, line)
-        setPing(line)
+        say(line)
       } else if (roll < 0.94) {
         shards += 1
         if (shards >= 3) {
           unlockRelic('reassembled-shard', 'Reassembled Shard')
-          setPing('third shard recovered · the pieces fused into a relic')
+          say('third shard recovered · the pieces fused into a relic')
         } else {
-          setPing(`a relic shard surfaced from the fog · ${shards}/3 collected`)
+          say(`a relic shard surfaced from the fog · ${shards}/3 collected`)
         }
       } else if (driftReactions.length > 0) {
         const r = driftReactions[Math.floor(Math.random() * driftReactions.length)]
         playDriftReaction(r)
-        setPing('the scan locked onto a voice somebody released here')
+        say('the scan locked onto a voice somebody released here')
       } else {
         discoverDrift(`scan-${Date.now()}`, 'a scan caught: a frequency that only exists tonight')
-        setPing('a scan caught: a frequency that only exists tonight')
+        say('a scan caught: a frequency that only exists tonight')
       }
       setScanMeta({ lastScanAt: Date.now(), shards })
     }, 2000)
@@ -936,66 +1040,102 @@ function DriftScreen() {
     setFound(nextFound)
     discoverDrift(h.id, h.fragment)
     if (nextFound.length >= driftHotspots.length) {
-      unlockRelic('recovered-fragment', 'Recovered Fragment')
-      setPing('all traces recovered · a relic surfaced in the archive')
+      unlockRelic('drift-cartographer', 'Drift Cartographer')
+      say('all hidden traces recovered · the map trusts you now')
     } else {
-      setPing('a hidden fragment surfaced from the fog')
+      say(h.fragment)
     }
   }
 
+  // dock actions
+  const driftDeeper = () => {
+    setSignals(prev => prev.map((sig, i) => ({ ...sig, x: 6 + ((sig.seed * (i + 3)) % 88), y: 8 + ((sig.seed * (i + 7)) % 80), foggy: Math.random() < 0.2 })))
+    say('you sank a layer down. different voices at this depth.')
+  }
+
+  const chaseSignal = () => {
+    const pool = signals.filter(sig => !sig.foggy)
+    const target = pool[Math.floor(Date.now() / 1000) % Math.max(1, pool.length)] ?? signals[0]
+    if (!target) return
+    setChasedId(target.id)
+    if (!muted && !quietMode) void playChainBlend([{ kind: target.kind, seed: target.seed, durationMs: 6000, volume: 0.3 }])
+    say(`chasing ${target.label} — it got a little clearer.`)
+  }
+
+  const stayNearby = () => {
+    if (!chasedId) { say('chase something first — then you can stay with it'); return }
+    setStayedId(chasedId)
+    say('staying nearby. it will not slip under the fog tonight.')
+  }
+
+  const throwVoice = () => {
+    discoverDrift(`thrown-${Date.now()}`, 'you threw your voice into the water')
+    say('your voice sank into the water — someone may drift through it')
+  }
+
+  const surface = () => {
+    stopChainPlayback()
+    stopPreviewBuffer()
+    setChasedId(null)
+    setDrifting(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    say('you surfaced. the radar keeps sweeping without you.')
+  }
+
   return (
-    <div className="screen">
-      <div className="screen-header">
-        <div className="screen-kicker">AUDIO RADAR</div>
+    <div className="screen drift-radar-screen">
+      <div className="screen-header drift-radar-header">
+        <div className="screen-kicker">DRIFT RADAR</div>
         <h2 className="screen-title">Frequency Finder</h2>
-        <p className="screen-sub">overhear live rooms from a distance. drift toward whatever pulls you.</p>
+        <p className="screen-sub">hold the water and move. you're scanning live human moments from far away — you can overhear anything, and enter nothing.</p>
       </div>
-      <AmbientLine lines={useMemo(() => [...DRIFT_EVENTS, ...livedInLines('drift', 3)], [])} />
-      <div className={`drift-map glass lp-drift-map${scanning ? ' lp-drift-map--scanning' : ''}`}>
-        <div className="lp-fog lp-fog-a" aria-hidden="true" />
-        <div className="lp-fog lp-fog-b" aria-hidden="true" />
-        <div className="drift-label-overlay">tap a room to overhear it · {found.length} / {driftHotspots.length} hidden traces found</div>
-        {driftNodeDefs.map(n => {
-          const e = energy[n.id] ?? 0
-          const off = offsets[n.id] ?? { dx: 0, dy: 0 }
+
+      <div
+        ref={fieldRef}
+        className={`drift-ocean${scanning ? ' scanning' : ''}${drifting ? ' drifting' : ''}${quietMode ? ' quiet' : ''}`}
+        onPointerDown={e => { setDrifting(true); handleDriftMove(e) }}
+        onPointerUp={() => setDrifting(false)}
+        onPointerCancel={() => setDrifting(false)}
+        onPointerLeave={() => { setDrifting(false); setCursor(null) }}
+        onPointerMove={handleDriftMove}
+      >
+        {/* background: the deep */}
+        <div className="do-stars" aria-hidden="true">
+          {Array.from({ length: 16 }, (_, i) => (
+            <b key={i} style={{ left: `${(i * 61 + 5) % 100}%`, top: `${(i * 41) % 92}%`, animationDelay: `${-(i * 0.8)}s` }} />
+          ))}
+        </div>
+        <div className="do-aurora" aria-hidden="true" />
+        <div className="do-fog do-fog-a" aria-hidden="true" />
+        <div className="do-fog do-fog-b" aria-hidden="true" />
+        <div className="do-giants" aria-hidden="true"><span /><span /></div>
+        <div className="do-sonar" aria-hidden="true" />
+        <div className="do-sonar do-sonar-b" aria-hidden="true" />
+
+        {/* the cursor ripple while drifting */}
+        {cursor && drifting && (
+          <span className="do-cursor" aria-hidden="true" style={{ left: `${cursor.x}%`, top: `${cursor.y}%` }} />
+        )}
+
+        {/* signals: live human moments */}
+        {signals.map(sig => {
+          const off = offsets[sig.id] ?? { dx: 0, dy: 0 }
           return (
             <button
-              key={n.id}
+              key={sig.id}
               type="button"
-              className={`drift-node lp-drift-node${e >= 5 ? ' lit' : e >= 2 ? ' warm' : ''}`}
-              style={{ left: `${n.x}%`, top: `${n.y}%`, transform: `translate(-50%, -50%) translate(${off.dx}px, ${off.dy}px)`, '--energy': (e / 8).toFixed(3) } as CSSProperties}
-              onClick={() => exciteNode(n.id, n.label, n.intensity)}
+              ref={el => { if (el) signalRefs.current.set(sig.id, el); else signalRefs.current.delete(sig.id) }}
+              className={`do-signal do-signal--${sig.kind}${sig.foggy && stayedId !== sig.id ? ' foggy' : ''}${chasedId === sig.id ? ' chased' : ''}`}
+              style={{ left: `${sig.x}%`, top: `${sig.y}%`, transform: `translate(-50%, -50%) translate(${off.dx}px, ${off.dy}px)` } as CSSProperties}
+              onClick={() => overhear(sig)}
             >
-              <div className="drift-pulse" style={{ opacity: Math.min(1, n.intensity / 100 + e * 0.06) }} />
-              <span className="drift-node-label">{n.label}</span>
-              <span className="drift-node-delay">{e > 0 ? `+${e} ${e === 1 ? 'ping' : 'pings'}` : n.delay}</span>
+              <i className="do-signal-pulse" aria-hidden="true" />
+              <span className="do-signal-label">{sig.label}</span>
             </button>
           )
         })}
-        {driftReactions.map((r, i) => (
-          <div
-            key={r.id}
-            className="drift-voice-fragment"
-            style={{ left: `${22 + i * 19}%`, top: `${14 + (i % 2) * 62}%`, '--frag-delay': `${i * 1.3}s` } as CSSProperties}
-          >
-            <button
-              type="button"
-              className="drift-voice-play"
-              onClick={() => playDriftReaction(r)}
-              aria-label="play a stray voice fragment"
-            >
-              <span><i /><i /><i /><i /></span>
-            </button>
-            <button
-              type="button"
-              className="drift-voice-release"
-              onClick={() => releaseDriftReaction(r)}
-              aria-label="release this fragment"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
+
+        {/* hidden traces, kept from before */}
         {driftHotspots.map(h => (
           <button
             key={h.id}
@@ -1006,51 +1146,69 @@ function DriftScreen() {
             aria-label={found.includes(h.id) ? 'recovered fragment' : 'faint trace in the fog'}
           />
         ))}
-      </div>
-      <button
-        type="button"
-        className={`drift-scan-btn${scanning ? ' scanning' : ''}`}
-        disabled={scanRemaining > 0 || scanning}
-        onClick={scanField}
-      >
-        {scanning
-          ? '⌖ scanning the field…'
-          : scanRemaining > 0
-            ? `⌖ field recharging · ${Math.floor(scanRemaining / 60000)}:${String(Math.floor((scanRemaining % 60000) / 1000)).padStart(2, '0')}`
-            : `⌖ scan the field${scanMeta.shards > 0 && scanMeta.shards < 3 ? ` · ${scanMeta.shards}/3 shards` : ''}`}
-      </button>
-      {ping && <div className="lp-drift-ping" key={ping}>{ping}</div>}
-      <div className="drift-discoveries">
-        {[
-          { type: 'Room Activity', title: "a small group has been talking in Can't Sleep for 2 hours", note: 'slow conversation, long pauses. easy to join.', time: '3:12am' },
-          { type: 'Music Detected', title: 'someone is playing unreleased songs nearby', note: 'about 12 people listening quietly. nobody wants it to end.', time: '3:18am' },
-          { type: 'Open Room', title: 'a late-night room just opened with 3 people', note: 'they said anyone can drop in.', time: '3:24am' },
-        ].map((d, i) => (
-          <div key={d.title} className="drift-discovery glass lp-card lp-enter" style={{ '--idx': i } as CSSProperties}>
-            <div className="drift-discovery-type">{d.type}</div>
-            <div className="drift-discovery-title">{d.title}</div>
-            <p className="drift-discovery-note">{d.note}</p>
-            <span className="drift-discovery-time">{d.time}</span>
+
+        {/* stray voices people released here */}
+        {driftReactions.map((r, i) => (
+          <div
+            key={r.id}
+            className="drift-voice-fragment"
+            style={{ left: `${22 + i * 19}%`, top: `${14 + (i % 2) * 62}%`, '--frag-delay': `${i * 1.3}s` } as CSSProperties}
+          >
+            <button type="button" className="drift-voice-play" onClick={() => playDriftReaction(r)} aria-label="play a stray voice fragment">
+              <span><i /><i /><i /><i /></span>
+            </button>
+            <button type="button" className="drift-voice-release" onClick={() => releaseDriftReaction(r)} aria-label="release this fragment">✕</button>
           </div>
         ))}
-        {found.map((id, i) => {
-          const h = driftHotspots.find(x => x.id === id)
-          if (!h) return null
-          return (
-            <div key={h.id} className="drift-discovery glass lp-card lp-enter lp-found" style={{ '--idx': i + 3 } as CSSProperties}>
-              <div className="drift-discovery-type">Hidden Fragment</div>
-              <div className="drift-discovery-title">{h.fragment}</div>
-              <p className="drift-discovery-note">found off the marked paths. the map keeps it now.</p>
-              <span className="drift-discovery-time">recovered</span>
-            </div>
-          )
-        })}
+
+        {/* live events surfacing on the water */}
+        {liveEvents.map(ev => (
+          <span key={ev.id} className="do-event" style={{ left: `${ev.x}%`, top: `${ev.y}%` }}>{ev.text}</span>
+        ))}
+
+        <div className="do-hint">{drifting ? 'drifting…' : 'hold the water and move · tap a signal to overhear it'}</div>
       </div>
+
+      {ping && <div className="lp-drift-ping" key={ping}>{ping}</div>}
+
+      <footer className="drift-dock">
+        <button type="button" onClick={driftDeeper}>↓ drift deeper</button>
+        <button type="button" onClick={chaseSignal}>⌖ chase this signal</button>
+        <button type="button" onClick={stayNearby}>◌ stay nearby</button>
+        <button type="button" className={muted ? 'on' : ''} onClick={() => { setMuted(m => { if (!m) stopChainPlayback(); return !m }) }}>
+          {muted ? '◉ unmute the water' : '○ mute nearby chatter'}
+        </button>
+        <button type="button" onClick={throwVoice}>● throw your voice into the water</button>
+        <button type="button" className={quietMode ? 'on' : ''} onClick={() => { setQuietMode(q => { if (!q) stopChainPlayback(); return !q }) }}>
+          {quietMode ? '∿ rejoin the noise' : '◌ listen quietly'}
+        </button>
+        <button type="button" onClick={surface}>↑ surface</button>
+        <button
+          type="button"
+          className={`drift-scan-inline${scanning ? ' scanning' : ''}`}
+          disabled={scanRemaining > 0 || scanning}
+          onClick={scanField}
+        >
+          {scanning
+            ? '⌖ scanning…'
+            : scanRemaining > 0
+              ? `⌖ recharging · ${Math.floor(scanRemaining / 60000)}:${String(Math.floor((scanRemaining % 60000) / 1000)).padStart(2, '0')}`
+              : `⌖ scan the field${scanMeta.shards > 0 && scanMeta.shards < 3 ? ` · ${scanMeta.shards}/3 shards` : ''}`}
+        </button>
+      </footer>
+
+      {found.length > 0 && (
+        <div className="drift-recovered">
+          {found.map(id => {
+            const h = driftHotspots.find(x => x.id === id)
+            return h ? <span key={h.id}>◈ {h.fragment}</span> : null
+          })}
+        </div>
+      )}
       <LiveTail page="drift" />
     </div>
   )
 }
-
 
 type CapsulePhase = 'sealed' | 'cracking' | 'leaking' | 'open'
 
@@ -1461,16 +1619,6 @@ const relicPostits: Record<string, string[]> = {
   rl10: ['DO NOT open this one', 'i think about whoever it was for constantly'],
 }
 
-// the archive is shelved by feeling, not by rarity
-const RELIC_CATEGORIES: Array<{ id: string; note: string }> = [
-  { id: 'heartbreak', note: 'the ones that hurt more in silence' },
-  { id: 'insomnia', note: 'played on repeat between 2 and 4am' },
-  { id: 'almost sent', note: 'recorded for someone who never heard it' },
-  { id: 'late night driving', note: 'for empty roads and last stops' },
-  { id: 'unfinished thought', note: 'cut off before the point' },
-  { id: 'deleted too late', note: 'someone had already saved a copy' },
-  { id: 'background comfort', note: 'left on while life happens' },
-]
 
 // trace the relic: where it spread, deterministic per relic
 const TRACE_ROOMS = ["Can't Sleep", '3am Thoughts', 'Missing Someone', 'Background Voices', 'Burned Out', 'Late Night Driving', 'Comfort Room', 'Overthinking Everything']
@@ -1485,6 +1633,13 @@ function relicTrace(r: Relic) {
     chainLength: 4 + (seed % 9),
     returned: 2 + (seed % 5),
   }
+}
+
+// every relic is filed under an anonymous code, never a person
+function relicAnonCode(r: Relic): string {
+  const seed = r.id.charCodeAt(2) * 2654435761 + r.resonance * 97
+  const hex = (n: number) => ((seed >> n) & 0xffff).toString(16).toUpperCase().padStart(4, '0')
+  return `${hex(2)}-${hex(9)}`
 }
 
 // deterministic display stats: a relic carries its own legend
@@ -1505,14 +1660,14 @@ function relicLegend(r: Relic) {
 
 // live archive activity: the page never goes quiet
 const RELIC_LIVE_EVENTS = [
-  'replay storm forming over The Hold Music',
+  'replay storm forming over the hold music',
   "resurfaced in Can't Sleep two minutes ago",
   'archived 211 times tonight',
   'a replay chain is spreading from minute 22',
   'listeners returning after 3 days away',
   'someone replayed the same relic 9 times in a row',
-  'reaction cluster growing on Answering Machine, 1999',
-  'someone stayed 31 minutes inside Wind Through a Screen Door',
+  'reaction cluster growing on answering machine, 1999',
+  'someone stayed 31 minutes inside wind through a screen door',
 ]
 
 // relics of tonight: signals currently becoming unforgettable
@@ -1682,123 +1837,79 @@ function RelicsScreen() {
         </div>
       )}
 
-      {/* the hero relic: tonight the whole archive gathers around one tape */}
-      <section className={`relic-hero${storming ? ' relic-hero--storm' : ''}`} aria-label="Tonight's relic">
-        <div className="relic-hero-atmo" aria-hidden="true"><span /><span /><span /></div>
-        <div className="relic-hero-kicker">TONIGHT THE ARCHIVE IS GATHERED AROUND</div>
-        <div className={`relic-hero-tape${relicAudio.current?.id === `loan-${heroRelic.id}` && relicAudio.playing ? ' playing' : ''}`} aria-hidden="true">
-          <span className="rht-reel rht-reel-a"><i /></span>
-          <span className="rht-window">
-            {Array.from({ length: 13 }, (_, b) => (
-              <b key={b} style={{ '--rht-h': `${22 + ((heroRelic.resonance * (b + 3) * 11) % 66)}%`, '--rht-d': `${(b % 6) * 0.12}s` } as CSSProperties} />
+      {/* the board: everything pinned at once, nothing formal */}
+      <div className="relic-board-top">
+        <span className="relic-live-chip"><i aria-hidden="true" />LIVE ECHOES · {FORMING_RELICS.length - 1}</span>
+        <button type="button" className={`relic-tunein${storming ? ' storming' : ''}`} onClick={playHero}>
+          ((•)) TUNE IN — tonight everyone is on “{heroRelic.name}”
+        </button>
+      </div>
+
+      <div className="relic-board">
+        {/* tonight's relic: the biggest scrap, pinned crooked at the top */}
+        <button type="button" className={`scrap scrap--hero scrap--${heroRelic.category.replace(/\s/g, '-')}`} onClick={() => setSelected(heroRelic)}>
+          <span className="scrap-tape" aria-hidden="true" />
+          <span className="scrap-anon">ANON · {relicAnonCode(heroRelic)}</span>
+          <strong className="scrap-name">{heroRelic.name}</strong>
+          <span className="scrap-line">{heroRelic.whyRelic}</span>
+          <span className="scrap-wave" aria-hidden="true">
+            {Array.from({ length: 16 }, (_, b) => (
+              <b key={b} style={{ height: `${20 + ((heroRelic.resonance * (b + 3) * 11) % 70)}%` }} />
             ))}
           </span>
-          <span className="rht-reel rht-reel-b"><i /></span>
-          <span className="rht-shimmer" />
-        </div>
-        <h3 className="relic-hero-title">{heroRelic.name}</h3>
-        <p className="relic-hero-quote">“{heroRelic.stayQuote}”</p>
-        <div className="relic-hero-stats">
-          <span><strong>{heroLegend.replays}</strong> replays</span>
-          <span><strong>{heroLegend.stayRate}%</strong> stayed until the end</span>
-          <span>most replayed at <strong>{heroLegend.peak}</strong></span>
-        </div>
-        <p className="relic-hero-why">{heroRelic.whyRelic}</p>
-        <div className="relic-hero-reactions" aria-label="reactions">
-          {heroLegend.reactions.map(rx => (
-            <span key={rx.tag} className="relic-hero-rx">{rx.tag} · {rx.n}</span>
-          ))}
-        </div>
-        <div className="relic-hero-comments" aria-hidden="true">
-          {(relicPostits[heroRelic.id] ?? []).map((note, ni) => (
-            <em key={note} className={`rh-comment rh-comment-${ni}`}>{note}</em>
-          ))}
-        </div>
-        <div className="relic-hero-actions">
-          <button type="button" className="rh-btn rh-btn--play" onClick={playHero}>▶ replay relic</button>
-          <button type="button" className="rh-btn" onClick={() => { saveToLibrary('relic', heroRelic.id, heroRelic.name); setShelfNote('fragment saved to your pod'); window.setTimeout(() => setShelfNote(null), 4000) }}>✧ save fragment</button>
-          <button type="button" className="rh-btn" onClick={() => { setSelected(heroRelic); setTracing(true) }}>⌖ trace listeners</button>
-          <button type="button" className="rh-btn rh-btn--storm" onClick={enterReplayStorm}>◉ enter replay storm</button>
-        </div>
-        {storming && (
-          <div className="relic-storm" aria-hidden="true">
-            <span /><span /><span /><span /><span />
-          </div>
-        )}
-      </section>
+          <span className="scrap-foot">{heroLegend.replays} replays · {heroLegend.stayRate}% stayed · loudest at {heroLegend.peak}</span>
+          {storming && <span className="scrap-storm" aria-hidden="true"><i /><i /><i /></span>}
+        </button>
+        <span className="sticky sticky--pink" style={{ '--tilt': '-5deg' } as CSSProperties}>“{heroRelic.stayQuote}”</span>
+        <button type="button" className="sticky sticky--cyan sticky--btn" style={{ '--tilt': '4deg' } as CSSProperties} onClick={enterReplayStorm}>
+          ◉ enter the replay storm
+        </button>
 
-      {/* relics of tonight: signals currently becoming unforgettable */}
-      <section className="relic-tonight" aria-label="Relics forming tonight">
-        <div className="relic-shelf-head">
-          <span className="relic-shelf-label">RELICS OF TONIGHT</span>
-          <span className="relic-shelf-note">becoming unforgettable right now — not relics yet</span>
-        </div>
-        <div className="relic-tonight-row">
-          {FORMING_RELICS.slice(dayOfYear() % 2, (dayOfYear() % 2) + 3).map((forming, i) => (
-            <button
-              key={forming.id}
-              type="button"
-              className="relic-forming"
-              style={{ '--form-idx': i } as CSSProperties}
-              onClick={() => { void playSampleBuffer(forming.kind, forming.id.charCodeAt(2) * 211, 5000, 0.3); setShelfNote('you heard it before it became a relic'); window.setTimeout(() => setShelfNote(null), 4000) }}
-            >
-              <span className="relic-forming-pulse" aria-hidden="true" />
-              <strong>{forming.title}</strong>
-              <em>{forming.heat}</em>
-            </button>
-          ))}
-        </div>
-      </section>
+        {relics.filter(r => r.id !== heroRelic.id).map((r, i) => {
+          const a = activityOf(r.id)
+          const c = charge[r.id] ?? r.resonance
+          const legend = relicLegend(r)
+          return (
+            <Fragment key={r.id}>
+              <button
+                type="button"
+                className={`scrap scrap--${r.category.replace(/\s/g, '-')} scrap--size-${i % 3}${a.replays >= 3 ? ' awakened' : ''}${a.saved ? ' kept' : ''}`}
+                style={{ '--tilt': `${((i * 7) % 9) - 4}deg`, '--glow': (c / 100).toFixed(2) } as CSSProperties}
+                onClick={() => setSelected(r)}
+              >
+                <span className="scrap-tape" aria-hidden="true" />
+                <span className="scrap-anon">ANON · {relicAnonCode(r)}</span>
+                <strong className="scrap-name">{r.name}</strong>
+                <span className="scrap-line">{r.description}</span>
+                <span className="scrap-wave" aria-hidden="true">
+                  {Array.from({ length: 11 }, (_, b) => (
+                    <b key={b} style={{ height: `${18 + ((r.resonance * (b + 2) * 13) % 72)}%` }} />
+                  ))}
+                </span>
+                <span className="scrap-foot">{r.category} · {legend.replays} replays · {ledgerLine(r, a)}</span>
+                {myNotes[r.id] && <span className="sticky sticky--mine sticky--on-scrap">{myNotes[r.id]}</span>}
+                {c < 45 && <span className="scrap-unstable">tape thinning · come back tomorrow</span>}
+              </button>
+              {(relicPostits[r.id] ?? [])[i % 2] && (
+                <span className={`sticky sticky--${['yellow', 'green', 'violet', 'pink'][i % 4]}`} style={{ '--tilt': `${((i * 11) % 11) - 5}deg` } as CSSProperties}>
+                  {(relicPostits[r.id] ?? [])[i % 2]}
+                </span>
+              )}
+              {i % 4 === 1 && (
+                <button
+                  type="button"
+                  className="sticky sticky--live"
+                  style={{ '--tilt': `${((i * 13) % 7) - 3}deg` } as CSSProperties}
+                  onClick={() => { const f = FORMING_RELICS[i % FORMING_RELICS.length]; void playSampleBuffer(f.kind, f.id.charCodeAt(2) * 211, 5000, 0.3); setShelfNote('you heard it before it became a relic'); window.setTimeout(() => setShelfNote(null), 4000) }}
+                >
+                  <i aria-hidden="true" />LIVE · {FORMING_RELICS[i % FORMING_RELICS.length].title}
+                </button>
+              )}
+            </Fragment>
+          )
+        })}
+      </div>
 
-      <LiveTail page="relics" />
-      {RELIC_CATEGORIES.map(shelf => {
-        const shelfRelics = relics.filter(r => r.category === shelf.id)
-        if (shelfRelics.length === 0) return null
-        return (
-          <section key={shelf.id} className="relic-shelf">
-            <div className="relic-shelf-head">
-              <span className="relic-shelf-label">{shelf.id}</span>
-              <span className="relic-shelf-note">{shelf.note}</span>
-            </div>
-            <div className="relics-grid">
-              {shelfRelics.map(r => {
-                const i = relics.indexOf(r)
-                const a = activityOf(r.id)
-                const c = charge[r.id] ?? r.resonance
-                return (
-                  <button
-                    key={r.id}
-                    className={`relic-card glass lp-relic lp-enter${selected?.id === r.id ? ' selected' : ''}${a.replays >= 3 ? ' awakened' : ''}${a.saved ? ' kept' : ''}`}
-                    style={{ '--glow': (c / 100).toFixed(3), '--replay-boost': (Math.min(a.replays, 6) / 6).toFixed(3), '--idx': i } as CSSProperties}
-                    onClick={() => setSelected(r)}
-                  >
-                    <div className={`cassette${relicAudio.current?.id === `relic-${r.id}` && relicAudio.playing ? ' playing' : ''}`} aria-hidden="true">
-                      <span className="cassette-reel" />
-                      <span className="cassette-window" />
-                      <span className="cassette-reel" />
-                    </div>
-                    <div className="relic-name">{r.name}</div>
-                    <div className="relic-postits" aria-hidden="true">
-                      {(relicPostits[r.id] ?? []).slice(0, 2).map((note, ni) => (
-                        <span key={note} className={`postit postit-${ni}`}>{note}</span>
-                      ))}
-                      {myNotes[r.id] && <span className="postit postit-mine">{myNotes[r.id]}</span>}
-                    </div>
-                    <div className="relic-stayquote">“{r.stayQuote}”</div>
-                    <div className="relic-resonance" title="replay heat">{Math.round(c)}%</div>
-                    <div className="relic-ledger">{ledgerLine(r, a)} · {relicLegend(r).replays} replays</div>
-                    {(a.replays > 0 || a.saved) && (
-                      <div className="lp-relic-trace">{a.replays > 0 ? `${a.replays}× replayed` : 'kept'}</div>
-                    )}
-                    {c < 45 && <div className="lp-relic-unstable">unstable · return tomorrow</div>}
-                  </button>
-                )
-              })}
-            </div>
-            <div className="relic-shelf-board" aria-hidden="true" />
-          </section>
-        )
-      })}
       {selected && selectedActivity && (
         <div className={`lp-relic-overlay stage-${stage}`} role="dialog" aria-modal="true" onClick={() => setSelected(null)}>
           <div className="lp-relic-scene glass" onClick={e => e.stopPropagation()}>
@@ -1807,7 +1918,7 @@ function RelicsScreen() {
               <div className="relic-orb" />
             </div>
             <div className="lp-relic-scene-name">{selected.name}</div>
-            <div className="lp-relic-scene-type">{selected.type} · <RarityBadge rarity={selected.rarity} /> · {Math.round(charge[selected.id] ?? selected.resonance)}% charge</div>
+            <div className="lp-relic-scene-type">{selected.type} · ANON {relicAnonCode(selected)} · {Math.round(charge[selected.id] ?? selected.resonance)}% replay heat</div>
             <div className="lp-relic-examined">{lastExaminedBy(selected.id)}</div>
             <div className="relic-postits relic-postits--overlay" aria-hidden="true">
               {(relicPostits[selected.id] ?? []).map((note, ni) => (
@@ -2252,10 +2363,10 @@ function FrequenciesScreen() {
   // things the sea carries past you — passive discovery, no action required
   const [driftwood, setDriftwood] = useState<{ id: number; text: string; top: number; seed: number } | null>(null)
   const seaOrbs = useMemo(() => [
-    { presence: 'a quiet listener', replaying: 'still awake. the quiet feels different tonight.', cassette: 'Echo Veil', trace: 'drifting for 18 min · paused twice near you' },
-    { presence: 'someone half asleep', replaying: 'i kept the voicemail. i know.', cassette: 'Pulse Crystal VII', trace: 'crossed your path 4 min ago' },
-    { presence: 'a restless presence', replaying: '(laughing, far away)', cassette: 'Static Bloom', trace: 'following the same current as you' },
-    { presence: 'someone on a long drive', replaying: 'replaying the same memory again.', cassette: 'Memory Burn', trace: 'left a resonance trail heading east' },
+    { presence: 'a quiet listener', replaying: 'still awake. the quiet feels different tonight.', cassette: 'unlabeled tape, side B', trace: 'drifting for 18 min · paused twice near you' },
+    { presence: 'someone half asleep', replaying: 'i kept the voicemail. i know.', cassette: 'heartbeat on the night bus', trace: 'crossed your path 4 min ago' },
+    { presence: 'a restless presence', replaying: '(laughing, far away)', cassette: 'static that turns into a song', trace: 'following the same current as you' },
+    { presence: 'someone on a long drive', replaying: 'replaying the same memory again.', cassette: 'the hold music', trace: 'left a trail heading east' },
   ], [])
   const timersRef = useRef<number[]>([])
 
