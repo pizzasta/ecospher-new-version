@@ -790,14 +790,48 @@ function HomeVoiceTransmit() {
   )
 }
 
-const driftNodeDefs = [
-  { id: 'dn1', label: "Can't Sleep", x: 18, y: 34, intensity: 62, delay: '14 talking' },
-  { id: 'dn2', label: 'People Venting', x: 72, y: 24, intensity: 77, delay: 'busy' },
-  { id: 'dn3', label: 'Quiet Conversations', x: 44, y: 58, intensity: 41, delay: 'calm' },
-  { id: 'dn4', label: 'Music Playing Nearby', x: 80, y: 68, intensity: 88, delay: 'loud' },
-  { id: 'dn5', label: 'Deep Talks', x: 27, y: 78, intensity: 54, delay: 'close' },
-  { id: 'dn6', label: 'Lonely Tonight', x: 58, y: 40, intensity: 58, delay: 'open' },
+// the radar reads human moments, not room names
+const DRIFT_SIGNAL_DEFS: Array<{ label: string; kind: 'voice' | 'whisper' | 'laugh' | 'static' | 'zone' | 'tone' }> = [
+  { label: 'someone crying quietly', kind: 'whisper' },
+  { label: 'driving with music loud', kind: 'zone' },
+  { label: 'an unfinished sentence', kind: 'voice' },
+  { label: 'silence, but nobody leaves', kind: 'static' },
+  { label: 'everyone too tired to sleep', kind: 'whisper' },
+  { label: 'arguing, softly', kind: 'static' },
+  { label: 'someone replaying a memory', kind: 'voice' },
+  { label: 'an unreleased song, looping', kind: 'tone' },
+  { label: 'group laughing in the distance', kind: 'laugh' },
+  { label: 'someone humming alone', kind: 'tone' },
+  { label: 'talking about someone not there', kind: 'voice' },
+  { label: 'nobody hanging up', kind: 'static' },
 ]
+
+type DriftSignal = {
+  id: string
+  label: string
+  kind: 'voice' | 'whisper' | 'laugh' | 'static' | 'zone' | 'tone'
+  seed: number
+  x: number
+  y: number
+  foggy: boolean
+}
+
+function buildDriftSignals(): DriftSignal[] {
+  const day = Math.floor(Date.now() / 86400000)
+  return Array.from({ length: 26 }, (_, i) => {
+    const def = DRIFT_SIGNAL_DEFS[(i * 7 + day) % DRIFT_SIGNAL_DEFS.length]
+    const seed = day * 13 + i * 31
+    return {
+      id: `ds-${i}`,
+      label: def.label,
+      kind: def.kind,
+      seed: seed * 97 + 11,
+      x: 6 + ((seed * 17) % 88),
+      y: 8 + ((seed * 29) % 80),
+      foggy: i % 6 === 4,
+    }
+  })
+}
 
 type DriftHotspot = { id: string; x: number; y: number; fragment: string }
 const driftHotspots: DriftHotspot[] = [
@@ -807,29 +841,44 @@ const driftHotspots: DriftHotspot[] = [
 ]
 
 const DRIFT_EVENTS = [
-  'a lot of people just joined one room',
-  'someone started playing music nearby',
-  'quiet relationship conversation detected',
-  'new late-night room opened',
-  'small group talking about anxiety',
-  'people are staying longer than usual tonight',
+  'someone replayed this 11 times',
+  '2 strangers stayed silent together for 14 minutes',
+  'music leaking from the east current',
+  'a signal resurfaced after disappearing',
+  'someone drifted closer after hearing this',
+  'nobody has spoken, but nobody left',
+  'a late-night room suddenly went quiet',
+  'a laugh carried further than it should',
 ] as const
 
 function DriftScreen() {
   const { discoverDrift, unlockRelic } = useEcosystemState()
   const driftAudio = useGlobalAudio()
+  const [signals, setSignals] = useState<DriftSignal[]>(() => buildDriftSignals())
   const [driftReactions, setDriftReactions] = useState<StoredReaction[]>([])
-  const [energy, setEnergy] = useState<Record<string, number>>({})
   const [offsets, setOffsets] = useState<Record<string, { dx: number; dy: number }>>({})
   const [found, setFound] = usePersistentState<string[]>('ecosphere:driftFound', [])
   const [ping, setPing] = useState<string | null>(null)
+  const [drifting, setDrifting] = useState(false)
+  const [quietMode, setQuietMode] = useState(false)
+  const [muted, setMuted] = useState(false)
+  const [chasedId, setChasedId] = useState<string | null>(null)
+  const [stayedId, setStayedId] = useState<string | null>(null)
+  const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
+  const [liveEvents, setLiveEvents] = useState<Array<{ id: number; text: string; x: number; y: number }>>([])
+  const signalRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+  const fieldRef = useRef<HTMLDivElement>(null)
+  const lastNearRef = useRef<string | null>(null)
+  const lastSoundAtRef = useRef(0)
+  const eventIdRef = useRef(0)
 
+  // signals wander; the water never holds still
   useEffect(() => {
     const wander = () => {
       setOffsets(() => {
         const next: Record<string, { dx: number; dy: number }> = {}
-        for (const n of driftNodeDefs) {
-          next[n.id] = { dx: (Math.random() - 0.5) * 34, dy: (Math.random() - 0.5) * 24 }
+        for (const sig of signals) {
+          next[sig.id] = { dx: (Math.random() - 0.5) * 42, dy: (Math.random() - 0.5) * 30 }
         }
         return next
       })
@@ -837,12 +886,74 @@ function DriftScreen() {
     wander()
     const t = window.setInterval(wander, 6500)
     return () => window.clearInterval(t)
+  }, [signals])
+
+  // live drift events surface somewhere on the water, then sink
+  useEffect(() => {
+    const spawn = () => {
+      const id = ++eventIdRef.current
+      setLiveEvents(prev => [...prev.slice(-2), {
+        id,
+        text: DRIFT_EVENTS[Math.floor(Math.random() * DRIFT_EVENTS.length)],
+        x: 12 + Math.random() * 66,
+        y: 10 + Math.random() * 74,
+      }])
+      window.setTimeout(() => setLiveEvents(prev => prev.filter(e => e.id !== id)), 8000)
+    }
+    spawn()
+    const t = window.setInterval(spawn, 11000)
+    return () => window.clearInterval(t)
   }, [])
 
-  const exciteNode = (id: string, label: string, seed: number) => {
-    setEnergy(e => ({ ...e, [id]: Math.min((e[id] ?? 0) + 1, 8) }))
-    void playSample(driftAudio, { id: `overhear-${id}`, label: `overhearing · ${label.toLowerCase()}`, source: 'drift' }, 'voice', seed * 67 + 5, 5000)
-    setPing(`overhearing ${label.toLowerCase()} — open rooms to join`)
+  // the water is never silent unless you ask it to be
+  useEffect(() => {
+    if (muted || quietMode) return
+    const KINDS: DriftSignal['kind'][] = ['voice', 'whisper', 'tone', 'static', 'laugh']
+    const t = window.setInterval(() => {
+      if (document.hidden) return
+      void playChainBlend([{ kind: KINDS[Math.floor(Math.random() * KINDS.length)], seed: Math.floor(Math.random() * 9000), durationMs: 3400, volume: 0.06 }])
+    }, 9500)
+    return () => window.clearInterval(t)
+  }, [muted, quietMode])
+
+  useEffect(() => () => { stopChainPlayback(); stopPreviewBuffer() }, [])
+
+  const say = (text: string) => {
+    setPing(text)
+    window.setTimeout(() => setPing(null), 4500)
+  }
+
+  // DRIFT MODE: hold the water and move — proximity drives clarity and audio
+  const handleDriftMove = (event: React.PointerEvent) => {
+    const field = fieldRef.current
+    if (!field) return
+    const fieldRect = field.getBoundingClientRect()
+    setCursor({ x: ((event.clientX - fieldRect.left) / fieldRect.width) * 100, y: ((event.clientY - fieldRect.top) / fieldRect.height) * 100 })
+    let closest: { sig: DriftSignal; d: number } | null = null
+    for (const sig of signals) {
+      const el = signalRefs.current.get(sig.id)
+      if (!el) continue
+      const rect = el.getBoundingClientRect()
+      const d = Math.hypot(event.clientX - (rect.left + rect.width / 2), event.clientY - (rect.top + rect.height / 2))
+      el.style.setProperty('--prox', Math.max(0, 1 - d / 190).toFixed(2))
+      if (!closest || d < closest.d) closest = { sig, d }
+    }
+    if (!drifting || muted || quietMode || !closest) return
+    if (closest.d < 140) {
+      const nowTs = Date.now()
+      if (lastNearRef.current !== closest.sig.id && nowTs - lastSoundAtRef.current > 700) {
+        lastNearRef.current = closest.sig.id
+        lastSoundAtRef.current = nowTs
+        void playChainBlend([{ kind: closest.sig.kind, seed: closest.sig.seed, durationMs: 4200, volume: 0.1 + Math.max(0, 1 - closest.d / 190) * 0.2 }])
+      }
+    } else if (closest.d > 210) {
+      lastNearRef.current = null
+    }
+  }
+
+  const overhear = (sig: DriftSignal) => {
+    void playSample(driftAudio, { id: `overhear-${sig.id}`, label: `overhearing · ${sig.label}`, source: 'drift' }, sig.kind === 'zone' ? 'zone' : sig.kind, sig.seed, 5200)
+    say(`overhearing ${sig.label} — from a distance. you never fully arrive.`)
   }
 
   // voice reactions released into the drift surface here as floating fragments
@@ -860,13 +971,13 @@ function DriftScreen() {
       label: 'a voice somebody released here',
       source: 'drift',
     })
-    setPing('a stray voice fragment, still warm')
+    say('a stray voice fragment, still warm')
   }
 
   const releaseDriftReaction = (reaction: StoredReaction) => {
     setDriftReactions(prev => prev.filter(r => r.id !== reaction.id))
     void deleteReactionAudio(reaction.id)
-    setPing('the fragment dissolved back into the fog')
+    say('the fragment dissolved back into the fog')
   }
 
   // ── field scans: a pull of the lever every 30 minutes ──────────────────────
@@ -897,7 +1008,7 @@ function DriftScreen() {
           'only your own echo out there. for now.',
           'the field is quiet. it knows you checked.',
         ]
-        setPing(nothing[Math.floor(Math.random() * nothing.length)])
+        say(nothing[Math.floor(Math.random() * nothing.length)])
       } else if (roll < 0.78) {
         const fragments = [
           'a scan caught: someone counting backwards from ten, softly',
@@ -909,22 +1020,22 @@ function DriftScreen() {
         ]
         const line = fragments[Math.floor(Math.random() * fragments.length)]
         discoverDrift(`scan-${Date.now()}`, line)
-        setPing(line)
+        say(line)
       } else if (roll < 0.94) {
         shards += 1
         if (shards >= 3) {
           unlockRelic('reassembled-shard', 'Reassembled Shard')
-          setPing('third shard recovered · the pieces fused into a relic')
+          say('third shard recovered · the pieces fused into a relic')
         } else {
-          setPing(`a relic shard surfaced from the fog · ${shards}/3 collected`)
+          say(`a relic shard surfaced from the fog · ${shards}/3 collected`)
         }
       } else if (driftReactions.length > 0) {
         const r = driftReactions[Math.floor(Math.random() * driftReactions.length)]
         playDriftReaction(r)
-        setPing('the scan locked onto a voice somebody released here')
+        say('the scan locked onto a voice somebody released here')
       } else {
         discoverDrift(`scan-${Date.now()}`, 'a scan caught: a frequency that only exists tonight')
-        setPing('a scan caught: a frequency that only exists tonight')
+        say('a scan caught: a frequency that only exists tonight')
       }
       setScanMeta({ lastScanAt: Date.now(), shards })
     }, 2000)
@@ -936,66 +1047,102 @@ function DriftScreen() {
     setFound(nextFound)
     discoverDrift(h.id, h.fragment)
     if (nextFound.length >= driftHotspots.length) {
-      unlockRelic('recovered-fragment', 'Recovered Fragment')
-      setPing('all traces recovered · a relic surfaced in the archive')
+      unlockRelic('drift-cartographer', 'Drift Cartographer')
+      say('all hidden traces recovered · the map trusts you now')
     } else {
-      setPing('a hidden fragment surfaced from the fog')
+      say(h.fragment)
     }
   }
 
+  // dock actions
+  const driftDeeper = () => {
+    setSignals(prev => prev.map((sig, i) => ({ ...sig, x: 6 + ((sig.seed * (i + 3)) % 88), y: 8 + ((sig.seed * (i + 7)) % 80), foggy: Math.random() < 0.2 })))
+    say('you sank a layer down. different voices at this depth.')
+  }
+
+  const chaseSignal = () => {
+    const pool = signals.filter(sig => !sig.foggy)
+    const target = pool[Math.floor(Date.now() / 1000) % Math.max(1, pool.length)] ?? signals[0]
+    if (!target) return
+    setChasedId(target.id)
+    if (!muted && !quietMode) void playChainBlend([{ kind: target.kind, seed: target.seed, durationMs: 6000, volume: 0.3 }])
+    say(`chasing ${target.label} — it got a little clearer.`)
+  }
+
+  const stayNearby = () => {
+    if (!chasedId) { say('chase something first — then you can stay with it'); return }
+    setStayedId(chasedId)
+    say('staying nearby. it will not slip under the fog tonight.')
+  }
+
+  const throwVoice = () => {
+    discoverDrift(`thrown-${Date.now()}`, 'you threw your voice into the water')
+    say('your voice sank into the water — someone may drift through it')
+  }
+
+  const surface = () => {
+    stopChainPlayback()
+    stopPreviewBuffer()
+    setChasedId(null)
+    setDrifting(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    say('you surfaced. the radar keeps sweeping without you.')
+  }
+
   return (
-    <div className="screen">
-      <div className="screen-header">
-        <div className="screen-kicker">AUDIO RADAR</div>
+    <div className="screen drift-radar-screen">
+      <div className="screen-header drift-radar-header">
+        <div className="screen-kicker">DRIFT RADAR</div>
         <h2 className="screen-title">Frequency Finder</h2>
-        <p className="screen-sub">overhear live rooms from a distance. drift toward whatever pulls you.</p>
+        <p className="screen-sub">hold the water and move. you're scanning live human moments from far away — you can overhear anything, and enter nothing.</p>
       </div>
-      <AmbientLine lines={useMemo(() => [...DRIFT_EVENTS, ...livedInLines('drift', 3)], [])} />
-      <div className={`drift-map glass lp-drift-map${scanning ? ' lp-drift-map--scanning' : ''}`}>
-        <div className="lp-fog lp-fog-a" aria-hidden="true" />
-        <div className="lp-fog lp-fog-b" aria-hidden="true" />
-        <div className="drift-label-overlay">tap a room to overhear it · {found.length} / {driftHotspots.length} hidden traces found</div>
-        {driftNodeDefs.map(n => {
-          const e = energy[n.id] ?? 0
-          const off = offsets[n.id] ?? { dx: 0, dy: 0 }
+
+      <div
+        ref={fieldRef}
+        className={`drift-ocean${scanning ? ' scanning' : ''}${drifting ? ' drifting' : ''}${quietMode ? ' quiet' : ''}`}
+        onPointerDown={e => { setDrifting(true); handleDriftMove(e) }}
+        onPointerUp={() => setDrifting(false)}
+        onPointerCancel={() => setDrifting(false)}
+        onPointerLeave={() => { setDrifting(false); setCursor(null) }}
+        onPointerMove={handleDriftMove}
+      >
+        {/* background: the deep */}
+        <div className="do-stars" aria-hidden="true">
+          {Array.from({ length: 16 }, (_, i) => (
+            <b key={i} style={{ left: `${(i * 61 + 5) % 100}%`, top: `${(i * 41) % 92}%`, animationDelay: `${-(i * 0.8)}s` }} />
+          ))}
+        </div>
+        <div className="do-aurora" aria-hidden="true" />
+        <div className="do-fog do-fog-a" aria-hidden="true" />
+        <div className="do-fog do-fog-b" aria-hidden="true" />
+        <div className="do-giants" aria-hidden="true"><span /><span /></div>
+        <div className="do-sonar" aria-hidden="true" />
+        <div className="do-sonar do-sonar-b" aria-hidden="true" />
+
+        {/* the cursor ripple while drifting */}
+        {cursor && drifting && (
+          <span className="do-cursor" aria-hidden="true" style={{ left: `${cursor.x}%`, top: `${cursor.y}%` }} />
+        )}
+
+        {/* signals: live human moments */}
+        {signals.map(sig => {
+          const off = offsets[sig.id] ?? { dx: 0, dy: 0 }
           return (
             <button
-              key={n.id}
+              key={sig.id}
               type="button"
-              className={`drift-node lp-drift-node${e >= 5 ? ' lit' : e >= 2 ? ' warm' : ''}`}
-              style={{ left: `${n.x}%`, top: `${n.y}%`, transform: `translate(-50%, -50%) translate(${off.dx}px, ${off.dy}px)`, '--energy': (e / 8).toFixed(3) } as CSSProperties}
-              onClick={() => exciteNode(n.id, n.label, n.intensity)}
+              ref={el => { if (el) signalRefs.current.set(sig.id, el); else signalRefs.current.delete(sig.id) }}
+              className={`do-signal do-signal--${sig.kind}${sig.foggy && stayedId !== sig.id ? ' foggy' : ''}${chasedId === sig.id ? ' chased' : ''}`}
+              style={{ left: `${sig.x}%`, top: `${sig.y}%`, transform: `translate(-50%, -50%) translate(${off.dx}px, ${off.dy}px)` } as CSSProperties}
+              onClick={() => overhear(sig)}
             >
-              <div className="drift-pulse" style={{ opacity: Math.min(1, n.intensity / 100 + e * 0.06) }} />
-              <span className="drift-node-label">{n.label}</span>
-              <span className="drift-node-delay">{e > 0 ? `+${e} ${e === 1 ? 'ping' : 'pings'}` : n.delay}</span>
+              <i className="do-signal-pulse" aria-hidden="true" />
+              <span className="do-signal-label">{sig.label}</span>
             </button>
           )
         })}
-        {driftReactions.map((r, i) => (
-          <div
-            key={r.id}
-            className="drift-voice-fragment"
-            style={{ left: `${22 + i * 19}%`, top: `${14 + (i % 2) * 62}%`, '--frag-delay': `${i * 1.3}s` } as CSSProperties}
-          >
-            <button
-              type="button"
-              className="drift-voice-play"
-              onClick={() => playDriftReaction(r)}
-              aria-label="play a stray voice fragment"
-            >
-              <span><i /><i /><i /><i /></span>
-            </button>
-            <button
-              type="button"
-              className="drift-voice-release"
-              onClick={() => releaseDriftReaction(r)}
-              aria-label="release this fragment"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
+
+        {/* hidden traces, kept from before */}
         {driftHotspots.map(h => (
           <button
             key={h.id}
@@ -1006,51 +1153,69 @@ function DriftScreen() {
             aria-label={found.includes(h.id) ? 'recovered fragment' : 'faint trace in the fog'}
           />
         ))}
-      </div>
-      <button
-        type="button"
-        className={`drift-scan-btn${scanning ? ' scanning' : ''}`}
-        disabled={scanRemaining > 0 || scanning}
-        onClick={scanField}
-      >
-        {scanning
-          ? '⌖ scanning the field…'
-          : scanRemaining > 0
-            ? `⌖ field recharging · ${Math.floor(scanRemaining / 60000)}:${String(Math.floor((scanRemaining % 60000) / 1000)).padStart(2, '0')}`
-            : `⌖ scan the field${scanMeta.shards > 0 && scanMeta.shards < 3 ? ` · ${scanMeta.shards}/3 shards` : ''}`}
-      </button>
-      {ping && <div className="lp-drift-ping" key={ping}>{ping}</div>}
-      <div className="drift-discoveries">
-        {[
-          { type: 'Room Activity', title: "a small group has been talking in Can't Sleep for 2 hours", note: 'slow conversation, long pauses. easy to join.', time: '3:12am' },
-          { type: 'Music Detected', title: 'someone is playing unreleased songs nearby', note: 'about 12 people listening quietly. nobody wants it to end.', time: '3:18am' },
-          { type: 'Open Room', title: 'a late-night room just opened with 3 people', note: 'they said anyone can drop in.', time: '3:24am' },
-        ].map((d, i) => (
-          <div key={d.title} className="drift-discovery glass lp-card lp-enter" style={{ '--idx': i } as CSSProperties}>
-            <div className="drift-discovery-type">{d.type}</div>
-            <div className="drift-discovery-title">{d.title}</div>
-            <p className="drift-discovery-note">{d.note}</p>
-            <span className="drift-discovery-time">{d.time}</span>
+
+        {/* stray voices people released here */}
+        {driftReactions.map((r, i) => (
+          <div
+            key={r.id}
+            className="drift-voice-fragment"
+            style={{ left: `${22 + i * 19}%`, top: `${14 + (i % 2) * 62}%`, '--frag-delay': `${i * 1.3}s` } as CSSProperties}
+          >
+            <button type="button" className="drift-voice-play" onClick={() => playDriftReaction(r)} aria-label="play a stray voice fragment">
+              <span><i /><i /><i /><i /></span>
+            </button>
+            <button type="button" className="drift-voice-release" onClick={() => releaseDriftReaction(r)} aria-label="release this fragment">✕</button>
           </div>
         ))}
-        {found.map((id, i) => {
-          const h = driftHotspots.find(x => x.id === id)
-          if (!h) return null
-          return (
-            <div key={h.id} className="drift-discovery glass lp-card lp-enter lp-found" style={{ '--idx': i + 3 } as CSSProperties}>
-              <div className="drift-discovery-type">Hidden Fragment</div>
-              <div className="drift-discovery-title">{h.fragment}</div>
-              <p className="drift-discovery-note">found off the marked paths. the map keeps it now.</p>
-              <span className="drift-discovery-time">recovered</span>
-            </div>
-          )
-        })}
+
+        {/* live events surfacing on the water */}
+        {liveEvents.map(ev => (
+          <span key={ev.id} className="do-event" style={{ left: `${ev.x}%`, top: `${ev.y}%` }}>{ev.text}</span>
+        ))}
+
+        <div className="do-hint">{drifting ? 'drifting…' : 'hold the water and move · tap a signal to overhear it'}</div>
       </div>
+
+      {ping && <div className="lp-drift-ping" key={ping}>{ping}</div>}
+
+      <footer className="drift-dock">
+        <button type="button" onClick={driftDeeper}>↓ drift deeper</button>
+        <button type="button" onClick={chaseSignal}>⌖ chase this signal</button>
+        <button type="button" onClick={stayNearby}>◌ stay nearby</button>
+        <button type="button" className={muted ? 'on' : ''} onClick={() => { setMuted(m => { if (!m) stopChainPlayback(); return !m }) }}>
+          {muted ? '◉ unmute the water' : '○ mute nearby chatter'}
+        </button>
+        <button type="button" onClick={throwVoice}>● throw your voice into the water</button>
+        <button type="button" className={quietMode ? 'on' : ''} onClick={() => { setQuietMode(q => { if (!q) stopChainPlayback(); return !q }) }}>
+          {quietMode ? '∿ rejoin the noise' : '◌ listen quietly'}
+        </button>
+        <button type="button" onClick={surface}>↑ surface</button>
+        <button
+          type="button"
+          className={`drift-scan-inline${scanning ? ' scanning' : ''}`}
+          disabled={scanRemaining > 0 || scanning}
+          onClick={scanField}
+        >
+          {scanning
+            ? '⌖ scanning…'
+            : scanRemaining > 0
+              ? `⌖ recharging · ${Math.floor(scanRemaining / 60000)}:${String(Math.floor((scanRemaining % 60000) / 1000)).padStart(2, '0')}`
+              : `⌖ scan the field${scanMeta.shards > 0 && scanMeta.shards < 3 ? ` · ${scanMeta.shards}/3 shards` : ''}`}
+        </button>
+      </footer>
+
+      {found.length > 0 && (
+        <div className="drift-recovered">
+          {found.map(id => {
+            const h = driftHotspots.find(x => x.id === id)
+            return h ? <span key={h.id}>◈ {h.fragment}</span> : null
+          })}
+        </div>
+      )}
       <LiveTail page="drift" />
     </div>
   )
 }
-
 
 type CapsulePhase = 'sealed' | 'cracking' | 'leaking' | 'open'
 

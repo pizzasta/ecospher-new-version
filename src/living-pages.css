@@ -2595,3 +2595,279 @@
   .relic-hero--storm { animation: none; }
   .relics-grid .relic-card:nth-child(2n), .relics-grid .relic-card:nth-child(3n) { transform: none; }
 }
+
+/* ═══ DRIFT RADAR — the fullscreen audio ocean ═══════════════ */
+.drift-radar-header { margin-bottom: 10px; }
+
+.drift-ocean {
+  position: relative;
+  height: min(74vh, 640px);
+  margin: 0 -4px 14px;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 212, 255, 0.12);
+  background:
+    radial-gradient(ellipse 100% 70% at 50% 0%, rgba(10, 16, 40, 0.7), transparent 65%),
+    linear-gradient(180deg, #050818, #02030c 80%);
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.drift-ocean.quiet { filter: saturate(0.7) brightness(0.85); }
+.drift-ocean.scanning { animation: lpCapsuleShimmer 2.4s ease-in-out; }
+
+/* background layers */
+.do-stars b {
+  position: absolute;
+  width: 1.5px;
+  height: 1.5px;
+  border-radius: 50%;
+  background: rgba(215, 230, 255, 0.7);
+  animation: seaGlint 4.6s ease-in-out infinite;
+}
+
+.do-aurora {
+  position: absolute;
+  inset: -8%;
+  background:
+    radial-gradient(ellipse 60% 40% at 30% 24%, rgba(0, 212, 255, 0.06), transparent 70%),
+    radial-gradient(ellipse 52% 38% at 72% 60%, rgba(155, 93, 229, 0.07), transparent 70%),
+    radial-gradient(ellipse 44% 32% at 50% 86%, rgba(255, 45, 120, 0.04), transparent 70%);
+  filter: blur(16px);
+  animation: ppFogDrift 36s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.do-fog {
+  position: absolute;
+  inset: -10%;
+  pointer-events: none;
+  filter: blur(28px);
+  opacity: 0.45;
+}
+
+.do-fog-a {
+  background: radial-gradient(ellipse 50% 36% at 28% 60%, rgba(120, 140, 200, 0.1), transparent 70%);
+  animation: ppFogDrift 24s ease-in-out infinite alternate;
+}
+
+.do-fog-b {
+  background: radial-gradient(ellipse 44% 32% at 70% 34%, rgba(90, 110, 170, 0.09), transparent 70%);
+  animation: ppFogDrift 33s ease-in-out infinite alternate-reverse;
+}
+
+.do-giants span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(34px);
+  opacity: 0.14;
+  pointer-events: none;
+  animation: ppOrbBreathe 11s ease-in-out infinite;
+}
+
+.do-giants span:nth-child(1) { width: 220px; height: 220px; left: -8%; bottom: -10%; background: radial-gradient(circle, #00d4ff, transparent 70%); }
+.do-giants span:nth-child(2) { width: 260px; height: 260px; right: -10%; top: -8%; background: radial-gradient(circle, #9b5de9, transparent 70%); animation-delay: -4s; }
+
+.do-sonar {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 150%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(0, 212, 255, 0.055), transparent 12%);
+  animation: seaSonarSpin 13s linear infinite;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.do-sonar-b {
+  background: conic-gradient(from 180deg, rgba(255, 45, 120, 0.035), transparent 9%);
+  animation-duration: 19s;
+  animation-direction: reverse;
+}
+
+/* the drift cursor */
+.do-cursor {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  margin: -19px 0 0 -19px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 212, 255, 0.6);
+  box-shadow: 0 0 18px rgba(0, 212, 255, 0.35), inset 0 0 12px rgba(0, 212, 255, 0.15);
+  pointer-events: none;
+  animation: ppRingOut 1.4s ease-out infinite;
+}
+
+/* signals */
+.do-signal {
+  --prox: 0;
+  position: absolute;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 8px;
+  transition: transform 6.4s ease-in-out, opacity 0.8s ease, filter 0.4s ease;
+  filter: brightness(calc(0.85 + var(--prox) * 0.7));
+  z-index: 2;
+}
+
+.do-signal-pulse {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 calc(8px + var(--prox) * 16px) currentColor;
+  animation: eco-dot-pulse 2.4s ease-in-out infinite;
+  transform: scale(calc(1 + var(--prox) * 0.8));
+  transition: transform 0.3s ease;
+}
+
+.do-signal--voice { color: #00d4ff; }
+.do-signal--whisper { color: #86efac; }
+.do-signal--laugh { color: #ffd166; }
+.do-signal--static { color: #ff2d78; }
+.do-signal--zone { color: #ffaa5a; }
+.do-signal--tone { color: #9b5de9; }
+
+.do-signal-label {
+  font-size: calc(9px + var(--prox) * 2px);
+  letter-spacing: 0.05em;
+  color: rgba(215, 226, 248, calc(0.35 + var(--prox) * 0.6));
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.3s ease, font-size 0.3s ease;
+}
+
+.do-signal.foggy { opacity: 0.3; filter: blur(1.5px); }
+.do-signal.foggy:hover { opacity: 0.7; filter: blur(0.5px); }
+
+.do-signal.chased .do-signal-pulse {
+  transform: scale(1.9);
+  box-shadow: 0 0 22px currentColor;
+}
+
+.do-signal.chased .do-signal-label { color: rgba(240, 246, 255, 0.95); }
+
+/* signals trail as they wander */
+.do-signal::before {
+  content: '';
+  position: absolute;
+  top: 13px;
+  right: 60%;
+  width: 38px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, currentColor);
+  opacity: calc(0.1 + var(--prox) * 0.25);
+  pointer-events: none;
+}
+
+/* live events surfacing */
+.do-event {
+  position: absolute;
+  z-index: 3;
+  font-size: 10px;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  color: rgba(200, 215, 245, 0.75);
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.9);
+  background: rgba(5, 8, 20, 0.6);
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: 75%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: doEventSurface 8s ease both;
+}
+
+@keyframes doEventSurface {
+  0% { opacity: 0; transform: translateY(8px); }
+  8%, 80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
+.do-hint {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  color: rgba(160, 175, 210, 0.5);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* dock */
+.drift-dock {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.drift-dock button {
+  padding: 8px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  background: rgba(4, 10, 24, 0.85);
+  color: rgba(190, 225, 248, 0.85);
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease;
+}
+
+.drift-dock button:hover {
+  border-color: rgba(0, 212, 255, 0.55);
+  box-shadow: 0 0 14px rgba(0, 212, 255, 0.18);
+}
+
+.drift-dock button:active { transform: scale(0.97); }
+
+.drift-dock button.on {
+  border-color: rgba(255, 45, 120, 0.5);
+  color: #ffb8d0;
+}
+
+.drift-dock button:disabled { opacity: 0.5; cursor: default; }
+
+.drift-scan-inline.scanning {
+  animation: capsClockTick 0.8s ease-in-out infinite;
+}
+
+.drift-recovered {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.drift-recovered span {
+  font-size: 10.5px;
+  font-style: italic;
+  color: rgba(190, 200, 230, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .do-stars b, .do-aurora, .do-fog, .do-giants span, .do-sonar,
+  .do-cursor, .do-signal-pulse, .do-event, .drift-scan-inline.scanning { animation: none; }
+  .do-event { opacity: 1; }
+  .do-signal { transition: opacity 0.8s ease; }
+}
