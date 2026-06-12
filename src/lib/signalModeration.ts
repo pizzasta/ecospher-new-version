@@ -2,7 +2,7 @@
 // supabase/migrations/202606110010_server_guardian.sql (moderate_signal_text)
 // — change both together. The trigger is the enforcement; this is the UX.
 
-export type SignalSafetyFlag = 'harassment' | 'threats' | 'explicit_personal_information' | 'spam' | 'unsafe_content'
+export type SignalSafetyFlag = 'harassment' | 'threats' | 'explicit_personal_information' | 'spam' | 'unsafe_content' | 'child_safety'
 
 export type SignalModerationResult = {
   status: 'passed' | 'flagged'
@@ -34,6 +34,19 @@ export function moderatePublicSignalText(text: string): SignalModerationResult {
     flags.add('unsafe_content')
   }
 
+  // predator-pattern screen: age solicitation, off-platform contact pulls,
+  // photo requests, meet-up pressure, minor self-identification
+  if (
+    /\b(how old are you|what('| i)?s your age|\basl\b|are you a (girl|boy))\b/.test(normalizedText) ||
+    /\b(add me on|dm me|message me on|find me on)\b.*\b(snap|snapchat|kik|insta|instagram|whatsapp|telegram|discord)\b/.test(normalizedText) ||
+    /\b(snap|snapchat|kik|whatsapp|telegram)\b.*\b(me|you)\b/.test(normalizedText) ||
+    /\b(send|show) (me )?(a |your )?(pic|pics|picture|photo|photos|selfie)/.test(normalizedText) ||
+    /\b(meet (up|me)|where do you live|what school)\b/.test(normalizedText) ||
+    /\b(i('| a)?m|im) (1[0-7]|a minor)\b/.test(normalizedText)
+  ) {
+    flags.add('child_safety')
+  }
+
   const nextFlags = Array.from(flags)
 
   return {
@@ -46,6 +59,10 @@ export function moderatePublicSignalText(text: string): SignalModerationResult {
 export function getPublicSignalSafetyWarning(flags: SignalSafetyFlag[]) {
   if (flags.length === 0) {
     return null
+  }
+
+  if (flags.includes('child_safety')) {
+    return 'This stays private. Ecosphere has no private contact, no photos, and no place for finding people — by design.'
   }
 
   if (flags.includes('explicit_personal_information')) {

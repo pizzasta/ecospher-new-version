@@ -5,12 +5,12 @@ import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { playSample } from '../lib/sampleAudio'
 import { deleteLocalRecording, listLocalRecordings } from '../lib/localAudioStore'
 import type { StoredRecording } from '../lib/localAudioStore'
-import { getListenCounts, getProfile, updateBio } from '../lib'
+import { getListenCounts, getProfile } from '../lib'
 import { isSupabaseConfigured } from '../lib/supabase-env'
-import { generateLocalBio, requestAiBio } from '../lib/aiBio'
 import { getHzProfile, getLocalHzProfile } from '../lib/hzSignature'
 import type { HzProfile } from '../lib/hzSignature'
 import AudioPlayer from './AudioPlayer'
+import AudioRecorder from './AudioRecorder'
 import ColorWave from './ColorWave'
 import HzBadge from './HzBadge'
 import HzSettingsModal from './HzSettingsModal'
@@ -28,7 +28,6 @@ import { currentDrop } from '../lib/frequencyDrops'
 import { localDayKey } from '../lib/frequencyRecap'
 import './ProfileHub.css'
 
-const BIO_KEY = 'ecosphere:bio'
 const FIRST_SEEN_KEY = 'ecosphere:firstSeenAt'
 const TUNED_TO_KEY = 'ecosphere:tunedTo'
 const ECHO_PAGE = 10
@@ -57,13 +56,11 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   // ── header data ──
   const username = ecosystemState.userSignalIdentity ?? 'unclaimed frequency'
   const [joined, setJoined] = useState<string | null>(null)
-  const [bio, setBio] = useState(() => readLocal(BIO_KEY) ?? '')
-  const [editingBio, setEditingBio] = useState(false)
-  const [bioDraft, setBioDraft] = useState('')
-  const [aiBioOpen, setAiBioOpen] = useState(false)
-  const [aiBioDraft, setAiBioDraft] = useState('')
-  const [aiBioSeed, setAiBioSeed] = useState(0)
-  const [aiBioBusy, setAiBioBusy] = useState(false)
+  // tape intro: a ten-second voice introduction instead of a written bio
+  const [tapeIntro, setTapeIntro] = useState<{ id: string; durationMs: number; recordedAt: number } | null>(() => {
+    try { return JSON.parse(window.localStorage.getItem('ecosphere:tapeIntro') ?? 'null') } catch { return null }
+  })
+  const [tapeRecording, setTapeRecording] = useState(false)
   const [hzProfile, setHzProfile] = useState<HzProfile>(() => getLocalHzProfile(ecosystemState.userSignalIdentity ?? 'unclaimed'))
   const [hzSettingsOpen, setHzSettingsOpen] = useState(false)
   const [gradient, setGradient] = useState<GradientSettings>(() => readGradientSettings())
@@ -133,7 +130,6 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
     void getProfile().then(profile => {
       if (profile) {
         setJoined(new Date(profile.created_at).toLocaleDateString([], { month: 'short', year: 'numeric' }))
-        if (profile.bio) setBio(profile.bio)
         return
       }
       const local = Number(readLocal(FIRST_SEEN_KEY))
@@ -143,29 +139,18 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
     })
   }, [])
 
-  const saveBio = (next: string) => {
-    const trimmed = next.trim().slice(0, 200)
-    setBio(trimmed)
-    writeLocal(BIO_KEY, trimmed)
-    void updateBio(trimmed)
-    setEditingBio(false)
-  }
-
-  const generateBio = async (seed: number) => {
-    setAiBioBusy(true)
-    const remote = await requestAiBio(ecosystemState.listeningHistory.slice(0, 10).map(e => e.label))
-    setAiBioDraft(remote ?? generateLocalBio({
-      username,
-      recordingCount: echoes.length,
-      topPage: ecosystemState.recentInteractions.find(i => i.page && i.page !== 'pod')?.page ?? null,
-      streak: ecosystemState.streak.count,
-      joinedLabel: joined,
-    }, seed))
-    setAiBioBusy(false)
+  const saveTapeIntro = (meta: { id: string; durationMs: number }) => {
+    const next = { ...meta, recordedAt: Date.now() }
+    setTapeIntro(next)
+    setTapeRecording(false)
+    writeLocal('ecosphere:tapeIntro', JSON.stringify(next))
+    void listLocalRecordings().then(rows => setEchoes(rows.sort((a, b) => b.createdAt - a.createdAt)))
   }
   useEffect(() => {
     void listLocalRecordings().then(rows => setEchoes(rows.sort((a, b) => b.createdAt - a.createdAt)))
   }, [])
+
+  const echoBlobFor = (id: string): Blob | null => echoes.find(e => e.id === id)?.blob ?? null
 
   const deleteEcho = (id: string) => {
     void deleteLocalRecording(id).then(() => setEchoes(prev => prev.filter(e => e.id !== id)))
@@ -309,36 +294,38 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
             />
           )}
 
-          {!editingBio ? (
-            <div className="ph-bio-row">
-              <p className="ph-bio">{bio || 'no bio yet — the static speaks for you.'}</p>
-              <button type="button" className="ph-icon-btn" title="edit bio" onClick={() => { setBioDraft(bio); setEditingBio(true) }}>✎</button>
-            </div>
-          ) : (
-            <div className="ph-bio-edit">
-              <textarea value={bioDraft} maxLength={200} rows={2} onChange={e => setBioDraft(e.target.value)} />
-              <div className="ph-bio-edit-actions">
-                <span>{bioDraft.length}/200</span>
-                <button type="button" onClick={() => saveBio(bioDraft)}>save</button>
-                <button type="button" onClick={() => setEditingBio(false)}>cancel</button>
-              </div>
-            </div>
-          )}
-
-          <button type="button" className="ph-ai-bio-btn" onClick={() => { setAiBioOpen(true); void generateBio(aiBioSeed) }}>
-            ✦ ai bio
-          </button>
-
-          {aiBioOpen && (
-            <div className="ph-ai-modal" role="dialog" aria-label="AI bio">
-              <p className="ph-ai-draft">{aiBioBusy ? 'reading your frequency…' : aiBioDraft}</p>
-              <div className="ph-ai-actions">
-                <button type="button" disabled={aiBioBusy || !aiBioDraft} onClick={() => { saveBio(aiBioDraft); setAiBioOpen(false) }}>accept</button>
-                <button type="button" disabled={aiBioBusy} onClick={() => { const next = aiBioSeed + 1; setAiBioSeed(next); void generateBio(next) }}>regenerate</button>
-                <button type="button" onClick={() => setAiBioOpen(false)}>close</button>
-              </div>
-            </div>
-          )}
+          {/* tape intro: ten seconds of voice instead of a written bio */}
+          <div className="ph-tape">
+            {tapeIntro && !tapeRecording ? (
+              <>
+                <div className="ph-tape-shell" aria-label="Your intro tape">
+                  <span className="ph-cassette-spools" aria-hidden="true"><i /><i /></span>
+                  <div className="ph-tape-body">
+                    <span className="ph-tape-label">intro tape · {Math.max(1, Math.round(tapeIntro.durationMs / 1000))}s · {new Date(tapeIntro.recordedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                    {echoBlobFor(tapeIntro.id)
+                      ? <AudioPlayer src={echoBlobFor(tapeIntro.id)!} seed={tapeIntro.recordedAt % 9973} durationSeconds={tapeIntro.durationMs / 1000} accent={hzProfile.color} />
+                      : <span className="ph-tape-missing">this tape lives on the device that recorded it</span>}
+                  </div>
+                </div>
+                <button type="button" className="ph-tape-rerecord" onClick={() => setTapeRecording(true)}>↻ record over it</button>
+              </>
+            ) : (
+              <>
+                {!tapeRecording && <p className="ph-tape-empty">no intro tape yet. ten seconds — who's there?</p>}
+                <AudioRecorder
+                  kind="signal"
+                  context="intro tape"
+                  prompt="ten seconds, one take. say whatever a stranger should hear first."
+                  minSeconds={3}
+                  maxSeconds={10}
+                  onComplete={({ durationMs, uploadId }) => saveTapeIntro({ id: uploadId, durationMs })}
+                />
+                {tapeRecording && (
+                  <button type="button" className="ph-tape-rerecord" onClick={() => setTapeRecording(false)}>keep the old tape</button>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* echo archive */}

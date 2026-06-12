@@ -10,6 +10,7 @@ import AudioRecorder from './AudioRecorder'
 import ColorWave from './ColorWave'
 
 const introSeenStorageKey = 'introSeen'
+const ageGateStorageKey = 'ecosphere:ageGate'
 const signalIdentityStorageKey = 'signalIdentity'
 const signalProfileStorageKey = 'ecosphereSignalProfile'
 
@@ -267,6 +268,58 @@ function generateSignalBatch(exclude: readonly string[] = [], count = 5) {
   }
 
   return batch
+}
+
+/**
+ * Age gate: this space is for adults. Self-attestation is the strongest
+ * check a client can run, and the answer is remembered either way —
+ * declining is sticky, not a retry prompt.
+ */
+function AgeGateStep({ onAdult }: { onAdult: () => void }) {
+  const [declined, setDeclined] = useState(() => safeStorageGet(ageGateStorageKey) === 'minor')
+
+  if (declined) {
+    return (
+      <main className="claim-signal-shell age-gate-shell">
+        <section className="identity-claim-screen age-gate-screen" aria-label="Age restriction">
+          <div className="identity-claim-copy">
+            <p>FREQUENCY RESTRICTED</p>
+            <h1>this band is for adults.</h1>
+            <span>ecosphere is an 18+ space. the frequency will still be here later.</span>
+          </div>
+        </section>
+      </main>
+    )
+  }
+
+  return (
+    <main className="claim-signal-shell age-gate-shell">
+      <ColorWave />
+      <section className="identity-claim-screen age-gate-screen" aria-label="Age check">
+        <div className="identity-claim-copy">
+          <p>BEFORE THE GATE</p>
+          <h1>this space is for adults.</h1>
+          <span>anonymous voices, late-night frequencies. you need to be 18 or older to enter.</span>
+        </div>
+        <div className="age-gate-actions">
+          <button
+            type="button"
+            className="identity-enter-button"
+            onClick={() => { safeStorageSet(ageGateStorageKey, 'adult'); onAdult() }}
+          >
+            I AM 18 OR OLDER
+          </button>
+          <button
+            type="button"
+            className="age-gate-decline"
+            onClick={() => { safeStorageSet(ageGateStorageKey, 'minor'); setDeclined(true) }}
+          >
+            i'm under 18
+          </button>
+        </div>
+      </section>
+    </main>
+  )
 }
 
 function DevOnboardingReset({ onReset }: { onReset: () => void }) {
@@ -618,6 +671,7 @@ function EcosystemLoopBridge() {
 }
 
 export default function IntroGate({ children }: { children: ReactNode }) {
+  const [isAdult, setIsAdult] = useState(() => safeStorageGet(ageGateStorageKey) === 'adult')
   const [landingEntered, setLandingEntered] = useState(false)
   const [introSeen, setIntroSeen] = useState(() => safeStorageGet(introSeenStorageKey) === 'true')
   const [signalIdentity, setSignalIdentity] = useState(() => safeStorageGet(signalIdentityStorageKey) ?? '')
@@ -662,7 +716,12 @@ export default function IntroGate({ children }: { children: ReactNode }) {
     safeStorageRemove(signalIdentityStorageKey)
     safeStorageRemove(signalProfileStorageKey)
     safeStorageRemove(firstSignalStorageKey)
+    safeStorageRemove(ageGateStorageKey)
     window.location.reload()
+  }
+
+  if (!isAdult) {
+    return <AgeGateStep onAdult={() => setIsAdult(true)} />
   }
 
   if (!introSeen && !landingEntered) {

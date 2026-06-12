@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { moderatePublicSignalText } from '../lib/signalModeration'
 import './PassingThoughts.css'
 
 // Passing Thoughts: text-only letters that can be opened exactly once and
@@ -63,9 +64,17 @@ export default function PassingThoughts() {
     setLetters(prev => prev.filter(l => l.openedAt === null || now - l.openedAt < OPEN_SECONDS * 1000))
   }, [now])
 
+  const [blocked, setBlocked] = useState<string | null>(null)
+
   const release = () => {
     const text = draft.trim()
     if (!text) return
+    const verdict = moderatePublicSignalText(text)
+    if (verdict.status === 'flagged') {
+      setBlocked(verdict.warning ?? 'this one stays unsaid.')
+      window.setTimeout(() => setBlocked(null), 5000)
+      return
+    }
     setLetters(prev => [...prev.slice(-(MAX_LETTERS - 1)), { id: `pt-${Date.now()}`, text, from: 'you', openedAt: null }])
     setDraft('')
   }
@@ -91,6 +100,7 @@ export default function PassingThoughts() {
         />
         <button type="button" disabled={!draft.trim()} onClick={release}>let it pass</button>
       </div>
+      {blocked && <p className="pt-blocked" role="status">{blocked}</p>}
 
       {letters.length > 0 && (
         <div className="pt-letters">
