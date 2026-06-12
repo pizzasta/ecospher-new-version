@@ -228,6 +228,11 @@ export default function EcosphereAmbience() {
         <span className="eco-weather-layer eco-weather-layer-b" />
       </div>
 
+      {/* color wave: blurred gradient blobs crossing each other like liquid light */}
+      <div className="eco-color-wave" aria-hidden="true">
+        <span /><span /><span />
+      </div>
+
       <div className={`eco-presence-chip${lurker ? ' eco-presence-chip--lurking' : ''}`} title={`signal weather: ${weather.label}`}>
         <span className="eco-presence-dot" aria-hidden="true" />
         <span className="eco-presence-count">{listeners + Math.round(ecosystemState.roomActivity / 10)}</span>
