@@ -3124,3 +3124,248 @@
   .scrap, .sticky { transform: none; }
   .sticky--live, .relic-live-chip i, .scrap-storm i, .scrap.awakened .scrap-wave b { animation: none; }
 }
+
+/* ═══ RELIC OF THE NIGHT — the breathing centerpiece ═════════ */
+.relic-night {
+  position: relative;
+  width: 100%;
+  border: 1px solid rgba(255, 45, 120, 0.3);
+  border-radius: 18px;
+  padding: 22px 18px 18px;
+  margin: 8px 0 6px;
+  text-align: center;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 0%, rgba(58, 18, 44, 0.6), transparent 70%),
+    linear-gradient(180deg, rgba(16, 11, 26, 0.94), rgba(8, 6, 16, 0.97));
+  animation: relicNightBreathe 4.8s ease-in-out infinite;
+}
+
+@keyframes relicNightBreathe {
+  0%, 100% { box-shadow: 0 0 24px rgba(255, 45, 120, 0.1), 0 14px 40px rgba(0, 0, 0, 0.5); }
+  50% { box-shadow: 0 0 52px rgba(255, 45, 120, 0.22), 0 14px 40px rgba(0, 0, 0, 0.5); }
+}
+
+.relic-night-kicker {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  color: rgba(255, 150, 190, 0.85);
+}
+
+.relic-night-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: #9ae8ff;
+  font-variant-numeric: tabular-nums;
+}
+
+.relic-night-live i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00d4ff;
+  box-shadow: 0 0 9px rgba(0, 212, 255, 0.9);
+  animation: capsClockTick 1.4s ease-in-out infinite;
+}
+
+.relic-night-cassette {
+  width: min(380px, 92%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(34, 26, 50, 0.92), rgba(15, 11, 27, 0.96));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.rnc-reel {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: radial-gradient(circle, rgba(8, 7, 16, 0.9) 36%, rgba(44, 36, 64, 0.85));
+}
+
+.rnc-reel b {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255, 255, 255, 0.24) 0 8deg, transparent 8deg 60deg);
+  animation: capsOrbit 6s linear infinite;
+}
+
+.rnc-reel-b b { animation-duration: 8s; }
+.relic-night-cassette.playing .rnc-reel b { animation-duration: 1.4s; }
+
+.rnc-window {
+  flex: 1;
+  height: 46px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(4, 4, 10, 0.65);
+  padding: 6px 9px;
+}
+
+.rnc-window b {
+  width: 3px;
+  border-radius: 2px;
+  height: var(--rht-h, 50%);
+  background: linear-gradient(180deg, #ff2d78, rgba(0, 212, 255, 0.85));
+  opacity: 0.85;
+  animation: phTraitWave 1.8s ease-in-out infinite;
+  animation-delay: var(--rht-d, 0s);
+  transform-origin: bottom;
+}
+
+.relic-night-name {
+  font-size: 19px;
+  font-weight: 900;
+  color: rgba(244, 248, 255, 0.97);
+  text-shadow: 0 0 20px rgba(255, 45, 120, 0.3);
+}
+
+.relic-night-why {
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: rgba(255, 195, 218, 0.75);
+  max-width: 440px;
+}
+
+.relic-night-history {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: rgba(160, 220, 245, 0.7);
+  font-variant-numeric: tabular-nums;
+}
+
+.relic-night-subs {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* ── shelf chaos ─────────────────────────────────────────────── */
+.scrap--stacked { margin-top: -16px; z-index: 1; }
+
+.scrap--burned::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 46%;
+  height: 40%;
+  border-radius: 0 0 10px 0;
+  background: radial-gradient(ellipse at 100% 100%, rgba(0, 0, 0, 0.85), rgba(40, 18, 8, 0.4) 55%, transparent 75%);
+  pointer-events: none;
+}
+
+.scrap-tape {
+  display: grid;
+  place-items: center;
+  font-size: 8px;
+  font-style: italic;
+  color: rgba(40, 50, 80, 0.85);
+  letter-spacing: 0.05em;
+  font-family: cursive, monospace;
+}
+
+.scrap-name s { opacity: 0.45; text-decoration-thickness: 2px; margin-right: 4px; font-weight: 400; }
+
+.scrap-status {
+  font-style: normal;
+  margin-left: 7px;
+  padding: 1.5px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: rgba(140, 222, 248, 0.8);
+  font-size: 8.5px;
+  letter-spacing: 0.07em;
+}
+
+.scrap-history {
+  font-size: 10px;
+  color: rgba(255, 180, 205, 0.65);
+  font-variant-numeric: tabular-nums;
+}
+
+/* fingerprints on the most-handled tapes */
+.scrap:nth-child(4n)::before {
+  content: '';
+  position: absolute;
+  top: 14%;
+  right: 9%;
+  width: 22px;
+  height: 26px;
+  border-radius: 50%;
+  background: repeating-radial-gradient(ellipse at center, rgba(200, 215, 245, 0.05) 0 1.5px, transparent 1.5px 3.5px);
+  pointer-events: none;
+}
+
+.sticky--falling {
+  --tilt: 14deg;
+  margin-top: 26px;
+  align-self: flex-end;
+  box-shadow: 0 14px 22px rgba(0, 0, 0, 0.5);
+}
+
+/* shelf light: flickers occasionally, like a real backroom */
+.relic-board::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 220, 170, 0.4), transparent);
+  box-shadow: 0 0 24px rgba(255, 200, 130, 0.25);
+  animation: relicLightFlicker 9s steps(1) infinite;
+}
+
+.relic-board { position: relative; padding-top: 14px; }
+
+@keyframes relicLightFlicker {
+  0%, 88%, 92%, 100% { opacity: 1; }
+  89% { opacity: 0.3; }
+  90% { opacity: 0.85; }
+  91% { opacity: 0.5; }
+}
+
+/* recover missing section */
+.relic-recover {
+  margin-top: 12px;
+  padding: 9px 14px;
+  border-radius: 11px;
+  border: 1px dashed rgba(255, 170, 120, 0.5);
+  background: rgba(255, 140, 90, 0.07);
+  color: #ffc9a8;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.relic-recover:hover { background: rgba(255, 140, 90, 0.15); box-shadow: 0 0 14px rgba(255, 140, 90, 0.2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .relic-night, .relic-night-live i, .rnc-reel b, .rnc-window b,
+  .relic-board::before { animation: none; }
+  .sticky--falling { --tilt: 0deg; margin-top: 14px; }
+}
