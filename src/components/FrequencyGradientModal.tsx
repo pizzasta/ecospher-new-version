@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
-import { GRADIENT_SPEEDS, gradientColorsForHz, resolveGradientColors, saveGradientSettings } from '../lib/frequencyGradient'
+import { GRADIENT_SPEEDS, GRADIENT_STYLES, gradientColorsForHz, resolveGradientColors, saveGradientSettings } from '../lib/frequencyGradient'
 import type { GradientSettings } from '../lib/frequencyGradient'
 import './hz.css'
 
@@ -49,24 +49,18 @@ export default function FrequencyGradientModal({ settings, hz, onChange, onClose
         <div className="hz-field">
           <span>design</span>
           <div className="fg-speeds" role="radiogroup" aria-label="Background design">
-            <button
-              type="button"
-              role="radio"
-              aria-checked={draft.style === 'gradient'}
-              className={`fg-speed${draft.style === 'gradient' ? ' active' : ''}`}
-              onClick={() => patch({ style: 'gradient' })}
-            >
-              gradient
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={draft.style === 'wave'}
-              className={`fg-speed${draft.style === 'wave' ? ' active' : ''}`}
-              onClick={() => patch({ style: 'wave' })}
-            >
-              wave (animated)
-            </button>
+            {GRADIENT_STYLES.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={draft.style === option.value}
+                className={`fg-speed${draft.style === option.value ? ' active' : ''}`}
+                onClick={() => patch({ style: option.value })}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
 
