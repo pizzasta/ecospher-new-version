@@ -7,6 +7,7 @@ import { uiClick, uiPop, uiScrollHiss } from '../lib/uiSound'
 import ColorWave from './ColorWave'
 import { effectiveNightIntensity, isDeepNight } from '../lib/nightMode'
 import { liveToastFor, setLivePage, startLiveBus, stopLiveBus } from '../lib/liveBus'
+import { takeTrace } from '../lib/pageTrace'
 import type { LiveEvent, LivePresence } from '../lib/liveBus'
 import './EcosphereAmbience.css'
 
@@ -127,7 +128,18 @@ export default function EcosphereAmbience() {
     return () => stopLiveBus()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  useEffect(() => { setLivePage(currentPage) }, [currentPage])
+  useEffect(() => {
+    setLivePage(currentPage)
+    // something you did elsewhere drifts in behind you
+    const trace = takeTrace(currentPage)
+    if (trace) {
+      const t = window.setTimeout(() => {
+        setPresencePulse(`drifted here with you: ${trace.text}`)
+        window.setTimeout(() => setPresencePulse(null), 5600)
+      }, 2200)
+      return () => window.clearTimeout(t)
+    }
+  }, [currentPage])
   useEffect(() => {
     const onPresence = (event: Event) => {
       const detail = (event as CustomEvent<LivePresence>).detail

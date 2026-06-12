@@ -2991,3 +2991,8 @@ body[data-eco-deepnight='on']:not([data-eco-night='on']) .atmosphere {
   .sea-stars b { opacity: 0.4; }
   .sea-buoy-light { transition: none; }
 }
+
+/* your unsent signal, resurfaced: gold among the colored buoys */
+.sea-buoy--yours { color: #ffd166; border: none; background: transparent; cursor: pointer; }
+.sea-buoy--yours .sea-buoy-light i { background: #ffd166; box-shadow: 0 0 10px rgba(255, 209, 102, 0.8); }
+.sea-buoy--yours .sea-subtitle { color: rgba(255, 224, 160, 0.85); }

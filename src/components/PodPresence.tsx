@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { useEcoPref } from '../hooks/useEcoPrefs'
-import type { LivePresence } from '../lib/liveBus'
+import type { LiveEvent, LivePresence } from '../lib/liveBus'
 import './PodPresence.css'
 
 // The live presence chamber: the top of the hub. One breathing orb that IS
@@ -37,15 +37,29 @@ export default function PodPresence({ energy, stage, rippling, streak, identity,
   const [glitching, setGlitching] = useState(false)
   const shellRef = useRef<HTMLElement>(null)
 
+  // cross-page: a replay storm anywhere flashes through your status line
+  const [stormNotice, setStormNotice] = useState(false)
+  useEffect(() => {
+    const onLive = (event: Event) => {
+      const detail = (event as CustomEvent<LiveEvent>).detail
+      if (detail?.type !== 'storm') return
+      setStormNotice(true)
+      window.setTimeout(() => setStormNotice(false), 9000)
+    }
+    window.addEventListener('ecosphere:live', onLive)
+    return () => window.removeEventListener('ecosphere:live', onLive)
+  }, [])
+
   // the status line: real state wins, ambience fills the rest
   const status = useMemo(() => {
+    if (stormNotice) return 'a replay storm is forming on the relics shelf'
     if (hidden) return 'hidden from the band'
     if (lurker) return 'drifting invisibly'
     if (audio.playing) return 'replaying fragments'
     const hour = new Date().getHours()
     if (hour >= 0 && hour < 5) return statusIdx % 2 === 0 ? 'active after midnight' : BASE_STATUSES[statusIdx % BASE_STATUSES.length]
     return BASE_STATUSES[statusIdx % BASE_STATUSES.length]
-  }, [hidden, lurker, audio.playing, statusIdx])
+  }, [stormNotice, hidden, lurker, audio.playing, statusIdx])
 
   useEffect(() => {
     const t = window.setInterval(() => setStatusIdx(n => n + 1), 11000)
