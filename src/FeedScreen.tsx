@@ -12,6 +12,7 @@ import { GHOST_ARCHIVE } from './lib/ghostArchive'
 import { hzForHandle } from './lib/hzSignature'
 import HzBadge from './components/HzBadge'
 import ListenerTraces from './components/ListenerTraces'
+import { RETURN_TAGS, addReturn, listReturns, removeReturn } from './lib/returnQueue'
 
 const hiddenKey = 'ecosphere:hiddenSignals'
 function loadHidden(): string[] {
@@ -359,6 +360,8 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
   const [hovered, setHovered] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [reporting, setReporting] = useState(false)
+  const [tagPicker, setTagPicker] = useState(false)
+  const [marked, setMarked] = useState<string | null>(() => listReturns().find(m => m.id === signal.id)?.tag ?? null)
   const [reportNote, setReportNote] = useState<string | null>(null)
   const [fading, setFading] = useState(false)
   const [fadedAway, setFadedAway] = useState(false)
@@ -527,6 +530,15 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
             <span>⬡</span> export signal
           </button>
           <button
+            className={`action-btn action-btn--later${marked ? ' action-btn--saved' : ''}`}
+            style={{ '--btn-color': colors.primary } as React.CSSProperties}
+            onClick={() => setTagPicker(t => !t)}
+            aria-expanded={tagPicker}
+            title="mark this to come back to"
+          >
+            <span>◔</span> {marked ? marked : 'later'}
+          </button>
+          <button
             className="action-btn action-btn--report"
             onClick={() => setReporting(r => !r)}
             aria-expanded={reporting}
@@ -542,6 +554,28 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
           </button>
         </div>
 
+        {tagPicker && (
+          <div className="card-return-row" role="group" aria-label="Come back to this">
+            {RETURN_TAGS.map(tag => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => {
+                  addReturn({ id: signal.id, label: `"${signal.content.slice(0, 48)}…"`, page: 'signals', tag })
+                  setMarked(tag)
+                  setTagPicker(false)
+                }}
+              >
+                ◔ {tag}
+              </button>
+            ))}
+            {marked && (
+              <button type="button" className="card-return-clear" onClick={() => { removeReturn(signal.id); setMarked(null); setTagPicker(false) }}>
+                ✕ unmark
+              </button>
+            )}
+          </div>
+        )}
         {reporting && (
           <div className="card-report-row" role="group" aria-label="Report reason">
             {['harassment', 'spam', 'unsafe content', 'sexual content', 'child safety', 'other'].map(reason => (

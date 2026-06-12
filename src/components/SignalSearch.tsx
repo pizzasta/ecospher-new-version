@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { buildSearchIndex, discoverySuggestions, searchSignals } from '../lib/searchIndex'
 import type { DiscoveryRow, SearchEntry } from '../lib/searchIndex'
 import { playSampleBuffer, stopPreviewBuffer } from '../lib/sampleAudio'
+import { dueReturns, removeReturn, waitingReturns } from '../lib/returnQueue'
+import type { ReturnMark } from '../lib/returnQueue'
 import './SignalSearch.css'
 
 // Signal Search — a glowing command palette that reaches the whole band.
@@ -29,6 +31,13 @@ export default function SignalSearch({ onNavigate }: { onNavigate: (page: string
 
   const results = useMemo(() => searchSignals(query, index), [query, index])
   const discovery = useMemo<DiscoveryRow[]>(() => (open && !query.trim() ? discoverySuggestions() : []), [open, query])
+  const [returnsDue, setReturnsDue] = useState<ReturnMark[]>([])
+  const [returnsWaiting, setReturnsWaiting] = useState<ReturnMark[]>([])
+  useEffect(() => {
+    if (!open) return
+    setReturnsDue(dueReturns())
+    setReturnsWaiting(waitingReturns())
+  }, [open])
   const rows: Array<SearchEntry & { reason?: string }> = query.trim() ? results : discovery
 
   // global openers: ⌘K / Ctrl+K and the ecosphere:search event
@@ -96,12 +105,17 @@ export default function SignalSearch({ onNavigate }: { onNavigate: (page: string
   return (
     <div className="sig-search" role="dialog" aria-label="Signal search" onClick={() => setOpen(false)}>
       <div className="sig-search-panel" onClick={event => event.stopPropagation()}>
+        <div className="sig-search-particles" aria-hidden="true">
+          {Array.from({ length: 8 }, (_, i) => (
+            <i key={i} style={{ left: `${(i * 79 + 7) % 100}%`, animationDuration: `${7 + (i % 4) * 3}s`, animationDelay: `${-(i * 1.9)}s` }} />
+          ))}
+        </div>
         <div className="sig-search-wave" aria-hidden="true">
           {Array.from({ length: 26 }, (_, i) => (
             <b key={i} style={{ animationDelay: `${(i % 8) * 0.13}s`, height: `${18 + ((i * 37) % 70)}%` }} />
           ))}
         </div>
-        <div className="sig-search-row">
+        <div className={`sig-search-row${query ? ' typing' : ''}`}>
           <span className="sig-search-glyph" aria-hidden="true">⌖</span>
           <input
             ref={inputRef}
@@ -124,6 +138,29 @@ export default function SignalSearch({ onNavigate }: { onNavigate: (page: string
         )}
 
         <div className="sig-search-results">
+          {!query.trim() && returnsDue.length > 0 && (
+            <>
+              <span className="sig-search-section">your return queue</span>
+              {returnsDue.map(mark => (
+                <button
+                  key={`ret-${mark.id}`}
+                  type="button"
+                  className="sig-result sig-result--return"
+                  onClick={() => { removeReturn(mark.id); stopPreviewBuffer(); setOpen(false); onNavigate(mark.page) }}
+                >
+                  <span className="sig-result-glyph" aria-hidden="true">◔</span>
+                  <span className="sig-result-body">
+                    <strong>{mark.label}</strong>
+                    <em>{mark.tag} · marked {new Date(mark.savedAt).toLocaleDateString([], { weekday: 'short' })}</em>
+                  </span>
+                  <span className="sig-result-page">go now</span>
+                </button>
+              ))}
+            </>
+          )}
+          {!query.trim() && returnsWaiting.length > 0 && (
+            <p className="sig-search-waiting">◔ {returnsWaiting.length} signal{returnsWaiting.length === 1 ? '' : 's'} waiting for midnight</p>
+          )}
           {!query.trim() && rows.length > 0 && <span className="sig-search-section">tonight, for you</span>}
           {rows.map((row, i) => (
             <button

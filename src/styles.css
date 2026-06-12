@@ -9493,3 +9493,29 @@ body[data-eco-view='mobile'] .helpbot-panel { width: min(440px, 96vw); }
 @media (prefers-reduced-motion: reduce) {
   .auth-veil-spinner { animation: none; }
 }
+
+/* minimal drift nav: five destinations + find, centered and roomy */
+.bottom-nav--minimal { justify-content: center; gap: 10px; }
+.nav-item--search .nav-glyph { color: #9ae8ff; text-shadow: 0 0 12px rgba(0, 212, 255, 0.5); }
+
+/* return-mark tag chooser on feed cards */
+.card-return-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.card-return-row button {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  background: rgba(0, 212, 255, 0.06);
+  color: #aee9fb;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+.card-return-row button:hover { border-color: rgba(0, 212, 255, 0.7); }
+.card-return-row .card-return-clear { border-color: rgba(255, 255, 255, 0.15); color: rgba(190, 200, 230, 0.6); }
