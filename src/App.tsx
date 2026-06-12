@@ -25,6 +25,8 @@ import { pushLocalNotification } from './lib/notifications'
 import { getHzProfile } from './lib/hzSignature'
 import type { HzProfile } from './lib/hzSignature'
 import SignalToSelf from './components/SignalToSelf'
+import { useLocale } from './hooks/useLocale'
+import { LOCALES, LOCALE_NAMES } from './lib/i18n'
 import { useRecordingSession } from './hooks/useRecordingSession'
 import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 import { enablePushNotifications } from './lib/pushNotifications'
@@ -2516,11 +2518,12 @@ type EcoPrefs = {
   lurker: boolean
   uiSounds: boolean
   privateProfile: boolean
+  language: string
   signalVolume: number
   driftSensitivity: number
 }
 
-const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, privateProfile: false, signalVolume: 72, driftSensitivity: 60 }
+const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, privateProfile: false, language: 'auto', signalVolume: 72, driftSensitivity: 60 }
 
 function normalizeIdentity(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
@@ -2531,8 +2534,9 @@ function isValidIdentity(value: string) {
   return /^[a-z0-9_]{3,24}$/.test(value)
 }
 
-function SettingsScreen() {
+export function SettingsScreen() {
   const { ecosystemState } = useEcosystemState()
+  const { tr } = useLocale()
   const [prefs, setPrefs] = usePersistentState<EcoPrefs>('ecosphere:settings', defaultPrefs)
   const [identityDraft, setIdentityDraft] = useState('')
   const [note, setNote] = useState<string | null>(null)
@@ -2553,6 +2557,19 @@ function SettingsScreen() {
         ...(patch.lurker !== undefined ? { lurker_mode: patch.lurker } : {}),
         ...(patch.privateProfile !== undefined ? { is_private: patch.privateProfile } : {}),
       })
+    }
+    // every flip confirms itself — a toggle should never feel dead
+    const confirmations: Partial<Record<keyof EcoPrefs, [string, string]>> = {
+      vibrate: ['vibration on', 'vibration off'],
+      anonymous: ['anonymous mode on', 'anonymous mode off'],
+      nightMode: ['night protocol engaged', 'night protocol off'],
+      lurker: ['lurker mode on — recorders resting', 'lurker mode off — voice restored'],
+      uiSounds: ['interface sounds on', 'interface sounds muted'],
+      privateProfile: ['profile hidden from the band', 'profile visible again'],
+    }
+    for (const key of Object.keys(patch) as Array<keyof EcoPrefs>) {
+      const pair = confirmations[key]
+      if (pair) showNote(patch[key] ? pair[0] : pair[1])
     }
   }
 
@@ -2625,67 +2642,67 @@ function SettingsScreen() {
     <div className="screen">
       <div className="screen-header">
         <div className="screen-kicker">ECOSPHERE</div>
-        <h2 className="screen-title">Settings</h2>
-        <p className="screen-sub">tune your presence in the ecosystem</p>
+        <h2 className="screen-title">{tr('settings.title')}</h2>
+        <p className="screen-sub">{tr('settings.subtitle')}</p>
       </div>
 
       <div className="settings-list">
         <div className="setting-row glass setting-row--identity">
           <div className="setting-info">
-            <div className="setting-label">Signal Identity</div>
+            <div className="setting-label">{tr('settings.identity')}</div>
             <div className="setting-detail">{ecosystemState.userSignalIdentity ?? 'unclaimed frequency'}</div>
           </div>
           <div className="setting-identity-edit">
             <input
               type="text"
               value={identityDraft}
-              placeholder="retune your signal…"
+              placeholder={tr('settings.identity.placeholder')}
               onChange={e => setIdentityDraft(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') renameIdentity() }}
             />
-            <button type="button" disabled={!isValidIdentity(normalizeIdentity(identityDraft))} onClick={renameIdentity}>retune</button>
+            <button type="button" disabled={!isValidIdentity(normalizeIdentity(identityDraft))} onClick={renameIdentity}>{tr('settings.identity.action')}</button>
           </div>
         </div>
 
         <div className="setting-row glass">
           <div className="setting-info">
-            <div className="setting-label">Anonymous Mode</div>
-            <div className="setting-detail">broadcast without identity</div>
+            <div className="setting-label">{tr('settings.anonymous')}</div>
+            <div className="setting-detail">{tr('settings.anonymous.detail')}</div>
           </div>
           <button className={`toggle ${prefs.anonymous ? 'on' : ''}`} onClick={() => update({ anonymous: !prefs.anonymous })} />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
-            <div className="setting-label">Vibrate on Signal</div>
-            <div className="setting-detail">haptic pulse on new resonance</div>
+            <div className="setting-label">{tr('settings.vibrate')}</div>
+            <div className="setting-detail">{tr('settings.vibrate.detail')}</div>
           </div>
           <button className={`toggle ${prefs.vibrate ? 'on' : ''}`} onClick={() => update({ vibrate: !prefs.vibrate })} />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
-            <div className="setting-label">Night Protocol</div>
-            <div className="setting-detail">deepen the atmosphere</div>
+            <div className="setting-label">{tr('settings.night')}</div>
+            <div className="setting-detail">{tr('settings.night.detail')}</div>
           </div>
           <button className={`toggle ${prefs.nightMode ? 'on' : ''}`} onClick={() => update({ nightMode: !prefs.nightMode })} />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
-            <div className="setting-label">Private Profile</div>
-            <div className="setting-detail">hide your profile from other carriers entirely</div>
+            <div className="setting-label">{tr('settings.private')}</div>
+            <div className="setting-detail">{tr('settings.private.detail')}</div>
           </div>
           <button className={`toggle ${prefs.privateProfile ? 'on' : ''}`} onClick={() => update({ privateProfile: !prefs.privateProfile })} />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
-            <div className="setting-label">Lurker Mode</div>
-            <div className="setting-detail">just listen tonight — hides your presence, rests the recorders</div>
+            <div className="setting-label">{tr('settings.lurker')}</div>
+            <div className="setting-detail">{tr('settings.lurker.detail')}</div>
           </div>
           <button className={`toggle ${prefs.lurker ? 'on' : ''}`} onClick={() => update({ lurker: !prefs.lurker })} />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
-            <div className="setting-label">Push Notifications</div>
-            <div className="setting-detail">opt-in browser alerts when something touches your signals</div>
+            <div className="setting-label">{tr('settings.push')}</div>
+            <div className="setting-detail">{tr('settings.push.detail')}</div>
           </div>
           <button
             type="button"
@@ -2701,56 +2718,73 @@ function SettingsScreen() {
               })
             }}
           >
-            {pushBusy ? 'enabling…' : 'enable push'}
+            {pushBusy ? tr('settings.push.busy') : tr('settings.push.action')}
           </button>
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
-            <div className="setting-label">Interface Sounds</div>
-            <div className="setting-detail">soft radio clicks and static on interaction</div>
+            <div className="setting-label">{tr('settings.language')}</div>
+            <div className="setting-detail">{tr('settings.language.detail')}</div>
+          </div>
+          <select
+            className="setting-select"
+            value={prefs.language}
+            onChange={e => update({ language: e.target.value })}
+            aria-label={tr('settings.language')}
+          >
+            <option value="auto">{tr('settings.language.auto')}</option>
+            {LOCALES.map(code => (
+              <option key={code} value={code}>{LOCALE_NAMES[code]}</option>
+            ))}
+          </select>
+        </div>
+        <div className="setting-row glass">
+          <div className="setting-info">
+            <div className="setting-label">{tr('settings.sounds')}</div>
+            <div className="setting-detail">{tr('settings.sounds.detail')}</div>
           </div>
           <button className={`toggle ${prefs.uiSounds ? 'on' : ''}`} onClick={() => update({ uiSounds: !prefs.uiSounds })} />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
-            <div className="setting-label">Signal Volume</div>
-            <div className="setting-detail">{prefs.signalVolume}% — applies to all playback</div>
+            <div className="setting-label">{tr('settings.volume')}</div>
+            <div className="setting-detail">{prefs.signalVolume}% — {tr('settings.volume.detail')}</div>
           </div>
           <input type="range" min={0} max={100} value={prefs.signalVolume} onChange={e => update({ signalVolume: +e.target.value })} className="range-input" />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
-            <div className="setting-label">Drift Sensitivity</div>
-            <div className="setting-detail">{prefs.driftSensitivity}% — ambient motion intensity</div>
+            <div className="setting-label">{tr('settings.driftSensitivity')}</div>
+            <div className="setting-detail">{prefs.driftSensitivity}% — {tr('settings.driftSensitivity.detail')}</div>
           </div>
           <input type="range" min={0} max={100} value={prefs.driftSensitivity} onChange={e => update({ driftSensitivity: +e.target.value })} className="range-input" />
         </div>
 
         <div className="setting-row glass setting-row--danger">
           <div className="setting-info">
-            <div className="setting-label">Replay Onboarding</div>
-            <div className="setting-detail">re-enter the ecosphere from the beginning</div>
+            <div className="setting-label">{tr('settings.replayOnboarding')}</div>
+            <div className="setting-detail">{tr('settings.replayOnboarding.detail')}</div>
           </div>
-          <button type="button" className="setting-action" onClick={resetIntro}>reset intro</button>
+          <button type="button" className="setting-action" onClick={resetIntro}>{tr('settings.replayOnboarding.action')}</button>
         </div>
         {isSupabaseConfigured && (
           <div className="setting-row glass setting-row--danger">
             <div className="setting-info">
-              <div className="setting-label">Erase Cloud Data</div>
-              <div className="setting-detail">delete every recording, signal, and trace of this account from the backend</div>
+              <div className="setting-label">{tr('settings.eraseCloud')}</div>
+              <div className="setting-detail">{tr('settings.eraseCloud.detail')}</div>
             </div>
             <button type="button" className={`setting-action setting-action--danger${confirmCloudWipe ? ' confirming' : ''}`} disabled={cloudWipeBusy} onClick={wipeCloudData}>
-              {cloudWipeBusy ? 'erasing…' : confirmCloudWipe ? 'tap again to erase' : 'erase cloud'}
+              {cloudWipeBusy ? '…' : confirmCloudWipe ? tr('settings.confirm') : tr('settings.eraseCloud.action')}
             </button>
           </div>
         )}
         <div className="setting-row glass setting-row--danger">
           <div className="setting-info">
-            <div className="setting-label">Clear Local Data</div>
-            <div className="setting-detail">erase identity, saves, recordings — everything on this device</div>
+            <div className="setting-label">{tr('settings.eraseLocal')}</div>
+            <div className="setting-detail">{tr('settings.eraseLocal.detail')}</div>
           </div>
           <button type="button" className={`setting-action setting-action--danger${confirmWipe ? ' confirming' : ''}`} onClick={wipeLocalData}>
-            {confirmWipe ? 'tap again to erase' : 'erase'}
+            {confirmWipe ? tr('settings.confirm') : tr('settings.eraseLocal.action')}
           </button>
         </div>
       </div>
@@ -2767,14 +2801,16 @@ function SettingsScreen() {
 // ─── Nav ──────────────────────────────────────────────────────────────────────
 function Nav({ active, onNav }: { active: Screen; onNav: (s: Screen) => void }) {
   const { recordingActive } = useRecordingSession()
+  const { tr } = useLocale()
   return (
     <nav className={`bottom-nav glass-nav${recordingActive ? ' nav--recording' : ''}`}>
       {navItems.map(item => (
         <button
           key={item.id}
           className={`nav-item ${active === item.id ? 'active' : ''}`}
+          data-page={item.id}
           disabled={recordingActive}
-          title={recordingActive ? 'finish recording first' : item.label}
+          title={recordingActive ? 'finish recording first' : tr(`nav.${item.id}`)}
           onClick={() => {
             try {
               const raw = window.localStorage.getItem('ecosphere:settings')
@@ -2784,7 +2820,7 @@ function Nav({ active, onNav }: { active: Screen; onNav: (s: Screen) => void }) 
           }}
         >
           <span className="nav-glyph">{item.glyph}</span>
-          <span className="nav-label">{item.label}</span>
+          <span className="nav-label">{tr(`nav.${item.id}`)}</span>
         </button>
       ))}
     </nav>

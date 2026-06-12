@@ -476,3 +476,18 @@
     filter: brightness(1.32);
   }
 }
+
+.setting-select {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text-primary, #f0f4ff);
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+}
+
+.setting-select:focus {
+  border-color: rgba(255, 45, 120, 0.5);
+}
