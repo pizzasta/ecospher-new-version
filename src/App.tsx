@@ -20,6 +20,8 @@ import NotificationBell from './components/NotificationBell'
 import FirstTour from './components/FirstTour'
 import HelpBot from './components/HelpBot'
 import PodPresence from './components/PodPresence'
+import SignalSearch from './components/SignalSearch'
+import QuickCreate from './components/QuickCreate'
 import ListenerTraces from './components/ListenerTraces'
 import { humanizeActivity } from './lib/listeningIdentity'
 import { DEEP_NIGHT_LINES, isDeepNight } from './lib/nightMode'
@@ -3822,6 +3824,8 @@ export default function App() {
       <EcosphereAmbience />
 
       <NotificationBell />
+      <SignalSearch onNavigate={page => navigate(page as Screen)} />
+      <QuickCreate onNavigate={page => navigate(page as Screen)} />
       {authBusy && (
         <div className="auth-veil" role="status">
           <span className="auth-veil-spinner" aria-hidden="true" />
