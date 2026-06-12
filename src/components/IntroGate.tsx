@@ -571,8 +571,10 @@ function EcosystemLoopBridge() {
 
       const navButton = target.closest('.nav-item')
       if (navButton) {
+        // data-page survives translation; the label-text map is the legacy fallback
+        const pageAttr = navButton.getAttribute('data-page') as EcosystemPage | null
         const label = readElementText(navButton.querySelector('.nav-label')).toLowerCase()
-        const nextPage = navLabelToPage[label]
+        const nextPage = pageAttr ?? navLabelToPage[label]
         if (nextPage) {
           visitPage(nextPage)
           if (nextPage === 'drift') exploreDrift('opened drift field')
