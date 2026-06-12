@@ -2404,3 +2404,173 @@ body[data-eco-deepnight='on']:not([data-eco-night='on']) .atmosphere {
   font-style: normal;
   color: rgba(0, 212, 255, 0.7);
 }
+
+/* ═══ PAGE PURPOSE ELEVATIONS ════════════════════════════════ */
+
+/* capsules: the time table */
+.capsule-timetable {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+
+.capsule-clock {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.025);
+  min-width: 0;
+}
+
+.capsule-clock em {
+  font-style: normal;
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(140, 155, 195, 0.55);
+}
+
+.capsule-clock strong {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: #67e8f9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .capsule-timetable { flex-direction: column; }
+}
+
+/* relics: left out on the shelf */
+.relic-loan {
+  margin: 14px 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 200, 130, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.relic-loan-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.relic-loan-kicker {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: rgba(255, 200, 130, 0.9);
+}
+
+.relic-loan-why {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: rgba(140, 155, 195, 0.5);
+}
+
+.relic-loan-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.relic-loan-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.relic-loan-info strong {
+  font-size: 14px;
+  color: var(--text-primary, #f0f4ff);
+}
+
+.relic-loan-info span {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: rgba(140, 155, 195, 0.6);
+}
+
+.relic-loan-row button {
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 200, 130, 0.5);
+  background: rgba(255, 200, 130, 0.1);
+  color: rgba(255, 220, 170, 0.95);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.relic-loan-memory {
+  margin: 0;
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(196, 181, 253, 0.6);
+}
+
+/* sea: purpose, driftwood, floor status */
+.sea-purpose {
+  margin: 4px 0 0;
+  font-size: 11px;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  color: rgba(140, 155, 195, 0.55);
+}
+
+.sea-driftwood {
+  position: absolute;
+  left: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  background: rgba(3, 10, 20, 0.7);
+  backdrop-filter: blur(8px);
+  color: rgba(200, 220, 240, 0.8);
+  font-size: 11px;
+  font-style: italic;
+  white-space: nowrap;
+  cursor: pointer;
+  animation: seaDriftAcross 14s linear forwards;
+  will-change: transform;
+  z-index: 4;
+}
+
+@keyframes seaDriftAcross {
+  from { transform: translateX(-110%); opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  to { transform: translateX(calc(100vw + 10%)); opacity: 0; }
+}
+
+.sea-floor-status {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: rgba(140, 155, 195, 0.5);
+  margin-bottom: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sea-driftwood {
+    animation: none;
+    left: 10%;
+    will-change: auto;
+  }
+}

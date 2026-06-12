@@ -20,7 +20,7 @@ import NotificationBell from './components/NotificationBell'
 import ListenerTraces from './components/ListenerTraces'
 import { humanizeActivity } from './lib/listeningIdentity'
 import { DEEP_NIGHT_LINES, isDeepNight } from './lib/nightMode'
-import { currentDrop, dropTimeLeft, isDropOpened, markDropOpened, markDropSeen } from './lib/frequencyDrops'
+import { currentDrop, dropTimeLeft, isDropOpened, markDropOpened, markDropSeen, nextDropAt } from './lib/frequencyDrops'
 import { pushLocalNotification } from './lib/notifications'
 import { getHzProfile } from './lib/hzSignature'
 import type { HzProfile } from './lib/hzSignature'
@@ -1181,9 +1181,25 @@ function CapsulesScreen() {
       <div className="screen-header">
         <div className="screen-kicker">VOICE CAPSULES</div>
         <h2 className="screen-title">Capsules</h2>
-        <p className="screen-sub">preserved moments, carried forward</p>
+        <p className="screen-sub">nothing here opens on demand. capsules run on their own clocks — come back when one is ready.</p>
       </div>
       <AmbientLine lines={useMemo(() => [...CAPSULE_EVENTS, ...livedInLines('capsules', 2)], [])} />
+
+      {/* the time table: every clock this page runs, at a glance */}
+      <div className="capsule-timetable" aria-label="Capsule clocks">
+        <div className="capsule-clock">
+          <em>rare frequency</em>
+          <strong>{drop ? `closes in ${dropTimeLeft(drop, dropTick)}` : `forms in ${Math.max(1, Math.ceil((nextDropAt(dropTick) - dropTick) / 86400000))}d`}</strong>
+        </div>
+        <div className="capsule-clock">
+          <em>unmarked capsule</em>
+          <strong>{formed || openedCycle !== null ? 'formed — break it' : formingRemaining > 3600000 ? `ready in ${Math.ceil(formingRemaining / 3600000)}h` : `ready in ${Math.max(1, Math.ceil(formingRemaining / 60000))}m`}</strong>
+        </div>
+        <div className="capsule-clock">
+          <em>ghost signal</em>
+          <strong>rotates at midnight</strong>
+        </div>
+      </div>
 
       {drop && (
         <div className={`rare-drop glass${dropOpen ? ' rare-drop--open' : ''}`} role="region" aria-label="Rare frequency drop">
@@ -1415,6 +1431,25 @@ function RelicsScreen() {
   const [shelfVisit, setShelfVisit] = usePersistentState<string>('ecosphere:relicShelfVisit', '')
   const [shelfNote, setShelfNote] = useState<string | null>(null)
 
+  // today's featured artifact + what you handled last
+  const loanRelic = relics[dayOfYear() % relics.length]
+  const lastHandled = useMemo(() => {
+    const entries = Object.entries(store).filter(([, a]) => a.replays > 0)
+    if (entries.length === 0) return null
+    const [id, activity] = entries[entries.length - 1]
+    const relic = relics.find(r => r.id === id)
+    return relic ? { name: relic.name, replays: activity.replays } : null
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleLoanRelic = () => {
+    void playSample(relicAudio, { id: `loan-${loanRelic.id}`, label: `from the shelf · ${loanRelic.name}`, source: 'relics' }, 'static', loanRelic.resonance * 7, 6000)
+    setStore(prev => ({ ...prev, [loanRelic.id]: { ...(prev[loanRelic.id] ?? { replays: 0, reactions: {}, saved: false }), replays: (prev[loanRelic.id]?.replays ?? 0) + 1 } }))
+    unlockEcosystemRelic(loanRelic.id, loanRelic.name)
+    setShelfNote(`${loanRelic.name} is warm in your hands`)
+    window.setTimeout(() => setShelfNote(null), 5000)
+  }
+
   // returning on a new day re-stabilizes the shelf — a reason to come back tomorrow
   useEffect(() => {
     const today = localDateString()
@@ -1468,10 +1503,29 @@ function RelicsScreen() {
       <div className="screen-header">
         <div className="screen-kicker">SIGNAL RELICS</div>
         <h2 className="screen-title">Relics</h2>
-        <p className="screen-sub">artifacts recovered from the deep archive</p>
+        <p className="screen-sub">the tapes the network refused to delete. handle them — they wear, they remember who held them.</p>
       </div>
       <AmbientLine lines={useMemo(() => [...RELIC_EVENTS, ...livedInLines('relics', 3)], [])} />
       {shelfNote && <div className="lp-drift-ping" key={shelfNote}>{shelfNote}</div>}
+
+      {/* left out on the shelf: today's featured artifact — a daily reason to handle something */}
+      <div className="relic-loan glass">
+        <div className="relic-loan-head">
+          <span className="relic-loan-kicker">LEFT OUT ON THE SHELF</span>
+          <span className="relic-loan-why">most handled this night cycle</span>
+        </div>
+        <div className="relic-loan-row">
+          <div className="relic-loan-info">
+            <strong>{loanRelic.name}</strong>
+            <span>{loanRelic.type} · resonance {Math.round(charge[loanRelic.id] ?? loanRelic.resonance)}%</span>
+          </div>
+          <button type="button" onClick={handleLoanRelic}>▶ handle it</button>
+        </div>
+        {lastHandled && (
+          <p className="relic-loan-memory">you left {lastHandled.name} out last time · {lastHandled.replays} replay{lastHandled.replays === 1 ? '' : 's'} on the counter</p>
+        )}
+      </div>
+
       <LiveTail page="relics" />
       <div className="relics-grid">
         {relics.map((r, i) => {
@@ -1888,6 +1942,8 @@ function FrequenciesScreen() {
   const [ping, setPing] = useState<string | null>(null)
   const [stabilized, setStabilized] = useState<number[]>([])
   const [orbOpen, setOrbOpen] = useState<number | null>(null)
+  // things the sea carries past you — passive discovery, no action required
+  const [driftwood, setDriftwood] = useState<{ id: number; text: string; top: number; seed: number } | null>(null)
   const seaOrbs = useMemo(() => [
     { presence: 'a quiet listener', replaying: 'still awake. the quiet feels different tonight.', cassette: 'Echo Veil', trace: 'drifting for 18 min · paused twice near you' },
     { presence: 'someone half asleep', replaying: 'i kept the voicemail. i know.', cassette: 'Pulse Crystal VII', trace: 'crossed your path 4 min ago' },
@@ -1895,6 +1951,36 @@ function FrequenciesScreen() {
     { presence: 'someone on a long drive', replaying: 'replaying the same memory again.', cassette: 'Memory Burn', trace: 'left a resonance trail heading east' },
   ], [])
   const timersRef = useRef<number[]>([])
+
+  // every 22-45s something floats past; tap it before it's gone
+  useEffect(() => {
+    let spawn = 0
+    let clear = 0
+    const DRIFTWOOD = [
+      'half a voicemail, waterlogged',
+      "someone's laugh, three currents over",
+      'a hummed chorus nobody finished',
+      'the quiet after a question',
+      'forty seconds of rain from somewhere else',
+      'a name, said once, carried far',
+    ]
+    const cycle = () => {
+      spawn = window.setTimeout(() => {
+        setDriftwood({ id: Date.now(), text: DRIFTWOOD[Math.floor(Math.random() * DRIFTWOOD.length)], top: 18 + Math.random() * 50, seed: Math.floor(Math.random() * 9000) })
+        clear = window.setTimeout(() => setDriftwood(null), 14000)
+        cycle()
+      }, 22000 + Math.random() * 23000)
+    }
+    cycle()
+    return () => { window.clearTimeout(spawn); window.clearTimeout(clear) }
+  }, [])
+
+  const catchDriftwood = () => {
+    if (!driftwood) return
+    void playSampleBuffer('whisper', driftwood.seed, 5000, 0.3)
+    setPing(`caught: ${driftwood.text}`)
+    setDriftwood(null)
+  }
 
   // tides shift; the sea slowly carries you into new zones
   useEffect(() => {
@@ -1966,9 +2052,21 @@ function FrequenciesScreen() {
         <span className="sea-kicker">FREQUENCY SEA</span>
         <h1 className="sea-zone" key={zoneIdx}>{SEA_ZONES[zoneIdx]}</h1>
         <p className="sea-tide" key={tideIdx}>{SEA_TIDES[tideIdx % SEA_TIDES.length]}{night ? ' · night tide' : ''}</p>
+        <p className="sea-purpose">nothing to do here. float — the sea brings things to you.</p>
       </header>
 
       <div className="sea-field">
+        {driftwood && (
+          <button
+            type="button"
+            className="sea-driftwood"
+            key={driftwood.id}
+            style={{ top: `${driftwood.top}%` } as CSSProperties}
+            onClick={catchDriftwood}
+          >
+            ◌ {driftwood.text}
+          </button>
+        )}
         {[0, 1, 2, 3].map(i => {
           const open = orbOpen === i
           const orb = seaOrbs[i]
@@ -2028,6 +2126,7 @@ function FrequenciesScreen() {
       {ping && <div className="sea-ping" key={ping}>{ping}</div>}
 
       <footer className="sea-controls">
+        <span className="sea-floor-status">current pulling {['east', 'north', 'out', 'west'][tideIdx % 4]} · {listenerCount('sea', Math.floor(Date.now() / 60000))} others floating tonight</span>
         <button type="button" onClick={followCurrent}>⇝ follow the current</button>
         <button type="button" onClick={sendIntoSea}>◉ send a signal into the sea</button>
       </footer>
