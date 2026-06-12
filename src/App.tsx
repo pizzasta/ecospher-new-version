@@ -3178,11 +3178,13 @@ type EcoPrefs = {
   uiSounds: boolean
   privateProfile: boolean
   language: string
+  /** 'auto' | 'mobile' | 'desktop' — like a browser's "request desktop site" */
+  viewMode: string
   signalVolume: number
   driftSensitivity: number
 }
 
-const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, privateProfile: false, language: 'auto', signalVolume: 72, driftSensitivity: 60 }
+const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, privateProfile: false, language: 'auto', viewMode: 'auto', signalVolume: 72, driftSensitivity: 60 }
 
 function normalizeIdentity(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
@@ -3226,6 +3228,13 @@ export function SettingsScreen() {
       lurker: ['lurker mode on — recorders resting', 'lurker mode off — voice restored'],
       uiSounds: ['interface sounds on', 'interface sounds muted'],
       privateProfile: ['profile hidden from the band', 'profile visible again'],
+    }
+    if ('viewMode' in patch) {
+      showNote(patch.viewMode === 'mobile'
+        ? 'mobile layout pinned — phone frame on any screen'
+        : patch.viewMode === 'desktop'
+          ? 'desktop layout requested — zoom out, full width'
+          : 'layout back to automatic')
     }
     for (const key of Object.keys(patch) as Array<keyof EcoPrefs>) {
       // vibration silently does nothing on devices without the API (iPhones) —
@@ -3405,6 +3414,22 @@ export function SettingsScreen() {
             {LOCALES.map(code => (
               <option key={code} value={code}>{LOCALE_NAMES[code]}</option>
             ))}
+          </select>
+        </div>
+        <div className="setting-row glass">
+          <div className="setting-info">
+            <div className="setting-label">{tr('settings.view')}</div>
+            <div className="setting-detail">{tr('settings.view.detail')}</div>
+          </div>
+          <select
+            className="setting-select"
+            value={prefs.viewMode}
+            onChange={e => update({ viewMode: e.target.value })}
+            aria-label={tr('settings.view')}
+          >
+            <option value="auto">{tr('settings.view.auto')}</option>
+            <option value="mobile">{tr('settings.view.mobile')}</option>
+            <option value="desktop">{tr('settings.view.desktop')}</option>
           </select>
         </div>
         <div className="setting-row glass">

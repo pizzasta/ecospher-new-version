@@ -122,12 +122,21 @@ export default function EcosphereAmbience() {
 
   // user preferences: night protocol, motion intensity, haptics
   useEffect(() => {
-    const apply = (prefs: { nightMode?: boolean; driftSensitivity?: number } | null) => {
+    const apply = (prefs: { nightMode?: boolean; driftSensitivity?: number; viewMode?: string } | null) => {
       if (!prefs) return
       if (prefs.nightMode) document.body.dataset.ecoNight = 'on'
       else delete document.body.dataset.ecoNight
       const sensitivity = Number(prefs.driftSensitivity)
       document.body.style.setProperty('--eco-motion', Number.isFinite(sensitivity) ? (sensitivity / 100).toFixed(2) : '0.6')
+      // view mode: how sites do "request desktop site" — a viewport override,
+      // plus a phone frame when mobile layout is pinned on a wide screen
+      const view = prefs.viewMode
+      if (view === 'mobile' || view === 'desktop') document.body.dataset.ecoView = view
+      else delete document.body.dataset.ecoView
+      const meta = document.querySelector('meta[name="viewport"]')
+      if (meta) {
+        meta.setAttribute('content', view === 'desktop' ? 'width=1100' : 'width=device-width, initial-scale=1.0')
+      }
     }
     try {
       const raw = window.localStorage.getItem('ecosphere:settings')
@@ -138,7 +147,9 @@ export default function EcosphereAmbience() {
     return () => {
       window.removeEventListener('ecosphere:prefs', onPrefs)
       delete document.body.dataset.ecoNight
+      delete document.body.dataset.ecoView
       document.body.style.removeProperty('--eco-motion')
+      document.querySelector('meta[name="viewport"]')?.setAttribute('content', 'width=device-width, initial-scale=1.0')
     }
   }, [])
 
