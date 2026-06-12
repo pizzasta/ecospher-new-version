@@ -377,9 +377,9 @@ export default function SignalChainsScreen() {
                     <AudioRecorder
                       kind="signal"
                       context="chain layer"
-                      prompt="up to twelve seconds. harmonize, whisper, breathe, miss the note — it all stays."
+                      prompt="up to ten seconds. harmonize, whisper, breathe, miss the note — it all stays."
                       minSeconds={2}
-                      maxSeconds={12}
+                      maxSeconds={10}
                       onComplete={({ durationMs, uploadId }) => {
                         saveMyLayer({ id: uploadId, chainId: chain.id, durationMs, recordedAt: Date.now() })
                         setChains(prev => prev.map(c => (c.id === chain.id ? { ...c, contributors: Math.min(20, c.contributors + 1) } : c)))

@@ -1,3 +1,4 @@
+import { createVoiceRecorder } from '../lib/audioBudget'
 import './FloatingUnsendRecorder.css'
 import type { CSSProperties } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -83,7 +84,7 @@ export default function FloatingUnsendRecorder() {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream)
+      const recorder = createVoiceRecorder(stream)
       streamRef.current = stream
       mediaRecorderRef.current = recorder
 

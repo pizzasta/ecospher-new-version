@@ -1,3 +1,4 @@
+import { LISTEN_ONLY_MESSAGE, canUpload, recordUploadUsage } from '../lib/audioBudget'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { uploadAudio, validateAudioUpload } from '../lib/library'
@@ -65,6 +66,12 @@ export function RecordingSessionProvider({ children }: { children: ReactNode }) 
     }, 3400))
   }, [])
 
+  // upload progress, app-wide: a tiny chip listens for this
+  useEffect(() => {
+    const pending = queue.filter(q => q.status === 'queued' || q.status === 'uploading').length
+    window.dispatchEvent(new CustomEvent('ecosphere:uploads', { detail: { pending } }))
+  }, [queue])
+
   const setStatus = useCallback((id: string, status: PendingUpload['status']) => {
     setQueue(prev => prev.map(item => (item.id === id ? { ...item, status } : item)))
   }, [])
@@ -79,6 +86,7 @@ export function RecordingSessionProvider({ children }: { children: ReactNode }) 
     }).then(row => {
       if (row) {
         setStatus(item.id, 'done')
+        recordUploadUsage(item.blob.size)
         notify('transmission stored in the ecosphere')
         timersRef.current.push(window.setTimeout(() => {
           setQueue(prev => prev.filter(q => q.id !== item.id))
@@ -103,8 +111,17 @@ export function RecordingSessionProvider({ children }: { children: ReactNode }) 
     })
   }, [notify, setStatus])
 
+  // spam-click guard: identical blob enqueued within 4s returns the same id
+  const recentEnqueueRef = useRef<{ key: string; id: string; at: number } | null>(null)
+
   const enqueueUpload = useCallback((options: EnqueueOptions) => {
+    const dupKey = `${options.kind}-${options.durationMs}-${options.blob.size}`
+    const recent = recentEnqueueRef.current
+    if (recent && recent.key === dupKey && Date.now() - recent.at < 4000) {
+      return recent.id
+    }
     const id = `up-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    recentEnqueueRef.current = { key: dupKey, id, at: Date.now() }
     const item: PendingUpload = {
       id,
       title: options.title,
@@ -137,6 +154,14 @@ export function RecordingSessionProvider({ children }: { children: ReactNode }) 
       notify('kept on this device — connect a backend to sync')
       return id
     }
+
+    // free-tier budget: when spent, the band goes listen-only (locals still save)
+    const budget = canUpload(options.blob.size)
+    if (!budget.ok) {
+      notify(budget.reason ?? LISTEN_ONLY_MESSAGE, 'warn')
+      return id
+    }
+    if (budget.warning) notify(budget.warning, 'warn')
 
     setQueue(prev => [...prev, item])
     attemptUpload(item)

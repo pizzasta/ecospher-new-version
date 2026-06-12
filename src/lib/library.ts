@@ -1,4 +1,5 @@
 import { getOptionalSupabaseClient } from './supabase'
+import { isQuotaError, pauseUploadsForToday } from './audioBudget'
 import { supabaseEnv } from './supabase-env'
 import { ensureBackendSession, getBackendUserId } from './session'
 import type { Database, Json } from './database.types'
@@ -163,9 +164,10 @@ export async function recordReplay(signalId: string, sourcePage: string) {
 export type AudioMessageKind = 'signal' | 'echo' | 'capsule' | 'drift_note'
 
 export const AUDIO_UPLOAD_LIMITS = {
-  maxBytes: 2 * 1024 * 1024,
+  maxBytes: 1.5 * 1024 * 1024,
   minSeconds: 3,
-  maxSeconds: 60,
+  /** normal voice notes cap at 15s — chains 10s, reactions 5s (see audioBudget) */
+  maxSeconds: 15,
   maxUploadsPerMinute: 10,
 } as const
 
@@ -224,7 +226,11 @@ export async function uploadAudio(blob: Blob, options: { title?: string; duratio
     contentType: blob.type || 'audio/webm',
     upsert: false,
   })
-  if (uploadError) return null
+  if (uploadError) {
+    // storage quota trouble flips the band to listen-only for the day
+    if (isQuotaError(uploadError.message)) pauseUploadsForToday()
+    return null
+  }
 
   const { data, error } = await ctx.db
     .from('audio_files')
@@ -238,6 +244,7 @@ export async function uploadAudio(blob: Blob, options: { title?: string; duratio
       is_public: options.isPublic ?? false,
       kind: options.kind ?? 'signal',
       room_id: sanitizeRoomId(options.roomId),
+      file_size_bytes: blob.size,
     })
     .select()
     .maybeSingle()

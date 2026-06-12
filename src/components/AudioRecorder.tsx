@@ -1,3 +1,4 @@
+import { AUDIO_BUDGET, LISTEN_ONLY_MESSAGE, createVoiceRecorder, uploadsPaused } from '../lib/audioBudget'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import AudioPlayer from './AudioPlayer'
@@ -42,10 +43,13 @@ export default function AudioRecorder({
   context,
   prompt,
   minSeconds = AUDIO_UPLOAD_LIMITS.minSeconds,
-  maxSeconds = AUDIO_UPLOAD_LIMITS.maxSeconds,
+  maxSeconds: maxSecondsProp = AUDIO_UPLOAD_LIMITS.maxSeconds,
   onComplete,
   onDenied,
 }: AudioRecorderProps) {
+  // hard ceiling: nothing records longer than the note budget allows
+  const maxSeconds = Math.min(maxSecondsProp, AUDIO_BUDGET.maxNoteSeconds)
+  const paused = uploadsPaused()
   const session = useRecordingSession()
   const lurker = useEcoPref('lurker', false)
   const [state, setState] = useState<RecorderState>('idle')
@@ -104,7 +108,7 @@ export default function AudioRecorder({
       streamRef.current = stream
       chunksRef.current = []
 
-      const recorder = new MediaRecorder(stream)
+      const recorder = createVoiceRecorder(stream)
       recorder.ondataavailable = event => {
         if (event.data.size > 0) chunksRef.current.push(event.data)
       }
@@ -246,7 +250,11 @@ export default function AudioRecorder({
       </div>
 
       {note && <p className="eco-recorder-note" role="status">{note}</p>}
-      <span className="eco-recorder-hint">{minSeconds}–{maxSeconds} seconds · stored privately unless shared</span>
+      <span className="eco-recorder-hint">
+        {paused
+          ? LISTEN_ONLY_MESSAGE.toLowerCase()
+          : `${minSeconds}–${maxSeconds} seconds · stored privately unless shared`}
+      </span>
     </div>
   )
 }

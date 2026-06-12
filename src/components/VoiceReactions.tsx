@@ -1,3 +1,4 @@
+import { createVoiceRecorder } from '../lib/audioBudget'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useEcosystemState } from '../hooks/useEcosystemState'
@@ -370,7 +371,7 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
-      const recorder = new MediaRecorder(stream)
+      const recorder = createVoiceRecorder(stream)
       recorderRef.current = recorder
       chunksRef.current = []
       const startedAt = Date.now()
