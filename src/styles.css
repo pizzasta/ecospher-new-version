@@ -9394,3 +9394,102 @@ body[data-eco-view='mobile'] .floating-mini-player {
 
 body[data-eco-view='mobile'] .ph-board { columns: 1; }
 body[data-eco-view='mobile'] .helpbot-panel { width: min(440px, 96vw); }
+
+/* ─── Google sign-in + auth flow states ─────────────────────────────────────── */
+.pod-google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.pod-google-btn:hover { background: rgba(255, 255, 255, 0.11); box-shadow: 0 0 18px rgba(0, 212, 255, 0.12); }
+.pod-google-btn:disabled { opacity: 0.6; cursor: default; }
+
+.pod-google-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 900;
+  background: conic-gradient(#ea4335 0 25%, #4285f4 25% 50%, #34a853 50% 75%, #fbbc05 75% 100%);
+  color: #fff;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
+}
+
+.pod-google-note {
+  margin: 8px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.pod-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--text-dim);
+}
+
+.pod-auth-divider i { flex: 1; height: 1px; background: rgba(255, 255, 255, 0.08); }
+
+.auth-veil {
+  position: fixed;
+  bottom: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 440;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 212, 255, 0.4);
+  background: rgba(4, 9, 22, 0.96);
+  color: #aee9fb;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  max-width: 92vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.auth-veil--error {
+  border-color: rgba(255, 45, 120, 0.5);
+  color: #ffb8d0;
+}
+
+.auth-veil-spinner {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 212, 255, 0.25);
+  border-top-color: #00d4ff;
+  animation: authSpin 0.9s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes authSpin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-veil-spinner { animation: none; }
+}
