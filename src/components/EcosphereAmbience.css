@@ -234,3 +234,71 @@
   background: rgba(140, 155, 195, 0.6);
   box-shadow: none;
 }
+
+/* ═══ COLOR WAVE — flowing gradient, like liquid light ═══════ */
+/* Three oversized blurred blobs drift across each other on different
+   clocks; screen blending makes the colors melt where they cross.
+   Transform-only animation, scaled by drift sensitivity, deeper at night. */
+.eco-color-wave {
+  position: fixed;
+  inset: -25%;
+  z-index: 1;
+  pointer-events: none;
+  filter: blur(80px);
+  opacity: calc((0.4 + var(--eco-night-depth, 0) * 0.25) * var(--eco-motion, 0.6));
+}
+
+.eco-color-wave span {
+  position: absolute;
+  width: 55vmax;
+  height: 55vmax;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+.eco-color-wave span:nth-child(1) {
+  left: -10%;
+  top: 0%;
+  background: radial-gradient(circle, rgba(255, 45, 120, 0.16), transparent 65%);
+  animation: ecoWaveDriftA 26s ease-in-out infinite alternate;
+}
+
+.eco-color-wave span:nth-child(2) {
+  right: -12%;
+  top: 24%;
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.13), transparent 65%);
+  animation: ecoWaveDriftB 36s ease-in-out infinite alternate;
+}
+
+.eco-color-wave span:nth-child(3) {
+  left: 22%;
+  bottom: -14%;
+  background: radial-gradient(circle, rgba(155, 93, 229, 0.14), transparent 65%);
+  animation: ecoWaveDriftC 46s ease-in-out infinite alternate;
+}
+
+@keyframes ecoWaveDriftA {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(34vw, 16vh, 0) scale(1.18); }
+  100% { transform: translate3d(58vw, -6vh, 0) scale(0.92); }
+}
+
+@keyframes ecoWaveDriftB {
+  0% { transform: translate3d(0, 0, 0) scale(1.1); }
+  50% { transform: translate3d(-40vw, 18vh, 0) scale(0.9); }
+  100% { transform: translate3d(-16vw, -20vh, 0) scale(1.22); }
+}
+
+@keyframes ecoWaveDriftC {
+  0% { transform: translate3d(0, 0, 0) scale(0.95); }
+  50% { transform: translate3d(22vw, -26vh, 0) scale(1.15); }
+  100% { transform: translate3d(-18vw, -10vh, 0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eco-color-wave span {
+    animation: none;
+    will-change: auto;
+  }
+}
