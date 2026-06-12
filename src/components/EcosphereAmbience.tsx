@@ -8,6 +8,8 @@ import ColorWave from './ColorWave'
 import { effectiveNightIntensity, isDeepNight } from '../lib/nightMode'
 import { liveToastFor, setLivePage, startLiveBus, stopLiveBus } from '../lib/liveBus'
 import { takeTrace } from '../lib/pageTrace'
+import { markWelcomed, returnMoments, shouldWelcome, touchLastSeen } from '../lib/whileYouWereGone'
+import { pushLocalNotification } from '../lib/notifications'
 import type { LiveEvent, LivePresence } from '../lib/liveBus'
 import './EcosphereAmbience.css'
 
@@ -119,6 +121,26 @@ export default function EcosphereAmbience() {
     }
     schedule()
     return () => window.clearTimeout(timeout)
+  }, [])
+
+  // the return system: a calm welcome-back, at most twice-a-line, rarely
+  useEffect(() => {
+    if (shouldWelcome()) {
+      const moments = returnMoments()
+      markWelcomed()
+      moments.forEach((line, i) => {
+        // the bell keeps them; the toasts drift through, staggered and quiet
+        pushLocalNotification('return_moment', line)
+        window.setTimeout(() => {
+          setPresencePulse(line)
+          window.setTimeout(() => setPresencePulse(null), 5600)
+        }, 3000 + i * 7500)
+      })
+    }
+    touchLastSeen()
+    const t = window.setInterval(() => touchLastSeen(), 60000)
+    return () => window.clearInterval(t)
+     
   }, [])
 
   // the live bus: real presence + ambient broadcasts from other carriers
