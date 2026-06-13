@@ -537,6 +537,7 @@ html, body, #root {
 
 .settings-footer { padding: 8px 0; display: flex; justify-content: center; }
 .settings-version { font-size: 10px; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase; }
+.settings-build { margin-top: 4px; font-size: 9px; color: var(--text-dim); opacity: 0.6; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
 
 /* ─── Bottom nav ─────────────────────────────────────────────────────────────── */
 .bottom-nav {
