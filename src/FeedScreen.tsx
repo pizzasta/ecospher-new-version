@@ -5,6 +5,7 @@ import VoiceReactionStack from './components/VoiceReactions'
 import { HOOK_POOL, downloadBlob, exportFilename, renderStoryImage, renderStoryVideo } from './lib/storyExport'
 import type { ExportScene } from './lib/storyExport'
 import { playSample } from './lib/sampleAudio'
+import { speakSignal, speechSupported, estimateSpeechMs } from './lib/speech'
 import { listenerCount, livedInLines } from './lib/livedIn'
 import { fetchPublicSignals, mirrorActivity, mirrorSignalFade } from './lib/backendBridge'
 import { moderatePublicSignalText } from './lib/signalModeration'
@@ -388,9 +389,18 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
   const togglePlay = () => {
     if (playing) {
       globalAudio.stop()
+      return
+    }
+    const meta = { id: signal.id, label: signal.handle, source: 'signals' as const }
+    // speakable signals are read aloud in a real voice; static/corrupted stay textured
+    const speakable = signal.status !== 'corrupted' && signal.mood !== 'static'
+    if (speakable && speechSupported()) {
+      // drive the waveform/listening state silently, then let the real voice carry the sound
+      globalAudio.playSimulated(meta, estimateSpeechMs(signal.content))
+      speakSignal(signal.content, signal.waveformSeed, { onEnd: () => globalAudio.stop() })
     } else {
       const kind = signal.mood === 'static' || signal.status === 'corrupted' ? 'static' : 'voice'
-      void playSample(globalAudio, { id: signal.id, label: signal.handle, source: 'signals' }, kind, signal.waveformSeed, durationToMs(signal.duration))
+      void playSample(globalAudio, meta, kind, signal.waveformSeed, durationToMs(signal.duration))
     }
   }
   const colors = MOOD_COLORS[signal.mood]

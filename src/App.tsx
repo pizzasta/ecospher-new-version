@@ -2415,6 +2415,8 @@ type SeaBuoy = {
   tone: string
   /** tiny fragments this signal leaks as you pass */
   subtitles: string[]
+  /** a line you cast into the sea yourself */
+  mine?: boolean
 }
 
 // every signal out here is a kind of human moment, not a frequency
@@ -2486,6 +2488,47 @@ function makeBuoy(id: number, night: boolean): SeaBuoy {
   }
 }
 
+// lines you type drift as your own signals — kept on this device so they
+// keep floating when you return, capped so the sea never fills with your voice
+const SEA_LINES_KEY = 'ecosphere:seaLines'
+
+function loadSeaLines(): string[] {
+  try { return JSON.parse(window.localStorage.getItem(SEA_LINES_KEY) ?? '[]') } catch { return [] }
+}
+function storeSeaLine(text: string): void {
+  try { window.localStorage.setItem(SEA_LINES_KEY, JSON.stringify([text, ...loadSeaLines().filter(l => l !== text)].slice(0, 12))) } catch { /* session only */ }
+}
+
+/** Count words the way a person would — used to keep cast lines short. */
+function wordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length
+}
+
+/** Turn a typed line into a drifting signal of your own. */
+function makeTypedBuoy(id: number, text: string): SeaBuoy {
+  return {
+    id,
+    source: 'unsent',
+    fragment: text,
+    kind: 'voice',
+    seed: (hashLine(text) % 9000) + 100,
+    top: 14 + ((id * 23) % 66),
+    duration: 38 + ((id * 17) % 30),
+    delay: -((id * 13) % 40),
+    fading: false,
+    deep: false,
+    tone: 'insomnia',
+    subtitles: [text],
+    mine: true,
+  }
+}
+
+function hashLine(text: string): number {
+  let h = 5
+  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) % 0x7fffffff
+  return h
+}
+
 const SEA_STATUS_LINES = [
   'quiet music detected west',
   'strongest emotional pull northeast',
@@ -2497,7 +2540,15 @@ const SEA_STATUS_LINES = [
 function FrequenciesScreen() {
   const { reactToSignal, saveToLibrary } = useEcosystemState()
   const night = (() => { const h = new Date().getHours(); return h >= 22 || h < 5 })()
-  const [buoys, setBuoys] = useState<SeaBuoy[]>(() => Array.from({ length: night ? 22 : 18 }, (_, i) => makeBuoy(i, night)))
+  const [buoys, setBuoys] = useState<SeaBuoy[]>(() => {
+    const base = Array.from({ length: night ? 22 : 18 }, (_, i) => makeBuoy(i, night))
+    const mine = loadSeaLines().map((text, i) => makeTypedBuoy(900 + i, text))
+    return [...mine, ...base]
+  })
+  // the composer: type a short line and it drifts into the sea
+  const [composer, setComposer] = useState('')
+  const composerWords = wordCount(composer)
+  const composerReady = composerWords >= 5 && composerWords <= 7
   const [nearId, setNearId] = useState<number | null>(null)
   const [, setZoneIdx] = useState(() => Math.floor(Date.now() / 40000) % SEA_ZONES.length)
   const [tideIdx, setTideIdx] = useState(0)
@@ -2602,6 +2653,21 @@ function FrequenciesScreen() {
   const throwVoice = () => {
     reactToSignal('frequency-sea', 'released a signal into the sea')
     say('your voice sank into the water — someone may drift through it')
+  }
+
+  // cast a typed line into the sea: short, screened, then drifting like the rest
+  const castLine = () => {
+    const text = composer.trim().replace(/\s+/g, ' ')
+    const words = wordCount(text)
+    if (words < 5 || words > 7) { say('five to seven words — like a line you\'d actually say'); return }
+    if (moderatePublicSignalText(text).status === 'flagged') { say('that one can\'t drift here. try it softer.'); return }
+    const buoy = makeTypedBuoy(900 + Date.now() % 100000, text)
+    setBuoys(prev => [buoy, ...prev].slice(0, 34))
+    storeSeaLine(text)
+    reactToSignal('frequency-sea', `cast a line into the sea: "${text}"`)
+    leaveTrace(`a line you cast is drifting in the sea: "${text}"`, 'frequencies')
+    setComposer('')
+    say('your line is drifting now — someone may pass through it')
   }
 
   const seaPresence = useLivePresence()
@@ -2789,6 +2855,29 @@ function FrequenciesScreen() {
         </div>
       </div>
 
+      {/* cast a line: type something short and let it drift into the water */}
+      <div className="sea-composer">
+        <div className="sea-composer-head">
+          <span className="sea-composer-kicker">CAST A LINE</span>
+          <span className={`sea-composer-count${composerReady ? ' ready' : ''}`}>{composerWords}/5–7 words</span>
+        </div>
+        <div className="sea-composer-row">
+          <input
+            type="text"
+            value={composer}
+            maxLength={90}
+            placeholder="five to seven words — like something you'd actually say at 3am"
+            onChange={e => setComposer(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') castLine() }}
+            aria-label="cast a short line into the sea"
+          />
+          <button type="button" className="sea-composer-send" disabled={!composerReady} onClick={castLine}>
+            ● cast
+          </button>
+        </div>
+        <p className="sea-composer-note">it drifts as one of yours — others can pass through it the way you pass through theirs.</p>
+      </div>
+
       <div className="sea-field" onPointerMove={handleSeaPointer}>
         {resurfaced && (
           <button
@@ -2844,7 +2933,7 @@ function FrequenciesScreen() {
             <div
               key={b.id}
               ref={el => { if (el) buoyRefs.current.set(b.id, el); else buoyRefs.current.delete(b.id) }}
-              className={`sea-buoy sea-buoy--${b.source} sea-buoy--tone-${b.tone}${near ? ' near' : ''}${chasedId === b.id ? ' chased' : ''}${b.fading && !isStable ? ' fading' : ''}${b.deep ? ' deep' : ''}`}
+              className={`sea-buoy sea-buoy--${b.source} sea-buoy--tone-${b.tone}${b.mine ? ' sea-buoy--yours' : ''}${near ? ' near' : ''}${chasedId === b.id ? ' chased' : ''}${b.fading && !isStable ? ' fading' : ''}${b.deep ? ' deep' : ''}`}
               style={{ '--top': `${b.top}%`, '--dur': `${b.duration}s`, '--delay': `${b.delay}s` } as CSSProperties}
             >
               <button
