@@ -1,0 +1,119 @@
+/* Shared late-night atmosphere: faded tokens, film grain, fog, soft bloom, and
+   edge-fade so cards dissolve into the dark instead of sitting in hard boxes.
+   Motion is slow and dreamlike; everything respects reduced-motion. */
+
+:root {
+  /* desaturated, washed-screen palette — dusty, not neon */
+  --faded-magenta: #b9889b;
+  --faded-cyan: #7fa6b4;
+  --faded-violet: #8a7fa6;
+  --washed-navy: #2a3350;
+  --dim-ember: #c08a6a;
+  --soft-bloom: rgba(220, 200, 230, 0.06);
+
+  /* mood defaults (overridden per-profile by moodToVars) */
+  --mood-tint: #b9889b;
+  --mood-tint-2: #7d6e8f;
+  --mood-drift: 120s;
+  --mood-drift-dist: 10px;
+  --mood-glow: 0.24;
+  --mood-trail: 5s;
+  --mood-pulse: 6s;
+  --mood-flicker: 0.05;
+  --mood-fade: 9s;
+  --mood-density: 0.6;
+}
+
+/* film grain — a tiled SVG noise, barely there */
+.atmo-grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  animation: atmoGrain 1.2s steps(2) infinite;
+}
+
+@keyframes atmoGrain {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(-3%, 2%); }
+  100% { transform: translate(2%, -2%); }
+}
+
+/* drifting fog — soft blurred blobs in the mood tint */
+.atmo-fog {
+  position: absolute;
+  inset: -10%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.atmo-fog span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: calc(0.22 * var(--mood-density));
+  background: radial-gradient(circle, var(--mood-tint), transparent 70%);
+  animation: atmoDrift var(--mood-drift, 120s) ease-in-out infinite;
+}
+.atmo-fog span:nth-child(1) { width: 46%; height: 46%; left: 4%; top: 8%; }
+.atmo-fog span:nth-child(2) { width: 52%; height: 52%; right: 2%; top: 30%; background: radial-gradient(circle, var(--mood-tint-2), transparent 70%); animation-delay: -40s; }
+.atmo-fog span:nth-child(3) { width: 38%; height: 38%; left: 30%; bottom: 4%; animation-delay: -70s; }
+
+@keyframes atmoDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(calc(var(--mood-drift-dist) * 2), calc(var(--mood-drift-dist) * -1.4)) scale(1.08); }
+}
+
+/* a faint distant pulse — dormant signal activity */
+.atmo-pulse {
+  position: absolute;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--mood-tint);
+  box-shadow: 0 0 18px 4px color-mix(in srgb, var(--mood-tint) 60%, transparent);
+  opacity: 0;
+  z-index: 1;
+  animation: atmoPulse var(--mood-pulse, 6s) ease-in-out infinite;
+}
+@keyframes atmoPulse {
+  0%, 100% { opacity: 0; transform: scale(0.6); }
+  50% { opacity: calc(0.5 * var(--mood-density)); transform: scale(1); }
+}
+
+/* a panel that fades into the dark at its edges — no hard border */
+.atmo-soft-panel {
+  position: relative;
+  background:
+    radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, var(--mood-tint) 9%, transparent), transparent 60%),
+    linear-gradient(180deg, rgba(12, 14, 26, 0.62), rgba(6, 8, 18, 0.5));
+  border: 1px solid rgba(150, 160, 200, 0.07);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.45), 0 30px 90px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(14px) saturate(0.85);
+  -webkit-mask-image: radial-gradient(130% 130% at 50% 45%, #000 70%, transparent 100%);
+  mask-image: radial-gradient(130% 130% at 50% 45%, #000 70%, transparent 100%);
+}
+
+/* edge fade for any element — dissolve top/bottom into background */
+.atmo-edge-fade {
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent);
+}
+
+/* soft idle breathing for glows/auras */
+.atmo-breathe { animation: atmoBreathe var(--mood-pulse, 6s) ease-in-out infinite; }
+@keyframes atmoBreathe {
+  0%, 100% { opacity: calc(0.4 + var(--mood-glow)); transform: scale(1); }
+  50% { opacity: calc(0.7 + var(--mood-glow)); transform: scale(1.015); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atmo-grain::after,
+  .atmo-fog span,
+  .atmo-pulse,
+  .atmo-breathe { animation: none; }
+  .atmo-pulse { opacity: calc(0.3 * var(--mood-density)); }
+}
