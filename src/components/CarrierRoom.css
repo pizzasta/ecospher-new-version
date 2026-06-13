@@ -222,3 +222,27 @@
 .cr-recovered span { color: #d8b08a; }
 
 @media (prefers-reduced-motion: reduce) { .cr-wave--static i { animation: none; } }
+
+/* mute / mic failure */
+.cr-unsettled {
+  position: relative; z-index: 2;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 10px 13px;
+  border-radius: 12px;
+  background: rgba(200, 140, 70, 0.12);
+  border: 1px solid rgba(230, 170, 90, 0.4);
+  font-size: 11.5px;
+  color: rgba(245, 215, 180, 0.92);
+}
+.cr-unsettled span { color: #f0b070; }
+.cr-retune {
+  margin-left: auto;
+  padding: 5px 12px;
+  border-radius: 9px;
+  border: 1px solid rgba(230, 170, 90, 0.5);
+  background: rgba(230, 170, 90, 0.14);
+  color: #f3d2a8;
+  font-size: 11px;
+  cursor: pointer;
+}

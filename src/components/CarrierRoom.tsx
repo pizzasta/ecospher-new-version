@@ -39,11 +39,19 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
   const [note, setNote] = useState<string | null>(null)
   const [reactions, setReactions] = useState<Reaction[]>([])
   const [livePeers, setLivePeers] = useState<LivePeer[]>([])
+  const [unsettled, setUnsettled] = useState(false)
+  const [micLevel, setMicLevel] = useState(0)
   const yourStartRef = useRef(0)
   const queuedTurnRef = useRef<number | null>(null)
   const lastKeyRef = useRef('')
   const rrMineRef = useRef(false)
   const sessionRef = useRef<CarrierRoomSession | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const ctxRef = useRef<AudioContext | null>(null)
+  const rafRef = useRef(0)
+  const nudgeRef = useRef(0)
+  const youMutedRef = useRef(youMuted)
+  useEffect(() => { youMutedRef.current = youMuted }, [youMuted])
 
   const flash = (text: string) => { setNote(text); window.setTimeout(() => setNote(n => (n === text ? null : n)), 4200) }
 
@@ -102,6 +110,61 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
     ? resolveSignalState({ hushed, isCarrier: true, muted: primary.isYou ? youMuted : false })
     : (hushed ? 'hushed' : 'drifting')
   const staticWave = carrierState === 'held-dark' || carrierState === 'hushed'
+
+  // real mic when you hold the carrier — the basis for mute, level, and
+  // fail-closed mute-failure handling. Untouched when there's no mic API.
+  const releaseMic = () => {
+    cancelAnimationFrame(rafRef.current)
+    streamRef.current?.getTracks().forEach(t => t.stop())
+    streamRef.current = null
+    if (ctxRef.current) { void ctxRef.current.close().catch(() => {}); ctxRef.current = null }
+    setMicLevel(0)
+  }
+
+  useEffect(() => {
+    if (!youAreCarrier || hushed) { releaseMic(); return }
+    const md = typeof navigator !== 'undefined' ? navigator.mediaDevices : undefined
+    if (!md?.getUserMedia) return // no mic API here — run the sim, no fault
+    let cancelled = false
+    void md.getUserMedia({ audio: true }).then(stream => {
+      if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
+      streamRef.current = stream
+      setUnsettled(false)
+      stream.getAudioTracks()[0]?.addEventListener('ended', () => {
+        // fail closed: the mic dropped out mid-turn → drop off the carrier
+        setUnsettled(true); setYouState('listening'); setYouMuted(true); flash('your signal dropped — re-tune the mic')
+      })
+      try {
+        const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+        if (!Ctx) return
+        const ctx = new Ctx(); ctxRef.current = ctx
+        const analyser = ctx.createAnalyser(); analyser.fftSize = 256
+        ctx.createMediaStreamSource(stream).connect(analyser)
+        const data = new Uint8Array(analyser.frequencyBinCount)
+        const loop = () => {
+          analyser.getByteTimeDomainData(data)
+          let sum = 0
+          for (let i = 0; i < data.length; i++) { const v = (data[i] - 128) / 128; sum += v * v }
+          const lvl = Math.min(1, Math.sqrt(sum / data.length) * 3)
+          setMicLevel(lvl)
+          if (youMutedRef.current && lvl > 0.22 && Date.now() - nudgeRef.current > 10000) {
+            nudgeRef.current = Date.now()
+            flash('you’re muted — unmute to be heard')
+          }
+          rafRef.current = requestAnimationFrame(loop)
+        }
+        loop()
+      } catch { /* analyser is optional */ }
+    }).catch(() => {
+      if (cancelled) return
+      // a real mute/mic failure → fail closed: leave the carrier, don't broadcast
+      setUnsettled(true); setYouState('listening'); setYouMuted(true)
+      flash('your signal won’t settle — re-tune the mic')
+    })
+    return () => { cancelled = true; releaseMic() }
+  }, [youAreCarrier, hushed])
+
+  useEffect(() => () => releaseMic(), [])
 
   // request-mode promotion / cap (queue + open-drift; keeper-led waits for a grant)
   useEffect(() => {
@@ -190,7 +253,9 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
     void playSampleBuffer('tone', Math.floor(Math.random() * 800) + 200, 700, 0.06)
   }
 
-  const level = !primary || (primary.isYou && youMuted) ? 0.12 : 0.45 + Math.sin(now / 700) * 0.25
+  const level = !primary || (primary.isYou && youMuted) ? 0.12
+    : primary.isYou && streamRef.current ? Math.max(0.15, micLevel)
+    : 0.45 + Math.sin(now / 700) * 0.25
   const remaining = youAreCarrier && mode !== 'round-robin' ? YOUR_CAP_MS - (now - yourStartRef.current) : carrierRemaining(simNow)
   const remainPct = youAreCarrier && mode !== 'round-robin' ? Math.max(0, remaining / YOUR_CAP_MS) : remaining / HOLD_MS
   const nextUp = [1, 2, 3].map(k => participants[(simIdx + k) % count])
@@ -225,6 +290,13 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
       {recovered && (
         <div className="cr-recovered" role="status">
           <span aria-hidden="true">↺</span> recovered frequency · {recovered.quietLabel} · you're the first carrier back — muted until you're ready
+        </div>
+      )}
+
+      {unsettled && (
+        <div className="cr-unsettled" role="alert">
+          <span aria-hidden="true">⚠</span> your signal won't settle — the mic didn't come through. you've dropped to listening.
+          <button type="button" className="cr-retune" onClick={() => { setUnsettled(false); requestCarrier() }}>re-tune</button>
         </div>
       )}
 
