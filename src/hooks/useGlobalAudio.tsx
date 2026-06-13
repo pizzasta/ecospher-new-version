@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import { useEcosystemState } from './useEcosystemState'
 import { sendLive } from '../lib/liveBus'
+import { cancelSpeech } from '../lib/speech'
 import type { ActiveAudio } from './useEcosystemState'
 
 export type GlobalAudioStatus = {
@@ -48,6 +49,8 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
   const simulatedTimerRef = useRef<number | null>(null)
 
   const teardown = useCallback(() => {
+    // any spoken signal stops too — on page change, new playback, or explicit stop
+    cancelSpeech()
     if (simulatedTimerRef.current !== null) {
       window.clearTimeout(simulatedTimerRef.current)
       simulatedTimerRef.current = null
