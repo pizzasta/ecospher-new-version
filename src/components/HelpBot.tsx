@@ -5,25 +5,22 @@ import type { VoiceSession } from '../lib/voiceInput'
 import './HelpBot.css'
 
 // Help Bot — a small chat overlay opened from Settings → Help & Safety.
-// Two modes: the scoped "help frequency" (FAQ + safety, answered locally or via
-// the help-bot Edge Function), and a "$ live agent" that pulls real-time answers
-// from the web (opens Google results in a new tab). A microphone lets you ask by
-// voice; voice questions open the web automatically.
+// Answers FAQ and safety questions locally or via the help-bot Edge Function.
+// A microphone lets you ask by voice (speech-to-text); every answer also offers
+// a live web search, and a spoken question opens those web results automatically.
 
 interface ChatMessage {
   id: number
   role: 'user' | 'bot'
   text: string
-  /** when set, the bot offers a real-time web search for this query */
+  /** when set, the bot offers a live web search for this query */
   query?: string
 }
-
-type AgentMode = 'help' | 'live'
 
 const INTRO: ChatMessage = {
   id: 0,
   role: 'bot',
-  text: "i'm the help frequency. ask me how anything here works, or about the safety rules — recording, rooms, privacy, deleting your data, reporting, all of it. switch to the $ live agent for real-time answers from the web.",
+  text: "i'm the help frequency. ask me how anything here works, or about the safety rules — recording, rooms, privacy, deleting your data, reporting, all of it.",
 }
 
 const SUGGESTED_IDS = ['what-is', 'safety', 'report', 'delete', 'lurker', 'age']
@@ -32,7 +29,6 @@ export default function HelpBot({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<ChatMessage[]>([INTRO])
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
-  const [mode, setMode] = useState<AgentMode>('help')
   const [listening, setListening] = useState(false)
   const [voiceNote, setVoiceNote] = useState<string | null>(null)
   const idRef = useRef(1)
@@ -64,27 +60,11 @@ export default function HelpBot({ onClose }: { onClose: () => void }) {
     setMessages(prev => [...prev, userMsg])
     setDraft('')
     setVoiceNote(null)
-
-    // live agent: real-time answers come from the web — open results in a new tab
-    if (mode === 'live') {
-      const opened = openWeb(text)
-      setMessages(prev => [...prev, {
-        id: idRef.current++,
-        role: 'bot',
-        text: opened
-          ? `opening live results for "${text}" in a new tab.`
-          : `here are live results for "${text}" — tap to open.`,
-        query: text,
-      }])
-      return
-    }
-
-    // help mode: scoped answer, with a real-time web link alongside
     setBusy(true)
     void askHelpBot(text, historyBefore.map(m => ({ role: m.role, text: m.text }))).then(reply => {
       setMessages(prev => [...prev, { id: idRef.current++, role: 'bot', text: reply.text, query: text }])
       setBusy(false)
-      // a voice question always pops the web open automatically
+      // a spoken question opens live web results automatically
       if (fromMic) openWeb(text)
     })
   }
@@ -110,26 +90,13 @@ export default function HelpBot({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="helpbot-overlay" role="dialog" aria-label="Help bot">
-      <div className={`helpbot-panel${mode === 'live' ? ' helpbot-panel--live' : ''}`}>
+      <div className="helpbot-panel">
         <header className="helpbot-head">
           <div>
-            <span className="helpbot-title">
-              {mode === 'live' ? <b className="helpbot-logo-live" aria-hidden="true">$</b> : '◍'} {mode === 'live' ? 'live agent' : 'help frequency'}
-            </span>
-            <span className="helpbot-sub">{mode === 'live' ? 'real-time answers from the web' : 'faq · safety protocols'}</span>
+            <span className="helpbot-title">◍ help frequency</span>
+            <span className="helpbot-sub">faq · safety protocols</span>
           </div>
-          <div className="helpbot-head-actions">
-            <button
-              type="button"
-              className={`helpbot-mode${mode === 'live' ? ' on' : ''}`}
-              onClick={() => setMode(m => (m === 'live' ? 'help' : 'live'))}
-              aria-pressed={mode === 'live'}
-              title="toggle the real-time web agent"
-            >
-              <span aria-hidden="true">$</span> {mode === 'live' ? 'live' : 'go live'}
-            </button>
-            <button type="button" className="helpbot-close" onClick={onClose} aria-label="Close help">✕</button>
-          </div>
+          <button type="button" className="helpbot-close" onClick={onClose} aria-label="Close help">✕</button>
         </header>
 
         <div className="helpbot-log" ref={logRef}>
@@ -143,7 +110,7 @@ export default function HelpBot({ onClose }: { onClose: () => void }) {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  ↗ open live results on the web
+                  ↗ search the web for this
                 </a>
               )}
             </div>
@@ -186,7 +153,7 @@ export default function HelpBot({ onClose }: { onClose: () => void }) {
             ref={inputRef}
             type="text"
             className="helpbot-input"
-            placeholder={listening ? 'listening…' : mode === 'live' ? 'ask anything — answers from the web…' : 'ask the help frequency…'}
+            placeholder={listening ? 'listening…' : 'ask the help frequency…'}
             maxLength={400}
             value={draft}
             disabled={busy}
@@ -198,9 +165,7 @@ export default function HelpBot({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <p className="helpbot-foot">
-          {mode === 'live'
-            ? 'live answers open google in a new tab · not a crisis service'
-            : <>answers cover ecosphere only · not a crisis service</>} · <a href="/terms.html">terms</a> · <a href="/privacy.html">privacy</a>
+          answers cover ecosphere only · not a crisis service · <a href="/terms.html">terms</a> · <a href="/privacy.html">privacy</a>
         </p>
       </div>
     </div>

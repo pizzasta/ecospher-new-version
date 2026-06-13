@@ -204,36 +204,8 @@
   .helpbot-msg--typing i { animation: none; opacity: 0.7; }
 }
 
-/* ─── mic + real-time web agent ($) ─── */
+/* ─── mic + web link ─── */
 .helpbot-head-actions { display: flex; align-items: center; gap: 6px; }
-
-.helpbot-mode {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(95, 224, 160, 0.4);
-  background: rgba(95, 224, 160, 0.08);
-  color: #8af0c0;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-.helpbot-mode span { font-weight: 900; }
-.helpbot-mode:hover { background: rgba(95, 224, 160, 0.16); }
-.helpbot-mode.on { border-color: rgba(95, 224, 160, 0.8); background: rgba(95, 224, 160, 0.2); color: #b6ffdd; }
-
-.helpbot-logo-live {
-  display: inline-block;
-  font-weight: 900;
-  color: #5fe0a0;
-  text-shadow: 0 0 12px rgba(95, 224, 160, 0.6);
-}
-
-.helpbot-panel--live .helpbot-title { color: #b6ffdd; }
-.helpbot-panel--live { box-shadow: 0 0 0 1px rgba(95, 224, 160, 0.25), 0 24px 60px rgba(0, 0, 0, 0.6); }
 
 .helpbot-weblink {
   display: block;
