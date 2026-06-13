@@ -395,8 +395,9 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
     // speakable signals are read aloud in a real voice; static/corrupted stay textured
     const speakable = signal.status !== 'corrupted' && signal.mood !== 'static'
     if (speakable && speechSupported()) {
-      // drive the waveform/listening state silently, then let the real voice carry the sound
-      globalAudio.playSimulated(meta, estimateSpeechMs(signal.content))
+      // drive the waveform/listening state silently; the real voice carries the
+      // sound and its onEnd stops the visual — the padded timer is only a fallback
+      globalAudio.playSimulated(meta, estimateSpeechMs(signal.content) + 4000)
       speakSignal(signal.content, signal.waveformSeed, { onEnd: () => globalAudio.stop() })
     } else {
       const kind = signal.mood === 'static' || signal.status === 'corrupted' ? 'static' : 'voice'

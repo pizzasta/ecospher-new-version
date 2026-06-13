@@ -109,10 +109,12 @@ function pickVoice(seed: number, lang: string): SpeechSynthesisVoice | null {
 // ─── playback ────────────────────────────────────────────────────────────────
 
 let current: SpeechSynthesisUtterance | null = null
+let pendingStart: number | null = null
 
 export function cancelSpeech(): void {
   if (!speechSupported()) return
   current = null
+  if (pendingStart !== null) { window.clearTimeout(pendingStart); pendingStart = null }
   try { window.speechSynthesis.cancel() } catch { /* nothing speaking */ }
 }
 
@@ -123,36 +125,49 @@ type SpeakOpts = { onStart?: () => void; onEnd?: () => void }
  * per-signal variation so each signal keeps a consistent voice. Returns the
  * estimated duration so callers can drive the waveform; returns 0 and does
  * nothing when speech isn't supported.
+ *
+ * Hardened against the Web Speech quirks that swallow audio: a speak() that
+ * lands in the same frame as cancel() is silently dropped in Chrome, so we
+ * always clear first and start on the next tick; and Chrome sometimes leaves
+ * the engine paused, so we resume it after speaking.
  */
 export function speakSignal(text: string, seed: number, opts: SpeakOpts = {}): number {
   if (!speechSupported()) return 0
   const phrase = sampleText(text)
   if (!phrase) return 0
-
-  cancelSpeech()
-
+  const synth = window.speechSynthesis
   const lang = preferredSpeechLang()
-  const utter = new SpeechSynthesisUtterance(phrase)
-  const voice = pickVoice(seed, lang)
-  if (voice) { utter.voice = voice; utter.lang = voice.lang }
-  else utter.lang = lang
 
-  // late-night intimacy: a touch slow, a touch low, seeded jitter for character
-  utter.rate = 0.9 + (((seed % 7) - 3) * 0.012)
-  utter.pitch = 0.92 + (((seed % 5) - 2) * 0.04)
-  utter.volume = preferredSpeechVolume()
+  const begin = () => {
+    pendingStart = null
+    const utter = new SpeechSynthesisUtterance(phrase)
+    const voice = pickVoice(seed, lang)
+    if (voice) { utter.voice = voice; utter.lang = voice.lang }
+    else utter.lang = lang
 
-  utter.onstart = () => opts.onStart?.()
-  utter.onend = () => { if (current === utter) current = null; opts.onEnd?.() }
-  utter.onerror = () => { if (current === utter) current = null; opts.onEnd?.() }
+    // late-night intimacy: a touch slow, a touch low, seeded jitter for character
+    utter.rate = 0.9 + (((seed % 7) - 3) * 0.012)
+    utter.pitch = 0.92 + (((seed % 5) - 2) * 0.04)
+    utter.volume = preferredSpeechVolume()
 
-  current = utter
-  try {
-    window.speechSynthesis.speak(utter)
-  } catch {
-    current = null
-    return 0
+    utter.onstart = () => opts.onStart?.()
+    utter.onend = () => { if (current === utter) current = null; opts.onEnd?.() }
+    utter.onerror = () => { if (current === utter) current = null; opts.onEnd?.() }
+
+    current = utter
+    try {
+      synth.speak(utter)
+      if (synth.paused) synth.resume() // Chrome can park the engine on load
+    } catch {
+      current = null
+      opts.onEnd?.()
+    }
   }
+
+  // clear anything talking, then start just after — never in the same frame
+  if (pendingStart !== null) window.clearTimeout(pendingStart)
+  try { synth.cancel() } catch { /* nothing speaking */ }
+  pendingStart = window.setTimeout(begin, 70)
   return estimateSpeechMs(text)
 }
 
