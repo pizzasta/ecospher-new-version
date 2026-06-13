@@ -8,6 +8,8 @@ import { createVoiceRecorder } from '../lib/audioBudget'
 import { groupRoomsEnabled, fetchGroupVoices, dropGroupVoice, subscribeGroupVoices } from '../lib/groupRooms'
 import type { GroupVoice } from '../lib/groupRooms'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
+import VoiceConsentNotice from './VoiceConsentNotice'
+import { voiceNoticeSeen, markVoiceNoticeSeen } from '../lib/voiceNotice'
 
 // Tap a topic and hear a small anonymous group talking about it — real device
 // voices trading short lines, over a low murmur of others. You can start your
@@ -52,6 +54,7 @@ export default function GroupConversations() {
   const [recordedDur, setRecordedDur] = useState(0)
   const [dropping, setDropping] = useState(false)
   const [dropError, setDropError] = useState<string | null>(null)
+  const [showVoiceNotice, setShowVoiceNotice] = useState(false)
   const recRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -204,6 +207,12 @@ export default function GroupConversations() {
 
   return (
     <section className="group-talk">
+      {showVoiceNotice && (
+        <VoiceConsentNotice
+          onClose={() => setShowVoiceNotice(false)}
+          onAccept={() => { markVoiceNoticeSeen(); setShowVoiceNotice(false); void startRecording() }}
+        />
+      )}
       <header className="group-talk-head">
         <span className="group-talk-kicker">GROUP CONVERSATIONS</span>
         <span className="group-talk-sub">tap a topic to listen in — voices trade lines about it</span>
@@ -318,7 +327,11 @@ export default function GroupConversations() {
                   <button
                     type="button"
                     className={`group-talk-rec${recording ? ' recording' : ''}`}
-                    onClick={recording ? stopRecording : startRecording}
+                    onClick={() => {
+                      if (recording) { stopRecording(); return }
+                      if (!voiceNoticeSeen()) { setShowVoiceNotice(true); return }
+                      void startRecording()
+                    }}
                   >
                     {recording ? '■ stop (max 10s)' : '● drop your voice'}
                   </button>

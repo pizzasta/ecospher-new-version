@@ -1,0 +1,96 @@
+.nocturne-obs {
+  position: relative;
+  margin: 18px 0;
+  padding: 16px 16px 14px;
+  border-radius: 18px;
+  overflow: hidden;
+}
+.nocturne-obs--storm { box-shadow: 0 0 0 1px rgba(255, 45, 120, 0.3), 0 0 40px rgba(255, 45, 120, 0.12); }
+
+.nocturne-obs-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.nocturne-obs-kicker { font-size: 10px; letter-spacing: 0.24em; color: rgba(150, 215, 255, 0.8); font-weight: 700; }
+.nocturne-obs-phase { font-size: 11px; color: rgba(255, 160, 195, 0.78); font-style: italic; }
+
+/* nightly activity wave */
+.nocturne-wave-shell { margin-bottom: 14px; }
+.nocturne-wave { width: 100%; height: 64px; display: block; }
+.nocturne-now-dot { filter: drop-shadow(0 0 6px rgba(255, 106, 160, 0.9)); animation: nocturnePulse 3.2s ease-in-out infinite; }
+@keyframes nocturnePulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+.nocturne-wave-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(160, 175, 210, 0.42);
+}
+
+/* weather + mood */
+.nocturne-readout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+@media (max-width: 440px) { .nocturne-readout { grid-template-columns: 1fr; } }
+
+.nocturne-weather { display: flex; align-items: center; gap: 11px; }
+.nocturne-weather-glyph {
+  font-size: 22px;
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: 12px;
+  background: rgba(0, 180, 255, 0.08);
+  color: #9fe0ff;
+  flex-shrink: 0;
+}
+.nocturne-weather strong { display: block; font-size: 13px; color: #e7eefc; }
+.nocturne-weather em { display: block; font-style: normal; font-size: 10.5px; color: rgba(190, 205, 230, 0.6); line-height: 1.35; }
+
+.nocturne-mood-label { font-size: 11px; color: rgba(200, 212, 235, 0.7); }
+.nocturne-mood-label strong { color: #ffb0c8; }
+.nocturne-mood-bar {
+  position: relative;
+  height: 5px;
+  border-radius: 3px;
+  margin: 8px 0 5px;
+  background: linear-gradient(90deg, #ff8ab0, #c08ad8, #7d8a99, #7fb0c4, #6a6f93);
+}
+.nocturne-mood-marker {
+  position: absolute;
+  top: 50%;
+  left: var(--mood-pos, 50%);
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+  transition: left 1.5s ease;
+}
+.nocturne-mood-scale { display: flex; justify-content: space-between; font-size: 8.5px; letter-spacing: 0.06em; color: rgba(160, 175, 210, 0.4); }
+.nocturne-mood-scale .on { color: rgba(255, 176, 200, 0.9); }
+
+/* live readings grid */
+.nocturne-indicators {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 9px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(140, 160, 210, 0.12);
+}
+.nocturne-ind { display: flex; flex-direction: column; gap: 1px; }
+.nocturne-ind-value { font-size: 17px; font-weight: 800; color: #cfe6ff; font-variant-numeric: tabular-nums; }
+.nocturne-ind-label { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(160, 200, 240, 0.7); }
+.nocturne-ind-sub { font-size: 9.5px; color: rgba(170, 185, 215, 0.45); }
+
+@media (prefers-reduced-motion: reduce) {
+  .nocturne-now-dot { animation: none; }
+  .nocturne-mood-marker { transition: none; }
+}
