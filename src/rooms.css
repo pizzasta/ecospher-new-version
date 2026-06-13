@@ -1558,3 +1558,169 @@
   .eco-mic-live,
   .eco-mic-vibe { animation: none; }
 }
+
+/* ─── Group conversations: tap a topic, hear voices talk about it ─── */
+.group-talk {
+  margin: 0 0 22px;
+}
+
+.group-talk-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 12px;
+}
+
+.group-talk-kicker {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: rgba(150, 215, 255, 0.8);
+  font-weight: 700;
+}
+
+.group-talk-sub {
+  font-size: 12px;
+  color: rgba(200, 212, 235, 0.6);
+}
+
+.group-talk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.group-talk-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  text-align: left;
+  cursor: pointer;
+  background: linear-gradient(180deg, rgba(20, 26, 44, 0.7), rgba(12, 16, 30, 0.6));
+  border: 1px solid rgba(130, 160, 220, 0.14);
+  color: #e7ecf7;
+  transition: border-color 0.2s ease, transform 0.12s ease, box-shadow 0.25s ease;
+}
+
+.group-talk-card:hover { border-color: rgba(150, 200, 255, 0.4); transform: translateY(-1px); }
+
+.group-talk-card.live {
+  border-color: rgba(0, 212, 255, 0.6);
+  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.3), 0 0 26px rgba(0, 180, 255, 0.18);
+}
+
+.group-talk-glyph {
+  font-size: 19px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: rgba(0, 180, 255, 0.1);
+  color: #8fdcff;
+}
+
+.group-talk-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.group-talk-body strong { font-size: 13.5px; font-weight: 700; }
+.group-talk-body em { font-style: normal; font-size: 10.5px; color: rgba(190, 205, 230, 0.55); line-height: 1.35; }
+
+.group-talk-meta {
+  font-size: 10px;
+  color: rgba(180, 195, 220, 0.5);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.group-talk-onair { color: #5fe0a0; font-weight: 700; }
+
+/* the live stage: transcript fills in as each voice speaks */
+.group-talk-stage {
+  margin-top: 14px;
+  padding: 15px 16px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(8, 16, 32, 0.85), rgba(6, 11, 24, 0.78));
+  border: 1px solid rgba(0, 212, 255, 0.22);
+  box-shadow: inset 0 0 36px rgba(0, 120, 200, 0.1);
+}
+
+.group-talk-stage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 11px;
+}
+
+.group-talk-stage-title { font-size: 13px; font-weight: 700; color: #b9e8ff; }
+
+.group-talk-leave {
+  font-size: 11px;
+  color: rgba(200, 210, 230, 0.6);
+  background: transparent;
+  border: 1px solid rgba(150, 170, 210, 0.2);
+  border-radius: 8px;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.group-talk-leave:hover { color: #fff; border-color: rgba(255, 120, 150, 0.45); }
+
+.group-talk-novoice {
+  margin: 0 0 10px;
+  font-size: 10.5px;
+  color: rgba(255, 200, 120, 0.7);
+  line-height: 1.4;
+}
+
+.group-talk-transcript { display: flex; flex-direction: column; gap: 8px; }
+
+.group-line {
+  display: flex;
+  gap: 9px;
+  align-items: baseline;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(228, 236, 248, 0.92);
+  opacity: 0;
+  animation: groupLineIn 0.45s ease forwards;
+}
+
+@keyframes groupLineIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.group-line i {
+  font-style: normal;
+  font-size: 12px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.group-line--s0 i { color: #00d4ff; }
+.group-line--s1 i { color: #ff2d78; }
+.group-line--s2 i { color: #9b5de9; }
+.group-line--s3 i { color: #5fe0a0; }
+
+.group-line.speaking span {
+  color: #fff;
+  text-shadow: 0 0 18px rgba(120, 210, 255, 0.5);
+}
+
+.group-line--typing { opacity: 0.5; font-style: italic; }
+.group-line--typing span { color: rgba(180, 200, 230, 0.6); }
+
+.group-talk-ended {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  color: rgba(180, 195, 220, 0.55);
+  font-style: italic;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group-talk-card,
+  .group-talk-leave { transition: none; }
+  .group-line { animation: none; opacity: 1; }
+}
