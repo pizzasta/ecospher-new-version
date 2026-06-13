@@ -1,8 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// a short, human-readable build stamp so a running client can be matched to a
+// deploy — surfaced small in Settings to diagnose stale-cache complaints.
+const BUILD_STAMP = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC'
+
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __BUILD_STAMP__: JSON.stringify(BUILD_STAMP),
+  },
   // NEXT_PUBLIC_ covers the Vercel × Supabase Native Integration's variable
   // names; both prefixes are public-by-convention values only
   envPrefix: ['VITE_', 'NEXT_PUBLIC_'],

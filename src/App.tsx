@@ -4001,6 +4001,7 @@ export function SettingsScreen() {
 
       <div className="settings-footer">
         <div className="settings-version">ecosphere v2.0 · signal observatory</div>
+        <div className="settings-build">build {__BUILD_STAMP__}</div>
       </div>
     </div>
   )
@@ -4097,7 +4098,19 @@ export default function App() {
   const [offline, setOffline] = useState(() => !navigator.onLine)
   useEffect(() => {
     if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-      void navigator.serviceWorker.register('/sw.js').catch(() => { /* cache is a bonus, not a requirement */ })
+      // when a freshly-deployed worker takes control of an already-open tab,
+      // reload once so the new bundle is actually delivered. the `hadController`
+      // guard skips this on first install (no prior controller → nothing stale).
+      const hadController = Boolean(navigator.serviceWorker.controller)
+      let reloaded = false
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController || reloaded) return
+        reloaded = true
+        window.location.reload()
+      })
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => { void reg.update() })
+        .catch(() => { /* cache is a bonus, not a requirement */ })
     }
     const onOnline = () => setOffline(false)
     const onOffline = () => setOffline(true)

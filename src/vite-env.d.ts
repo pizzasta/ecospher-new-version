@@ -11,3 +11,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+// injected by vite's `define` at build time — a human-readable build stamp
+declare const __BUILD_STAMP__: string
