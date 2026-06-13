@@ -175,3 +175,16 @@
 }
 
 @media (prefers-reduced-motion: reduce) { .cr-mode { transition: none; } }
+
+/* live presence */
+.cr-live { color: #5fe0a0; font-weight: 700; }
+.cr-drift-sigil--live { opacity: 0.7; }
+.cr-drift-sigil--live::after {
+  content: '';
+  position: absolute;
+  margin: -2px 0 0 1px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: #5fe0a0;
+  box-shadow: 0 0 6px rgba(95, 224, 160, 0.9);
+}

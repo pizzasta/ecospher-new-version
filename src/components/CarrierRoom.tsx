@@ -7,6 +7,8 @@ import {
 import type { Participant, FlowMode } from '../lib/carrierRoom'
 import { readAvatar, sigilGlyph } from '../lib/avatar'
 import { playSampleBuffer, stopPreviewBuffer } from '../lib/sampleAudio'
+import { joinCarrierRoom, liveRoomsEnabled } from '../lib/carrierRoomLive'
+import type { CarrierRoomSession, LivePeer } from '../lib/carrierRoomLive'
 import './CarrierRoom.css'
 
 // One frequency. The keeper sets the flow; the carrier passes accordingly. You
@@ -34,12 +36,34 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
   const [youMuted, setYouMuted] = useState(true)
   const [note, setNote] = useState<string | null>(null)
   const [reactions, setReactions] = useState<Reaction[]>([])
+  const [livePeers, setLivePeers] = useState<LivePeer[]>([])
   const yourStartRef = useRef(0)
   const queuedTurnRef = useRef<number | null>(null)
   const lastKeyRef = useRef('')
   const rrMineRef = useRef(false)
+  const sessionRef = useRef<CarrierRoomSession | null>(null)
 
   const flash = (text: string) => { setNote(text); window.setTimeout(() => setNote(n => (n === text ? null : n)), 4200) }
+
+  const pushReaction = (glyph: string, color: string) => {
+    const r: Reaction = { id: Date.now() + Math.random(), glyph, color, left: 30 + Math.random() * 40 }
+    setReactions(prev => [...prev, r])
+    window.setTimeout(() => setReactions(prev => prev.filter(x => x.id !== r.id)), 1600)
+  }
+
+  // real-time presence + reactions when a backend is configured (turn state
+  // stays local here; the keeper-authoritative reducer is ready to drive it)
+  useEffect(() => {
+    if (!liveRoomsEnabled) return
+    const session = joinCarrierRoom(
+      'quiet-hours',
+      { sigil: you.sigil, color: you.color, keeper, mode: 'queue' },
+      { onPeers: setLivePeers, onReaction: glyph => pushReaction(glyph, '#9ae8ff') },
+    )
+    sessionRef.current = session
+    return () => { session?.leave(); sessionRef.current = null }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 1000)
@@ -155,9 +179,8 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
   }
 
   const react = (glyph: string) => {
-    const r: Reaction = { id: Date.now() + Math.random(), glyph, color: activeColor, left: 30 + Math.random() * 40 }
-    setReactions(prev => [...prev, r])
-    window.setTimeout(() => setReactions(prev => prev.filter(x => x.id !== r.id)), 1600)
+    pushReaction(glyph, activeColor)
+    sessionRef.current?.react(glyph)
     void playSampleBuffer('tone', Math.floor(Math.random() * 800) + 200, 700, 0.06)
   }
 
@@ -184,7 +207,10 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
           <span className="cr-freq-glyph" aria-hidden="true">∿</span>
           <div>
             <strong>{frequency.hz} · {frequency.label}</strong>
-            <em>{count} drifting here · {FLOW_MODES.find(f => f.value === mode)?.label} mode</em>
+            <em>
+              {livePeers.length > 0 ? <span className="cr-live">◉ live · {livePeers.length}</span> : `${count} drifting here`}
+              {' · '}{FLOW_MODES.find(f => f.value === mode)?.label} mode
+            </em>
           </div>
         </div>
         <button type="button" className="cr-leave" onClick={onLeave} aria-label="leave the frequency">✕</button>
@@ -263,6 +289,9 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
       <div className="cr-zone">
         <span className="cr-zone-label">drifting here</span>
         <div className="cr-drift">
+          {livePeers.map((p, i) => (
+            <span key={p.key} className="cr-drift-sigil cr-drift-sigil--live" style={{ color: p.color, animationDelay: `${-i * 1.3}s` }} title="here right now">{p.sigil}</span>
+          ))}
           {listeners.map((p, i) => (
             <span key={p.id} className="cr-drift-sigil" style={{ color: p.color, animationDelay: `${-i * 1.7}s` }}>{p.sigil}</span>
           ))}
