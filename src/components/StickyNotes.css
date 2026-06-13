@@ -1,0 +1,87 @@
+.sticky-notes { margin: 18px 0; }
+.sticky-head { display: flex; flex-direction: column; gap: 3px; margin-bottom: 12px; }
+.sticky-kicker { font-size: 10px; letter-spacing: 0.22em; color: rgba(202, 165, 127, 0.85); font-weight: 700; }
+.sticky-head small { font-size: 11px; color: rgba(200, 200, 220, 0.5); }
+
+.sticky-compose {
+  display: flex; flex-direction: column; gap: 9px;
+  padding: 12px 13px;
+  border-radius: 14px;
+  background: rgba(14, 14, 22, 0.5);
+  border: 1px solid rgba(150, 140, 130, 0.16);
+  margin-bottom: 14px;
+}
+.sticky-compose textarea {
+  resize: none;
+  min-height: 52px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(150, 140, 130, 0.18);
+  background: rgba(6, 6, 12, 0.5);
+  color: #ece3d8;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.5;
+  outline: none;
+}
+.sticky-compose textarea:focus { border-color: rgba(202, 165, 127, 0.45); }
+.sticky-compose-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sticky-colors { display: inline-flex; gap: 5px; }
+.sticky-swatch { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.18); cursor: pointer; padding: 0; filter: saturate(0.7); }
+.sticky-swatch.on { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5); }
+.sticky-public { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(200, 205, 220, 0.65); cursor: pointer; }
+.sticky-public input { accent-color: #caa57f; }
+.sticky-add {
+  margin-left: auto;
+  padding: 8px 14px; border-radius: 10px;
+  border: 1px solid rgba(202, 165, 127, 0.4);
+  background: rgba(202, 165, 127, 0.14);
+  color: #e8d2b4; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.sticky-add:disabled { opacity: 0.4; cursor: default; }
+.sticky-error { font-size: 11px; color: rgba(255, 150, 170, 0.85); }
+.sticky-empty { font-size: 12px; color: rgba(190, 190, 210, 0.5); padding: 16px 0; text-align: center; }
+
+/* the wall of post-its */
+.sticky-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.sticky-note {
+  position: relative;
+  min-height: 96px;
+  padding: 13px 12px 10px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--note, #caa57f) 78%, #1a160f);
+  color: #1a1408;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+  cursor: grab;
+  transform: rotate(var(--tilt, -1deg));
+  transition: transform 0.18s ease, box-shadow 0.2s ease;
+}
+.sticky-note:nth-child(2n) { --tilt: 1.4deg; }
+.sticky-note:nth-child(3n) { --tilt: -2deg; }
+.sticky-note:nth-child(4n) { --tilt: 0.8deg; }
+.sticky-note:hover { transform: rotate(0deg) translateY(-2px); box-shadow: 0 10px 22px rgba(0, 0, 0, 0.55); }
+.sticky-note::before {
+  content: '';
+  position: absolute; top: -7px; left: 50%; transform: translateX(-50%) rotate(-3deg);
+  width: 42px; height: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.sticky-note.is-public { box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45), 0 0 0 1px color-mix(in srgb, var(--note) 60%, #fff); }
+.sticky-note-text {
+  display: block; width: 100%; text-align: left;
+  background: transparent; border: none; padding: 0; margin: 0 0 8px;
+  color: inherit; font-size: 12.5px; line-height: 1.45; font-family: inherit; cursor: text;
+  word-break: break-word;
+}
+.sticky-note textarea {
+  width: 100%; min-height: 56px; resize: none;
+  background: rgba(255, 255, 255, 0.18); border: none; border-radius: 3px;
+  color: #1a1408; font-size: 12.5px; font-family: inherit; line-height: 1.45; padding: 4px 5px; margin-bottom: 8px; outline: none;
+}
+.sticky-note-foot { display: flex; align-items: center; justify-content: space-between; }
+.sticky-toggle { background: rgba(0, 0, 0, 0.12); border: none; border-radius: 6px; padding: 3px 8px; font-size: 9.5px; font-weight: 700; color: rgba(20, 16, 8, 0.7); cursor: pointer; }
+.sticky-del { background: transparent; border: none; color: rgba(20, 16, 8, 0.5); font-size: 12px; cursor: pointer; padding: 2px 4px; }
+.sticky-del:hover { color: rgba(120, 20, 20, 0.9); }
+
+@media (prefers-reduced-motion: reduce) { .sticky-note { transition: none; transform: none; } .sticky-note:hover { transform: translateY(-2px); } }

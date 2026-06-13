@@ -24,6 +24,8 @@ import TonightsFrequency from './components/TonightsFrequency'
 import CarrierRoom from './components/CarrierRoom'
 import DormantFrequencies from './components/DormantFrequencies'
 import DriftedTextRelics from './components/DriftedTextRelics'
+import FeaturedNotes from './components/FeaturedNotes'
+import StickyNotes from './components/StickyNotes'
 import { quietFor } from './lib/dormantRooms'
 import type { DormantRoom } from './lib/dormantRooms'
 import DeepListen from './components/DeepListen'
@@ -1946,6 +1948,7 @@ function RelicsScreen() {
         <p className="screen-sub">relics are voice moments the network refused to forget.</p>
       </div>
       <DriftedTextRelics />
+      <FeaturedNotes />
       <AmbientLine lines={useMemo(() => [...RELIC_EVENTS, ...livedInLines('relics', 3)], [])} />
       {shelfNote && <div className="lp-drift-ping" key={shelfNote}>{shelfNote}</div>}
 
@@ -3377,6 +3380,7 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
         onTouch={touchPod}
       />
       <ProfileHub onNavigate={screen => onNavigate?.(screen as Screen)} />
+      <StickyNotes />
       <div className="hub-actions">
         {[
           { label: '◉ record signal', page: 'unsent' as Screen },
