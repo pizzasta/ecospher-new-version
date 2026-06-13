@@ -3,6 +3,8 @@ import type { ReactNode } from 'react'
 import { useEcosystemState } from './useEcosystemState'
 import { sendLive } from '../lib/liveBus'
 import { cancelSpeech } from '../lib/speech'
+import { setNowPlaying, clearNowPlaying } from '../lib/mediaSession'
+import { playSampleBuffer } from '../lib/sampleAudio'
 import type { ActiveAudio } from './useEcosystemState'
 
 export type GlobalAudioStatus = {
@@ -47,10 +49,13 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const urlRef = useRef<string | null>(null)
   const simulatedTimerRef = useRef<number | null>(null)
+  const fadeRef = useRef<number | null>(null)
 
   const teardown = useCallback(() => {
     // any spoken signal stops too — on page change, new playback, or explicit stop
     cancelSpeech()
+    clearNowPlaying()
+    if (fadeRef.current !== null) { window.clearInterval(fadeRef.current); fadeRef.current = null }
     if (simulatedTimerRef.current !== null) {
       window.clearTimeout(simulatedTimerRef.current)
       simulatedTimerRef.current = null
@@ -88,7 +93,7 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const startAudio = useCallback(async (audio: HTMLAudioElement, meta: ActiveAudio) => {
-    audio.volume = preferredVolume()
+    audio.volume = 0 // fade in from silence — no hard pop on start
     sendLive({ type: 'replay', id: meta.id })
 
     audio.ontimeupdate = () => {
@@ -110,6 +115,20 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
       setActiveAudio(null)
       return false
     }
+
+    // a breath of carrier hiss covers the gap, then the signal fades up
+    void playSampleBuffer('static', 700, 280, 0.04)
+    const target = preferredVolume()
+    if (fadeRef.current !== null) window.clearInterval(fadeRef.current)
+    let v = 0
+    fadeRef.current = window.setInterval(() => {
+      v = Math.min(target, v + target / 8)
+      if (audioRef.current) audioRef.current.volume = v
+      if (v >= target && fadeRef.current !== null) { window.clearInterval(fadeRef.current); fadeRef.current = null }
+    }, 40)
+
+    // lock-screen / background controls route back to our single engine
+    setNowPlaying(meta.label, () => stop())
 
     setStatus({ current: meta, playing: true, progress: 0, notice: null })
     setActiveAudio(meta)
@@ -135,6 +154,7 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
 
   const playSimulated = useCallback((meta: ActiveAudio, durationMs = 6000) => {
     teardown()
+    setNowPlaying(meta.label, () => stop())
     setStatus({ current: meta, playing: true, progress: 0, notice: null })
     setActiveAudio(meta)
     playSignal(meta.id, 6, meta.label)
