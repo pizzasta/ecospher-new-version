@@ -18,7 +18,7 @@ import ProfileScene from './ProfileScene'
 import HzBadge from './HzBadge'
 import HzSettingsModal from './HzSettingsModal'
 import FrequencyGradientModal from './FrequencyGradientModal'
-import ProfileOnboarding, { profileOnboarded } from './ProfileOnboarding'
+import ProfileOnboarding, { shouldAutoOnboard } from './ProfileOnboarding'
 import { loadGradientSettings, readGradientSettings, resolveGradientColors } from '../lib/frequencyGradient'
 import type { GradientSettings } from '../lib/frequencyGradient'
 import { useFrequencyGradient } from '../hooks/useFrequencyGradient'
@@ -90,7 +90,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   const [hzSettingsOpen, setHzSettingsOpen] = useState(false)
   const [gradient, setGradient] = useState<GradientSettings>(() => readGradientSettings())
   const [gradientOpen, setGradientOpen] = useState(false)
-  const [onboarding, setOnboarding] = useState(() => !profileOnboarded())
+  const [onboarding, setOnboarding] = useState(shouldAutoOnboard)
   const gradientAngle = useFrequencyGradient(gradient)
 
   useEffect(() => {
