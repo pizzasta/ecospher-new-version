@@ -132,3 +132,46 @@
 @media (prefers-reduced-motion: reduce) {
   .cr-atmosphere span, .cr-carrier-halo, .cr-wave i, .cr-drift-sigil { animation: none; }
 }
+
+/* keeper: flow-mode selector */
+.cr-keeper { position: relative; z-index: 2; margin-bottom: 20px; }
+.cr-keeper-label { display: block; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255, 209, 102, 0.6); margin-bottom: 7px; }
+.cr-modes { display: flex; flex-wrap: wrap; gap: 6px; }
+.cr-mode {
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(150, 170, 215, 0.14);
+  background: rgba(14, 18, 32, 0.5);
+  color: rgba(206, 214, 235, 0.6);
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.3s ease, color 0.3s ease;
+}
+.cr-mode.on { border-color: rgba(255, 209, 102, 0.5); color: #ffe0a0; background: rgba(255, 209, 102, 0.1); }
+
+/* keeper controls */
+.cr-keeper-controls { position: relative; z-index: 2; display: flex; gap: 9px; margin-bottom: 14px; }
+.cr-btn--keeper { border-color: rgba(255, 209, 102, 0.28); color: rgba(255, 224, 160, 0.85); }
+.cr-btn--keeper.on { background: rgba(255, 209, 102, 0.14); border-color: rgba(255, 209, 102, 0.55); }
+.cr-btn--keeper:disabled { opacity: 0.4; cursor: default; }
+
+/* co-carrier (open drift) */
+.cr-cocarrier { display: inline-block; margin-bottom: 12px; font-size: 12px; font-weight: 600; opacity: 0.9; }
+
+/* empty / hushed carrier */
+.cr-carrier--empty .cr-carrier-sigil { color: rgba(150, 165, 200, 0.4); font-size: 38px; }
+
+/* grant button in keeper-led queue */
+.cr-grant {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 209, 102, 0.45);
+  background: rgba(255, 209, 102, 0.12);
+  color: #ffe0a0;
+  font-size: 9px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+@media (prefers-reduced-motion: reduce) { .cr-mode { transition: none; } }

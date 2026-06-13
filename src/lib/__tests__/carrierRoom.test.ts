@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
-  makeParticipants, simCarrierIndex, carrierTurn, carrierRemaining, clock, HOLD_MS,
+  makeParticipants, simCarrierIndex, carrierTurn, carrierRemaining, clock,
+  FLOW_MODES, ringIndex, roundRobinIsYou, HOLD_MS,
 } from '../carrierRoom'
 
 describe('carrier room — one frequency, one carrier', () => {
@@ -35,5 +36,19 @@ describe('carrier room — one frequency, one carrier', () => {
   it('formats a clock', () => {
     expect(clock(38000)).toBe('0:38')
     expect(clock(90000)).toBe('1:30')
+  })
+
+  it('offers the five flow modes', () => {
+    expect(FLOW_MODES.map(f => f.value)).toEqual(['queue', 'round-robin', 'keeper-led', 'open-drift', 'listen-only'])
+  })
+
+  it('round-robin ring includes a "you" slot at the end and wraps to you once per cycle', () => {
+    // 6 participants + you = ring of 7; index 6 is you
+    expect(ringIndex(0, 6)).toBe(0)
+    expect(roundRobinIsYou(HOLD_MS * 6, 6)).toBe(true)   // 7th slot is yours
+    expect(roundRobinIsYou(HOLD_MS * 7, 6)).toBe(false)  // wraps back to a participant
+    let yours = 0
+    for (let t = 0; t < 7; t++) if (roundRobinIsYou(HOLD_MS * t, 6)) yours++
+    expect(yours).toBe(1) // exactly one turn per cycle
   })
 })

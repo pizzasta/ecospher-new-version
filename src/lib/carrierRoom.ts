@@ -10,6 +10,23 @@ export const DEAD_AIR_MS = 10000    // silence this long and the carrier drifts 
 
 export type FlowMode = 'queue' | 'round-robin' | 'keeper-led' | 'open-drift' | 'listen-only'
 
+export const FLOW_MODES: { value: FlowMode; label: string; hint: string }[] = [
+  { value: 'queue', label: 'queue', hint: 'request the carrier, take turns in line' },
+  { value: 'round-robin', label: 'round-robin', hint: 'the carrier comes to everyone in turn' },
+  { value: 'keeper-led', label: 'keeper-led', hint: 'the keeper hands out the carrier' },
+  { value: 'open-drift', label: 'open drift', hint: 'up to two carriers at once' },
+  { value: 'listen-only', label: 'listen only', hint: 'no carriers — just the ambient band' },
+]
+
+/** The carrier ring in round-robin: participants plus one "you" slot at the end. */
+export function ringIndex(now: number, count: number, holdMs = HOLD_MS): number {
+  return Math.floor(now / holdMs) % (count + 1)
+}
+
+export function roundRobinIsYou(now: number, count: number, holdMs = HOLD_MS): boolean {
+  return ringIndex(now, count, holdMs) === count
+}
+
 export interface Participant { id: string; sigil: string; color: string }
 
 const SIGILS = ['∿', '⬡', '◐', '⌖', '✦', '▦', '◌', '◈', '◑', '◬']
