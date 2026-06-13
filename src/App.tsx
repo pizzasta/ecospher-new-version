@@ -17,6 +17,10 @@ import AudioPlayer from './components/AudioPlayer'
 import FrequencyRecap from './components/FrequencyRecap'
 import NocturneObservatory from './components/NocturneObservatory'
 import TonightsFrequency from './components/TonightsFrequency'
+import CarrierRoom from './components/CarrierRoom'
+import DormantFrequencies from './components/DormantFrequencies'
+import { quietFor } from './lib/dormantRooms'
+import type { DormantRoom } from './lib/dormantRooms'
 import DeepListen from './components/DeepListen'
 import ProfileHub from './components/ProfileHub'
 import NotificationBell from './components/NotificationBell'
@@ -2243,6 +2247,7 @@ function DeadZonesScreen() {
   const [recovery, setRecovery] = usePersistentState<Record<string, number>>('ecosphere:zoneRecovery', {})
   const [listening, setListening] = useState<string | null>(null)
   const [holding, setHolding] = useState<string | null>(null)
+  const [reopened, setReopened] = useState<DormantRoom | null>(null)
   const [flickerTick, setFlickerTick] = useState(0)
   const [criticalLeft, setCriticalLeft] = useState(90)
   const holdTimerRef = useRef<number | null>(null)
@@ -2318,6 +2323,20 @@ function DeadZonesScreen() {
     }
   }
 
+  const zoneAmbient = useMemo(() => [...ZONE_EVENTS, ...livedInLines('zones', 2)], [])
+
+  if (reopened) {
+    return (
+      <div className="rooms-eco rooms-eco--inroom">
+        <CarrierRoom
+          frequency={{ label: reopened.label, hz: reopened.hz }}
+          recovered={{ quietLabel: quietFor(reopened.quietMins) }}
+          onLeave={() => setReopened(null)}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="screen">
       <div className="screen-header">
@@ -2325,7 +2344,9 @@ function DeadZonesScreen() {
         <h2 className="screen-title">Abandoned Rooms</h2>
         <p className="screen-sub">rooms that went quiet. listen in, recover what's left, bring them back.</p>
       </div>
-      <AmbientLine lines={useMemo(() => [...ZONE_EVENTS, ...livedInLines('zones', 2)], [])} />
+
+      <DormantFrequencies onReopen={setReopened} />
+      <AmbientLine lines={zoneAmbient} />
       <div className="zones-atmosphere" aria-hidden="true">
         <span /><span /><span />
         <em>04:17</em><em>02:51</em><em>03:33</em>
