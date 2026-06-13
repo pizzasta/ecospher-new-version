@@ -675,7 +675,7 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
         </div>
       </div>
 
-      <NocturneObservatory />
+      <NocturneObservatory onTune={() => onNavigate?.('signals')} />
 
       <div className={`obs-daily glass${tunedToday ? ' obs-daily--tuned' : ''}`}>
         <div className="obs-daily-head">
