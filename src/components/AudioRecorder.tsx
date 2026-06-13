@@ -6,6 +6,8 @@ import { useRecordingSession } from '../hooks/useRecordingSession'
 import { useEcoPref } from '../hooks/useEcoPrefs'
 import { AUDIO_UPLOAD_LIMITS } from '../lib/library'
 import type { AudioMessageKind } from '../lib/library'
+import VoiceConsentNotice from './VoiceConsentNotice'
+import { voiceNoticeSeen, markVoiceNoticeSeen } from '../lib/voiceNotice'
 import './recording.css'
 
 const LIVE_BAR_COUNT = 22
@@ -57,6 +59,7 @@ export default function AudioRecorder({
   const [note, setNote] = useState<string | null>(null)
   const [preview, setPreview] = useState<{ blob: Blob; durationMs: number } | null>(null)
   const [liveBars, setLiveBars] = useState(() => Array.from({ length: LIVE_BAR_COUNT }, () => 0.16))
+  const [showVoiceNotice, setShowVoiceNotice] = useState(false)
 
   const recorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -206,6 +209,12 @@ export default function AudioRecorder({
 
   return (
     <div className={`eco-recorder eco-recorder--${state}`}>
+      {showVoiceNotice && (
+        <VoiceConsentNotice
+          onClose={() => setShowVoiceNotice(false)}
+          onAccept={() => { markVoiceNoticeSeen(); setShowVoiceNotice(false); void startRecording() }}
+        />
+      )}
       {prompt && <p className="eco-recorder-prompt">{prompt}</p>}
 
       {state === 'recording' && (
@@ -228,7 +237,15 @@ export default function AudioRecorder({
 
       <div className="eco-recorder-actions">
         {state !== 'recording' && state !== 'preview' && (
-          <button type="button" className="eco-recorder-btn eco-recorder-btn--record" onClick={() => { void startRecording() }}>
+          <button
+            type="button"
+            className="eco-recorder-btn eco-recorder-btn--record"
+            onClick={() => {
+              // a one-time notice before the very first recording
+              if (!voiceNoticeSeen()) { setShowVoiceNotice(true); return }
+              void startRecording()
+            }}
+          >
             ● record
           </button>
         )}
