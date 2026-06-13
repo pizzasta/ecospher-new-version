@@ -15,6 +15,7 @@ import ActiveCarriers from './components/ActiveCarriers'
 import AudioRecorder from './components/AudioRecorder'
 import AudioPlayer from './components/AudioPlayer'
 import FrequencyRecap from './components/FrequencyRecap'
+import NocturneObservatory from './components/NocturneObservatory'
 import DeepListen from './components/DeepListen'
 import ProfileHub from './components/ProfileHub'
 import NotificationBell from './components/NotificationBell'
@@ -673,6 +674,8 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
           <div className="stat-label">drift cycles</div>
         </div>
       </div>
+
+      <NocturneObservatory />
 
       <div className={`obs-daily glass${tunedToday ? ' obs-daily--tuned' : ''}`}>
         <div className="obs-daily-head">
