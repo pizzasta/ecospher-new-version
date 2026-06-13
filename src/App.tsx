@@ -4007,7 +4007,7 @@ export function SettingsScreen() {
 }
 
 // ─── Nav ──────────────────────────────────────────────────────────────────────
-const CORE_NAV: Screen[] = ['pod', 'signals', 'frequencies', 'rooms', 'relics']
+const CORE_NAV: Screen[] = ['home', 'signals', 'frequencies', 'rooms', 'relics', 'pod']
 
 function Nav({ active, onNav }: { active: Screen; onNav: (s: Screen) => void }) {
   const { recordingActive } = useRecordingSession()
