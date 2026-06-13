@@ -9,6 +9,7 @@ import { readAvatar, sigilGlyph } from '../lib/avatar'
 import { playSampleBuffer, stopPreviewBuffer } from '../lib/sampleAudio'
 import { joinCarrierRoom, liveRoomsEnabled } from '../lib/carrierRoomLive'
 import type { CarrierRoomSession, LivePeer } from '../lib/carrierRoomLive'
+import { resolveSignalState, SIGNAL_GLYPH } from '../lib/signalState'
 import './CarrierRoom.css'
 
 // One frequency. The keeper sets the flow; the carrier passes accordingly. You
@@ -18,11 +19,12 @@ import './CarrierRoom.css'
 type YouState = 'listening' | 'queued' | 'carrier'
 interface Reaction { id: number; glyph: string; color: string; left: number }
 
-export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = true }: {
+export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = true, recovered }: {
   frequency: { label: string; hz: string }
   onLeave: () => void
   seed?: number
   keeper?: boolean
+  recovered?: { quietLabel: string }
 }) {
   const participants = useMemo<Participant[]>(() => makeParticipants(seed, 6), [seed])
   const count = participants.length
@@ -96,6 +98,10 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
     }
   }
   const activeColor = primary?.color ?? '#5a607e'
+  const carrierState = primary
+    ? resolveSignalState({ hushed, isCarrier: true, muted: primary.isYou ? youMuted : false })
+    : (hushed ? 'hushed' : 'drifting')
+  const staticWave = carrierState === 'held-dark' || carrierState === 'hushed'
 
   // request-mode promotion / cap (queue + open-drift; keeper-led waits for a grant)
   useEffect(() => {
@@ -216,6 +222,12 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
         <button type="button" className="cr-leave" onClick={onLeave} aria-label="leave the frequency">✕</button>
       </header>
 
+      {recovered && (
+        <div className="cr-recovered" role="status">
+          <span aria-hidden="true">↺</span> recovered frequency · {recovered.quietLabel} · you're the first carrier back — muted until you're ready
+        </div>
+      )}
+
       {/* keeper: flow-mode selector */}
       {keeper && (
         <div className="cr-keeper">
@@ -245,6 +257,7 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
             <div className={`cr-carrier${primary.isYou ? ' cr-carrier--you' : ''}${primary.isYou && youMuted ? ' cr-carrier--muted' : ''}`}>
               <span className="cr-carrier-halo" aria-hidden="true" />
               <span className="cr-carrier-sigil">{primary.sigil}</span>
+              <span className="cr-carrier-state" aria-hidden="true">{SIGNAL_GLYPH[carrierState]}</span>
               <span className="cr-carrier-ring" style={{ '--remain': remainPct.toFixed(3) } as CSSProperties} aria-hidden="true" />
               {reactions.map(r => (
                 <span key={r.id} className="cr-reaction" style={{ left: `${r.left}%`, color: r.color }}>{r.glyph}</span>
@@ -259,7 +272,7 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
             <span className="cr-carrier-sigil">{hushed ? '◌' : '·'}</span>
           </div>
         )}
-        <div className="cr-wave" aria-hidden="true" style={{ '--level': level.toFixed(2) } as CSSProperties}>
+        <div className={`cr-wave${staticWave ? ' cr-wave--static' : ''}`} aria-hidden="true" style={{ '--level': level.toFixed(2) } as CSSProperties}>
           {Array.from({ length: 28 }, (_, i) => <i key={i} style={{ '--i': i } as CSSProperties} />)}
         </div>
         <div className="cr-carrier-status" role="status">{statusLine}</div>
