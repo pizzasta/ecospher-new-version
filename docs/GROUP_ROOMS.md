@@ -31,22 +31,38 @@ voices over a low murmur. On top of that, two real layers:
 2. That's it for the basic feature. With no backend it stays invisible and the
    simulated conversations carry on.
 
-## Screening (important)
+## Screening (screen-before-public)
 
-Every drop **requires a typed caption** that is text-moderated client-side and
-shown to listeners — that's the interim screen, plus the existing one-tap
-report/hide and an explicit "others will hear this" consent before upload.
+Group voice clips are **private until screened**. The flow:
 
-The **full** screen is the `moderate-audio` Edge Function
-(`supabase/functions/moderate-audio`): transcribe the clip (speech-to-text) →
-run the transcript through moderation → flip the row to `is_public = false` on a
-flag. It ships as a scaffold — wire an STT provider and deploy it before
-featuring real audio widely:
+1. The drop **requires a typed caption** that is text-moderated client-side
+   (defense in depth), plus an explicit "others can hear this once it's
+   screened" consent.
+2. The clip uploads with `is_public = false` — invisible to everyone but the
+   uploader's backend.
+3. The client invokes the **`moderate-audio` Edge Function**, which:
+   transcribes the clip (speech-to-text) → screens the transcript with the same
+   rules as public text → **promotes to `is_public = true` on a clean pass**, or
+   **deletes the audio object and marks the row `flagged`**.
+4. **Fail-closed:** if no STT provider is configured (or transcription fails),
+   the clip stays private and never appears for others. So enabling real group
+   voice REQUIRES deploying this function with an STT key.
+
+Deploy it with a transcription provider (Whisper or Deepgram):
 
 ```
 supabase functions deploy moderate-audio
-supabase secrets set ANTHROPIC_API_KEY=...   # plus your STT provider key
+supabase secrets set OPENAI_API_KEY=...      # Whisper  — or —
+supabase secrets set DEEPGRAM_API_KEY=...    # Deepgram
 ```
 
-Call it from a storage webhook on new `group-audio` objects, or as a scheduled
-sweep over recent public group clips.
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically for
+deployed functions. Verdicts are recorded on `audio_files`
+(`ai_moderation_status` / `ai_moderation_flags` / `ai_moderation_checked_at`,
+migration `202606130017`).
+
+Residual note: the `group-audio` bucket is public, so a clip's bytes are
+reachable by its exact (random UUID) URL during the brief screening window even
+though the app never surfaces that URL until the clip clears, and flagged
+objects are deleted immediately. For stricter isolation, stage drops in a
+private bucket and have the function copy to the public bucket only on a pass.
