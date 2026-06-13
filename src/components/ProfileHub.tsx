@@ -9,7 +9,8 @@ import { getListenCounts, getProfile } from '../lib'
 import { isSupabaseConfigured } from '../lib/supabase-env'
 import { getHzProfile, getLocalHzProfile } from '../lib/hzSignature'
 import { useEcoPref } from '../hooks/useEcoPrefs'
-import { AVATAR_SIGILS, readAvatar, saveAvatar, sigilGlyph } from '../lib/avatar'
+import { readAvatar, saveAvatar, sigilGlyph } from '../lib/avatar'
+import { SIGIL_THEMES, sigilsInTheme } from '../lib/sigilThemes'
 import type { HzProfile } from '../lib/hzSignature'
 import AudioPlayer from './AudioPlayer'
 import AudioRecorder from './AudioRecorder'
@@ -77,6 +78,11 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   const privateProfile = useEcoPref('privateProfile', false)
   // avatar sigil: a chosen mark instead of a photo — there are no photos here
   const [avatar, setAvatar] = useState(() => readAvatar())
+  const [settling, setSettling] = useState<string | null>(null)
+  const chooseSigil = (id: string) => {
+    saveAvatar(id); setAvatar(id)
+    setSettling(id); window.setTimeout(() => setSettling(s => (s === id ? null : s)), 700)
+  }
   const [sigilOpen, setSigilOpen] = useState(false)
 
   // ── header data ──
@@ -323,8 +329,13 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
             />
           )}
 
-          {/* tape intro: ten seconds of voice instead of a written bio */}
-          <div className="ph-tape">
+          {/* tape intro: an answering machine — ten seconds, after the tone */}
+          <div className="ph-tape ph-answerphone">
+            <div className="ph-answerphone-head" aria-hidden="true">
+              <span className={`ph-msg-light${tapeIntro ? ' on' : ''}`} />
+              <span className="ph-answerphone-label">ANSWERING MACHINE</span>
+              <span className="ph-msg-count">{tapeIntro ? '1 message' : 'no messages'}</span>
+            </div>
             {tapeIntro && !tapeRecording ? (
               <>
                 <div className="ph-tape-shell" aria-label="Your intro tape">
@@ -340,11 +351,11 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
               </>
             ) : (
               <>
-                {!tapeRecording && <p className="ph-tape-empty">no intro tape yet. ten seconds — who's there?</p>}
+                {!tapeRecording && <p className="ph-tape-empty">no message yet. leave one after the tone — who's there?</p>}
                 <AudioRecorder
                   kind="signal"
                   context="intro tape"
-                  prompt="ten seconds, one take. say whatever a stranger should hear first."
+                  prompt="ten seconds, after the tone. say whatever a stranger should hear first."
                   minSeconds={3}
                   maxSeconds={10}
                   onComplete={({ durationMs, uploadId }) => saveTapeIntro({ id: uploadId, durationMs })}
@@ -644,20 +655,30 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
             <button type="button" onClick={() => setSigilOpen(open => !open)}>◈ choose your sigil — no photos here, ever</button>
           </div>
           {sigilOpen && (
-            <div className="ph-sigil-picker" role="radiogroup" aria-label="Avatar sigil">
-              {AVATAR_SIGILS.map(sigil => (
-                <button
-                  key={sigil.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={avatar === sigil.id}
-                  className={`ph-sigil-option${avatar === sigil.id ? ' active' : ''}`}
-                  title={sigil.label}
-                  style={{ '--sigil-color': hzProfile.color } as CSSProperties}
-                  onClick={() => { saveAvatar(sigil.id); setAvatar(sigil.id) }}
-                >
-                  {sigil.id === 'hz' ? <small>{hzProfile.hz.toFixed(0)}hz</small> : sigil.glyph}
-                </button>
+            <div className="ph-sigil-themes">
+              {SIGIL_THEMES.map(theme => (
+                <div key={theme.id} className="ph-sigil-theme">
+                  <div className="ph-sigil-theme-head">
+                    <strong>{theme.label}</strong>
+                    <em>{theme.line}</em>
+                  </div>
+                  <div className="ph-sigil-picker" role="radiogroup" aria-label={theme.label}>
+                    {sigilsInTheme(theme.id).map(sigil => (
+                      <button
+                        key={sigil.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={avatar === sigil.id}
+                        className={`ph-sigil-option${avatar === sigil.id ? ' active' : ''}${settling === sigil.id ? ' settling' : ''}`}
+                        title={sigil.label}
+                        style={{ '--sigil-color': hzProfile.color } as CSSProperties}
+                        onClick={() => chooseSigil(sigil.id)}
+                      >
+                        {sigil.id === 'hz' ? <small>{hzProfile.hz.toFixed(0)}hz</small> : sigil.glyph}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}
@@ -757,7 +778,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
       )}
 
       {/* centerpiece: the identity ring — your frequency, breathing */}
-      <div className="ph-centerpiece">
+      <div className={`ph-centerpiece${settling ? ' ph-centerpiece--settling' : ''}`}>
         <div className="ph-ring" style={{ '--ring-color': hzProfile.color } as CSSProperties} aria-hidden="true">
           <div className="ph-ring-bars">
             {Array.from({ length: 36 }, (_, i) => (
