@@ -22,6 +22,7 @@ import NocturneObservatory from './components/NocturneObservatory'
 import TonightsFrequency from './components/TonightsFrequency'
 import CarrierRoom from './components/CarrierRoom'
 import DormantFrequencies from './components/DormantFrequencies'
+import DriftedTextRelics from './components/DriftedTextRelics'
 import { quietFor } from './lib/dormantRooms'
 import type { DormantRoom } from './lib/dormantRooms'
 import DeepListen from './components/DeepListen'
@@ -1943,6 +1944,7 @@ function RelicsScreen() {
         <h2 className="screen-title">Relics</h2>
         <p className="screen-sub">relics are voice moments the network refused to forget.</p>
       </div>
+      <DriftedTextRelics />
       <AmbientLine lines={useMemo(() => [...RELIC_EVENTS, ...livedInLines('relics', 3)], [])} />
       {shelfNote && <div className="lp-drift-ping" key={shelfNote}>{shelfNote}</div>}
 
@@ -2449,6 +2451,8 @@ type SeaBuoy = {
   subtitles: string[]
   /** a line you cast into the sea yourself */
   mine?: boolean
+  /** a typed "cast a line" text signal (vs. drifting audio) */
+  cast?: boolean
   /** optimistic sync status for a freshly cast line */
   status?: 'casting' | 'drifting' | 'failed'
 }
@@ -2554,6 +2558,7 @@ function makeTypedBuoy(id: number, text: string): SeaBuoy {
     tone: 'insomnia',
     subtitles: [text],
     mine: true,
+    cast: true,
     status: 'drifting',
   }
 }
@@ -2591,6 +2596,11 @@ function FrequenciesScreen() {
   const composerInputRef = useRef<HTMLInputElement>(null)
   const myBuoys = buoys.filter(b => b.mine)
   const castingNow = myBuoys.filter(b => b.status === 'casting').length
+  // mixed-drifting controls: what's visible, and quiet-while-writing
+  const [textFilter, setTextFilter] = useState<'all' | 'audio' | 'text'>('all')
+  const [writing, setWriting] = useState(false)
+  const [quietWhileWriting, setQuietWhileWriting] = useState(true)
+  const ducked = writing && quietWhileWriting
   // the composer: type a short line and it drifts into the sea
   const [composer, setComposer] = useState('')
   const composerWords = wordCount(composer)
@@ -2794,7 +2804,7 @@ function FrequenciesScreen() {
       el.style.setProperty('--prox', Math.max(0, 1 - d / 180).toFixed(2))
       if (!closest || d < closest.d) closest = { b, d }
     }
-    if (muted || !closest) return
+    if (muted || ducked || !closest) return
     if (closest.d < 130) {
       const nowTs = Date.now()
       if (lastNearRef.current !== closest.b.id && nowTs - lastSoundAtRef.current > 750) {
@@ -2807,16 +2817,17 @@ function FrequenciesScreen() {
     }
   }
 
-  // the sea is never silent: a distant human moment every few seconds
+  // the sea is never silent: a distant human moment every few seconds —
+  // unless you've muted it, or you're writing and asked for quiet
   useEffect(() => {
-    if (muted) return
+    if (muted || ducked) return
     const KINDS: SeaBuoy['kind'][] = ['voice', 'whisper', 'tone', 'static', 'laugh']
     const t = window.setInterval(() => {
       if (document.hidden) return
       void playChainBlend([{ kind: KINDS[Math.floor(Math.random() * KINDS.length)], seed: Math.floor(Math.random() * 9000), durationMs: 3600, volume: 0.07 }])
     }, 9000)
     return () => window.clearInterval(t)
-  }, [muted])
+  }, [muted, ducked])
 
   const chaseSignal = () => {
     const candidates = buoys.filter(b => !b.fading)
@@ -2983,6 +2994,8 @@ function FrequenciesScreen() {
             placeholder="five to seven words — like something you'd actually say at 3am"
             onChange={e => setComposer(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') castLine() }}
+            onFocus={() => setWriting(true)}
+            onBlur={() => setWriting(false)}
             aria-label="cast a short line into the sea"
           />
           <button type="button" className="sea-composer-send" disabled={!composerReady} onClick={castLine}>
@@ -2990,6 +3003,20 @@ function FrequenciesScreen() {
           </button>
         </div>
         <p className="sea-composer-note">cast as many as you like — they drift off in your color. others pass through them the way you pass through theirs.</p>
+      </div>
+
+      {/* mixed-drifting controls: layer text vs audio, quiet the water while writing */}
+      <div className="sea-mix">
+        <div className="sea-mix-filter" role="group" aria-label="what's drifting">
+          {(['all', 'audio', 'text'] as const).map(f => (
+            <button key={f} type="button" className={`sea-mix-btn${textFilter === f ? ' on' : ''}`} onClick={() => setTextFilter(f)}>
+              {f === 'all' ? 'everything' : f === 'audio' ? 'voices only' : 'text only'}
+            </button>
+          ))}
+        </div>
+        <button type="button" className={`sea-mix-quiet${quietWhileWriting ? ' on' : ''}`} onClick={() => setQuietWhileWriting(q => !q)}>
+          {quietWhileWriting ? '◌ quiet while i write' : '∿ keep the water on'}
+        </button>
       </div>
 
       <div className="sea-field sea-field--big" style={{ '--yours-color': myColor } as CSSProperties} onPointerMove={handleSeaPointer}>
@@ -3040,7 +3067,7 @@ function FrequenciesScreen() {
             </div>
           )
         })}
-        {buoys.map(b => {
+        {buoys.filter(b => textFilter === 'all' || (textFilter === 'text' ? b.cast : !b.cast)).map(b => {
           const near = nearId === b.id
           const isStable = stabilized.includes(b.id)
           return (
