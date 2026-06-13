@@ -314,6 +314,94 @@ export async function deleteAudio(audio: Pick<AudioFileRow, 'id' | 'bucket' | 'p
   return !error
 }
 
+// ─── Group rooms: shared anonymous voices on a topic ──────────────────────────
+// Group clips are ordinary public audio_files rows pointing at the PUBLIC
+// group-audio bucket (so anyone in the group can play them without a per-user
+// signed URL), tagged room_id = 'g_<topic>'. The title carries the screened
+// one-line caption that rides with every drop.
+
+export type GroupVoiceRow = { id: string; bucket: string; path: string; line: string; createdAt: number }
+
+export function groupRoomId(topicId: string): string {
+  return `g_${topicId}`.slice(0, 64)
+}
+
+export async function uploadGroupVoice(blob: Blob, options: { topicId: string; line: string; durationSeconds: number }) {
+  const ctx = await requireUser()
+  if (!ctx) return null
+  if (validateAudioUpload(blob, options.durationSeconds)) return null
+  if (uploadRateLimited()) return null
+  const room = sanitizeRoomId(groupRoomId(options.topicId))
+  if (!room) return null
+
+  const extension = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm'
+  const path = `${ctx.userId}/${crypto.randomUUID()}.${extension}`
+  const bucket = supabaseEnv.buckets.groupAudio
+
+  const { error: uploadError } = await ctx.db.storage.from(bucket).upload(path, blob, {
+    contentType: blob.type || 'audio/webm',
+    upsert: false,
+  })
+  if (uploadError) {
+    if (isQuotaError(uploadError.message)) pauseUploadsForToday()
+    return null
+  }
+
+  const { data, error } = await ctx.db
+    .from('audio_files')
+    .insert({
+      owner_id: ctx.userId,
+      bucket,
+      path,
+      title: options.line.slice(0, 90),
+      duration_seconds: options.durationSeconds,
+      mime_type: blob.type || 'audio/webm',
+      is_public: true,
+      kind: 'signal',
+      room_id: room,
+      file_size_bytes: blob.size,
+    })
+    .select()
+    .maybeSingle()
+
+  if (error || !data) return null
+  void logActivity('audio_uploaded', { audio_file_id: data.id }, { group: options.topicId })
+  return data
+}
+
+export async function listGroupVoices(topicId: string, limit = 12): Promise<GroupVoiceRow[]> {
+  const db = client()
+  if (!db) return []
+  const room = sanitizeRoomId(groupRoomId(topicId))
+  if (!room) return []
+  const { data, error } = await db
+    .from('audio_files')
+    .select('id, bucket, path, title, created_at')
+    .eq('room_id', room)
+    .eq('is_public', true)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error || !data) return []
+  return data.map(r => ({
+    id: r.id,
+    bucket: r.bucket,
+    path: r.path,
+    line: r.title ?? '',
+    createdAt: new Date(r.created_at).getTime(),
+  }))
+}
+
+export function getGroupVoicePublicUrl(bucket: string, path: string): string | null {
+  const db = client()
+  if (!db) return null
+  const { data } = db.storage.from(bucket).getPublicUrl(path)
+  return data?.publicUrl ?? null
+}
+
+export async function deleteGroupVoice(audio: Pick<AudioFileRow, 'id' | 'bucket' | 'path'>) {
+  return deleteAudio(audio)
+}
+
 // ─── Capsules ─────────────────────────────────────────────────────────────────
 
 export async function createCapsule(input: {

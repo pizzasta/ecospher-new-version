@@ -5,6 +5,7 @@ import { localDateString, useEcosystemState } from './hooks/useEcosystemState'
 import { deleteLocalRecording, deleteReactionAudio, listLocalRecordings, listReactionAudio, saveReactionAudio, saveRecordingLocally } from './lib/localAudioStore'
 import { downloadBlob, exportFilename, renderStoryImage } from './lib/storyExport'
 import { playChainBlend, playSample, playSampleBuffer, stopChainPlayback, stopPreviewBuffer } from './lib/sampleAudio'
+import { speakSignal, speechSupported, cancelSpeech } from './lib/speech'
 import { lastExaminedBy, listenerCount, livedInLines } from './lib/livedIn'
 import { subscribeToEcosphereActivity } from './lib/backendBridge'
 import type { StoredReaction } from './lib/localAudioStore'
@@ -2614,6 +2615,7 @@ function FrequenciesScreen() {
       timers.forEach(id => window.clearTimeout(id))
       stopPreviewBuffer()
       stopChainPlayback()
+      cancelSpeech()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -2623,15 +2625,21 @@ function FrequenciesScreen() {
     timersRef.current.push(window.setTimeout(() => setPing(null), 4000))
   }
 
-  // drifting near a signal: it clarifies; drifting away: it fades back to sea
+  // drifting near a signal: it clarifies; drifting away: it fades back to sea.
+  // your own cast lines actually read themselves aloud as you pass.
   const driftNear = (b: SeaBuoy) => {
     setNearId(b.id)
-    void playSampleBuffer(b.kind, b.seed, 7000, 0.3)
+    if (b.mine && speechSupported()) {
+      speakSignal(b.fragment, b.seed)
+    } else {
+      void playSampleBuffer(b.kind, b.seed, 7000, 0.3)
+    }
   }
 
   const driftAway = () => {
     setNearId(null)
     stopPreviewBuffer()
+    cancelSpeech()
   }
 
   const saveEcho = (b: SeaBuoy) => {

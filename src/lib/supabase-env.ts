@@ -24,5 +24,6 @@ export const supabaseEnv = {
     signalAudio: env.VITE_SUPABASE_SIGNAL_AUDIO_BUCKET ?? 'signal-audio',
     capsuleAudio: env.VITE_SUPABASE_CAPSULE_AUDIO_BUCKET ?? 'capsule-audio',
     profileCores: env.VITE_SUPABASE_PROFILE_CORES_BUCKET ?? 'profile-cores',
+    groupAudio: env.VITE_SUPABASE_GROUP_AUDIO_BUCKET ?? 'group-audio',
   },
 } as const
