@@ -5,6 +5,7 @@ import type { LiveEvent } from '../lib/liveBus'
 import {
   nightlyWave, bandNow, bandPhase, signalWeather, collectiveMood, bandIndicators, bandAlmanac, MOOD_SPECTRUM,
 } from '../lib/observatory'
+import { castsToday } from '../lib/castMetrics'
 import './NocturneObservatory.css'
 
 // The Nocturne Band as a living entity: a nightly activity wave that breathes
@@ -57,6 +58,7 @@ export default function NocturneObservatory({ onTune }: { onTune?: () => void })
   const weather = signalWeather(now, stormy)
   const mood = collectiveMood(now)
   const indicators = bandIndicators(now, { carriers, stormy })
+  const casts = castsToday(now)
   const almanac = useMemo(() => bandAlmanac(now), [now])
   const nowHour = new Date(now).getHours() + new Date(now).getMinutes() / 60
 
@@ -137,6 +139,13 @@ export default function NocturneObservatory({ onTune }: { onTune?: () => void })
             {ind.sub && <span className="nocturne-ind-sub">{ind.sub}</span>}
           </div>
         ))}
+        {casts > 0 && (
+          <div className="nocturne-ind">
+            <span className="nocturne-ind-value">{casts}</span>
+            <span className="nocturne-ind-label">lines cast</span>
+            <span className="nocturne-ind-sub">into the sea tonight</span>
+          </div>
+        )}
       </div>
 
       {/* almanac: how tonight compares to last night */}

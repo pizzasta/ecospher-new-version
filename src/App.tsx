@@ -7,6 +7,7 @@ import { downloadBlob, exportFilename, renderStoryImage } from './lib/storyExpor
 import { playChainBlend, playSample, playSampleBuffer, stopChainPlayback, stopPreviewBuffer } from './lib/sampleAudio'
 import { speakSignal, speechSupported, cancelSpeech } from './lib/speech'
 import { castRateCheck, recordCast } from './lib/castLine'
+import { bumpCastToday } from './lib/castMetrics'
 import { castToSea, fetchSeaLines, subscribeSeaLines, seaSyncEnabled } from './lib/seaSync'
 import type { SeaLineRow } from './lib/seaSync'
 import { lastExaminedBy, listenerCount, livedInLines } from './lib/livedIn'
@@ -2605,6 +2606,9 @@ function FrequenciesScreen() {
   const [composer, setComposer] = useState('')
   const composerWords = wordCount(composer)
   const composerReady = composerWords >= 5 && composerWords <= 7
+  // a one-time helper that teaches the cast mechanic without breaking the drift
+  const [castHelp, setCastHelp] = useState(() => { try { return window.localStorage.getItem('ecosphere:castHelperSeen') !== 'yes' } catch { return false } })
+  const dismissCastHelp = () => { try { window.localStorage.setItem('ecosphere:castHelperSeen', 'yes') } catch { /* session only */ } setCastHelp(false) }
   const [nearId, setNearId] = useState<number | null>(null)
   const [, setZoneIdx] = useState(() => Math.floor(Date.now() / 40000) % SEA_ZONES.length)
   const [tideIdx, setTideIdx] = useState(0)
@@ -2729,6 +2733,7 @@ function FrequenciesScreen() {
     const gate = castRateCheck()
     if (!gate.allowed) { say(gate.reason ?? 'give it a moment'); return }
     recordCast()
+    bumpCastToday()
 
     const id = 900 + Date.now() % 100000
     const buoy: SeaBuoy = { ...makeTypedBuoy(id, text), status: 'casting' }
@@ -2974,6 +2979,16 @@ function FrequenciesScreen() {
       </div>
 
       {/* cast a line: type something short and let it drift into the water */}
+      {castHelp && (
+        <div className="sea-cast-help" style={{ '--yours-color': myColor } as CSSProperties} role="note">
+          <div className="sea-cast-help-body">
+            <strong>∿ cast a line into the sea</strong>
+            <p>type a few words — they drift off as a signal of your own. cast as many as you like; each floats away in your color while it syncs. others pass through them the way you pass through theirs, and by morning they fade back into static.</p>
+          </div>
+          <button type="button" className="sea-cast-help-go" onClick={dismissCastHelp}>got it</button>
+        </div>
+      )}
+
       <div className="sea-composer" style={{ '--yours-color': myColor } as CSSProperties}>
         <div className="sea-composer-head">
           <span className="sea-composer-kicker">CAST A LINE</span>

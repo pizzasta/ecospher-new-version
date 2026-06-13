@@ -3197,3 +3197,33 @@ body[data-eco-deepnight='on']:not([data-eco-night='on']) .atmosphere {
 .sea-mix-quiet.on { border-color: rgba(95, 224, 160, 0.4); color: #9af0c8; }
 
 @media (prefers-reduced-motion: reduce) { .sea-mix-btn, .sea-mix-quiet { transition: none; } }
+
+/* cast-a-line first-time helper */
+.sea-cast-help {
+  position: relative;
+  z-index: 6;
+  max-width: 560px;
+  margin: 10px auto 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 15px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(10, 20, 36, 0.7), rgba(8, 14, 28, 0.6));
+  border: 1px solid color-mix(in srgb, var(--yours-color, #ffd166) 30%, transparent);
+  box-shadow: inset 0 0 40px color-mix(in srgb, var(--yours-color, #ffd166) 6%, transparent);
+}
+.sea-cast-help-body strong { display: block; font-size: 12.5px; font-weight: 700; color: color-mix(in srgb, var(--yours-color, #ffd166) 70%, #fff); margin-bottom: 5px; }
+.sea-cast-help-body p { margin: 0; font-size: 11.5px; line-height: 1.55; color: rgba(200, 212, 235, 0.62); }
+.sea-cast-help-go {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 7px 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--yours-color, #ffd166) 40%, transparent);
+  background: color-mix(in srgb, var(--yours-color, #ffd166) 14%, transparent);
+  color: color-mix(in srgb, var(--yours-color, #ffd166) 80%, #fff);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
