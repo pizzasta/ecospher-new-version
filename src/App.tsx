@@ -2778,8 +2778,22 @@ function FrequenciesScreen() {
       { at: 168 + ((d * 11) % 26), label: 'numbers read slowly, then goodnight', kind: 'tone' as const },
     ]
   }, [])
+  const lastSweepRef = useRef(0)
   const tune = (value: number) => {
     setDial(value)
+    // audible sweep: static between stations, the station bleeding in as you near it
+    if (!muted) {
+      const nearest = stations.reduce(
+        (best, s) => { const d = Math.abs(s.at - value); return d < best.d ? { kind: s.kind, at: s.at, d } : best },
+        { kind: 'static' as SeaBuoy['kind'], at: value, d: Infinity },
+      )
+      const ts = Date.now()
+      if (ts - lastSweepRef.current > 110) {
+        lastSweepRef.current = ts
+        if (nearest.d <= 6) void playSampleBuffer(nearest.kind, Math.round(nearest.at * 31), 520, 0.05 + (1 - nearest.d / 6) * 0.2)
+        else void playSampleBuffer('static', Math.round(value * 7), 200, 0.05)
+      }
+    }
     const hit = stations.find(s => Math.abs(s.at - value) <= 2)
     if (hit && lockedStation !== hit.label) {
       setLockedStation(hit.label)
