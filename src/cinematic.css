@@ -3159,3 +3159,41 @@ body[data-eco-deepnight='on']:not([data-eco-night='on']) .atmosphere {
   cursor: pointer;
 }
 @media (prefers-reduced-motion: reduce) { .sea-cast-status--casting { animation: none; opacity: 0.8; } }
+
+/* mixed-drifting controls: text/audio filter + quiet-while-writing */
+.sea-mix {
+  position: relative;
+  z-index: 6;
+  max-width: 560px;
+  margin: 8px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sea-mix-filter { display: inline-flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(8, 16, 30, 0.5); border: 1px solid rgba(120, 200, 255, 0.12); }
+.sea-mix-btn {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: rgba(190, 205, 230, 0.55);
+  font-size: 10.5px;
+  cursor: pointer;
+  transition: color 0.25s ease, background 0.25s ease;
+}
+.sea-mix-btn.on { background: rgba(0, 180, 255, 0.16); color: #aef0ff; }
+.sea-mix-quiet {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 200, 255, 0.16);
+  background: rgba(8, 16, 30, 0.5);
+  color: rgba(190, 205, 230, 0.6);
+  font-size: 10.5px;
+  cursor: pointer;
+  transition: border-color 0.25s ease, color 0.25s ease;
+}
+.sea-mix-quiet.on { border-color: rgba(95, 224, 160, 0.4); color: #9af0c8; }
+
+@media (prefers-reduced-motion: reduce) { .sea-mix-btn, .sea-mix-quiet { transition: none; } }
