@@ -4066,8 +4066,9 @@ html, body, #root {
 }
 
 .boot-detection {
-  display: grid;
-  justify-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   top: 54%;
 }
 
@@ -4086,31 +4087,45 @@ html, body, #root {
   color: #f9a8d4;
   font-size: clamp(15px, 3vw, 22px);
   font-weight: 850;
-  letter-spacing: 0.28em;
+  /* responsive tracking: roomy on desktop, never wide enough to clip on a phone */
+  letter-spacing: clamp(0.1em, 1.6vw, 0.28em);
   margin: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
   text-transform: uppercase;
+  text-wrap: balance;
+  white-space: normal;
 }
 
 .boot-detection small {
   animation: bootTextBlink 3.4s ease-in-out infinite;
   color: rgba(233, 213, 255, 0.74);
   display: block;
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-size: clamp(10px, 2.4vw, 11px);
+  letter-spacing: clamp(0.08em, 1.2vw, 0.18em);
   margin-top: 13px;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  padding: 0 6px;
   text-transform: uppercase;
+  text-wrap: balance;
+  white-space: normal;
 }
 
 .typewriter-text {
-  display: inline-grid;
+  display: grid;
   gap: 8px;
+  min-width: 0;
   max-width: 100%;
+  width: 100%;
 }
 
 .typewriter-line {
   display: block;
   max-width: 100%;
-  overflow-wrap: anywhere;
+  min-width: 0;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .typewriter-cursor {
@@ -4134,8 +4149,10 @@ html, body, #root {
   display: block;
   font-size: 10px;
   font-weight: 850;
-  letter-spacing: 0.26em;
+  letter-spacing: clamp(0.12em, 1.4vw, 0.26em);
   margin-bottom: 14px;
+  max-width: 100%;
+  overflow-wrap: break-word;
   text-transform: uppercase;
 }
 
@@ -4157,7 +4174,7 @@ html, body, #root {
   color: rgba(255, 247, 251, 0.76);
   font-size: 12px;
   font-weight: 750;
-  letter-spacing: 0.16em;
+  letter-spacing: clamp(0.08em, 1vw, 0.16em);
   margin: 0;
   text-transform: uppercase;
 }
