@@ -5,6 +5,7 @@ import {
 } from '../lib/stickyNotes'
 import type { StickyNote } from '../lib/stickyNotes'
 import { noteSyncEnabled, publishNote } from '../lib/noteSync'
+import Resonate from './Resonate'
 import './StickyNotes.css'
 
 // Your own post-its, pinned on the pod: reactions, reflections, half-thoughts.
@@ -105,6 +106,7 @@ export default function StickyNotes() {
                 </button>
                 <button type="button" className="sticky-del" onClick={() => remove(n.id)} aria-label="remove note">✕</button>
               </div>
+              {n.public && <Resonate noteId={n.id} readOnly />}
             </div>
           ))}
         </div>
