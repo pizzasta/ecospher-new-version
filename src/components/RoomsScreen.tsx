@@ -8,6 +8,7 @@ import { temporalWindow } from '../lib/temporalWindow'
 import { futureSignals } from '../lib/futureSignals'
 import { usePredictiveText } from '../hooks/usePredictiveText'
 import { moderatePublicSignalText } from '../lib/signalModeration'
+import GroupConversations from './GroupConversations'
 import '../rooms.css'
 
 // ═══════════════════════════════════════════════════════════════
@@ -1323,6 +1324,8 @@ export default function RoomsScreen() {
           <h1 className="rooms-eco-title">rooms</h1>
           <p className="rooms-eco-sub">anonymous group calls. drop in, listen, talk, leave whenever.</p>
         </header>
+
+        <GroupConversations />
 
         {temporal.phase !== 'closed' && (
           <button
