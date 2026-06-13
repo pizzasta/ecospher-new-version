@@ -19,6 +19,7 @@ import HzBadge from './HzBadge'
 import HzSettingsModal from './HzSettingsModal'
 import FrequencyGradientModal from './FrequencyGradientModal'
 import ProfileOnboarding, { shouldAutoOnboard } from './ProfileOnboarding'
+import { readMood, moodToVars } from '../lib/profileMood'
 import { loadGradientSettings, readGradientSettings, resolveGradientColors } from '../lib/frequencyGradient'
 import type { GradientSettings } from '../lib/frequencyGradient'
 import { useFrequencyGradient } from '../hooks/useFrequencyGradient'
@@ -91,6 +92,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   const [gradient, setGradient] = useState<GradientSettings>(() => readGradientSettings())
   const [gradientOpen, setGradientOpen] = useState(false)
   const [onboarding, setOnboarding] = useState(shouldAutoOnboard)
+  const [moodVars, setMoodVars] = useState(() => moodToVars(readMood()))
   const gradientAngle = useFrequencyGradient(gradient)
 
   useEffect(() => {
@@ -693,13 +695,14 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
     })
   }
   return (
-    <section className="profile-hub" aria-label="Profile hub">
+    <section className="profile-hub atmo-grain" aria-label="Profile hub" style={moodVars as CSSProperties}>
       {onboarding && (
         <ProfileOnboarding
           accentColor={hzProfile.color}
           onDone={() => {
             setGradient(readGradientSettings())
             setAvatar(readAvatar())
+            setMoodVars(moodToVars(readMood()))
             setOnboarding(false)
           }}
         />

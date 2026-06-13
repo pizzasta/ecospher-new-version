@@ -449,9 +449,9 @@ function ClaimSignalIdentityStep({ onComplete }: { onComplete: (signal: string, 
 
       <section className="identity-claim-screen" aria-label="Claim your signal">
         <div className="identity-claim-copy">
-          <p>STEP 02 // IDENTITY</p>
-          <h1>CLAIM YOUR SIGNAL</h1>
-          <span>no photo. no bio. just a frequency.</span>
+          <p>find your frequency</p>
+          <h1>pick a signal people remember</h1>
+          <span>no photo, no bio — just a frequency that's yours.</span>
         </div>
 
         <div className="claim-orb-field identity-orb-field" aria-hidden="true">
