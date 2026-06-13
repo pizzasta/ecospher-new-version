@@ -4,6 +4,7 @@ import {
   loadNotes, addNote, updateNote, deleteNote, reorderNotes, saveOrder, NOTE_COLORS, NOTE_MAX,
 } from '../lib/stickyNotes'
 import type { StickyNote } from '../lib/stickyNotes'
+import { noteSyncEnabled, publishNote } from '../lib/noteSync'
 import './StickyNotes.css'
 
 // Your own post-its, pinned on the pod: reactions, reflections, half-thoughts.
@@ -23,6 +24,7 @@ export default function StickyNotes() {
   const add = () => {
     const res = addNote(draft, color, makePublic)
     if ('error' in res) { setError(res.error); return }
+    if (res.note.public && noteSyncEnabled) void publishNote(res.note.text, res.note.color)
     setNotes(loadNotes()); setDraft(''); setError(null)
   }
 
@@ -31,8 +33,9 @@ export default function StickyNotes() {
   const togglePublic = (n: StickyNote) => {
     const next = updateNote(n.id, { public: !n.public })
     setNotes(next)
-    if (!n.public && !next.find(x => x.id === n.id)?.public) setError("that one stays private — it can't drift public here")
-    else setError(null)
+    const nowPublic = next.find(x => x.id === n.id)?.public
+    if (!n.public && !nowPublic) setError("that one stays private — it can't drift public here")
+    else { setError(null); if (!n.public && nowPublic && noteSyncEnabled) void publishNote(n.text, n.color) }
   }
 
   const onDrop = (toId: string) => {
