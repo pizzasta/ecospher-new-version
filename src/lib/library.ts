@@ -356,7 +356,7 @@ export async function uploadGroupVoice(blob: Blob, options: { topicId: string; l
       title: options.line.slice(0, 90),
       duration_seconds: options.durationSeconds,
       mime_type: blob.type || 'audio/webm',
-      is_public: true,
+      is_public: false, // private until moderate-audio screens + promotes it
       kind: 'signal',
       room_id: room,
       file_size_bytes: blob.size,

@@ -43,16 +43,49 @@ export async function fetchGroupVoices(topicId: string, limit = 12): Promise<Gro
   return voices
 }
 
-/** Drop a screened voice clip into a group. The caption is moderated first. */
+/**
+ * Drop a voice clip into a group. The caption is moderated up front; the clip
+ * itself uploads private and is only made public once the moderate-audio
+ * function transcribes and clears it. Fail-closed: if screening isn't
+ * available, the clip stays private and never appears for others.
+ */
 export async function dropGroupVoice(topicId: string, blob: Blob, durationSeconds: number, line: string): Promise<DropResult> {
   if (!isSupabaseConfigured) return { ok: false, error: 'live rooms are off right now' }
   const clean = line.trim().replace(/\s+/g, ' ').slice(0, 90)
   if (captionWords(clean) < 3) return { ok: false, error: 'add a short caption so others know what they’re hearing' }
   if (moderatePublicSignalText(clean).status === 'flagged') return { ok: false, error: 'that caption can’t go into a shared room' }
+
   const row = await uploadGroupVoice(blob, { topicId, line: clean, durationSeconds })
   if (!row) return { ok: false, error: 'couldn’t drop your voice — try again' }
-  broadcastGroupVoice(topicId)
-  return { ok: true, id: row.id }
+
+  const verdict = await screenGroupVoice(row.id, row.bucket, row.path, row.mime_type ?? blob.type)
+  if (verdict === 'passed') {
+    broadcastGroupVoice(topicId)
+    return { ok: true, id: row.id }
+  }
+  if (verdict === 'flagged') {
+    return { ok: false, error: "that didn't pass the room's voice screen" }
+  }
+  // unscreened — STT not deployed/failed; the clip stays private
+  return { ok: false, error: 'voice screening isn’t set up yet — your clip stayed private' }
+}
+
+type ScreenVerdict = 'passed' | 'flagged' | 'unscreened'
+
+/** Ask the moderate-audio function to transcribe, screen, and promote the clip. */
+async function screenGroupVoice(audioId: string, bucket: string, path: string, mime: string): Promise<ScreenVerdict> {
+  const client = getOptionalSupabaseClient()
+  if (!client) return 'unscreened'
+  try {
+    const { data, error } = await client.functions.invoke('moderate-audio', {
+      body: { audioId, bucket, path, mime },
+    })
+    if (error) return 'unscreened'
+    const status = (data as { status?: string } | null)?.status
+    return status === 'passed' || status === 'flagged' ? status : 'unscreened'
+  } catch {
+    return 'unscreened'
+  }
 }
 
 /** Remove a clip you dropped (RLS only ever lets you delete your own). */

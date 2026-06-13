@@ -331,12 +331,12 @@ export default function GroupConversations() {
                     />
                     <label className="group-talk-consent">
                       <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} />
-                      others in this group can hear this. no names attached.
+                      others can hear this once it's screened. no names attached.
                     </label>
                     <div className="group-talk-drop-actions">
                       <button type="button" className="group-talk-drop-cancel" onClick={resetRecorder}>discard</button>
                       <button type="button" className="group-talk-drop-go" disabled={dropping} onClick={submitDrop}>
-                        {dropping ? 'dropping…' : 'drop into group'}
+                        {dropping ? 'screening…' : 'drop into group'}
                       </button>
                     </div>
                   </div>
