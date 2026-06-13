@@ -7,6 +7,7 @@ import {
 import type { GradientStyle, GradientSettings } from '../lib/frequencyGradient'
 import { MOOD_FIELDS, ONBOARD_MOOD_FIELDS, readMood, saveMood, moodToVars } from '../lib/profileMood'
 import type { Mood } from '../lib/profileMood'
+import { castFrequency } from '../lib/frequencyOracle'
 import ProfileScene from './ProfileScene'
 import ColorWave from './ColorWave'
 import './ProfileOnboarding.css'
@@ -66,6 +67,14 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
   const palette = PROFILE_PALETTES.find(p => p.id === paletteId) ?? PROFILE_PALETTES[0]
   const colors: [string, string, string] = [palette.start, palette.end, accentColor]
   const moodVars = moodToVars(mood)
+  const [oracle, setOracle] = useState<string | null>(null)
+
+  // let the band tune you — one tap casts sigil, colors, space, and mood
+  const letFrequencyChoose = () => {
+    const cast = castFrequency(Date.now())
+    setSigil(cast.sigil); setPaletteId(cast.paletteId); setStyle(cast.style); setMood(cast.mood)
+    setOracle(`tuned to ${cast.hz} Hz · ${cast.flavor}`)
+  }
 
   const finish = () => {
     saveAvatar(sigil)
@@ -122,6 +131,11 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
         </header>
 
         {preview}
+
+        <div className="po-oracle">
+          <button type="button" className="po-oracle-btn" onClick={letFrequencyChoose}>✦ let the frequency choose</button>
+          {oracle && <span className="po-oracle-flavor">{oracle}</span>}
+        </div>
 
         <div className="po-body">
           {step === 0 && (
