@@ -3229,6 +3229,9 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
   const [googleBusy, setGoogleBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  // your pod (notes, customization, the rituals) is local-first — you can tend
+  // it without an account; signing in only adds cross-device sync
+  const [podLocalMode, setPodLocalMode] = useState(false)
   const { ecosystemState, toggleLibraryFavorite, unsaveFromLibrary } = useEcosystemState()
   const podAudio = useGlobalAudio()
   const eco = ecosystemState
@@ -3275,15 +3278,19 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
     }
   }
 
-  // without a configured backend the pod runs in local mode — never a dead end
-  if (!user && supabase) {
+  // without a configured backend the pod runs in local mode — never a dead end.
+  // with a backend you can still drift in locally without an account.
+  if (!user && supabase && !podLocalMode) {
     return (
       <div className="screen">
         <div className="screen-header">
           <div className="screen-kicker">SOUL POD</div>
           <h2 className="screen-title">Enter Your Pod</h2>
-          <p className="screen-sub">authenticate to access your private signal chamber</p>
+          <p className="screen-sub">sign in to sync across devices — or drift in and tend it right here</p>
         </div>
+        <button type="button" className="pod-skip-auth" onClick={() => setPodLocalMode(true)}>
+          ◌ drift in without an account
+        </button>
         <div className="glass pod-auth">
           <div className="pod-auth-visualizer" aria-hidden="true"><span /><span /><span /></div>
           <button
@@ -3494,6 +3501,10 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
         {user ? (
           <button onClick={onSignOut} style={{ fontSize: '11px', color: 'rgba(180,190,220,0.4)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', transition: 'all 0.2s ease' }}>
             sign out
+          </button>
+        ) : supabase ? (
+          <button onClick={() => setPodLocalMode(false)} style={{ fontSize: '11px', color: 'rgba(180,190,220,0.55)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer' }}>
+            ◌ sign in to sync
           </button>
         ) : (
           <span style={{ fontSize: '10px', color: 'rgba(180,190,220,0.4)', letterSpacing: '0.08em' }}>stored on this device</span>
