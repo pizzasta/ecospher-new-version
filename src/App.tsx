@@ -7,6 +7,8 @@ import { downloadBlob, exportFilename, renderStoryImage } from './lib/storyExpor
 import { playChainBlend, playSample, playSampleBuffer, stopChainPlayback, stopPreviewBuffer } from './lib/sampleAudio'
 import { speakSignal, speechSupported, cancelSpeech } from './lib/speech'
 import { castRateCheck, recordCast } from './lib/castLine'
+import { castToSea, fetchSeaLines, subscribeSeaLines, seaSyncEnabled } from './lib/seaSync'
+import type { SeaLineRow } from './lib/seaSync'
 import { lastExaminedBy, listenerCount, livedInLines } from './lib/livedIn'
 import { subscribeToEcosphereActivity } from './lib/backendBridge'
 import type { StoredReaction } from './lib/localAudioStore'
@@ -2571,13 +2573,24 @@ const SEA_STATUS_LINES = [
 ]
 
 function FrequenciesScreen() {
-  const { reactToSignal, saveToLibrary } = useEcosystemState()
+  const { ecosystemState, reactToSignal, saveToLibrary } = useEcosystemState()
   const night = (() => { const h = new Date().getHours(); return h >= 22 || h < 5 })()
   const [buoys, setBuoys] = useState<SeaBuoy[]>(() => {
-    const base = Array.from({ length: night ? 22 : 18 }, (_, i) => makeBuoy(i, night))
+    // a bigger sea — more room for many voices to drift at once
+    const base = Array.from({ length: night ? 30 : 24 }, (_, i) => makeBuoy(i, night))
     const mine = loadSeaLines().map((text, i) => makeTypedBuoy(900 + i, text))
     return [...mine, ...base]
   })
+  // your cast lines carry your sigil color; others drift in their own tones
+  const [myColor, setMyColor] = useState('#ffd166')
+  useEffect(() => {
+    void getHzProfile(ecosystemState.userSignalIdentity ?? 'unclaimed').then(p => setMyColor(p.color))
+  }, [ecosystemState.userSignalIdentity])
+  // session cast count + live sync status for the pill
+  const [castCount, setCastCount] = useState(0)
+  const composerInputRef = useRef<HTMLInputElement>(null)
+  const myBuoys = buoys.filter(b => b.mine)
+  const castingNow = myBuoys.filter(b => b.status === 'casting').length
   // the composer: type a short line and it drifts into the sea
   const [composer, setComposer] = useState('')
   const composerWords = wordCount(composer)
@@ -2709,18 +2722,46 @@ function FrequenciesScreen() {
 
     const id = 900 + Date.now() % 100000
     const buoy: SeaBuoy = { ...makeTypedBuoy(id, text), status: 'casting' }
-    setBuoys(prev => [buoy, ...prev].slice(0, 34))
+    setBuoys(prev => [buoy, ...prev].slice(0, 44))
     setComposer('')
-    say('casting your line into the sea…')
+    setCastCount(n => n + 1)
+    // keep the composer ready — cast the next one without breaking the drift
+    composerInputRef.current?.focus()
 
-    // optimistic: it drifts right away, then settles to "drifting"
+    // optimistic: it drifts right away, then settles once it's stored (and,
+    // when a backend is on, once it's fanned out to everyone else)
     window.setTimeout(() => {
-      setBuoys(prev => prev.map(b => (b.id === id ? { ...b, status: 'drifting' } : b)))
       storeSeaLine(text)
       reactToSignal('frequency-sea', `cast a line into the sea: "${text}"`)
       leaveTrace(`a line you cast is drifting in the sea: "${text}"`, 'frequencies')
+      if (seaSyncEnabled) {
+        void castToSea(text).then(ok => setBuoys(prev => prev.map(b => (b.id === id ? { ...b, status: ok ? 'drifting' : 'failed' } : b))))
+      } else {
+        setBuoys(prev => prev.map(b => (b.id === id ? { ...b, status: 'drifting' } : b)))
+      }
     }, 600)
   }
+
+  const retryCast = (b: SeaBuoy) => {
+    setBuoys(prev => prev.map(x => (x.id === b.id ? { ...x, status: 'casting' } : x)))
+    void castToSea(b.fragment).then(ok => setBuoys(prev => prev.map(x => (x.id === b.id ? { ...x, status: ok ? 'drifting' : 'failed' } : x))))
+  }
+
+  // others' cast lines drift in live (when a backend is configured)
+  const seenSeaIdsRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!seaSyncEnabled) return
+    let cancelled = false
+    const addLine = (row: SeaLineRow) => {
+      if (cancelled || seenSeaIdsRef.current.has(row.id)) return
+      seenSeaIdsRef.current.add(row.id)
+      const buoy: SeaBuoy = { ...makeTypedBuoy(700000 + (hashLine(row.id) % 90000), row.text), mine: false, status: 'drifting' }
+      setBuoys(prev => [buoy, ...prev].slice(0, 44))
+    }
+    void fetchSeaLines(8).then(rows => rows.slice().reverse().forEach(addLine))
+    const unsub = subscribeSeaLines(addLine)
+    return () => { cancelled = true; unsub() }
+  }, [])
 
   const seaPresence = useLivePresence()
   const seaCarriers = seaPresence.perPage['frequencies'] ?? 0
@@ -2922,13 +2963,20 @@ function FrequenciesScreen() {
       </div>
 
       {/* cast a line: type something short and let it drift into the water */}
-      <div className="sea-composer">
+      <div className="sea-composer" style={{ '--yours-color': myColor } as CSSProperties}>
         <div className="sea-composer-head">
           <span className="sea-composer-kicker">CAST A LINE</span>
-          <span className={`sea-composer-count${composerReady ? ' ready' : ''}`}>{composerWords}/5–7 words</span>
+          {castingNow > 0 ? (
+            <span className="sea-cast-pill sea-cast-pill--syncing"><i aria-hidden="true" /> casting {castingNow} {castingNow === 1 ? 'line' : 'lines'}…</span>
+          ) : castCount > 0 ? (
+            <span className="sea-cast-pill sea-cast-pill--done">{castCount} of yours drifting tonight</span>
+          ) : (
+            <span className={`sea-composer-count${composerReady ? ' ready' : ''}`}>{composerWords}/5–7 words</span>
+          )}
         </div>
         <div className="sea-composer-row">
           <input
+            ref={composerInputRef}
             type="text"
             value={composer}
             maxLength={90}
@@ -2941,10 +2989,10 @@ function FrequenciesScreen() {
             ● cast
           </button>
         </div>
-        <p className="sea-composer-note">it drifts as one of yours — others can pass through it the way you pass through theirs.</p>
+        <p className="sea-composer-note">cast as many as you like — they drift off in your color. others pass through them the way you pass through theirs.</p>
       </div>
 
-      <div className="sea-field" onPointerMove={handleSeaPointer}>
+      <div className="sea-field sea-field--big" style={{ '--yours-color': myColor } as CSSProperties} onPointerMove={handleSeaPointer}>
         {resurfaced && (
           <button
             type="button"
@@ -2999,7 +3047,7 @@ function FrequenciesScreen() {
             <div
               key={b.id}
               ref={el => { if (el) buoyRefs.current.set(b.id, el); else buoyRefs.current.delete(b.id) }}
-              className={`sea-buoy sea-buoy--${b.source} sea-buoy--tone-${b.tone}${b.mine ? ' sea-buoy--yours' : ''}${near ? ' near' : ''}${chasedId === b.id ? ' chased' : ''}${b.fading && !isStable ? ' fading' : ''}${b.deep ? ' deep' : ''}`}
+              className={`sea-buoy sea-buoy--${b.source} sea-buoy--tone-${b.tone}${b.mine ? ' sea-buoy--yours' : ''}${b.status === 'casting' ? ' sea-buoy--casting' : ''}${near ? ' near' : ''}${chasedId === b.id ? ' chased' : ''}${b.fading && !isStable ? ' fading' : ''}${b.deep ? ' deep' : ''}`}
               style={{ '--top': `${b.top}%`, '--dur': `${b.duration}s`, '--delay': `${b.delay}s` } as CSSProperties}
             >
               <button
@@ -3017,7 +3065,7 @@ function FrequenciesScreen() {
               </span>
               {b.mine && b.status === 'casting' && <span className="sea-cast-status sea-cast-status--casting">syncing…</span>}
               {b.mine && b.status === 'failed' && (
-                <button type="button" className="sea-cast-status sea-cast-status--failed" onClick={() => setBuoys(prev => prev.map(x => (x.id === b.id ? { ...x, status: 'casting' } : x)))}>didn't catch · retry</button>
+                <button type="button" className="sea-cast-status sea-cast-status--failed" onClick={() => retryCast(b)}>didn't catch · retry</button>
               )}
               {near && (
                 <div className="sea-fragment">

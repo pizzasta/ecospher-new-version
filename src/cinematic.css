@@ -1763,6 +1763,12 @@ body[data-eco-page='unsent'] .eco-now-playing {
   min-height: 380px;
 }
 
+/* a bigger sea — more vertical room for many voices to drift */
+.sea-field--big {
+  height: 72vh;
+  min-height: 520px;
+}
+
 .sea-buoy {
   position: absolute;
   top: var(--top, 40%);
@@ -3087,9 +3093,43 @@ body[data-eco-deepnight='on']:not([data-eco-night='on']) .atmosphere {
 }
 
 /* your unsent signal, resurfaced: gold among the colored buoys */
-.sea-buoy--yours { color: #ffd166; border: none; background: transparent; cursor: pointer; }
-.sea-buoy--yours .sea-buoy-light i { background: #ffd166; box-shadow: 0 0 10px rgba(255, 209, 102, 0.8); }
-.sea-buoy--yours .sea-subtitle { color: rgba(255, 224, 160, 0.85); }
+/* your cast lines carry your sigil color and a soft personal glow */
+.sea-buoy--yours { color: var(--yours-color, #ffd166); border: none; background: transparent; cursor: pointer; }
+.sea-buoy--yours .sea-buoy-light i {
+  background: var(--yours-color, #ffd166);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--yours-color, #ffd166) 80%, transparent);
+}
+.sea-buoy--yours .sea-subtitle {
+  color: color-mix(in srgb, var(--yours-color, #ffd166) 70%, #fff);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--yours-color, #ffd166) 40%, transparent);
+}
+/* a freshly cast line pulses briefly, then settles into the drift */
+.sea-buoy--yours.sea-buoy--casting .sea-buoy-light i { animation: seaYoursPulse 1.1s ease-in-out infinite; }
+@keyframes seaYoursPulse { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.25); } }
+
+/* cast sync pill — adapted from the "syncing 1 recording…" style */
+.sea-cast-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10px; letter-spacing: 0.04em;
+  padding: 3px 9px; border-radius: 999px;
+}
+.sea-cast-pill--syncing {
+  color: color-mix(in srgb, var(--yours-color, #ffd166) 75%, #fff);
+  background: color-mix(in srgb, var(--yours-color, #ffd166) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--yours-color, #ffd166) 35%, transparent);
+}
+.sea-cast-pill--syncing i {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--yours-color, #ffd166);
+  animation: seaPillBlink 0.9s ease-in-out infinite;
+}
+@keyframes seaPillBlink { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+.sea-cast-pill--done { color: color-mix(in srgb, var(--yours-color, #ffd166) 65%, #cfe0ff); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sea-buoy--yours.sea-buoy--casting .sea-buoy-light i,
+  .sea-cast-pill--syncing i { animation: none; }
+}
 
 /* cast-a-line sync status on your drifting buoys */
 .sea-cast-status {
