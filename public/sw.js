@@ -2,7 +2,9 @@
 // Navigation: network-first with cached shell fallback. Hashed assets:
 // cache-first (immutable). Cross-origin (fonts, supabase) untouched.
 
-const CACHE = 'ecosphere-cache-v1'
+// bump this on deploys that must reach already-installed clients — the new SW
+// activates, deletes the old cache, and claims open tabs/PWAs immediately.
+const CACHE = 'ecosphere-cache-v2'
 const SHELL = ['/', '/favicon.svg']
 
 self.addEventListener('install', (event) => {
