@@ -19,6 +19,7 @@ import DeepListen from './components/DeepListen'
 import ProfileHub from './components/ProfileHub'
 import NotificationBell from './components/NotificationBell'
 import FirstTour from './components/FirstTour'
+import AgeGate, { ageConfirmed } from './components/AgeGate'
 import HelpBot from './components/HelpBot'
 import PodPresence from './components/PodPresence'
 import SignalSearch from './components/SignalSearch'
@@ -3914,6 +3915,9 @@ export default function App() {
     document.title = `Ecosphere · ${SCREEN_TITLES[screen]}`
   }, [screen])
 
+  // 18+ gate: one-time, remembered on the device, shown before anything else
+  const [ageOk, setAgeOk] = useState(ageConfirmed)
+
   // first-visit tour: one pass through what each page is for
   const [tourOpen, setTourOpen] = useState(() => {
     try { return window.localStorage.getItem('ecosphere:tourDone') !== 'yes' } catch { return false }
@@ -3998,6 +4002,9 @@ export default function App() {
     setUser(null)
   }
 
+
+  // nothing loads — no audio, no screens — until 18+ is confirmed
+  if (!ageOk) return <AgeGate onConfirm={() => setAgeOk(true)} />
 
   const screenMap: Record<Screen, React.ReactNode> = {
     home: <HomeScreen onNavigate={navigate} />,

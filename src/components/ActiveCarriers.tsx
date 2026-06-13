@@ -128,9 +128,7 @@ export default function ActiveCarriers({ onViewMap }: { onViewMap?: () => void }
     setPulsedId(carrier.id)
     if (pulseResetRef.current !== null) window.clearTimeout(pulseResetRef.current)
     pulseResetRef.current = window.setTimeout(() => setPulsedId(null), 1400)
-    void apiReact({ signalId: carrier.signalId, reactionType: 'here' }).then(response => {
-      console.log(`[ecosphere] pulse sent to ${carrier.name}`, response)
-    })
+    void apiReact({ signalId: carrier.signalId, reactionType: 'here' })
   }
 
   return (

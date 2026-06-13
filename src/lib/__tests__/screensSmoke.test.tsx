@@ -54,6 +54,7 @@ describe('screen smoke: every route mounts without throwing', () => {
     cleanup()
     window.localStorage.clear()
     window.localStorage.setItem('ecosphere:tourDone', 'yes')
+    window.localStorage.setItem('ecosphere:ageConfirmed', 'yes')
     window.localStorage.setItem('signalIdentity', 'smoke_tester')
   })
 
@@ -74,4 +75,23 @@ describe('screen smoke: every route mounts without throwing', () => {
       }, { timeout: 4000 })
     })
   }
+
+  it('blocks entry behind the 18+ gate until confirmed', async () => {
+    window.localStorage.removeItem('ecosphere:ageConfirmed')
+    window.history.replaceState({}, '', '/')
+    const { container } = render(
+      <EcosystemProvider>
+        <GlobalAudioProvider>
+          <RecordingSessionProvider>
+            <App />
+          </RecordingSessionProvider>
+        </GlobalAudioProvider>
+      </EcosystemProvider>,
+    )
+    await waitFor(() => {
+      expect(container.textContent ?? '').toMatch(/18 or older/i)
+    }, { timeout: 4000 })
+    // the gated screen content must not be present yet
+    expect(container.textContent ?? '').not.toMatch(/daily signal|observatory/i)
+  })
 })

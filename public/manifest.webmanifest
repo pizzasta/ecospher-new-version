@@ -1,0 +1,20 @@
+{
+  "name": "Ecosphere · Signal Observatory",
+  "short_name": "Ecosphere",
+  "description": "Anonymous voice signals, replayed memories, emotional frequencies. The late-night network is listening.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#030712",
+  "theme_color": "#030712",
+  "categories": ["social", "music", "lifestyle"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ]
+}
