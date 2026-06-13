@@ -24,6 +24,46 @@ export function markProfileOnboarded(): void {
   try { window.localStorage.setItem(ONBOARD_KEY, 'yes') } catch { /* session only */ }
 }
 
+// Signals that a device already belongs to an established user — any real
+// customization or activity. A genuinely new signal has none of these. (Tour
+// completion and a claimed name are deliberately excluded: a new user does both
+// before ever reaching the hub.)
+const ACTIVITY_KEYS = [
+  'ecosphere:gradientSettings',
+  'ecosphere:avatar',
+  'ecosphere:tapeIntro',
+  'ecosphere:hubBoard',
+  'ecosphere:voicePrompts',
+  'ecosphere:preservedSignals',
+  'ecosphere:relicActivity',
+  'ecosphere:chainLayers',
+  'ecosphere:seaLines',
+  'ecosphere:driftFound',
+  'ecosphere:podPulses',
+]
+
+function hasPriorActivity(): boolean {
+  try {
+    for (const key of ACTIVITY_KEYS) {
+      const v = window.localStorage.getItem(key)
+      if (v && v !== 'null' && v !== '[]' && v !== '{}' && v !== '0' && v !== '') return true
+    }
+    return false
+  } catch { return false }
+}
+
+/**
+ * Auto-open the wizard only for a genuinely new signal — a device with no prior
+ * customization or activity. Established users (who predate the flag) are marked
+ * onboarded silently so it never nags them; they can still reopen it from the
+ * hub's tuning panel.
+ */
+export function shouldAutoOnboard(): boolean {
+  if (profileOnboarded()) return false
+  if (hasPriorActivity()) { markProfileOnboarded(); return false }
+  return true
+}
+
 type Step = 0 | 1 | 2 | 3
 
 export default function ProfileOnboarding({ onDone, accentColor = '#00d4ff' }: { onDone: () => void; accentColor?: string }) {
