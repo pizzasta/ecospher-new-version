@@ -1,13 +1,14 @@
 import { useMemo } from 'react'
 import type { CSSProperties } from 'react'
+import type { GradientStyle } from '../lib/frequencyGradient'
 import './ProfileScene.css'
 
 // 3D profile backgrounds — pure CSS perspective scenes tinted with the
-// owner's colors. Three designs: a synthwave floor grid, a depth starfield,
-// and a wormhole of receding rings. No WebGL, no libraries, reduced-motion
-// safe — they have to run on a tired phone at 3am.
+// owner's colors: a synthwave floor grid, a depth starfield, a wormhole of
+// receding rings, flowing aurora, rain on glass, and a rotating mesh. No WebGL,
+// no libraries, reduced-motion safe — they have to run on a tired phone at 3am.
 
-export type SceneDesign = 'grid' | 'stars' | 'tunnel'
+export type SceneDesign = Exclude<GradientStyle, 'gradient' | 'wave'>
 
 interface ProfileSceneProps {
   design: SceneDesign
@@ -63,6 +64,55 @@ export default function ProfileScene({ design, colors }: ProfileSceneProps) {
           />
         ))}
         <div className="ps-tunnel-core" />
+      </div>
+    )
+  }
+
+  if (design === 'aurora') {
+    return (
+      <div className="ph-scene ph-scene--aurora" style={vars} aria-hidden="true">
+        <span className="ps-aurora ps-aurora--a" />
+        <span className="ps-aurora ps-aurora--b" />
+        <span className="ps-aurora ps-aurora--c" />
+        <div className="ps-aurora-stars">
+          {stars.slice(0, 30).map(star => (
+            <i key={star.id} style={{ left: `${star.x}%`, top: `${star.y * 0.5}%`, animationDelay: `${star.delay}s` }} />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (design === 'rain') {
+    const drops = Array.from({ length: 44 }, (_, i) => ({
+      id: i,
+      left: (i * 37 + 7) % 100,
+      dur: 0.7 + ((i * 13) % 9) * 0.12,
+      delay: -((i * 17) % 30) * 0.1,
+      len: 14 + ((i * 7) % 5) * 6,
+    }))
+    return (
+      <div className="ph-scene ph-scene--rain" style={vars} aria-hidden="true">
+        <div className="ps-rain-glass" />
+        {drops.map(d => (
+          <span
+            key={d.id}
+            className="ps-raindrop"
+            style={{ left: `${d.left}%`, height: `${d.len}px`, animationDuration: `${d.dur}s`, animationDelay: `${d.delay}s` }}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  if (design === 'mesh') {
+    return (
+      <div className="ph-scene ph-scene--mesh" style={vars} aria-hidden="true">
+        <div className="ps-mesh-plane">
+          {Array.from({ length: 64 }, (_, i) => (
+            <i key={i} style={{ animationDelay: `${-((i * 11) % 40) * 0.1}s` }} />
+          ))}
+        </div>
       </div>
     )
   }

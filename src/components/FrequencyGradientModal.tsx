@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
-import { GRADIENT_SPEEDS, GRADIENT_STYLES, gradientColorsForHz, resolveGradientColors, saveGradientSettings } from '../lib/frequencyGradient'
+import { GRADIENT_SPEEDS, GRADIENT_STYLES, PROFILE_PALETTES, gradientColorsForHz, resolveGradientColors, saveGradientSettings } from '../lib/frequencyGradient'
 import type { GradientSettings } from '../lib/frequencyGradient'
 import './hz.css'
 
@@ -60,6 +60,23 @@ export default function FrequencyGradientModal({ settings, hz, onChange, onClose
               >
                 {option.label}
               </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="hz-field">
+          <span>palettes</span>
+          <div className="fg-palettes" role="group" aria-label="Color palettes">
+            {PROFILE_PALETTES.map(p => (
+              <button
+                key={p.id}
+                type="button"
+                className={`fg-palette${draft.locked && draft.colorStart === p.start && draft.colorEnd === p.end ? ' active' : ''}`}
+                title={p.label}
+                style={{ background: `linear-gradient(135deg, ${p.start}, ${p.end})` } as CSSProperties}
+                aria-label={p.label}
+                onClick={() => patch({ locked: true, colorStart: p.start, colorEnd: p.end })}
+              />
             ))}
           </div>
         </div>

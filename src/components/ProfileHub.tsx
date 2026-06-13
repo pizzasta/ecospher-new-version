@@ -18,6 +18,7 @@ import ProfileScene from './ProfileScene'
 import HzBadge from './HzBadge'
 import HzSettingsModal from './HzSettingsModal'
 import FrequencyGradientModal from './FrequencyGradientModal'
+import ProfileOnboarding, { profileOnboarded } from './ProfileOnboarding'
 import { loadGradientSettings, readGradientSettings, resolveGradientColors } from '../lib/frequencyGradient'
 import type { GradientSettings } from '../lib/frequencyGradient'
 import { useFrequencyGradient } from '../hooks/useFrequencyGradient'
@@ -89,6 +90,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   const [hzSettingsOpen, setHzSettingsOpen] = useState(false)
   const [gradient, setGradient] = useState<GradientSettings>(() => readGradientSettings())
   const [gradientOpen, setGradientOpen] = useState(false)
+  const [onboarding, setOnboarding] = useState(() => !profileOnboarded())
   const gradientAngle = useFrequencyGradient(gradient)
 
   useEffect(() => {
@@ -634,6 +636,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
             <span className="ph-card-kicker">TUNING</span>
           </div>
           <div className="ph-settings-links">
+            <button type="button" onClick={() => setOnboarding(true)}>✧ set up your profile — guided</button>
             <button type="button" onClick={() => setHzSettingsOpen(true)}>✦ shift signal colors</button>
             <button type="button" onClick={() => setGradientOpen(true)}>◰ tune your atmosphere</button>
             <button type="button" onClick={() => setSigilOpen(open => !open)}>◈ choose your sigil — no photos here, ever</button>
@@ -691,6 +694,16 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   }
   return (
     <section className="profile-hub" aria-label="Profile hub">
+      {onboarding && (
+        <ProfileOnboarding
+          accentColor={hzProfile.color}
+          onDone={() => {
+            setGradient(readGradientSettings())
+            setAvatar(readAvatar())
+            setOnboarding(false)
+          }}
+        />
+      )}
       {privateProfile && (
         <div className="ph-private-chip">
           ⬡ hidden from the band — only you can see this page right now
@@ -706,7 +719,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
         {gradient.style === 'wave' && (
           <ColorWave variant="local" colors={[gradientStart, gradientEnd, hzProfile.color]} />
         )}
-        {(gradient.style === 'grid' || gradient.style === 'stars' || gradient.style === 'tunnel') && (
+        {gradient.style !== 'gradient' && gradient.style !== 'wave' && (
           <ProfileScene design={gradient.style} colors={[gradientStart, gradientEnd, hzProfile.color]} />
         )}
       </div>
