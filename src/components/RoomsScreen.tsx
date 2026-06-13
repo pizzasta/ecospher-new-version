@@ -1206,9 +1206,15 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
 }
 
 // ─── Main screen ───────────────────────────────────────────────
+function roomHash(id: string): number {
+  let h = 7
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 0x7fffffff
+  return h
+}
+
 export default function RoomsScreen() {
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [carrierOpen, setCarrierOpen] = useState(false)
+  const [carrierRoom, setCarrierRoom] = useState<{ label: string; hz: string; seed: number } | null>(null)
   const [reopened, setReopened] = useState<DormantRoom | null>(null)
   const [pulling, setPulling] = useState(true)
   const [leaving, setLeaving] = useState(false)
@@ -1258,10 +1264,12 @@ export default function RoomsScreen() {
     return engineRef.current
   }
 
+  // entering a room from the list opens the structured carrier view:
+  // participants, the speaker queue, mute (self / others / room-wide), the live
+  // waveform, and "drift away" — all seeded from the room.
   const handleEnter = (room: RoomDef) => {
-    setLeaving(false)
-    setActiveId(room.id)
-    // ambient stays OFF by default — user must toggle it on
+    const seed = roomHash(room.id)
+    setCarrierRoom({ label: room.name, hz: (80 + (seed % 1200) / 10).toFixed(1), seed })
   }
 
   const handleExit = () => {
@@ -1323,10 +1331,15 @@ export default function RoomsScreen() {
     )
   }
 
-  if (carrierOpen) {
+  if (carrierRoom) {
     return (
       <div className="rooms-eco rooms-eco--inroom">
-        <CarrierRoom frequency={{ label: 'quiet hours', hz: '98.1' }} onLeave={() => setCarrierOpen(false)} />
+        <CarrierRoom
+          key={carrierRoom.label}
+          frequency={{ label: carrierRoom.label, hz: carrierRoom.hz }}
+          seed={carrierRoom.seed}
+          onLeave={() => setCarrierRoom(null)}
+        />
       </div>
     )
   }
@@ -1368,7 +1381,7 @@ export default function RoomsScreen() {
         <div className="rooms-section-label">ACTIVE FREQUENCIES</div>
         <GroupConversations />
 
-        <button type="button" className="carrier-entry-card" onClick={() => setCarrierOpen(true)}>
+        <button type="button" className="carrier-entry-card" onClick={() => setCarrierRoom({ label: 'quiet hours', hz: '98.1', seed: 7 })}>
           <span className="carrier-entry-glyph" aria-hidden="true">∿</span>
           <span className="carrier-entry-body">
             <strong>98.1 · quiet hours</strong>
