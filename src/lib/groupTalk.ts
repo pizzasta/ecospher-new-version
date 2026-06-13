@@ -7,6 +7,7 @@
 
 import { speakSignal, speechSupported, cancelSpeech } from './speech'
 import { playChainBlend, stopChainPlayback } from './sampleAudio'
+import { moderatePublicSignalText } from './signalModeration'
 
 export interface GroupTurn {
   /** speaker index 0..3 — drives which voice reads the line */
@@ -139,7 +140,134 @@ export const GROUP_TOPICS: GroupTopic[] = [
       { who: 0, line: 'okay. that actually helped. thank you' },
     ],
   },
+  {
+    id: 'burnt-out',
+    glyph: '⚙',
+    title: 'burnt out',
+    teaser: 'running on empty, said plainly',
+    turns: [
+      { who: 0, line: 'i’m not sad i’m just so tired of everything' },
+      { who: 1, line: 'that’s burnout. it dresses up as laziness' },
+      { who: 2, line: 'i did nothing today and still felt behind' },
+      { who: 0, line: 'yes. exactly that. behind on what though' },
+      { who: 3, line: 'rest isn’t a reward you earn. you’re allowed it now' },
+      { who: 1, line: 'screenshotting that for monday me' },
+    ],
+  },
+  {
+    id: 'cancelled-plans',
+    glyph: '◌',
+    title: 'social battery dead',
+    teaser: 'the relief of staying in',
+    turns: [
+      { who: 0, line: 'i cancelled and immediately felt better. is that bad' },
+      { who: 1, line: 'no. some plans you make just to feel normal' },
+      { who: 2, line: 'i love them i just can’t be perceived tonight' },
+      { who: 3, line: 'being home in soft clothes is a personality. mine' },
+      { who: 0, line: 'okay good. we’re all just recharging in here' },
+    ],
+  },
+  {
+    id: 'the-drive',
+    glyph: '⇆',
+    title: 'the late drive',
+    teaser: 'nowhere to be, just going',
+    turns: [
+      { who: 0, line: 'sometimes i just drive with no destination at night' },
+      { who: 1, line: 'empty roads and one good song. unbeatable' },
+      { who: 2, line: 'i do my best thinking at like 60 on the highway' },
+      { who: 0, line: 'something about moving makes the thoughts quieter' },
+      { who: 3, line: 'just don’t check how much gas this is costing us' },
+      { who: 1, line: 'we don’t talk about that in the drive room' },
+    ],
+  },
+  {
+    id: 'comparing',
+    glyph: '◬',
+    title: 'comparing again',
+    teaser: 'the scroll that ruins the night',
+    turns: [
+      { who: 0, line: 'why does everyone seem further ahead than me' },
+      { who: 1, line: 'because you’re seeing their highlights, not their 3am' },
+      { who: 2, line: 'i had to mute like nine people to breathe' },
+      { who: 0, line: 'i keep forgetting the timeline is fake' },
+      { who: 3, line: 'put the phone face down. you’re doing fine' },
+      { who: 1, line: 'face down phone club, in session' },
+    ],
+  },
+  {
+    id: 'one-good-thing',
+    glyph: '✿',
+    title: 'one good thing',
+    teaser: 'naming the one good thing today',
+    turns: [
+      { who: 0, line: 'the coffee was actually perfect this morning' },
+      { who: 1, line: 'a stranger held the door and i almost cried' },
+      { who: 2, line: 'my plant grew a new leaf. small but mine' },
+      { who: 3, line: 'i laughed at something dumb and meant it' },
+      { who: 0, line: 'okay we’re all going to be okay actually' },
+    ],
+  },
 ]
+
+// ─── custom groups: anyone can start one ──────────────────────────────────────
+
+const CUSTOM_KEY = 'ecosphere:customGroups'
+
+function wc(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length
+}
+
+export function isCustomTopic(id: string): boolean {
+  return id.startsWith('custom_')
+}
+
+export function loadCustomTopics(): GroupTopic[] {
+  try {
+    const raw = JSON.parse(window.localStorage.getItem(CUSTOM_KEY) ?? '[]') as GroupTopic[]
+    return Array.isArray(raw)
+      ? raw.filter(t => t && typeof t.id === 'string' && Array.isArray(t.turns) && t.turns.length > 0)
+      : []
+  } catch { return [] }
+}
+
+function persistCustom(list: GroupTopic[]): void {
+  try { window.localStorage.setItem(CUSTOM_KEY, JSON.stringify(list.slice(0, 8))) } catch { /* session only */ }
+}
+
+/** Start your own group from a title and a first line. Screened before it opens. */
+export function createCustomTopic(title: string, firstLine: string): { topic: GroupTopic } | { error: string } {
+  const t = title.trim().replace(/\s+/g, ' ').slice(0, 40)
+  const line = firstLine.trim().replace(/\s+/g, ' ').slice(0, 90)
+  if (t.length < 3) return { error: 'give it a name first' }
+  if (wc(line) < 3) return { error: 'add a first line to get it going' }
+  if (moderatePublicSignalText(t).status === 'flagged' || moderatePublicSignalText(line).status === 'flagged') {
+    return { error: "that can't open a group here. try it softer." }
+  }
+  const topic: GroupTopic = {
+    id: `custom_${Date.now().toString(36)}`,
+    glyph: '✦',
+    title: t,
+    teaser: 'a group someone started',
+    turns: [{ who: 0, line }],
+  }
+  persistCustom([topic, ...loadCustomTopics()])
+  return { topic }
+}
+
+/** Add a line to a custom group; speakers cycle so it sounds like more than one voice. */
+export function addLineToCustom(id: string, line: string): GroupTopic | null {
+  const clean = line.trim().replace(/\s+/g, ' ').slice(0, 90)
+  if (wc(clean) < 3 || moderatePublicSignalText(clean).status === 'flagged') return null
+  const list = loadCustomTopics()
+  const idx = list.findIndex(t => t.id === id)
+  if (idx < 0) return null
+  const topic = list[idx]
+  const updated: GroupTopic = { ...topic, turns: [...topic.turns, { who: topic.turns.length % 4, line: clean }].slice(0, 24) }
+  list[idx] = updated
+  persistCustom(list)
+  return updated
+}
 
 function hash(text: string): number {
   let h = 9

@@ -1724,3 +1724,154 @@
   .group-talk-leave { transition: none; }
   .group-line { animation: none; opacity: 1; }
 }
+
+/* ─── Group conversations: custom groups + real voice drops ─── */
+.group-talk-card.mine { border-color: rgba(255, 209, 102, 0.3); }
+.group-talk-card.mine .group-talk-glyph { background: rgba(255, 209, 102, 0.12); color: #ffd98a; }
+
+.group-talk-card--new {
+  border-style: dashed;
+  border-color: rgba(150, 170, 210, 0.3);
+  background: rgba(14, 18, 32, 0.45);
+}
+.group-talk-card--new .group-talk-glyph { background: rgba(150, 200, 255, 0.08); color: #9fc6ff; font-size: 22px; }
+
+.group-talk-form {
+  margin-top: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  background: rgba(10, 16, 30, 0.6);
+  border: 1px solid rgba(130, 160, 220, 0.16);
+}
+
+.group-talk-form input,
+.group-talk-addline input,
+.group-talk-drop-form input {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(130, 160, 220, 0.18);
+  background: rgba(2, 9, 20, 0.55);
+  color: #e8eefb;
+  font-size: 12.5px;
+  font-family: inherit;
+  outline: none;
+}
+.group-talk-form input:focus,
+.group-talk-addline input:focus,
+.group-talk-drop-form input:focus { border-color: rgba(150, 200, 255, 0.45); }
+
+.group-talk-form-row { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.group-talk-error { font-size: 10.5px; color: rgba(255, 150, 170, 0.85); margin-right: auto; }
+
+.group-talk-form-go,
+.group-talk-addline button,
+.group-talk-drop-go {
+  padding: 8px 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 212, 255, 0.4);
+  background: rgba(0, 212, 255, 0.12);
+  color: #aef0ff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.group-talk-form-go:hover,
+.group-talk-addline button:hover,
+.group-talk-drop-go:hover:not(:disabled) { background: rgba(0, 212, 255, 0.22); }
+.group-talk-drop-go:disabled { opacity: 0.5; cursor: default; }
+
+.group-talk-addline {
+  margin-top: 11px;
+  display: flex;
+  gap: 8px;
+}
+.group-talk-addline input { flex: 1; }
+
+/* real voices panel */
+.group-talk-real {
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(130, 160, 220, 0.14);
+}
+
+.group-talk-real-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 9px;
+}
+.group-talk-real-head span { font-size: 11px; letter-spacing: 0.08em; color: rgba(170, 220, 255, 0.8); font-weight: 700; }
+.group-talk-real-head small { font-size: 10px; color: rgba(180, 195, 220, 0.5); }
+
+.group-talk-voice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+}
+.group-talk-voice-play {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 212, 255, 0.45);
+  background: rgba(0, 212, 255, 0.1);
+  color: #aef0ff;
+  font-size: 11px;
+  cursor: pointer;
+}
+.group-talk-voice-play:hover { background: rgba(0, 212, 255, 0.22); }
+.group-talk-voice-line { font-size: 12.5px; color: rgba(228, 236, 248, 0.9); }
+
+.group-talk-drop { margin-top: 10px; }
+
+.group-talk-rec {
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 45, 120, 0.4);
+  background: rgba(255, 45, 120, 0.1);
+  color: #ff9dc0;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.group-talk-rec:hover { background: rgba(255, 45, 120, 0.2); }
+.group-talk-rec.recording { animation: groupRecPulse 1.1s ease-in-out infinite; }
+
+@keyframes groupRecPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 45, 120, 0.4); }
+  50% { box-shadow: 0 0 0 7px rgba(255, 45, 120, 0); }
+}
+
+.group-talk-drop-form { display: flex; flex-direction: column; gap: 9px; }
+.group-talk-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: rgba(200, 212, 235, 0.7);
+  cursor: pointer;
+}
+.group-talk-consent input { margin-top: 1px; flex-shrink: 0; accent-color: #00d4ff; }
+
+.group-talk-drop-actions { display: flex; gap: 9px; justify-content: flex-end; }
+.group-talk-drop-cancel {
+  padding: 8px 13px;
+  border-radius: 10px;
+  border: 1px solid rgba(150, 170, 210, 0.22);
+  background: transparent;
+  color: rgba(200, 210, 230, 0.6);
+  font-size: 12px;
+  cursor: pointer;
+}
+.group-talk-drop-cancel:hover { color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .group-talk-rec.recording { animation: none; }
+}
