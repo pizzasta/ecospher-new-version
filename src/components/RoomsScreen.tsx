@@ -9,6 +9,7 @@ import { futureSignals } from '../lib/futureSignals'
 import { usePredictiveText } from '../hooks/usePredictiveText'
 import { moderatePublicSignalText } from '../lib/signalModeration'
 import GroupConversations from './GroupConversations'
+import CarrierRoom from './CarrierRoom'
 import '../rooms.css'
 
 // ═══════════════════════════════════════════════════════════════
@@ -1204,6 +1205,7 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
 // ─── Main screen ───────────────────────────────────────────────
 export default function RoomsScreen() {
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [carrierOpen, setCarrierOpen] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [ambientOn, setAmbientOn] = useState(false)
   const [audioBlocked, setAudioBlocked] = useState(false)
@@ -1298,6 +1300,14 @@ export default function RoomsScreen() {
     return <TemporalRoomView minutesRemaining={temporal.minutesRemaining} onExit={() => setTemporalOpen(false)} />
   }
 
+  if (carrierOpen) {
+    return (
+      <div className="rooms-eco rooms-eco--inroom">
+        <CarrierRoom frequency={{ label: 'quiet hours', hz: '98.1' }} onLeave={() => setCarrierOpen(false)} />
+      </div>
+    )
+  }
+
   if (activeRoom) {
     return (
       <div className="rooms-eco rooms-eco--inroom">
@@ -1326,6 +1336,15 @@ export default function RoomsScreen() {
         </header>
 
         <GroupConversations />
+
+        <button type="button" className="carrier-entry-card" onClick={() => setCarrierOpen(true)}>
+          <span className="carrier-entry-glyph" aria-hidden="true">∿</span>
+          <span className="carrier-entry-body">
+            <strong>98.1 · quiet hours</strong>
+            <em>one carrier at a time · take a turn or just drift</em>
+          </span>
+          <span className="carrier-entry-live">◉ open</span>
+        </button>
 
         {temporal.phase !== 'closed' && (
           <button
