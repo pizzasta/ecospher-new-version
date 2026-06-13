@@ -6,6 +6,7 @@ import { deleteLocalRecording, deleteReactionAudio, listLocalRecordings, listRea
 import { downloadBlob, exportFilename, renderStoryImage } from './lib/storyExport'
 import { playChainBlend, playSample, playSampleBuffer, stopChainPlayback, stopPreviewBuffer } from './lib/sampleAudio'
 import { speakSignal, speechSupported, cancelSpeech } from './lib/speech'
+import { castRateCheck, recordCast } from './lib/castLine'
 import { lastExaminedBy, listenerCount, livedInLines } from './lib/livedIn'
 import { subscribeToEcosphereActivity } from './lib/backendBridge'
 import type { StoredReaction } from './lib/localAudioStore'
@@ -2446,6 +2447,8 @@ type SeaBuoy = {
   subtitles: string[]
   /** a line you cast into the sea yourself */
   mine?: boolean
+  /** optimistic sync status for a freshly cast line */
+  status?: 'casting' | 'drifting' | 'failed'
 }
 
 // every signal out here is a kind of human moment, not a frequency
@@ -2549,6 +2552,7 @@ function makeTypedBuoy(id: number, text: string): SeaBuoy {
     tone: 'insomnia',
     subtitles: [text],
     mine: true,
+    status: 'drifting',
   }
 }
 
@@ -2691,19 +2695,31 @@ function FrequenciesScreen() {
     say('your voice sank into the water — someone may drift through it')
   }
 
-  // cast a typed line into the sea: short, screened, then drifting like the rest
+  // cast a typed line into the sea: short, screened, rate-limited gently, then
+  // shown immediately (optimistic) while it settles in the background
   const castLine = () => {
     const text = composer.trim().replace(/\s+/g, ' ')
     const words = wordCount(text)
     if (words < 5 || words > 7) { say('five to seven words — like a line you\'d actually say'); return }
+    // AI audit before anything reaches the sea — nothing inappropriate drifts
     if (moderatePublicSignalText(text).status === 'flagged') { say('that one can\'t drift here. try it softer.'); return }
-    const buoy = makeTypedBuoy(900 + Date.now() % 100000, text)
+    const gate = castRateCheck()
+    if (!gate.allowed) { say(gate.reason ?? 'give it a moment'); return }
+    recordCast()
+
+    const id = 900 + Date.now() % 100000
+    const buoy: SeaBuoy = { ...makeTypedBuoy(id, text), status: 'casting' }
     setBuoys(prev => [buoy, ...prev].slice(0, 34))
-    storeSeaLine(text)
-    reactToSignal('frequency-sea', `cast a line into the sea: "${text}"`)
-    leaveTrace(`a line you cast is drifting in the sea: "${text}"`, 'frequencies')
     setComposer('')
-    say('your line is drifting now — someone may pass through it')
+    say('casting your line into the sea…')
+
+    // optimistic: it drifts right away, then settles to "drifting"
+    window.setTimeout(() => {
+      setBuoys(prev => prev.map(b => (b.id === id ? { ...b, status: 'drifting' } : b)))
+      storeSeaLine(text)
+      reactToSignal('frequency-sea', `cast a line into the sea: "${text}"`)
+      leaveTrace(`a line you cast is drifting in the sea: "${text}"`, 'frequencies')
+    }, 600)
   }
 
   const seaPresence = useLivePresence()
@@ -2999,6 +3015,10 @@ function FrequenciesScreen() {
               <span className="sea-subtitle" aria-hidden="true" key={(tideIdx + b.id) % b.subtitles.length}>
                 {b.subtitles[(tideIdx + b.id) % b.subtitles.length]}
               </span>
+              {b.mine && b.status === 'casting' && <span className="sea-cast-status sea-cast-status--casting">syncing…</span>}
+              {b.mine && b.status === 'failed' && (
+                <button type="button" className="sea-cast-status sea-cast-status--failed" onClick={() => setBuoys(prev => prev.map(x => (x.id === b.id ? { ...x, status: 'casting' } : x)))}>didn't catch · retry</button>
+              )}
               {near && (
                 <div className="sea-fragment">
                   <p>"{b.fragment}"</p>

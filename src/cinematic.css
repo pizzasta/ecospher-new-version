@@ -3090,3 +3090,32 @@ body[data-eco-deepnight='on']:not([data-eco-night='on']) .atmosphere {
 .sea-buoy--yours { color: #ffd166; border: none; background: transparent; cursor: pointer; }
 .sea-buoy--yours .sea-buoy-light i { background: #ffd166; box-shadow: 0 0 10px rgba(255, 209, 102, 0.8); }
 .sea-buoy--yours .sea-subtitle { color: rgba(255, 224, 160, 0.85); }
+
+/* cast-a-line sync status on your drifting buoys */
+.sea-cast-status {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  white-space: nowrap;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  padding: 2px 7px;
+  border-radius: 8px;
+  pointer-events: none;
+}
+.sea-cast-status--casting {
+  color: #ffe0a0;
+  background: rgba(255, 209, 102, 0.12);
+  animation: seaCasting 1s ease-in-out infinite;
+}
+@keyframes seaCasting { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+.sea-cast-status--failed {
+  color: #ff9dc0;
+  background: rgba(255, 45, 120, 0.14);
+  border: 1px solid rgba(255, 45, 120, 0.4);
+  pointer-events: auto;
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) { .sea-cast-status--casting { animation: none; opacity: 0.8; } }
