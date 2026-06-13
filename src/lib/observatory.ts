@@ -106,6 +106,28 @@ function minutesToPeak(now: number): number {
   return Math.round(diff * 60)
 }
 
+/** The night's peak band pressure (the loudest the band gets tonight). */
+export function peakPressure(now = Date.now()): number {
+  const peak = Math.max(...nightlyWave(now).map(p => p.value))
+  return Math.round(40 + peak * 55)
+}
+
+// ─── almanac: last night vs tonight ───────────────────────────────────────────
+
+export interface AlmanacSide { mood: string; weather: string; pressure: number }
+export interface Almanac { tonight: AlmanacSide; lastNight: AlmanacSide; line: string }
+
+/** A gentle comparison of the band, yesterday vs today — both deterministic. */
+export function bandAlmanac(now = Date.now()): Almanac {
+  const yest = now - 86400000
+  const tonight: AlmanacSide = { mood: collectiveMood(now).label, weather: signalWeather(now).label, pressure: peakPressure(now) }
+  const lastNight: AlmanacSide = { mood: collectiveMood(yest).label, weather: signalWeather(yest).label, pressure: peakPressure(yest) }
+  const dp = tonight.pressure - lastNight.pressure
+  const fullness = dp > 3 ? 'busier than last night' : dp < -3 ? 'quieter than last night' : 'about as full as last night'
+  const moodLine = tonight.mood === lastNight.mood ? `still ${tonight.mood}` : `${lastNight.mood} → ${tonight.mood}`
+  return { tonight, lastNight, line: `${fullness} · ${moodLine}` }
+}
+
 /** Five-to-seven readings that make the band feel alive, anonymity intact. */
 export function bandIndicators(now = Date.now(), opts: { carriers?: number; stormy?: boolean } = {}): BandIndicator[] {
   const a = bandNow(now)

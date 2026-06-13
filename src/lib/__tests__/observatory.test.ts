@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   bandActivityAt, nightlyWave, bandNow, bandPhase, signalWeather, collectiveMood,
-  bandIndicators, MOOD_SPECTRUM,
+  bandIndicators, bandAlmanac, peakPressure, MOOD_SPECTRUM,
 } from '../observatory'
 
 // a fixed 3am moment for deterministic checks
@@ -45,5 +45,13 @@ describe('observatory — the nocturne band', () => {
     expect(inds).toHaveLength(7)
     expect(inds.find(i => i.id === 'carriers')?.value).toBe('42')
     expect(bandNow(at(2))).toBeGreaterThan(0)
+  })
+
+  it('almanac compares last night and tonight on the same axes', () => {
+    const a = bandAlmanac(at(2))
+    expect(MOOD_SPECTRUM).toContain(a.tonight.mood as typeof MOOD_SPECTRUM[number])
+    expect(MOOD_SPECTRUM).toContain(a.lastNight.mood as typeof MOOD_SPECTRUM[number])
+    expect(a.tonight.pressure).toBe(peakPressure(at(2)))
+    expect(a.line.length).toBeGreaterThan(0)
   })
 })

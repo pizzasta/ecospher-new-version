@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import { useLivePresence } from '../hooks/useLivePresence'
 import type { LiveEvent } from '../lib/liveBus'
 import {
-  nightlyWave, bandNow, bandPhase, signalWeather, collectiveMood, bandIndicators, MOOD_SPECTRUM,
+  nightlyWave, bandNow, bandPhase, signalWeather, collectiveMood, bandIndicators, bandAlmanac, MOOD_SPECTRUM,
 } from '../lib/observatory'
 import './NocturneObservatory.css'
 
@@ -25,11 +25,12 @@ function wavePath(values: number[], w: number, h: number): string {
   return pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ')
 }
 
-export default function NocturneObservatory() {
+export default function NocturneObservatory({ onTune }: { onTune?: () => void }) {
   const presence = useLivePresence()
   const carriers = presence.total
   const [now, setNow] = useState(() => Date.now())
   const [stormy, setStormy] = useState(false)
+  const [almanacOpen, setAlmanacOpen] = useState(false)
 
   // re-read the band every 30s so the wave + readings drift over the night
   useEffect(() => {
@@ -56,6 +57,7 @@ export default function NocturneObservatory() {
   const weather = signalWeather(now, stormy)
   const mood = collectiveMood(now)
   const indicators = bandIndicators(now, { carriers, stormy })
+  const almanac = useMemo(() => bandAlmanac(now), [now])
   const nowHour = new Date(now).getHours() + new Date(now).getMinutes() / 60
 
   const W = 300, H = 64
@@ -70,7 +72,25 @@ export default function NocturneObservatory() {
         <span className="nocturne-obs-phase">{PHASE_LINE[phase]}</span>
       </div>
 
-      {/* nightly activity wave — the band breathing dusk → dawn */}
+      {/* nightly activity wave — the band breathing dusk → dawn; tap to drop into what's loudest */}
+      {onTune ? (
+        <button type="button" className="nocturne-wave-shell nocturne-wave-shell--tappable" onClick={onTune} aria-label="drop into what's loudest on the band right now">
+          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="nocturne-wave" aria-hidden="true">
+            <defs>
+              <linearGradient id="nocturneFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgba(255,45,120,0.28)" />
+                <stop offset="100%" stopColor="rgba(0,212,255,0.02)" />
+              </linearGradient>
+            </defs>
+            <path d={`${path} L${W} ${H} L0 ${H} Z`} fill="url(#nocturneFill)" />
+            <path d={path} fill="none" stroke="rgba(180,210,255,0.55)" strokeWidth="1.4" />
+            <line x1={nowX} y1="0" x2={nowX} y2={H} stroke="rgba(255,45,120,0.4)" strokeWidth="1" strokeDasharray="2 3" />
+            <circle cx={nowX} cy={nowY} r="3.2" fill="#ff6aa0" className="nocturne-now-dot" />
+          </svg>
+          <div className="nocturne-wave-axis" aria-hidden="true"><span>dusk</span><span>3am</span><span>dawn</span></div>
+          <span className="nocturne-wave-hint">tap the band → drop into what's loudest</span>
+        </button>
+      ) : (
       <div className="nocturne-wave-shell">
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="nocturne-wave" aria-hidden="true">
           <defs>
@@ -86,6 +106,7 @@ export default function NocturneObservatory() {
         </svg>
         <div className="nocturne-wave-axis" aria-hidden="true"><span>dusk</span><span>3am</span><span>dawn</span></div>
       </div>
+      )}
 
       {/* weather + collective mood */}
       <div className="nocturne-readout">
@@ -117,6 +138,33 @@ export default function NocturneObservatory() {
           </div>
         ))}
       </div>
+
+      {/* almanac: how tonight compares to last night */}
+      <button
+        type="button"
+        className="nocturne-almanac-toggle"
+        onClick={() => setAlmanacOpen(o => !o)}
+        aria-expanded={almanacOpen}
+      >
+        {almanacOpen ? '▴ hide last night' : '▾ last night vs tonight'}
+      </button>
+      {almanacOpen && (
+        <div className="nocturne-almanac">
+          <p className="nocturne-almanac-line">{almanac.line}</p>
+          <div className="nocturne-almanac-grid">
+            <div className="nocturne-almanac-side">
+              <span>last night</span>
+              <strong>{almanac.lastNight.weather}</strong>
+              <em>{almanac.lastNight.mood} · {almanac.lastNight.pressure}% peak</em>
+            </div>
+            <div className="nocturne-almanac-side nocturne-almanac-side--now">
+              <span>tonight</span>
+              <strong>{almanac.tonight.weather}</strong>
+              <em>{almanac.tonight.mood} · {almanac.tonight.pressure}% peak</em>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
