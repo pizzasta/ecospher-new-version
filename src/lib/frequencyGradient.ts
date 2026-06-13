@@ -5,7 +5,7 @@ import { getOptionalSupabaseClient } from './supabase'
 import { ensureBackendSession } from './session'
 import { isSupabaseConfigured } from './supabase-env'
 
-export type GradientStyle = 'gradient' | 'wave' | 'grid' | 'stars' | 'tunnel'
+export type GradientStyle = 'gradient' | 'wave' | 'grid' | 'stars' | 'tunnel' | 'aurora' | 'rain' | 'mesh'
 
 /** Every background design the hub offers, in display order. */
 export const GRADIENT_STYLES: Array<{ value: GradientStyle; label: string }> = [
@@ -14,6 +14,24 @@ export const GRADIENT_STYLES: Array<{ value: GradientStyle; label: string }> = [
   { value: 'grid', label: '3d grid' },
   { value: 'stars', label: 'starfield' },
   { value: 'tunnel', label: 'wormhole' },
+  { value: 'aurora', label: 'aurora' },
+  { value: 'rain', label: 'rain on glass' },
+  { value: 'mesh', label: 'mesh' },
+]
+
+/** Styles that render as a 3D ProfileScene (everything but the flat gradient/wave). */
+export const SCENE_STYLES: GradientStyle[] = ['grid', 'stars', 'tunnel', 'aurora', 'rain', 'mesh']
+
+/** One-tap color presets — pick a mood instead of two hex pickers. */
+export const PROFILE_PALETTES: Array<{ id: string; label: string; start: string; end: string }> = [
+  { id: 'midnight', label: 'midnight', start: '#ff2d78', end: '#00d4ff' },
+  { id: 'violet', label: 'violet hour', start: '#9b5de9', end: '#00d4ff' },
+  { id: 'ember', label: 'ember', start: '#ff6b35', end: '#ff2d78' },
+  { id: 'frost', label: 'frost', start: '#00d4ff', end: '#7ee8fa' },
+  { id: 'moss', label: 'moss', start: '#5fe0a0', end: '#00d4ff' },
+  { id: 'dusk', label: 'dusk', start: '#9b5de9', end: '#ff2d78' },
+  { id: 'rose', label: 'rose gold', start: '#ff2d78', end: '#ffd166' },
+  { id: 'slate', label: 'slate', start: '#2b3a55', end: '#c9d6ff' },
 ]
 
 export type GradientSettings = {

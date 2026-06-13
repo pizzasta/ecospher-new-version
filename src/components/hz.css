@@ -253,3 +253,19 @@
   background: rgba(0, 212, 255, 0.1);
   color: #67e8f9;
 }
+
+/* gradient modal: one-tap color palettes */
+.fg-palettes { display: flex; flex-wrap: wrap; gap: 7px; }
+.fg-palette {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+.fg-palette:hover { transform: translateY(-1px); }
+.fg-palette.active { box-shadow: 0 0 0 2px #00d4ff; }
+
+@media (prefers-reduced-motion: reduce) { .fg-palette { transition: none; } }
