@@ -1904,3 +1904,45 @@
 .carrier-entry-live { font-size: 10px; color: #8af0c0; font-weight: 700; flex-shrink: 0; }
 
 @media (prefers-reduced-motion: reduce) { .carrier-entry-card { transition: none; } }
+
+/* rooms: pull-on-mount loading + section labels + empty state */
+.rooms-pull {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 60px 20px;
+  color: rgba(190, 205, 230, 0.6);
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+}
+.rooms-pull-wave { display: flex; align-items: flex-end; gap: 4px; height: 30px; }
+.rooms-pull-wave span {
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #ff2d78, #00d4ff);
+  animation: roomsPull 1s ease-in-out infinite;
+}
+.rooms-pull-wave span:nth-child(1) { height: 40%; animation-delay: 0s; }
+.rooms-pull-wave span:nth-child(2) { height: 80%; animation-delay: 0.12s; }
+.rooms-pull-wave span:nth-child(3) { height: 100%; animation-delay: 0.24s; }
+.rooms-pull-wave span:nth-child(4) { height: 70%; animation-delay: 0.36s; }
+.rooms-pull-wave span:nth-child(5) { height: 50%; animation-delay: 0.48s; }
+@keyframes roomsPull { 0%, 100% { transform: scaleY(0.5); opacity: 0.5; } 50% { transform: scaleY(1); opacity: 1; } }
+
+.rooms-section-label {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: rgba(150, 215, 255, 0.7);
+  font-weight: 700;
+  margin: 16px 0 10px;
+}
+.rooms-section-label--dead { color: rgba(192, 138, 106, 0.75); margin-top: 24px; }
+
+.rooms-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 34px 20px;
+  text-align: center;
+}
+.rooms-empty-glyph { font-size: 26px; color: rgba(150, 165, 200, 0.4); }
+.rooms-empty p { margin: 0; font-size: 13px; color: rgba(206, 214, 235, 0.7); }
+.rooms-empty small { font-size: 11px; color: rgba(170, 185, 215, 0.5); }
+
+@media (prefers-reduced-motion: reduce) { .rooms-pull-wave span { animation: none; } }

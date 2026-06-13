@@ -10,6 +10,9 @@ import { usePredictiveText } from '../hooks/usePredictiveText'
 import { moderatePublicSignalText } from '../lib/signalModeration'
 import GroupConversations from './GroupConversations'
 import CarrierRoom from './CarrierRoom'
+import DormantFrequencies from './DormantFrequencies'
+import { quietFor } from '../lib/dormantRooms'
+import type { DormantRoom } from '../lib/dormantRooms'
 import '../rooms.css'
 
 // ═══════════════════════════════════════════════════════════════
@@ -1206,11 +1209,19 @@ function RoomView({ room, leaving, ambientOn, audioBlocked, onToggleAmbient, onE
 export default function RoomsScreen() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [carrierOpen, setCarrierOpen] = useState(false)
+  const [reopened, setReopened] = useState<DormantRoom | null>(null)
+  const [pulling, setPulling] = useState(true)
   const [leaving, setLeaving] = useState(false)
   const [ambientOn, setAmbientOn] = useState(false)
   const [audioBlocked, setAudioBlocked] = useState(false)
   const engineRef = useRef<AmbientEngine | null>(null)
   const driftTimerRef = useRef<number | null>(null)
+
+  // pull the band on open — a short, responsive "tuning in" before the rooms land
+  useEffect(() => {
+    const t = window.setTimeout(() => setPulling(false), 480)
+    return () => window.clearTimeout(t)
+  }, [])
 
   // temporal resonance: the 3:33-3:43am window, re-checked every 30s
   // (set localStorage 'ecosphere:temporalOverride' = 'open' to preview)
@@ -1300,6 +1311,18 @@ export default function RoomsScreen() {
     return <TemporalRoomView minutesRemaining={temporal.minutesRemaining} onExit={() => setTemporalOpen(false)} />
   }
 
+  if (reopened) {
+    return (
+      <div className="rooms-eco rooms-eco--inroom">
+        <CarrierRoom
+          frequency={{ label: reopened.label, hz: reopened.hz }}
+          recovered={{ quietLabel: quietFor(reopened.quietMins) }}
+          onLeave={() => setReopened(null)}
+        />
+      </div>
+    )
+  }
+
   if (carrierOpen) {
     return (
       <div className="rooms-eco rooms-eco--inroom">
@@ -1332,9 +1355,17 @@ export default function RoomsScreen() {
         <header className="rooms-eco-header">
           <span className="rooms-eco-kicker">live voice rooms</span>
           <h1 className="rooms-eco-title">rooms</h1>
-          <p className="rooms-eco-sub">anonymous group calls. drop in, listen, talk, leave whenever.</p>
+          <p className="rooms-eco-sub">anonymous frequencies — live ones to drop into, dead ones to recover. listen, talk, leave whenever.</p>
         </header>
 
+        {pulling ? (
+          <div className="rooms-pull" role="status">
+            <div className="rooms-pull-wave" aria-hidden="true"><span /><span /><span /><span /><span /></div>
+            <p>pulling open frequencies…</p>
+          </div>
+        ) : (
+        <>
+        <div className="rooms-section-label">ACTIVE FREQUENCIES</div>
         <GroupConversations />
 
         <button type="button" className="carrier-entry-card" onClick={() => setCarrierOpen(true)}>
@@ -1367,8 +1398,13 @@ export default function RoomsScreen() {
 
         <RoomsDirectory onEnter={handleEnter} />
 
+        <div className="rooms-section-label rooms-section-label--dead">DEAD ZONES · abandoned &amp; recoverable</div>
+        <DormantFrequencies onReopen={setReopened} />
+        </>
+        )}
+
         <footer className="rooms-eco-hint">
-          <p>hover a room to hear it. people come and go all night.</p>
+          <p>hover a live room to hear it · reopen a dead one to bring it back. people come and go all night.</p>
         </footer>
       </div>
     </div>
@@ -1412,11 +1448,19 @@ function RoomsDirectory({ onEnter }: { onEnter: (room: RoomDef) => void }) {
         {joinFeed[tick % joinFeed.length]}
       </div>
 
-      <div className="rooms-eco-grid">
-        {visible.map((room, i) => (
-          <RoomCard key={room.id} room={room} index={ROOMS.indexOf(room)} tick={tick + i} onEnter={() => onEnter(room)} />
-        ))}
-      </div>
+      {visible.length === 0 ? (
+        <div className="rooms-empty" role="status">
+          <span className="rooms-empty-glyph" aria-hidden="true">◌</span>
+          <p>the band is quiet on this frequency tonight.</p>
+          <small>drift to another, or reopen a dead zone below.</small>
+        </div>
+      ) : (
+        <div className="rooms-eco-grid">
+          {visible.map((room, i) => (
+            <RoomCard key={room.id} room={room} index={ROOMS.indexOf(room)} tick={tick + i} onEnter={() => onEnter(room)} />
+          ))}
+        </div>
+      )}
     </>
   )
 }
