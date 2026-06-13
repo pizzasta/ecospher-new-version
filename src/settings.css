@@ -491,3 +491,20 @@
 .setting-select:focus {
   border-color: rgba(255, 45, 120, 0.5);
 }
+
+/* drift into the pod locally without an account */
+.pod-skip-auth {
+  display: block;
+  width: 100%;
+  margin: 0 0 16px;
+  padding: 11px 16px;
+  border-radius: 12px;
+  border: 1px dashed rgba(150, 170, 210, 0.3);
+  background: rgba(12, 16, 28, 0.5);
+  color: rgba(200, 210, 235, 0.75);
+  font-size: 12.5px;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: border-color 0.25s ease, color 0.25s ease;
+}
+.pod-skip-auth:hover { border-color: rgba(0, 212, 255, 0.45); color: #aef0ff; }
