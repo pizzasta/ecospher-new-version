@@ -92,7 +92,11 @@ html, body, #root {
   z-index: 10;
   max-width: 640px;
   margin: 0 auto;
-  padding: 24px 16px 120px;
+  /* clear the notch (top) + the home indicator above the nav (bottom),
+     and the rounded corners on landscape (sides) */
+  padding:
+    calc(24px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
+    calc(120px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
   min-height: 100dvh;
 }
 
