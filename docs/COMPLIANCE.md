@@ -1,10 +1,11 @@
 # Compliance & launch notes
 
 Not legal advice — a startup-realistic checklist. Have counsel skim it before
-launch. Ecosphere's privacy posture (anonymous, local-first, no sale, automated
-moderation, hard 18+ gate, built-in deletion) does most of the heavy lifting;
-this captures the gaps that matter for a *wellness/voice* app and the wording to
-keep marketing + app-store listings safe.
+launch. Ecosphere is an **anonymous voice / user-generated-content app** (not a
+wellness, health, or therapy product — don't position it as one). Its privacy
+posture (anonymous, local-first, no sale, automated moderation, hard 18+ gate,
+built-in deletion) does most of the heavy lifting; this captures the remaining
+gaps and the wording to keep marketing + app-store listings safe.
 
 ## Audit summary
 
@@ -16,12 +17,17 @@ keep marketing + app-store listings safe.
 - Real deletion: Settings → Erase Cloud Data + Clear Local Data.
 
 **Gaps closed in this pass**
-- Consumer-health-data section (WA My Health My Data Act-style) in the privacy policy.
-- State privacy rights section (CCPA/CPRA + other state laws): access/delete/opt-out, non-discrimination.
-- Voice/biometric clarification (no voiceprints).
-- "Not medical care, not a crisis service" disclaimer in Terms + on the age gate.
+- "We don't profile you" section (no analysis/scoring/profiling of voice or content) + state privacy rights (CCPA/CPRA + other state laws): access/delete/opt-out, non-discrimination.
+- Voice/biometric clarification (no voiceprints, no voice ID).
+- "Not a crisis service" disclaimer in Terms + on the age gate, with crisis lines.
 - Child-safety/CSAE stance + reporting path (NCMEC) — required for UGC apps in both app stores.
 - Contact emails + governing-law placeholder.
+
+> Note: even though this isn't a health app, people may talk about feelings on
+> it, which can brush "consumer health data" laws (e.g., WA My Health My Data
+> Act). The protection that matters is behavioral and already true: we don't
+> analyze, profile, or sell content — so don't market it as wellness/therapy and
+> don't add anything that infers mood/health.
 
 **Still on you before launch (operational)**
 - Point `privacy@`, `safety@`, `hello@ecosphere.app` (or your domain) at real monitored inboxes.
@@ -34,7 +40,7 @@ keep marketing + app-store listings safe.
 
 1. **Unscreened real voice to strangers** — already gated: group voice is private until the `moderate-audio` STT screen promotes it. Don't enable real group voice without it (see `docs/GROUP_ROOMS.md`).
 2. **Crisis/self-harm content** — you are not a crisis service and not monitored live. Keep the disclaimer prominent (age gate + Terms + help bot) and keep 988/Samaritans/findahelpline surfaced.
-3. **"Wellness/therapy" positioning** — do not imply treatment, healing, or clinical benefit (see marketing rules). This is both a legal and an app-store-rejection risk.
+3. **Don't drift into "wellness/therapy" positioning** — it's anonymous voice; do not imply treatment, healing, or clinical benefit (see marketing rules). Mispositioning is both a legal and an app-store-rejection risk.
 4. **Minors** — hard 18+ gate is in; keep CSAE reporting reachable.
 
 ## App-store data-safety answers (Apple App Privacy / Google Data Safety)
@@ -67,11 +73,10 @@ keep marketing + app-store listings safe.
 - ✅ outcome-neutral: "a place to be heard," "drift, listen, let go."
 - ❌ health claims: "clinically proven," "improves mental health," "therapeutic," "reduces stress," "mental wellness solution."
 - ❌ absolute safety/privacy guarantees: "100% anonymous," "completely safe," "your data is never at risk." Use "anonymous by design," "we store the minimum," "no ads, no data sale."
-- If you ever use "wellness," pair it with the disclaimer and keep it lifestyle, not clinical.
+- ❌ don't position as wellness, therapy, or mental-health support at all — it's an anonymous voice app. Lead with voice + anonymity, not feelings-as-a-feature.
 
 ## App-store listing wording (safe template)
 
 > Ecosphere is an anonymous, audio-first social space. Leave a ten-second voice
 > signal, drift through what strangers left, and let it go. No names, no
-> followers, no likes. For adults 18+. Ecosphere is for self-expression and peer
-> connection — it is not therapy, medical care, or a crisis service.
+> followers, no likes. For adults 18+. Ecosphere is not a crisis service.

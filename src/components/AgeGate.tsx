@@ -45,7 +45,7 @@ export default function AgeGate({ onConfirm }: { onConfirm: () => void }) {
           <button type="button" className="agegate-no" onClick={() => setDeclined(true)}>i'm under 18</button>
         </div>
         <p className="agegate-fine">
-          a space for expression and peer connection — not therapy, medical care, or a crisis service. by entering you agree to the <a href="/terms.html">terms</a> and <a href="/privacy.html">privacy policy</a>.
+          anonymous voices, ten seconds each. not a crisis service. by entering you agree to the <a href="/terms.html">terms</a> and <a href="/privacy.html">privacy policy</a>.
         </p>
       </div>
     </div>
