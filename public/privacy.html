@@ -12,6 +12,7 @@
   a { color:#67e8f9; }
   .back { display:inline-block; margin-bottom:24px; font-size:12px; letter-spacing:.1em; }
   .updated { font-size:11px; color:rgba(140,155,195,.55); }
+  .note { font-size:12px; color:rgba(140,155,195,.7); border-left:2px solid rgba(103,232,249,.4); padding-left:12px; }
 </style>
 </head>
 <body>
@@ -19,30 +20,55 @@
 <h1>Privacy</h1>
 <p class="updated">last updated: june 2026</p>
 
+<p>Plain version: Ecosphere is anonymous, stores as little as it can, never sells anything, and lets you delete it all. The rest of this page is the detail.</p>
+
 <h2>Designed around not knowing you</h2>
-<p>Ecosphere is anonymous by design. We don't ask for your name, photo, birthdate, phone number, or location, and the app has no way to search for or contact a specific person.</p>
+<p>Ecosphere is anonymous by design. We don't ask for your name, photo, birthdate, phone number, or location, and the app has no way to search for or contact a specific person. If you sign in with Google, your email is used only to keep your account yours — it is never shown to other people or tied to your public signal.</p>
 
 <h2>What lives on your device</h2>
 <p>Most of your data never leaves your browser: your signal identity, preferences, listening history, recordings (IndexedDB), saved signals, and customizations are stored locally. "Clear Local Data" in Settings erases all of it.</p>
 
 <h2>What the backend stores (when connected)</h2>
-<p>When a backend is configured, the service stores: an anonymous account id, your chosen signal name, recordings you make (private by default), your saves/replays/reactions, notifications, and your profile customizations (bio tape, colors). Audio files live in private storage accessed via short-lived signed links. Row-level security restricts every record to its owner or to explicitly public content.</p>
+<p>When a backend is configured, the service stores: an anonymous account id, your chosen signal name, recordings you make (private by default), your saves/replays/reactions, notifications, and your profile customizations (intro tape, colors, atmosphere). Audio files live in private storage reached through short-lived signed links. Row-level security restricts every record to its owner or to content you've deliberately made public.</p>
+
+<h2>Your voice &amp; recordings</h2>
+<p>Voice recordings are <em>content</em> — the thing you chose to make — not a biometric identifier. We do not create voiceprints, we do not use your voice to recognize or identify you or anyone else, and we do not run voice biometrics. Recordings are private until you choose to share them. Voice clips shared into a group are transcribed only to screen them for safety before others can hear them; the transcript is used for moderation, not profiling.</p>
+
+<h2>Emotional &amp; "health-adjacent" data</h2>
+<p>Ecosphere is a space where people talk about how they feel, so some content may touch on mood or mental state. We treat this carefully and on the side of caution under "consumer health data" laws (for example, Washington's My Health My Data Act):</p>
+<ul>
+  <li>We do not require, request, or infer any diagnosis, condition, or health status.</li>
+  <li>We do not build health or mood profiles about you.</li>
+  <li>We never sell this data, share it for cross-context advertising, or use it to target you.</li>
+  <li>You can delete everything tied to your account at any time (see Deletion).</li>
+</ul>
 
 <h2>What we don't do</h2>
 <ul>
-  <li>No ads, no sale of data, no third-party trackers.</li>
-  <li>No contact lists, no social graph imports.</li>
-  <li>No reading of private content by humans — moderation is automated.</li>
+  <li>No ads, no sale or "sharing" of data, no third-party trackers or analytics SDKs.</li>
+  <li>No contact lists, no social-graph imports, no followers, no likes.</li>
+  <li>No human reading of your private content — moderation is automated.</li>
 </ul>
 
+<h2>Your privacy rights</h2>
+<p>Depending on where you live (including California and other U.S. states with privacy laws, and "consumer health data" laws), you may have the right to access, correct, delete, or port your data, and to opt out of sale, sharing, or targeted advertising. Because we don't sell or share data or run targeted ads, there's nothing to opt out of — but the access and deletion tools are built in (Settings), and you can also email us. We won't treat you differently for using these rights.</p>
+
 <h2>Deletion</h2>
-<p>Settings → Erase Cloud Data deletes your recordings, signals, reactions, notifications, subscriptions, and profile from the backend, then signs you out. Settings → Clear Local Data wipes this device. Together they remove everything you've made.</p>
+<p>Settings → Erase Cloud Data deletes your recordings, signals, reactions, notifications, subscriptions, and profile from the backend, then signs you out. Settings → Clear Local Data wipes this device. Together they remove everything you've made. You can also email us to request deletion.</p>
 
 <h2>Microphone</h2>
 <p>The microphone is used only when you press record (or explicitly start calibration), and the permission is requested only at that moment. Nothing is captured in the background.</p>
 
-<h2>Questions</h2>
-<p>This service stores the minimum it can. If a future feature changes that, this page changes first.</p>
+<h2>Children</h2>
+<p>Ecosphere is for adults 18 and older. We don't knowingly collect anything from anyone under 18. If we learn an account belongs to a minor, we remove it. If you believe a minor is using the service, please report it in-app or email us.</p>
+
+<h2>Where this applies</h2>
+<p>Ecosphere is operated from the United States and intended for users there. If you use it from elsewhere, you're responsible for local law, and you consent to your data being handled in the U.S.</p>
+
+<h2>Changes &amp; contact</h2>
+<p>This service stores the minimum it can. If a future feature changes that, this page changes first, and material changes are shown in the app. Privacy questions or requests: <a href="mailto:privacy@ecosphere.app">privacy@ecosphere.app</a>.</p>
+
+<p class="note">Not legal advice. This policy is a plain-language summary of how the app actually works; have it reviewed by counsel before relying on it for compliance, and set <a href="mailto:privacy@ecosphere.app">privacy@ecosphere.app</a> to a real inbox you monitor.</p>
 
 <p><a href="/terms.html">Terms →</a></p>
 </body>
