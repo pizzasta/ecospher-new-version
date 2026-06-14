@@ -3035,42 +3035,44 @@
   transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.3s ease;
 }
 
+/* TIER 3 — labels/codes: tiny, faded, recede to the background */
 .scrap-anon {
   font-family: monospace;
-  font-size: 9px;
+  font-size: 8px;
   letter-spacing: 0.14em;
-  color: rgba(150, 168, 205, 0.55);
+  color: rgba(150, 168, 205, 0.4);
 }
 
+/* TIER 1 — the title dominates: largest, brightest, heaviest */
 .scrap-name {
-  font-size: 14.5px;
-  font-weight: 800;
-  line-height: 1.35;
-  color: rgba(242, 246, 255, 0.96);
+  font-size: 16px;
+  font-weight: 850;
+  line-height: 1.28;
+  letter-spacing: -0.01em;
+  color: rgba(245, 249, 255, 0.99);
 }
 
-.scrap--hero .scrap-name { font-size: 18px; }
+.scrap--hero .scrap-name { font-size: 19px; }
 
-/* digital folklore — the loud, emotionally-viral stat. the second the eye lands
-   on after the name. high-contrast, archival, with a struck-marker underline. */
+/* TIER 2 — the emotional line (the relic's description): the hook, clearly
+   readable right under the title, but never as loud as it */
+.scrap-line {
+  font-size: 12px;
+  line-height: 1.55;
+  color: rgba(216, 224, 247, 0.84);
+}
+
+/* TIER 3 — digital folklore reads as a faint famous-stat caption, not a
+   competing headline: small, dim, tracked like a ledger note */
 .scrap-folklore {
   align-self: flex-start;
-  font-size: 11.5px;
-  font-weight: 800;
-  line-height: 1.35;
-  letter-spacing: 0.01em;
-  color: rgba(255, 236, 214, 0.95);
-  text-shadow: 0 1px 7px rgba(0, 0, 0, 0.55);
-  padding-bottom: 4px;
-  margin-bottom: 1px;
-  border-bottom: 1px solid rgba(255, 220, 180, 0.16);
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255, 226, 200, 0.52);
   font-variant-numeric: tabular-nums;
-}
-
-.scrap-line {
-  font-size: 11px;
-  line-height: 1.55;
-  color: rgba(205, 214, 240, 0.66);
 }
 
 .scrap-wave {
@@ -3090,9 +3092,9 @@
 }
 
 .scrap-foot {
-  font-size: 8.5px;
+  font-size: 8px;
   letter-spacing: 0.08em;
-  color: rgba(150, 165, 200, 0.5);
+  color: rgba(150, 165, 200, 0.38);
   font-variant-numeric: tabular-nums;
 }
 
@@ -3378,8 +3380,8 @@
 }
 
 .scrap-history {
-  font-size: 10px;
-  color: rgba(255, 180, 205, 0.65);
+  font-size: 9px;
+  color: rgba(248, 196, 212, 0.46);
   font-variant-numeric: tabular-nums;
 }
 

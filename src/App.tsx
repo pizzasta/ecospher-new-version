@@ -2100,8 +2100,8 @@ function RelicsScreen() {
                 ) : (
                   <strong className="scrap-name">{r.name}</strong>
                 )}
-                <span className="scrap-folklore">{relicFolklore(r)}</span>
                 <span className="scrap-line">{r.description}</span>
+                <span className="scrap-folklore">{relicFolklore(r)}</span>
                 <span className="scrap-history">{relicHistory(r)}</span>
                 <span className="scrap-wave" aria-hidden="true">
                   {Array.from({ length: 11 }, (_, b) => (
