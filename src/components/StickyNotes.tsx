@@ -10,19 +10,25 @@ import './StickyNotes.css'
 
 // Drift Board - a memory wall of thoughts left at 2am.
 // Notes are physically imperfect, temporally alive, emotionally real.
-// Private by default; release one to drift. Drag to place, not to organize.
+// Private by default; release one to drift, or anchor one that matters.
+// Idle motion lives entirely in CSS (smooth, dreamlike) — JS only drives drags.
+
+type NoteState = 'private' | 'drifting' | 'anchored'
 
 interface NoteLayout {
-  x: number
+  x: number          // % position on board
   y: number
-  rot: number
-  driftX: number
-  driftY: number
-  driftPhase: number
-  age: number
-  wearLevel: number
+  rot: number        // resting tilt (deg)
+  rotV: number       // extra tilt at the far end of the float (deg)
+  floatX: number     // idle drift amplitude (px)
+  floatY: number
+  floatDur: number   // idle float duration (s) — slow
+  floatDelay: number // negative offset so notes desync
+  age: number        // 0..1 over a week
+  wearLevel: number  // 0..1 grain/wrinkle intensity
+  ink: number        // per-note ink opacity variance
+  blur: number       // per-note micro-blur on handwriting (px)
   variant: 'plain' | 'tape' | 'folded' | 'torn'
-  state: 'private' | 'drifting' | 'anchored'
 }
 
 const VARIANTS = ['plain', 'tape', 'folded', 'torn'] as const
@@ -42,33 +48,28 @@ function makeLayout(note: StickyNote, index: number, total: number): NoteLayout 
   const baseX = 4 + col * colW + rng(1) * (colW * 0.35)
   const baseY = 6 + row * rowH + rng(2) * (rowH * 0.45)
   const ageSecs = (Date.now() - note.createdAt) / AGE_ONE_WEEK
-  const age = Math.min(1, ageSecs)
+  // anchored notes age slower — emotionally important, kept clean
+  const age = Math.min(1, ageSecs * (note.anchored ? 0.4 : 1))
   return {
     x: Math.min(baseX, 84),
     y: Math.min(baseY, 78),
     rot: (rng(3) - 0.5) * 9,
-    driftX: (rng(4) - 0.5) * 6,
-    driftY: (rng(5) - 0.5) * 4,
-    driftPhase: rng(6) * Math.PI * 2,
+    rotV: (rng(9) - 0.5) * 2.4,
+    floatX: (rng(4) - 0.5) * 5,
+    floatY: (rng(5) - 0.5) * 4,
+    floatDur: 13 + rng(6) * 9,
+    floatDelay: -(rng(10) * 22),
     age,
     wearLevel: Math.min(1, age * 0.8 + rng(7) * 0.3),
+    ink: (rng(11) - 0.7) * 0.16,   // mostly fades ink a touch, sometimes darkens
+    blur: rng(12) * 0.4,           // 0–0.4px — barely-there handwriting blur
     variant: VARIANTS[Math.floor(rng(8) * VARIANTS.length)],
-    state: note.public ? 'drifting' : 'private',
   }
 }
 
-function useAmbientTick() {
-  const [tick, setTick] = useState(0)
-  useEffect(() => {
-    let id: ReturnType<typeof setTimeout>
-    const slowLoop = () => {
-      setTick(t => t + 1)
-      id = window.setTimeout(slowLoop, 2800 + Math.random() * 1200)
-    }
-    id = window.setTimeout(slowLoop, 1500)
-    return () => clearTimeout(id)
-  }, [])
-  return tick
+function noteState(n: StickyNote): NoteState {
+  if (n.anchored) return 'anchored'
+  return n.public ? 'drifting' : 'private'
 }
 
 interface Dust { id: number; x: number; y: number; opacity: number; size: number; dur: number }
@@ -85,6 +86,35 @@ function useDustParticles(count = 8) {
     }))
   )
   return particles
+}
+
+// gentle collision spacing: nudge a just-dropped note out of any neighbour it
+// landed on top of, so the board stays loosely arranged, never a chaotic stack.
+function spaceOut(id: string, layouts: Map<string, NoteLayout>): Map<string, NoteLayout> {
+  const me = layouts.get(id)
+  if (!me) return layouts
+  const MIN_X = 13, MIN_Y = 16
+  let { x, y } = me
+  for (const [otherId, other] of layouts) {
+    if (otherId === id) continue
+    let dx = x - other.x
+    let dy = y - other.y
+    if (Math.abs(dx) < MIN_X && Math.abs(dy) < MIN_Y) {
+      // push along the shallower axis so the move feels minimal
+      if (Math.abs(dx) / MIN_X > Math.abs(dy) / MIN_Y) {
+        const push = (MIN_X - Math.abs(dx)) * (dx >= 0 ? 1 : -1) * 0.6
+        x = Math.max(0, Math.min(88, x + push))
+      } else {
+        const push = (MIN_Y - Math.abs(dy)) * (dy >= 0 ? 1 : -1) * 0.6
+        y = Math.max(0, Math.min(82, y + push))
+      }
+      dx = x - other.x; dy = y - other.y
+    }
+  }
+  if (x === me.x && y === me.y) return layouts
+  const next = new Map(layouts)
+  next.set(id, { ...me, x, y })
+  return next
 }
 
 export default function StickyNotes() {
@@ -104,7 +134,6 @@ export default function StickyNotes() {
   const [dragging, setDragging] = useState<string | null>(null)
   const boardRef = useRef<HTMLDivElement>(null)
   const dragStartPos = useRef({ x: 0, y: 0 })
-  useAmbientTick()
   const dust = useDustParticles(10)
 
   useEffect(() => {
@@ -143,13 +172,12 @@ export default function StickyNotes() {
     else {
       setError(null)
       if (!n.public && nowPublic && noteSyncEnabled) void publishNote(n.text, n.color)
-      setLayouts(prev => {
-        const m = new Map(prev)
-        const l = m.get(n.id)
-        if (l) m.set(n.id, { ...l, state: nowPublic ? 'drifting' : 'private' })
-        return m
-      })
     }
+  }
+
+  const toggleAnchor = (n: StickyNote) => {
+    setNotes(updateNote(n.id, { anchored: !n.anchored }))
+    setError(null)
   }
 
   const onPointerDown = useCallback((e: React.PointerEvent, id: string) => {
@@ -191,6 +219,7 @@ export default function StickyNotes() {
       const m = new Map(prev)
       const l = m.get(id)
       if (!l) return prev
+      // soft magnetic snap toward a loose grid (lerp, not hard click)
       const snapX = Math.round(l.x / 8) * 8
       const snapY = Math.round(l.y / 10) * 10
       m.set(id, {
@@ -198,7 +227,8 @@ export default function StickyNotes() {
         x: l.x + (snapX - l.x) * 0.22,
         y: l.y + (snapY - l.y) * 0.22,
       })
-      return m
+      // then nudge apart from any note it landed on
+      return spaceOut(id, m)
     })
     const sorted = [...notes].sort((a, b) => {
       const la = layouts.get(a.id)
@@ -209,59 +239,52 @@ export default function StickyNotes() {
     saveOrder(reordered)
   }, [dragging, notes, layouts])
 
-  const getAmbientOffset = (layout: NoteLayout) => {
-    const t = Date.now() / 1000
-    const dx = Math.sin(t * 0.15 + layout.driftPhase) * layout.driftX * 0.4
-    const dy = Math.cos(t * 0.12 + layout.driftPhase * 1.3) * layout.driftY * 0.3
-    return { dx, dy }
-  }
-
-  const noteStyle = (n: StickyNote, layout: NoteLayout): CSSProperties => {
+  // outer wrapper: position, z-index, drag scale, settle drift on release
+  const outerStyle = (n: StickyNote, layout: NoteLayout): CSSProperties => {
     const isDragging = dragging === n.id
-    const { dx, dy } = isDragging ? { dx: 0, dy: 0 } : getAmbientOffset(layout)
-    const rot = isDragging ? layout.rot * 0.4 : layout.rot
-    const shadow = isDragging
-      ? '0 28px 52px rgba(0,0,0,0.72), 0 8px 16px rgba(0,0,0,0.5)'
-      : `0 ${4 + layout.age * 4}px ${14 + layout.age * 10}px rgba(0,0,0,${0.38 + layout.age * 0.18})`
-    const opacity = layout.state === 'private'
-      ? 1 - layout.age * 0.12
-      : 0.88 + Math.sin(Date.now() / 2200 + layout.driftPhase) * 0.06
     return {
-      '--note': n.color,
-      '--wear': layout.wearLevel,
-      '--age': layout.age,
       position: 'absolute',
       left: `${layout.x}%`,
       top: `${layout.y}%`,
-      transform: `translate(${dx}px, ${dy}px) rotate(${rot}deg) ${isDragging ? 'scale(1.04)' : 'scale(1)'}`,
-      boxShadow: shadow,
-      opacity,
+      transform: isDragging ? 'scale(1.04)' : 'scale(1)',
       zIndex: isDragging ? 100 : Math.floor(50 + layout.y),
       transition: isDragging
-        ? 'box-shadow 0.15s ease, transform 0.08s ease'
-        : 'opacity 0.8s ease, box-shadow 0.4s ease, transform 2.4s cubic-bezier(0.25,0.46,0.45,0.94)',
+        ? 'transform 0.08s ease'
+        // slow settle = "delayed movement after dragging"
+        : 'left 2.2s cubic-bezier(0.22,0.61,0.36,1), top 2.2s cubic-bezier(0.22,0.61,0.36,1), transform 0.6s ease',
       cursor: isDragging ? 'grabbing' : 'grab',
       touchAction: 'none',
-    } as CSSProperties
+    }
   }
 
-  const stateClass = (layout: NoteLayout) => {
-    if (layout.state === 'drifting') return ' is-drifting'
-    if (layout.state === 'anchored') return ' is-anchored'
-    return ' is-private'
-  }
-  const variantClass = (layout: NoteLayout) => ` note-${layout.variant}`
-  const ageClass = (layout: NoteLayout) => {
-    if (layout.age > 0.7) return ' is-aged'
-    if (layout.age > 0.35) return ' is-worn'
-    return ''
+  // inner paper: carries colour, age, idle-float animation vars
+  const floatStyle = (n: StickyNote, layout: NoteLayout): CSSProperties => ({
+    '--note': n.color,
+    '--wear': layout.wearLevel,
+    '--age': layout.age,
+    '--rot': `${layout.rot}deg`,
+    '--rotv': `${layout.rotV}deg`,
+    '--fx': `${layout.floatX}px`,
+    '--fy': `${layout.floatY}px`,
+    '--float-dur': `${layout.floatDur}s`,
+    '--float-delay': `${layout.floatDelay}s`,
+    '--ink': layout.ink,
+    '--blur': `${layout.blur}px`,
+  } as CSSProperties)
+
+  const floatClass = (n: StickyNote, layout: NoteLayout) => {
+    const state = noteState(n)
+    const stateC = state === 'drifting' ? 'is-drifting' : state === 'anchored' ? 'is-anchored' : 'is-private'
+    const ageC = layout.age > 0.7 ? ' is-aged' : layout.age > 0.35 ? ' is-worn' : ''
+    const lifted = dragging === n.id ? ' lifted' : ''
+    return `note-float ${stateC} note-${layout.variant}${ageC}${lifted}`
   }
 
   return (
     <section className="drift-section" aria-label="Your notes">
       <div className="drift-head">
         <span className="drift-kicker">YOUR NOTES</span>
-        <small className="drift-sub">thoughts left behind · drag to place · release one to drift</small>
+        <small className="drift-sub">thoughts left behind · drag to place · release one to drift · anchor what matters</small>
       </div>
 
       <div className="drift-compose">
@@ -328,58 +351,72 @@ export default function StickyNotes() {
             return (
               <div
                 key={n.id}
-                className={`drift-note${stateClass(layout)}${variantClass(layout)}${ageClass(layout)}`}
-                style={noteStyle(n, layout)}
+                className="drift-note"
+                style={outerStyle(n, layout)}
                 onPointerDown={e => onPointerDown(e, n.id)}
                 onPointerMove={e => onPointerMove(e, n.id)}
                 onPointerUp={() => onPointerUp(n.id)}
               >
-                <div className="note-grain" aria-hidden="true" />
-                {layout.variant === 'tape' && <div className="note-tape" aria-hidden="true" />}
-                <div className="note-age-overlay" aria-hidden="true" />
-                {editing === n.id ? (
-                  <textarea
-                    autoFocus
-                    className="note-edit-area"
-                    value={editText}
-                    maxLength={NOTE_MAX}
-                    onChange={e => setEditText(e.target.value)}
-                    onBlur={() => commitEdit(n.id)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitEdit(n.id) }
-                    }}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    className="note-text-btn"
-                    onPointerDown={e => e.stopPropagation()}
-                    onClick={() => { setEditing(n.id); setEditText(n.text) }}
-                  >
-                    {n.text}
-                  </button>
-                )}
-                <div className="note-foot">
-                  <button
-                    type="button"
-                    className="note-state-toggle"
-                    onPointerDown={e => e.stopPropagation()}
-                    onClick={() => togglePublic(n)}
-                    title={n.public ? 'drifting publicly - tap to anchor' : 'private - tap to let it drift'}
-                  >
-                    {n.public ? 'drifting' : 'private'}
-                  </button>
-                  <button
-                    type="button"
-                    className="note-del"
-                    onPointerDown={e => e.stopPropagation()}
-                    onClick={() => remove(n.id)}
-                    aria-label="remove note"
-                  >
-                    x
-                  </button>
+                <div className={floatClass(n, layout)} style={floatStyle(n, layout)}>
+                  <div className="note-grain" aria-hidden="true" />
+                  {layout.variant === 'tape' && <div className="note-tape" aria-hidden="true" />}
+                  <div className="note-age-overlay" aria-hidden="true" />
+                  {editing === n.id ? (
+                    <textarea
+                      autoFocus
+                      className="note-edit-area"
+                      value={editText}
+                      maxLength={NOTE_MAX}
+                      onChange={e => setEditText(e.target.value)}
+                      onBlur={() => commitEdit(n.id)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitEdit(n.id) }
+                      }}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      className="note-text-btn"
+                      onPointerDown={e => e.stopPropagation()}
+                      onClick={() => { setEditing(n.id); setEditText(n.text) }}
+                    >
+                      {n.text}
+                    </button>
+                  )}
+                  <div className="note-foot">
+                    <button
+                      type="button"
+                      className="note-state-toggle"
+                      onPointerDown={e => e.stopPropagation()}
+                      onClick={() => togglePublic(n)}
+                      title={n.public ? 'drifting publicly - tap to keep it close' : 'private - tap to let it drift'}
+                    >
+                      {n.public ? 'drifting' : 'private'}
+                    </button>
+                    <div className="note-foot-actions">
+                      <button
+                        type="button"
+                        className={`note-anchor${n.anchored ? ' on' : ''}`}
+                        onPointerDown={e => e.stopPropagation()}
+                        onClick={() => toggleAnchor(n)}
+                        aria-pressed={!!n.anchored}
+                        title={n.anchored ? 'anchored - tap to let it drift with the rest' : 'anchor this one'}
+                      >
+                        {n.anchored ? '◆' : '◇'}
+                      </button>
+                      <button
+                        type="button"
+                        className="note-del"
+                        onPointerDown={e => e.stopPropagation()}
+                        onClick={() => remove(n.id)}
+                        aria-label="remove note"
+                      >
+                        x
+                      </button>
+                    </div>
+                  </div>
+                  {n.public && <Resonate noteId={n.id} readOnly />}
                 </div>
-                {n.public && <Resonate noteId={n.id} readOnly />}
               </div>
             )
           })}

@@ -197,21 +197,53 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   DRIFT NOTE BASE
+   DRIFT NOTE — outer wrapper positions & drags; inner .note-float is the paper
    ══════════════════════════════════════════════════════════════════════════ */
 .drift-note {
+  /* pure positioning container (left/top/transform set inline) */
   width: clamp(130px, 18%, 185px);
+  position: absolute;
+}
+
+.note-float {
+  position: relative;
+  width: 100%;
   min-height: 100px;
   padding: 14px 13px 11px;
   border-radius: 3px 4px 5px 3px;
-  /* base color from --note var, aged with age factor */
+  /* base color from --note var */
   background:
     color-mix(in srgb, var(--note, #caa57f) 72%, rgba(22, 18, 12, 0.9));
   color: rgba(18, 14, 8, 0.82);
-  position: absolute;
-  /* will-change only while dragging — set inline */
   user-select: none;
   -webkit-user-select: none;
+  /* idle float lives in CSS — smooth, slow, dreamlike. base = resting tilt. */
+  transform: rotate(var(--rot, 0deg));
+  animation: idleFloat var(--float-dur, 16s) ease-in-out infinite;
+  animation-delay: var(--float-delay, 0s);
+  /* uneven, age-deepened shadow; transition handles the soft settle */
+  box-shadow: 0 calc(4px + var(--age, 0) * 4px) calc(14px + var(--age, 0) * 10px)
+    rgba(0, 0, 0, calc(0.38 + var(--age, 0) * 0.18));
+  /* base private/aged opacity (drifting overrides via its pulse animation) */
+  opacity: calc(1 - var(--age, 0) * 0.12);
+  transition: box-shadow 0.4s ease, opacity 0.8s ease;
+}
+
+/* tiny, barely-noticeable drift + breathing tilt */
+@keyframes idleFloat {
+  0%, 100% { transform: translate(0, 0) rotate(var(--rot, 0deg)); }
+  50%      {
+    transform: translate(var(--fx, 0px), var(--fy, 0px))
+      rotate(calc(var(--rot, 0deg) + var(--rotv, 0deg)));
+  }
+}
+
+/* lifted while dragging — straightens slightly, deepens shadow, pauses float */
+.note-float.lifted {
+  animation: none;
+  transform: rotate(calc(var(--rot, 0deg) * 0.5));
+  box-shadow: 0 28px 52px rgba(0, 0, 0, 0.72), 0 8px 16px rgba(0, 0, 0, 0.5);
+  transition: box-shadow 0.15s ease, transform 0.08s ease;
 }
 
 /* paper grain texture overlay */
@@ -316,8 +348,10 @@
   font-family: inherit;
   cursor: text;
   word-break: break-word;
-  /* handwriting-style opacity variance */
-  opacity: calc(0.88 - var(--age, 0) * 0.14);
+  /* handwriting-style opacity variance — per-note ink + age fade */
+  opacity: calc(0.88 - var(--age, 0) * 0.14 + var(--ink, 0));
+  /* slight blur inconsistency — some ink sits a hair softer than the rest */
+  filter: blur(var(--blur, 0px));
 }
 
 /* ── inline edit area ───────────────────────────────────────────────────── */
@@ -342,6 +376,30 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
+}
+.note-foot-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.note-anchor {
+  background: transparent;
+  border: none;
+  color: rgba(18, 14, 8, 0.34);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+  transition: color 0.2s ease, transform 0.2s ease, text-shadow 0.2s ease;
+}
+.note-anchor:hover {
+  color: rgba(18, 14, 8, 0.6);
+  transform: scale(1.12);
+}
+.note-anchor.on {
+  color: rgba(40, 28, 14, 0.78);
+  text-shadow: 0 0 7px rgba(220, 190, 130, 0.5);
 }
 .note-state-toggle {
   background: rgba(0, 0, 0, 0.1);
@@ -376,17 +434,16 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* PRIVATE — stable, softer, stays close */
-.drift-note.is-private {
+.note-float.is-private {
   filter: saturate(0.68) brightness(0.92);
 }
 
-/* DRIFTING — subtle pulse glow, slight motion feel */
-.drift-note.is-drifting {
+/* DRIFTING — subtle pulse glow, slight motion feel. drift float keeps running;
+   a second, slower opacity breath rides on top via the wrapper. */
+.note-float.is-drifting {
   filter: saturate(0.78) brightness(0.96);
-  /* soft glow pulse */
-  animation: driftPulse 4.5s ease-in-out infinite;
 }
-.drift-note.is-drifting::before {
+.note-float.is-drifting::before {
   content: '';
   position: absolute;
   inset: -2px;
@@ -396,19 +453,28 @@
   animation: driftGlow 4.5s ease-in-out infinite;
   pointer-events: none;
 }
-@keyframes driftPulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.88; }
-}
 @keyframes driftGlow {
   0%, 100% { opacity: 0.4; }
   50%       { opacity: 0.85; }
 }
 
-/* ANCHORED — strong, stable, high contrast */
-.drift-note.is-anchored {
-  filter: saturate(0.88) brightness(1.02);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255,255,255,0.08) !important;
+/* ANCHORED — emotionally pinned: stronger contrast, steadier, gently lit.
+   never drifting (state takes precedence) and ages too slowly to reach is-aged,
+   so ::before is free for the glow. :not(.lifted) lets a drag still lift it. */
+.note-float.is-anchored {
+  filter: saturate(0.9) brightness(1.03);
+}
+.note-float.is-anchored:not(.lifted) {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.note-float.is-anchored::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 4px;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--note, #caa57f) 38%, transparent);
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -416,26 +482,26 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* worn — slightly used */
-.drift-note.is-worn {
+.note-float.is-worn {
   filter: saturate(0.62) brightness(0.9) sepia(0.08);
 }
-.drift-note.is-worn .note-text-btn {
-  opacity: calc(0.82 - var(--age, 0) * 0.1);
+.note-float.is-worn .note-text-btn {
+  opacity: calc(0.82 - var(--age, 0) * 0.1 + var(--ink, 0));
 }
 
 /* aged — deeply faded, desaturated, worn */
-.drift-note.is-aged {
+.note-float.is-aged {
   filter: saturate(0.45) brightness(0.84) sepia(0.15);
 }
-.drift-note.is-aged .note-grain {
+.note-float.is-aged .note-grain {
   opacity: 0.88;
 }
-.drift-note.is-aged .note-text-btn {
-  opacity: 0.65;
+.note-float.is-aged .note-text-btn {
+  opacity: calc(0.65 + var(--ink, 0));
   /* faded ink */
   color: rgba(18, 14, 8, 0.68);
 }
-.drift-note.is-aged::before {
+.note-float.is-aged::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -445,7 +511,7 @@
   pointer-events: none;
 }
 /* wrinkle shadows on aged notes */
-.drift-note.is-aged .note-age-overlay {
+.note-float.is-aged .note-age-overlay {
   background: radial-gradient(ellipse at 30% 70%,
     rgba(14, 10, 6, 0.12) 0%,
     transparent 55%
@@ -459,26 +525,24 @@
    DRAG INTERACTION MICRODETAILS
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* note edges lift while dragging — handled inline via transform scale */
-/* shadow deepens — handled inline */
-/* tape peel — subtle on drag */
-.drift-note:active .note-tape,
-.drift-note[style*="grabbing"] .note-tape {
+/* edges lift + shadow deepen — handled by .note-float.lifted above */
+/* tape peel — subtle while the note is lifted */
+.note-float.lifted .note-tape {
   transform: translateX(-50%) rotate(-3.5deg) translateY(-1px);
   opacity: 0.7;
 }
 
 /* soft hover bloom — barely noticeable */
-.drift-note:hover:not(:active) {
+.note-float:hover:not(.lifted) {
   filter: brightness(1.03) saturate(1.04);
 }
-.drift-note.is-private:hover:not(:active) {
+.note-float.is-private:hover:not(.lifted) {
   filter: saturate(0.72) brightness(0.95);
 }
-.drift-note.is-worn:hover:not(:active) {
+.note-float.is-worn:hover:not(.lifted) {
   filter: saturate(0.66) brightness(0.93);
 }
-.drift-note.is-aged:hover:not(:active) {
+.note-float.is-aged:hover:not(.lifted) {
   filter: saturate(0.48) brightness(0.87) sepia(0.15);
 }
 
@@ -491,6 +555,8 @@
   }
   .drift-note {
     width: clamp(115px, 42vw, 160px);
+  }
+  .note-float {
     font-size: 11.5px;
   }
   .drift-textarea {
@@ -508,17 +574,17 @@
    REDUCED MOTION
    ══════════════════════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
-  .drift-note {
-    transition: box-shadow 0.2s ease, opacity 0.3s ease !important;
-    animation: none !important;
-  }
-  .drift-note.is-drifting {
-    animation: none !important;
-  }
-  .drift-note.is-drifting::before {
-    animation: none !important;
-  }
+  .note-float,
+  .note-float.is-drifting::before,
   .drift-dust {
     animation: none !important;
+  }
+  .note-float {
+    /* hold the resting tilt; no idle float, no drift transition */
+    transform: rotate(var(--rot, 0deg));
+    transition: box-shadow 0.2s ease, opacity 0.3s ease !important;
+  }
+  .drift-note {
+    transition: none !important;
   }
 }
