@@ -599,7 +599,7 @@ html, body, #root {
   padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
   gap: 4px;
   scrollbar-width: none;
-  border-top: 1px solid rgba(255,255,255,0.09);
+  border-top: 1px solid rgba(255,255,255,0.13);
   border-radius: 0;
   /* lift the bar off the content with a dark separation shadow */
   box-shadow: 0 -10px 34px rgba(0, 0, 0, 0.55);
@@ -627,10 +627,10 @@ html, body, #root {
   min-width: 54px;
   flex-shrink: 0;
   transition: background 0.2s, color 0.2s, box-shadow 0.25s;
-  /* inactive tabs recede further so the active one reads instantly */
-  color: var(--text-decorative);
+  /* inactive tabs recede but remain readable — decorative was invisible on mobile */
+  color: var(--text-dim);
 }
-.nav-item .nav-glyph { opacity: 0.7; transition: opacity 0.2s, text-shadow 0.2s; }
+.nav-item .nav-glyph { opacity: 0.82; transition: opacity 0.2s, text-shadow 0.2s; }
 .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-muted); }
 .nav-item:hover .nav-glyph { opacity: 0.95; }
 .nav-item.active {
@@ -754,7 +754,7 @@ html, body, #root {
   pointer-events: none;
   opacity: 0.025;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  animation: grainShift 0.4s steps(1) infinite;
+  animation: grainShift 1.6s steps(2) infinite;
 }
 
 @keyframes grainShift {
@@ -891,7 +891,7 @@ html, body, #root {
   background: rgba(8,12,24,0.75);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
   padding: 20px;
   overflow: hidden;
   opacity: 0;
@@ -1197,9 +1197,9 @@ html, body, #root {
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: lowercase;
-  color: rgba(180,190,220,0.5);
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  color: rgba(190,200,228,0.72);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
   border-radius: 20px;
   padding: 4px 10px;
   cursor: pointer;
@@ -3945,7 +3945,7 @@ html, body, #root {
 }
 
 .boot-static-field {
-  animation: bootStaticShift 3.2s steps(3, end) infinite;
+  animation: bootStaticShift 4.8s steps(2, end) infinite;
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.026) 1px, transparent 1px),
     radial-gradient(circle, rgba(255, 122, 184, 0.18) 0.5px, transparent 1px),
@@ -4263,7 +4263,7 @@ html, body, #root {
 }
 
 .boot-mic-wave i {
-  animation: bootWaveBreath 1.7s ease-in-out infinite;
+  animation: bootWaveBreath 3.2s ease-in-out infinite;
   background: linear-gradient(180deg, #ff7ab8, #00f0ff);
   border-radius: 999px;
   box-shadow: 0 0 18px rgba(255, 122, 184, 0.3);
@@ -4365,7 +4365,7 @@ html, body, #root {
 }
 
 .boot-mic-button {
-  animation: bootMicGlow 2.6s ease-in-out infinite;
+  animation: bootMicGlow 3.8s ease-in-out infinite;
   background: rgba(255, 42, 116, 0.14) !important;
   border-color: rgba(255, 122, 184, 0.42) !important;
   box-shadow: 0 0 34px rgba(255, 42, 116, 0.16);
@@ -9617,7 +9617,7 @@ body[data-eco-view='mobile'] .helpbot-panel { width: min(440px, 96vw); }
   pointer-events: none;
   background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(255, 255, 255, 0.05) 2px 3px);
   mix-blend-mode: overlay;
-  animation: ppGrainShift 1.2s steps(4) infinite;
+  animation: ppGrainShift 2.4s steps(2) infinite;
 }
 
 .card-life-row {
@@ -9671,4 +9671,458 @@ body[data-eco-view='mobile'] .helpbot-panel { width: min(440px, 96vw); }
 
 @media (prefers-reduced-motion: reduce) {
   .decay-static, .signal-card--heat-3 { animation: none; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   CODEX: USABILITY LAYER — readability, hierarchy, cards, touch, zero-states
+   These rules apply on top of the cinematic atmosphere. They do not change
+   the visual language — they ensure it doesn't eat the interface.
+══════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Readable text zone ─────────────────────────────────────────────────────
+   Apply .text-zone to any container that holds important body text sitting
+   over a gradient, bloom, or fog layer. Adds a subtle dark backing without
+   covering the whole screen. */
+.text-zone {
+  position: relative;
+}
+.text-zone::before {
+  content: '';
+  position: absolute;
+  inset: -8px -12px;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(3, 7, 18, 0.45) 0%, rgba(3, 7, 18, 0.62) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+.text-zone > * { position: relative; z-index: 1; }
+
+/* ─── Dark gradient mask ─────────────────────────────────────────────────────
+   Attach to a fixed/absolute parent layer to add a bottom-up dark mask behind
+   a section of content (e.g. cards over a bright bloom). */
+.gradient-mask-bottom {
+  position: relative;
+}
+.gradient-mask-bottom::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 40%;
+  background: linear-gradient(0deg, rgba(3, 7, 18, 0.72) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Faded card — base upgrade ─────────────────────────────────────────────
+   All .glass cards get a slightly stronger foundation + edge lighting.
+   Keeps the faded look while giving content a clean reading surface. */
+.glass {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28),
+    inset 1px 0 0 rgba(255, 255, 255, 0.06),
+    inset -1px 0 0 rgba(255, 255, 255, 0.04),
+    0 4px 6px rgba(0, 0, 0, 0.18),
+    0 12px 36px rgba(0, 0, 0, 0.42);
+}
+
+/* ─── Active card glow state ─────────────────────────────────────────────────
+   Applied by JS when a card is selected / actively recording / live. */
+.card--active {
+  border-color: rgba(255, 45, 120, 0.38) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 0 0 1px rgba(255, 45, 120, 0.22),
+    0 0 28px rgba(255, 45, 120, 0.14),
+    0 12px 36px rgba(0, 0, 0, 0.45) !important;
+}
+.card--active-cyan {
+  border-color: rgba(0, 212, 255, 0.38) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 0 0 1px rgba(0, 212, 255, 0.22),
+    0 0 28px rgba(0, 212, 255, 0.12),
+    0 12px 36px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* ─── Button touch targets — usable without neon ────────────────────────────
+   Pills, icon buttons, and ghost buttons all get a minimum 44px touch target,
+   stronger resting state, and a pressed feedback via :active. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--text-primary);
+}
+.btn:active {
+  background: rgba(255, 255, 255, 0.14);
+  transform: scale(0.97);
+  transition: transform 0.08s ease, background 0.08s ease;
+}
+.btn:disabled {
+  opacity: 0.32;
+  cursor: default;
+  pointer-events: none;
+}
+
+.btn-primary {
+  background: rgba(255, 45, 120, 0.16);
+  border-color: rgba(255, 45, 120, 0.44);
+  color: #ffd0e4;
+}
+.btn-primary:hover {
+  background: rgba(255, 45, 120, 0.26);
+  border-color: rgba(255, 45, 120, 0.62);
+  color: #fff0f6;
+  box-shadow: 0 0 20px rgba(255, 45, 120, 0.18);
+}
+.btn-primary:active {
+  background: rgba(255, 45, 120, 0.34);
+  box-shadow: 0 0 28px rgba(255, 45, 120, 0.28);
+}
+
+.btn-cyan {
+  background: rgba(0, 212, 255, 0.10);
+  border-color: rgba(0, 212, 255, 0.38);
+  color: #9ae8ff;
+}
+.btn-cyan:hover {
+  background: rgba(0, 212, 255, 0.18);
+  border-color: rgba(0, 212, 255, 0.55);
+  color: #ccf3ff;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.14);
+}
+.btn-cyan:active {
+  background: rgba(0, 212, 255, 0.26);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.10);
+  color: var(--text-dim);
+}
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--text-muted);
+}
+
+/* Small variant for inline/metadata actions */
+.btn-sm {
+  min-height: 34px;
+  padding: 0 13px;
+  font-size: 10px;
+  letter-spacing: 0.10em;
+}
+
+/* ─── Live badge — primary hierarchy marker ──────────────────────────────────
+   Used on rooms, signals, and profiles that are actively broadcasting. */
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 45, 120, 0.18);
+  border: 1px solid rgba(255, 45, 120, 0.4);
+  color: #ffd0e4;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.live-badge::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--pink);
+  box-shadow: 0 0 8px rgba(255, 45, 120, 0.8);
+  animation: livePulse 1.8s ease-out infinite;
+  flex-shrink: 0;
+}
+
+/* ─── Pulse ring — zero-state life ──────────────────────────────────────────
+   Wrap empty stat areas in a .pulse-ring container to show faint activity
+   residue rather than a dead box. Purely decorative. */
+.pulse-ring {
+  position: relative;
+}
+.pulse-ring::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 45, 120, 0.14);
+  animation: pulseRingFade 4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes pulseRingFade {
+  0%, 100% { opacity: 0; transform: scale(1); }
+  50%       { opacity: 1; transform: scale(1.04); }
+}
+
+.pulse-ring--cyan::after {
+  border-color: rgba(0, 212, 255, 0.14);
+}
+
+/* ─── Waveform residue — empty section texture ───────────────────────────────
+   Add to zero-state section containers for a faint waveform residue.
+   No data needed — purely atmospheric. */
+.waveform-residue {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 18px;
+  opacity: 0.22;
+  pointer-events: none;
+}
+.waveform-residue span {
+  flex: 1;
+  border-radius: 1px;
+  background: var(--text-dim);
+  animation: wfResidueBreath 5s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 0.4s);
+}
+@keyframes wfResidueBreath {
+  0%, 100% { transform: scaleY(0.5); opacity: 0.6; }
+  50%       { transform: scaleY(1); opacity: 1; }
+}
+
+/* ─── Zero-state card — empty but alive ─────────────────────────────────────
+   Replaces dead-empty sections with a purposeful faint presence. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 16px;
+  text-align: center;
+}
+.empty-state__icon {
+  font-size: 22px;
+  opacity: 0.3;
+  animation: wfResidueBreath 6s ease-in-out infinite;
+}
+.empty-state__label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  font-style: italic;
+}
+.empty-state__hint {
+  font-size: 10px;
+  color: var(--text-decorative);
+  max-width: 200px;
+  line-height: 1.5;
+}
+
+/* ─── Section kicker — readable label over any background ───────────────────
+   All .screen-kicker and related 10px uppercase labels get a text shadow
+   so they land clearly even over gradient-heavy sections. */
+.screen-kicker,
+.home-kicker,
+.stat-label,
+.room-status-label,
+.ph-card-kicker {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* ─── Mobile-safe text sizes ─────────────────────────────────────────────────
+   Below 400px, any text that was sub-10px becomes 10px min.
+   Prevents metadata becoming unreadable on small phones. */
+@media (max-width: 400px) {
+  .room-status-label,
+  .ph-card-kicker,
+  .stat-label,
+  .nav-label,
+  .badge,
+  .screen-kicker,
+  .home-kicker {
+    font-size: 10px !important;
+    letter-spacing: 0.14em;
+  }
+  .room-desc,
+  .ph-bio,
+  .ph-tonight li,
+  .ph-traits li {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  /* give cards slightly more breathing room on tiny screens */
+  .glass { padding: 14px !important; }
+}
+
+/* ─── Content-above-nav guard ────────────────────────────────────────────────
+   Ensures no card or section is clipped by the bottom nav on any screen.
+   120px bottom padding is already in .content-well but some screens use
+   their own wrappers — this class makes the guard explicit. */
+.nav-safe-bottom {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+
+/* ─── Decorative opacity ceiling ────────────────────────────────────────────
+   Any element marked .decor is capped at 0.45 opacity so it cannot
+   visually compete with UI content regardless of its own color value. */
+.decor {
+  opacity: var(--decor-opacity, 0.38);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ─── Atmosphere z-index audit: enforce layering contract ────────────────────
+   Background: 0 (atmosphere gradient)
+   Particles: 1
+   Feed fog + glow orbs: 1–2
+   Feed grain: 2 (was 4 — lowered to stay under content-well z:10)
+   Content-well: 10
+   Scanlines/CRT: 200–201 (cosmetic overlay, pointer-events:none)
+   This comment block documents intent; z-index values above are in-place. */
+
+/* Feed grain: keep strictly below content-well (z:10) */
+.feed-grain { z-index: 2; }
+
+/* ─── Onboarding: grounded profile selection ────────────────────────────────
+   Boot and claim screens should feel analog, not arcade. */
+.boot-human-actions button,
+.boot-continue-button,
+.boot-identity-button {
+  /* slow the active feel — no instant flash */
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.35s ease, transform 0.15s ease;
+}
+.boot-human-actions button:active,
+.boot-continue-button:active,
+.boot-identity-button:active {
+  transform: scale(0.97);
+  transition: transform 0.08s ease, background 0.1s ease;
+}
+
+/* Onboarding step label — show progress clearly */
+.boot-step-label {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: center;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
+}
+
+.boot-step-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.boot-step-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+.boot-step-dot.active {
+  background: var(--pink);
+  box-shadow: 0 0 8px rgba(255, 45, 120, 0.6);
+}
+
+/* Sigil/frequency preview: let the selected option be unmistakably chosen */
+.sigil-preview-active {
+  border-color: rgba(255, 45, 120, 0.7) !important;
+  box-shadow: 0 0 0 2px rgba(255, 45, 120, 0.28), 0 0 20px rgba(255, 45, 120, 0.18) !important;
+  transform: scale(1.06) !important;
+  transition: all 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.freq-preview-active {
+  border-color: rgba(0, 212, 255, 0.7) !important;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.28), 0 0 20px rgba(0, 212, 255, 0.16) !important;
+}
+
+/* ─── Profile zero-state: alive but quiet ────────────────────────────────────
+   When vault stats are 0, they should still have structure and presence. */
+.ph-vault-stat {
+  /* stronger foundation so the stat box doesn't dissolve */
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.10);
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.ph-vault-stat:hover:not(.ph-vault-stat--static) {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 45, 120, 0.28);
+  box-shadow: 0 0 16px rgba(255, 45, 120, 0.08);
+}
+.ph-vault-stat strong {
+  text-shadow: 0 0 16px rgba(255, 45, 120, 0.35);
+}
+/* zero value: dim the pink number, show a faint residue bar */
+.ph-vault-stat[data-zero="true"] strong {
+  color: rgba(255, 45, 120, 0.38);
+  font-size: 16px;
+}
+.ph-vault-stat[data-zero="true"]::after {
+  content: '';
+  display: block;
+  height: 2px;
+  margin-top: 6px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 45, 120, 0.22), transparent);
+  animation: pulseRingFade 5s ease-in-out infinite;
+}
+
+/* Profile echo-meta / joined / count labels: lifted from 0.55 */
+.ph-echo-meta,
+.ph-card-count {
+  color: rgba(175, 188, 220, 0.78);
+}
+
+/* ─── Room card: live state distinction ─────────────────────────────────────
+   A live room must feel immediately different from a quiet one. */
+.room-card.room-card--live {
+  border-color: rgba(255, 45, 120, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 0 28px rgba(255, 45, 120, 0.08),
+    0 8px 28px rgba(0, 0, 0, 0.38);
+}
+.room-name   { text-shadow: var(--text-shadow-soft); }
+.room-desc   { color: var(--text-muted); }
+.room-status-label { color: var(--text-dim); }
+
+/* ─── Reduced motion: honour the system preference ───────────────────────────
+   Any animation added in this layer respects prefers-reduced-motion. */
+@media (prefers-reduced-motion: reduce) {
+  .pulse-ring::after,
+  .waveform-residue span,
+  .empty-state__icon,
+  .ph-vault-stat[data-zero="true"]::after,
+  .live-badge::before {
+    animation: none;
+  }
+  .btn,
+  .btn:active,
+  .boot-human-actions button:active,
+  .boot-continue-button:active,
+  .boot-identity-button:active {
+    transform: none;
+    transition: none;
+  }
 }
