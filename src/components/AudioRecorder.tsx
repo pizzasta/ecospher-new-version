@@ -9,6 +9,7 @@ import type { AudioMessageKind } from '../lib/library'
 import VoiceConsentNotice from './VoiceConsentNotice'
 import { voiceNoticeSeen, markVoiceNoticeSeen } from '../lib/voiceNotice'
 import './recording.css'
+import { momentRecordStart, momentRecordEnd, fireMoment } from '../lib/audioMoments'
 
 const LIVE_BAR_COUNT = 22
 
@@ -90,12 +91,14 @@ export default function AudioRecorder({
 
   const stopRecording = useCallback(() => {
     if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+      fireMoment('recordEnd', momentRecordEnd)
       recorderRef.current.stop()
     }
   }, [])
 
   const startRecording = async () => {
     if (state === 'recording') return
+    fireMoment('recordStart', momentRecordStart)
     setNote(null)
     setPreview(null)
 
