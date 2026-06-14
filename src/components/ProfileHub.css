@@ -304,7 +304,14 @@
   padding: 14px;
   border-radius: 18px;
   overflow: hidden;
-  isolation: isolate;
+  /* NOTE: no `isolation: isolate` here. The gradient layer below is
+     position:fixed with z-index:-1 so it can sit behind ALL pod content —
+     the orb chamber (PodPresence) that precedes this section in the DOM as
+     well as the hub cards. Isolating this section into its own stacking
+     context trapped that z-index:-1 inside the hub, which made the full-
+     viewport gradient + dark scrim paint OVER the orb at the very top,
+     hiding it. Letting it resolve in the .screen stacking context (see the
+     `body[data-eco-page='pod'] .screen` rule) keeps it behind everything. */
 }
 
 /* the background is the whole page, not just the hub section. z-index:-1 keeps
