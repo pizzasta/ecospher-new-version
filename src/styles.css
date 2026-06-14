@@ -178,6 +178,15 @@ html, body, #root {
 .screen-title  { font-size: clamp(28px, 8vw, 44px); font-weight: 900; letter-spacing: -0.03em; line-height: 1; color: var(--text-primary); }
 .screen-sub    { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
 
+/* the eyebrow label breathes a little so every screen header has a pulse */
+@media (prefers-reduced-motion: no-preference) {
+  .screen-kicker { animation: kickerBreathe 6.5s ease-in-out infinite; }
+}
+@keyframes kickerBreathe {
+  0%, 100% { opacity: 0.84; transform: translateX(0); }
+  50%      { opacity: 1; transform: translateX(1.5px); }
+}
+
 /* ─── Home screen ────────────────────────────────────────────────────────────── */
 .home-screen { gap: 20px; }
 .home-kicker {
