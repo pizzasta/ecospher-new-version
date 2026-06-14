@@ -100,6 +100,12 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
       )}
       {/* faded scrim + soft bloom so the preview reads muted and cinematic, not neon */}
       <div className="po-preview-wash" aria-hidden="true" />
+      {/* frequency waveform: the signal you give off, breathing along the floor */}
+      <div className="po-preview-waves" aria-hidden="true">
+        {Array.from({ length: 32 }, (_, i) => (
+          <i key={i} style={{ '--w-i': i, '--w-h': `${28 + ((i * 37 + 19) % 64)}%`, '--w-d': `${(i % 7) * 0.13}s` } as CSSProperties} />
+        ))}
+      </div>
       <span className="po-preview-sigil atmo-breathe" style={{ color: palette.end }}>{sigilGlyph(sigil) || 'hz'}</span>
     </div>
   )

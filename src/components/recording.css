@@ -284,6 +284,30 @@
   gap: 14px;
 }
 
+/* ── first-signal ritual: keep the recorder fully on screen ───────────────
+   This step reuses the name-claim shell, whose headline is huge
+   (clamp(54px,12vw,136px)) and whose shell/panel clip overflow. On desktop the
+   giant headline pushed the recorder — and its record/stop/send buttons — past
+   the viewport where overflow:hidden then cut them off, so you couldn't finish
+   a recording. Scope a calmer headline, allow the shell to scroll, and stop the
+   panel from clipping the recorder. The name-claim step is untouched. */
+.claim-signal-shell.first-signal-shell {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.first-signal-shell .identity-claim-screen {
+  align-content: start;
+  gap: clamp(18px, 3vw, 28px);
+}
+.first-signal-shell .identity-claim-copy h1 {
+  font-size: clamp(32px, 6vw, 62px);
+  line-height: 0.95;
+}
+/* the recorder, preview player and action buttons must never be clipped */
+.identity-claim-panel.first-signal-panel {
+  overflow: visible;
+}
+
 .first-signal-silent {
   padding: 10px 16px;
   border-radius: 999px;

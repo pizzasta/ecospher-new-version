@@ -2457,6 +2457,9 @@ type SeaBuoy = {
   mine?: boolean
   /** a typed "cast a line" text signal (vs. drifting audio) */
   cast?: boolean
+  /** true = a drifting voice/sound; false = a written/typed signal. drives the
+      voices-only / text-only filter so both views actually show something. */
+  voice: boolean
   /** optimistic sync status for a freshly cast line */
   status?: 'casting' | 'drifting' | 'failed'
 }
@@ -2527,6 +2530,9 @@ function makeBuoy(id: number, night: boolean): SeaBuoy {
     deep: night && id % 7 === 5,
     tone: toneDef.id,
     subtitles: toneDef.subtitles,
+    // reactions and rooms drift as voices; unsent/deadzone/feed are written
+    // lines someone never sent — text. keeps both filter views populated.
+    voice: source === 'reaction' || source === 'room',
   }
 }
 
@@ -2563,6 +2569,7 @@ function makeTypedBuoy(id: number, text: string): SeaBuoy {
     subtitles: [text],
     mine: true,
     cast: true,
+    voice: false,
     status: 'drifting',
   }
 }
@@ -3103,7 +3110,7 @@ function FrequenciesScreen() {
             </div>
           )
         })}
-        {buoys.filter(b => textFilter === 'all' || (textFilter === 'text' ? b.cast : !b.cast)).map(b => {
+        {buoys.filter(b => textFilter === 'all' || (textFilter === 'audio' ? b.voice : !b.voice)).map(b => {
           const near = nearId === b.id
           const isStable = stabilized.includes(b.id)
           return (
