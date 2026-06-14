@@ -581,7 +581,7 @@ function FirstSignalRitualStep({ onComplete }: { onComplete: () => void }) {
   }
 
   return (
-    <main className="claim-signal-shell identity-claim-shell">
+    <main className="claim-signal-shell identity-claim-shell first-signal-shell">
       <div className="claim-atmosphere" aria-hidden="true">
         <span /><span /><span /><span /><span /><span />
       </div>
