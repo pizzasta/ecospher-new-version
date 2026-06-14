@@ -1,0 +1,151 @@
+/* ═══ FIRST TOUR — six cards, one pass ═══════════════════════ */
+.first-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 420;
+  background: rgba(2, 5, 12, 0.82);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+}
+
+.first-tour-card {
+  width: min(420px, 100%);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 45, 120, 0.25);
+  background: rgba(5, 9, 20, 0.96);
+  padding: 28px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+  align-items: center;
+  animation: firstTourIn 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes firstTourIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.first-tour-glyph {
+  font-size: 30px;
+  color: var(--pink, #ff2d78);
+  text-shadow: 0 0 22px rgba(255, 45, 120, 0.45);
+}
+
+.first-tour-card h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: var(--text-primary, #f0f4ff);
+  text-transform: lowercase;
+}
+
+.first-tour-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: rgba(210, 220, 242, 0.78);
+}
+
+.first-tour-dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.first-tour-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(140, 155, 195, 0.25);
+}
+
+.first-tour-dots i.active {
+  background: var(--pink, #ff2d78);
+  box-shadow: 0 0 8px rgba(255, 45, 120, 0.5);
+}
+
+.first-tour-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.first-tour-skip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: rgba(140, 155, 195, 0.55);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+.first-tour-next {
+  padding: 11px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 45, 120, 0.5);
+  background: rgba(255, 45, 120, 0.12);
+  color: #ffd3e2;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+/* rules step */
+.rules-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 560px;
+}
+
+.rules-list li {
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(215, 224, 245, 0.8);
+  text-align: left;
+}
+
+.rules-list b {
+  color: var(--text-primary, #f0f4ff);
+}
+
+.rules-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.rules-legal {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(140, 155, 195, 0.6);
+}
+
+.rules-legal a {
+  color: #67e8f9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .first-tour-card {
+    animation: none;
+  }
+}

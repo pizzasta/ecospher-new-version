@@ -1,0 +1,114 @@
+/* ═══ DAILY FREQUENCY RECAP ══════════════════════════════════ */
+.freq-recap {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.freq-recap-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.freq-recap-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #67e8f9;
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.55);
+}
+
+.freq-recap-dot--live {
+  animation: freqRecapPulse 1.4s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+
+@keyframes freqRecapPulse {
+  0%, 100% { opacity: 0.55; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.12); }
+}
+
+.freq-recap-title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #67e8f9;
+  text-transform: lowercase;
+}
+
+.freq-recap-sub {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(180, 190, 220, 0.55);
+}
+
+.freq-recap-line {
+  margin: 0;
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.55;
+  color: rgba(230, 236, 255, 0.85);
+}
+
+.freq-recap-steps {
+  display: flex;
+  gap: 5px;
+}
+
+.freq-recap-steps i {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(140, 155, 195, 0.2);
+  transition: background 0.4s ease;
+}
+
+.freq-recap-steps i.done {
+  background: linear-gradient(90deg, #67e8f9, rgba(155, 93, 229, 0.7));
+}
+
+.freq-recap-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.freq-recap-play {
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 212, 255, 0.5);
+  background: rgba(0, 212, 255, 0.1);
+  color: #67e8f9;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+.freq-recap-skip {
+  align-self: flex-start;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: rgba(180, 190, 220, 0.55);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .freq-recap-dot--live {
+    animation: none;
+    will-change: auto;
+  }
+
+  .freq-recap-steps i {
+    transition: none;
+  }
+}
