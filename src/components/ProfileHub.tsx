@@ -32,6 +32,7 @@ import { readLastVoiceAt, silentDays } from '../lib/weightOfSilence'
 import { recapAvailable } from '../lib/frequencyRecap'
 import { currentDrop } from '../lib/frequencyDrops'
 import { localDayKey } from '../lib/frequencyRecap'
+import { fireMoment, momentIdentitySelect, momentOnboardStep } from '../lib/audioMoments'
 import './ProfileHub.css'
 
 const FIRST_SEEN_KEY = 'ecosphere:firstSeenAt'
@@ -81,6 +82,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   const [settling, setSettling] = useState<string | null>(null)
   const chooseSigil = (id: string) => {
     saveAvatar(id); setAvatar(id)
+    fireMoment('identitySelect', () => momentIdentitySelect(hzProfile.hz))
     setSettling(id); window.setTimeout(() => setSettling(s => (s === id ? null : s)), 700)
   }
   const [sigilOpen, setSigilOpen] = useState(false)
@@ -318,7 +320,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
           </div>
           {joined && <p className="ph-joined">on the band since {joined}</p>}
           {hzSettingsOpen && (
-            <HzSettingsModal profile={hzProfile} onChange={setHzProfile} onClose={() => setHzSettingsOpen(false)} />
+            <HzSettingsModal profile={hzProfile} onChange={(p) => { setHzProfile(p); fireMoment('identitySelect', () => momentIdentitySelect(p.hz)) }} onClose={() => setHzSettingsOpen(false)} />
           )}
           {gradientOpen && (
             <FrequencyGradientModal
@@ -721,6 +723,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
         <ProfileOnboarding
           accentColor={hzProfile.color}
           onDone={() => {
+            fireMoment('onboardDone', momentOnboardStep)
             setGradient(readGradientSettings())
             setAvatar(readAvatar())
             setMoodVars(moodToVars(readMood()))
