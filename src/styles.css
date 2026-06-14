@@ -4274,16 +4274,28 @@ html, body, #root {
 }
 
 .boot-human h2 {
-  color: #fff7fb;
+  color: #fdf6fa;
   font-size: clamp(24px, 7vw, 76px);
-  line-height: 1.0;
+  font-weight: 600;
+  line-height: 1.08;
+  /* a hair of tracking — cinematic, intimate, premium (not a gaming HUD) */
+  letter-spacing: -0.005em;
   margin: 0 auto 24px;
   max-width: 780px;
   overflow: visible;
-  text-shadow: 0 0 46px rgba(255, 42, 116, 0.16);
   overflow-wrap: break-word;
   word-break: break-word;
   width: 100%;
+  /* elegant line breaks for the sentence */
+  text-wrap: balance;
+  /* crisp first, dreamy second: a tight dark lift keeps the words sharp on the
+     haze, with only a faint warm bloom (~40% less blur & glow than before). */
+  text-shadow:
+    0 1px 2px rgba(8, 6, 14, 0.55),
+    0 0 28px rgba(255, 64, 130, 0.1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .boot-mic-wave {
