@@ -19,6 +19,16 @@ export const NOTE_MAX = 120
 export const NOTE_COLORS = ['#caa57f', '#a8889b', '#7f9bb0', '#8fae8f', '#b0937f', '#9b8fb0']
 
 const KEY = 'ecosphere:stickyNotes'
+const SEED_KEY = 'ecosphere:stickyNotes:seeded'
+
+// real, plain starter notes — pinned once so the board isn't an empty box. they
+// are ordinary notes: editable, draggable, deletable. one quietly explains the
+// drag/swap affordance; the rest just sound like someone awake at 3am.
+const STARTER_NOTES: ReadonlyArray<{ text: string; color: string }> = [
+  { text: "3am and wide awake. somehow the quiet hum on here is the only thing tonight that doesn't feel like too much.", color: NOTE_COLORS[0] },
+  { text: "a voice drifted past that sounded exactly like how i've been feeling. didn't reply. just sat with it for a while.", color: NOTE_COLORS[2] },
+  { text: "↜ drag these around. swap them for your own when you've got a thought worth keeping.", color: NOTE_COLORS[1] },
+]
 
 export function loadNotes(): StickyNote[] {
   try {
@@ -29,6 +39,28 @@ export function loadNotes(): StickyNote[] {
 
 function persist(notes: StickyNote[]): void {
   try { window.localStorage.setItem(KEY, JSON.stringify(notes.slice(0, 60))) } catch { /* session only */ }
+}
+
+/**
+ * Notes for display, seeding the starter set exactly once on a never-used board.
+ * The seed flag means we never re-add them after the user clears their wall —
+ * an empty board after that is a real choice, not a fresh start.
+ */
+export function loadOrSeed(): StickyNote[] {
+  const existing = loadNotes()
+  if (existing.length > 0) return existing
+  try { if (window.localStorage.getItem(SEED_KEY)) return existing } catch { return existing }
+  const now = Date.now()
+  const seeded: StickyNote[] = STARTER_NOTES.map((s, i) => ({
+    id: `seed_${i}_${now.toString(36)}`,
+    text: s.text,
+    color: s.color,
+    public: false,
+    createdAt: now - i * 1000,
+  }))
+  persist(seeded)
+  try { window.localStorage.setItem(SEED_KEY, '1') } catch { /* session only */ }
+  return seeded
 }
 
 export function canGoPublic(text: string): boolean {
