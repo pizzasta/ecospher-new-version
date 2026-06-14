@@ -4,6 +4,7 @@ import { useEcosystemState } from '../hooks/useEcosystemState'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { useEcoPref } from '../hooks/useEcoPrefs'
 import { uiClick, uiPop, uiScrollHiss } from '../lib/uiSound'
+import { fireMoment, momentEcosystemEnter } from '../lib/audioMoments'
 import ColorWave from './ColorWave'
 import { effectiveNightIntensity, isDeepNight } from '../lib/nightMode'
 import { liveToastFor, setLivePage, startLiveBus, stopLiveBus } from '../lib/liveBus'
@@ -63,6 +64,30 @@ export default function EcosphereAmbience() {
     const onUploads = (event: Event) => setUploadsPending((event as CustomEvent<{ pending?: number }>).detail?.pending ?? 0)
     window.addEventListener('ecosphere:uploads', onUploads)
     return () => window.removeEventListener('ecosphere:uploads', onUploads)
+  }, [])
+  const lurker
+  // cinematic moment: ecosystem feels real once weather + live bus settle
+  const ecoEnterFiredRef = useRef(false)
+  useEffect(() => {
+    if (ecoEnterFiredRef.current) return
+    ecoEnterFiredRef.current = true
+    const t = window.setTimeout(() => {
+      fireMoment('ecosystemEnter', momentEcosystemEnter)
+    }, 800)
+    return () => window.clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // cinematic moment: ecosystem feels real once weather + live bus settle
+  const ecoEnterFiredRef = useRef(false)
+  useEffect(() => {
+    if (ecoEnterFiredRef.current) return
+    ecoEnterFiredRef.current = true
+    const t = window.setTimeout(() => {
+      fireMoment('ecosystemEnter', momentEcosystemEnter)
+    }, 800)
+    return () => window.clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const lurker = useEcoPref('lurker', false)
   const [listeners, setListeners] = useState(() => 14 + Math.floor(Math.random() * 23))
