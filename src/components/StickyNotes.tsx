@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import {
-  loadNotes, addNote, updateNote, deleteNote, reorderNotes, saveOrder, NOTE_COLORS, NOTE_MAX,
+  loadNotes, loadOrSeed, addNote, updateNote, deleteNote, reorderNotes, saveOrder, NOTE_COLORS, NOTE_MAX,
 } from '../lib/stickyNotes'
 import type { StickyNote } from '../lib/stickyNotes'
 import { noteSyncEnabled, publishNote } from '../lib/noteSync'
@@ -13,7 +13,7 @@ import './StickyNotes.css'
 // well-travelled ones surface on Relics. Drag to arrange your own wall.
 
 export default function StickyNotes() {
-  const [notes, setNotes] = useState<StickyNote[]>(() => loadNotes())
+  const [notes, setNotes] = useState<StickyNote[]>(() => loadOrSeed())
   const [draft, setDraft] = useState('')
   const [color, setColor] = useState(NOTE_COLORS[0])
   const [makePublic, setMakePublic] = useState(false)

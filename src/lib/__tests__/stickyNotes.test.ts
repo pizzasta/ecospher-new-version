@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
-import { addNote, loadNotes, updateNote, deleteNote, reorderNotes, NOTE_COLORS } from '../stickyNotes'
+import { addNote, loadNotes, loadOrSeed, updateNote, deleteNote, reorderNotes, NOTE_COLORS } from '../stickyNotes'
 import { featuredNotes } from '../relicNotes'
 
 describe('sticky notes', () => {
@@ -33,6 +33,18 @@ describe('sticky notes', () => {
     expect(loadNotes().find(n => n.id === notes[0].id)?.text).toBe('edited note text here')
     deleteNote(notes[0].id)
     expect(loadNotes()).toHaveLength(1)
+  })
+
+  it('seeds real starter notes once, then never re-seeds a cleared board', () => {
+    const seeded = loadOrSeed()
+    expect(seeded.length).toBeGreaterThan(0)
+    // seeds are ordinary, editable notes
+    expect(seeded.every(n => typeof n.id === 'string' && n.public === false)).toBe(true)
+    // a second load returns the same stored notes, not a fresh seed
+    expect(loadOrSeed()).toHaveLength(seeded.length)
+    // clearing the board is respected — no re-seed
+    seeded.forEach(n => deleteNote(n.id))
+    expect(loadOrSeed()).toHaveLength(0)
   })
 
   it('only public notes graduate to featured relics, capped + rotated', () => {
