@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import './recording.css'
+import { fireMoment, momentSignalReplay } from '../lib/audioMoments'
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00'
@@ -70,6 +71,7 @@ export default function AudioPlayer({ src, title, seed = 21, durationSeconds, ac
       audio.pause()
       setPlaying(false)
     } else {
+      fireMoment('signalReplay', momentSignalReplay)
       void audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
     }
   }
