@@ -10,6 +10,8 @@ export interface StickyNote {
   text: string
   color: string
   public: boolean
+  // anchored — emotionally pinned. stays cleaner, ages slower, holds its place.
+  anchored?: boolean
   createdAt: number
 }
 
@@ -83,7 +85,7 @@ export function addNote(text: string, color: string, isPublic: boolean): { note:
   return { note }
 }
 
-export function updateNote(id: string, patch: Partial<Pick<StickyNote, 'text' | 'color' | 'public'>>): StickyNote[] {
+export function updateNote(id: string, patch: Partial<Pick<StickyNote, 'text' | 'color' | 'public' | 'anchored'>>): StickyNote[] {
   const notes = loadNotes().map(n => {
     if (n.id !== id) return n
     const next = { ...n, ...patch }
