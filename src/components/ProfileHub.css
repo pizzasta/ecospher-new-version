@@ -31,6 +31,7 @@
   font-weight: 800;
   letter-spacing: 0.22em;
   color: #f9a8d4;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
 }
 
 .ph-card-count {
@@ -51,6 +52,7 @@
   font-size: 18px;
   font-weight: 900;
   color: var(--text-primary, #f0f4ff);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.6);
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -321,13 +323,14 @@ body[data-eco-page='pod'] .screen {
   z-index: 1;
 }
 
-/* readability scrim: light at the top so the colors actually show,
-   heavier behind the card columns */
+/* readability scrim: keep enough darkness top-to-bottom that the light text
+   (pink kickers, near-white headings) stays legible even when a profile's
+   gradient renders bright or pale. some color still reads through. */
 .ph-gradient-layer::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(3, 7, 18, 0.22), rgba(3, 7, 18, 0.5));
+  background: linear-gradient(180deg, rgba(3, 7, 18, 0.58), rgba(3, 7, 18, 0.84));
 }
 
 /* cards go translucent inside the hub so the background reads through */
