@@ -90,3 +90,18 @@ export function uiScrollHiss(speed: number) {
   hissGain.gain.setTargetAtTime(target, ctx.currentTime, 0.06)
   hissGain.gain.setTargetAtTime(0, ctx.currentTime + 0.12, 0.18)
 }
+
+// ─── Re-export cinematic moments ─────────────────────────────────────────────
+// All moment functions live in audioMoments.ts. Re-exported here so components
+// that already import from uiSound can add moment calls without a new import.
+export {
+  momentAppOpen,
+  momentScreenTransition,
+  momentOnboardStep,
+  momentIdentitySelect,
+  momentEcosystemEnter,
+  momentSignalReplay,
+  momentRecordStart,
+  momentRecordEnd,
+  fireMoment,
+} from './audioMoments'
