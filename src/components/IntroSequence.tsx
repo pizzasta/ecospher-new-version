@@ -43,6 +43,37 @@ function IntroWaveform({ active = false, bars = 9 }: { active?: boolean; bars?: 
   )
 }
 
+// Ambient signal readouts that hang in the margins — faint, off-center, slowly
+// drifting. They give the boot screen the feel of a system quietly running
+// around you, breaking the perfect centered symmetry without becoming chaos.
+function BootAmbientHud() {
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    const id = window.setInterval(() => setTick(t => t + 1), 2300)
+    return () => window.clearInterval(id)
+  }, [])
+  const freq = (107.7 + ((tick * 0.013) % 1.6)).toFixed(2)
+  const packets = (48213 + tick * 17).toLocaleString()
+  const level = 4 + (tick % 4)
+  const bars = '▰'.repeat(level) + '▱'.repeat(8 - level)
+  const lat = (51.5074 + Math.sin(tick * 0.21) * 0.004).toFixed(4)
+  const lon = (-0.1278 + Math.cos(tick * 0.17) * 0.004).toFixed(4)
+  const drift = (Math.sin(tick * 0.33) * 1.4).toFixed(1)
+  const up = 187 + tick * 2
+  const mm = String(Math.floor(up / 60) % 60).padStart(2, '0')
+  const ss = String(up % 60).padStart(2, '0')
+  return (
+    <div className="boot-hud" aria-hidden="true">
+      <span className="boot-hud-item boot-hud-tl">nocturne band · {freq} mhz</span>
+      <span className="boot-hud-item boot-hud-l">carrier lock <i className="boot-hud-bars">{bars}</i></span>
+      <span className="boot-hud-item boot-hud-tr">lat {lat}<br />lon {lon}</span>
+      <span className="boot-hud-item boot-hud-r">packets {packets}</span>
+      <span className="boot-hud-item boot-hud-bl">uplink 00:{mm}:{ss}</span>
+      <span className="boot-hud-item boot-hud-br">drift {drift}°</span>
+    </div>
+  )
+}
+
 function usePrefersReducedMotion() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
 
@@ -405,6 +436,8 @@ export default function IntroSequence({ onComplete, onSkip }: IntroSequenceProps
             <IntroWaveform active={phase >= 2 || micActive} bars={9} />
           </div>
         </div>
+
+        <BootAmbientHud />
 
         <AnimatePresence mode="wait">
           {phase === 0 ? (
