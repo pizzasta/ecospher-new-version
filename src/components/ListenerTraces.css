@@ -1,0 +1,66 @@
+/* ═══ LISTENER TRACES — small fingerprints, lightly pinned ═══ */
+.listener-traces {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.lt-scrap {
+  max-width: 82%;
+  margin-left: min(var(--lt-offset, 0%), 38%);
+  padding: 5px 10px 6px;
+  border-radius: 2px 7px 3px 6px;
+  background: rgba(24, 28, 44, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-left: 2px solid rgba(140, 155, 195, 0.25);
+  transform: rotate(var(--lt-tilt, 0deg));
+  animation: ltDriftIn 1.6s ease both;
+}
+
+/* occasional overlap — nothing lines up on purpose */
+.lt-scrap--overlap {
+  margin-top: -3px;
+}
+
+.lt-scrap p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(205, 213, 235, 0.68);
+  text-transform: lowercase;
+}
+
+.lt-scrap--night {
+  border-left-color: rgba(155, 93, 229, 0.35);
+}
+
+.lt-scrap--night p {
+  color: rgba(196, 181, 253, 0.6);
+}
+
+.lt-scrap--known {
+  border-left-color: rgba(0, 212, 255, 0.35);
+}
+
+.lt-scrap--known em {
+  display: block;
+  font-size: 7px;
+  font-style: normal;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(0, 212, 255, 0.45);
+  margin-bottom: 2px;
+}
+
+@keyframes ltDriftIn {
+  from { opacity: 0; transform: rotate(var(--lt-tilt, 0deg)) translateY(4px); }
+  to { opacity: 1; transform: rotate(var(--lt-tilt, 0deg)) translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lt-scrap {
+    animation: none;
+  }
+}

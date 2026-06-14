@@ -1,0 +1,221 @@
+/* ═══ 3D PROFILE SCENES — grid / stars / tunnel ══════════════ */
+.ph-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* ── synthwave floor grid ───────────────────────────────────── */
+.ph-scene--grid {
+  perspective: 320px;
+  background: #04030c;
+}
+
+.ps-grid-sky {
+  position: absolute;
+  inset: 0 0 42%;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 100%, color-mix(in srgb, var(--ps-c1) 36%, transparent), transparent 70%),
+    linear-gradient(180deg, #03020a, transparent);
+}
+
+.ps-grid-sun {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  width: 120px;
+  height: 120px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--ps-c3), var(--ps-c2) 70%);
+  filter: blur(1px);
+  opacity: 0.55;
+  -webkit-mask-image: repeating-linear-gradient(180deg, #000 0 10px, transparent 10px 14px);
+  mask-image: repeating-linear-gradient(180deg, #000 0 10px, transparent 10px 14px);
+}
+
+.ps-grid-floor {
+  position: absolute;
+  left: -40%;
+  right: -40%;
+  top: 52%;
+  bottom: -30%;
+  transform-origin: 50% 0;
+  transform: rotateX(62deg);
+}
+
+.ps-grid-floor i {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--ps-c1) 55%, transparent) 0 1.5px, transparent 1.5px 56px),
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--ps-c2) 55%, transparent) 0 1.5px, transparent 1.5px 56px);
+  animation: psGridScroll 3.2s linear infinite;
+}
+
+@keyframes psGridScroll {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 0 0, 0 56px; }
+}
+
+.ps-grid-horizon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 52%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--ps-c3), transparent);
+  box-shadow: 0 0 22px var(--ps-c3), 0 0 60px color-mix(in srgb, var(--ps-c1) 60%, transparent);
+}
+
+/* ── starfield with depth ───────────────────────────────────── */
+.ph-scene--stars {
+  background: radial-gradient(ellipse 120% 100% at 50% 40%, #060414, #02020a);
+}
+
+.ps-star {
+  position: absolute;
+  border-radius: 50%;
+  animation: psStarZoom linear infinite;
+  will-change: transform, opacity;
+}
+
+.ps-star--0 { background: var(--ps-c1); box-shadow: 0 0 6px var(--ps-c1); }
+.ps-star--1 { background: var(--ps-c2); box-shadow: 0 0 6px var(--ps-c2); }
+.ps-star--2 { background: var(--ps-c3); box-shadow: 0 0 8px var(--ps-c3); }
+
+@keyframes psStarZoom {
+  0% { transform: scale(0.2); opacity: 0; }
+  18% { opacity: 0.9; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+.ps-star-nebula {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(ellipse 40% 30% at 28% 60%, color-mix(in srgb, var(--ps-c1) 16%, transparent), transparent 70%),
+    radial-gradient(ellipse 36% 28% at 72% 30%, color-mix(in srgb, var(--ps-c2) 14%, transparent), transparent 70%);
+  filter: blur(8px);
+}
+
+/* ── wormhole tunnel ────────────────────────────────────────── */
+.ph-scene--tunnel {
+  perspective: 420px;
+  background: radial-gradient(circle at 50% 46%, #060312, #020108 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ps-ring {
+  position: absolute;
+  width: min(72vw, 420px);
+  height: min(72vw, 420px);
+  border-radius: 50%;
+  border: 1.5px solid;
+  animation: psRingApproach 12.6s linear infinite;
+  will-change: transform, opacity;
+}
+
+.ps-ring--0 { border-color: color-mix(in srgb, var(--ps-c1) 75%, transparent); box-shadow: 0 0 18px color-mix(in srgb, var(--ps-c1) 40%, transparent); }
+.ps-ring--1 { border-color: color-mix(in srgb, var(--ps-c2) 75%, transparent); box-shadow: 0 0 18px color-mix(in srgb, var(--ps-c2) 40%, transparent); }
+.ps-ring--2 { border-color: color-mix(in srgb, var(--ps-c3) 75%, transparent); box-shadow: 0 0 18px color-mix(in srgb, var(--ps-c3) 40%, transparent); }
+
+@keyframes psRingApproach {
+  0% { transform: rotateX(18deg) scale(0.04); opacity: 0; }
+  12% { opacity: 0.85; }
+  100% { transform: rotateX(18deg) scale(2.1); opacity: 0; }
+}
+
+.ps-tunnel-core {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--ps-c3);
+  filter: blur(10px);
+  opacity: 0.8;
+}
+
+/* battery + vestibular respect: scenes freeze into a still frame */
+@media (prefers-reduced-motion: reduce) {
+  .ps-grid-floor i { animation: none; }
+  .ps-star { animation: none; opacity: 0.6; }
+  .ps-ring { animation: none; opacity: 0.4; transform: rotateX(18deg) scale(1); }
+  .ps-ring:nth-child(2n) { transform: rotateX(18deg) scale(0.6); }
+  .ps-ring:nth-child(3n) { transform: rotateX(18deg) scale(1.4); }
+}
+
+/* ─── aurora ─────────────────────────────────────────────── */
+.ph-scene--aurora { background: radial-gradient(120% 90% at 50% 0%, #060a18 0%, #04060f 70%); overflow: hidden; }
+.ps-aurora {
+  position: absolute;
+  left: -20%;
+  width: 140%;
+  height: 55%;
+  filter: blur(34px);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  border-radius: 50%;
+}
+.ps-aurora--a { top: 6%;  background: linear-gradient(90deg, transparent, var(--ps-c1), transparent); animation: psAurora 14s ease-in-out infinite; }
+.ps-aurora--b { top: 26%; background: linear-gradient(90deg, transparent, var(--ps-c3), transparent); animation: psAurora 18s ease-in-out infinite reverse; }
+.ps-aurora--c { top: 44%; background: linear-gradient(90deg, transparent, var(--ps-c2), transparent); animation: psAurora 22s ease-in-out infinite; animation-delay: -7s; }
+@keyframes psAurora {
+  0%, 100% { transform: translateX(-8%) skewX(-12deg) scaleY(0.9); opacity: 0.4; }
+  50% { transform: translateX(8%) skewX(10deg) scaleY(1.15); opacity: 0.7; }
+}
+.ps-aurora-stars i { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff; opacity: 0.5; animation: psTwinkle 5s ease-in-out infinite; }
+
+/* ─── rain on glass ──────────────────────────────────────── */
+.ph-scene--rain { background: linear-gradient(180deg, #070b16, #04060e); overflow: hidden; }
+.ps-rain-glass {
+  position: absolute; inset: 0;
+  background: radial-gradient(120% 80% at 50% 20%, color-mix(in srgb, var(--ps-c1) 18%, transparent), transparent 70%);
+}
+.ps-raindrop {
+  position: absolute;
+  top: -10%;
+  width: 1.5px;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--ps-c3) 80%, #fff));
+  opacity: 0.5;
+  animation-name: psRain;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes psRain {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 0.6; }
+  100% { transform: translateY(280px); opacity: 0; }
+}
+
+/* ─── rotating mesh ──────────────────────────────────────── */
+.ph-scene--mesh { background: radial-gradient(120% 100% at 50% 50%, #0a1020 0%, #04060e 70%); overflow: hidden; perspective: 480px; }
+.ps-mesh-plane {
+  position: absolute;
+  left: 50%; top: 58%;
+  width: 320px; height: 320px;
+  margin: -160px 0 0 -160px;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  transform: rotateX(64deg) rotateZ(0deg);
+  animation: psMeshSpin 28s linear infinite;
+}
+.ps-mesh-plane i {
+  place-self: center;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--ps-c1);
+  box-shadow: 0 0 8px var(--ps-c3);
+  animation: psMeshPulse 3.4s ease-in-out infinite;
+}
+@keyframes psMeshSpin { to { transform: rotateX(64deg) rotateZ(360deg); } }
+@keyframes psMeshPulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ps-aurora, .ps-aurora-stars i, .ps-raindrop, .ps-mesh-plane, .ps-mesh-plane i { animation: none; }
+  .ps-mesh-plane { transform: rotateX(64deg); }
+}

@@ -1,0 +1,84 @@
+.vcn-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 800;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 3, 8, 0.86);
+  backdrop-filter: blur(8px);
+}
+
+.vcn-card {
+  width: min(380px, 100%);
+  border-radius: 22px;
+  padding: 22px 22px 18px;
+  text-align: left;
+}
+
+.vcn-kicker {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--mood-tint, #b9889b) 60%, #aeb6cc);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.vcn-card h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #ece6ef;
+}
+
+.vcn-points { list-style: none; margin: 0 0 20px; padding: 0; display: flex; flex-direction: column; gap: 11px; }
+.vcn-points li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 300;
+  line-height: 1.5;
+  color: rgba(206, 214, 235, 0.78);
+}
+.vcn-points i {
+  flex-shrink: 0;
+  font-style: normal;
+  font-size: 12px;
+  margin-top: 2px;
+  color: color-mix(in srgb, var(--mood-tint, #b9889b) 70%, #9fb0d0);
+}
+
+.vcn-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.vcn-skip {
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(150, 160, 200, 0.16);
+  background: transparent;
+  color: rgba(200, 208, 228, 0.6);
+  font-size: 13px;
+  cursor: pointer;
+}
+.vcn-skip:hover { color: rgba(236, 240, 250, 0.9); }
+.vcn-go {
+  padding: 11px 20px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--mood-tint, #b9889b) 40%, transparent);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #f3eef4;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--mood-tint, #b9889b) 42%, rgba(20,22,40,0.6)), color-mix(in srgb, var(--faded-violet, #8a7fa6) 42%, rgba(14,16,30,0.6)));
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease;
+}
+.vcn-go:hover { transform: translateY(-1px); }
+
+.vcn-fine { margin: 14px 0 0; font-size: 11px; color: rgba(170, 180, 205, 0.5); }
+.vcn-fine a { color: color-mix(in srgb, var(--mood-tint, #b9889b) 60%, #8fc6ff); }
+
+@media (prefers-reduced-motion: reduce) {
+  .vcn-go { transition: none; }
+}

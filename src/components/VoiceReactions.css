@@ -1,0 +1,420 @@
+/* ═══════════════════════════════════════════════════════════════
+   VOICE REACTIONS — layered audio traces left on signals
+═══════════════════════════════════════════════════════════════ */
+
+.vr-stack {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.vr-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ─── Reaction pills ─────────────────────────────────────────── */
+.vr-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  cursor: pointer;
+  transition: border-color 0.25s ease, box-shadow 0.35s ease, transform 0.2s ease;
+}
+
+.vr-pill:hover {
+  border-color: var(--vr-color, rgba(255, 45, 120, 0.5));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--vr-color, #ff2d78) 22%, transparent);
+  transform: translateY(-1px);
+}
+
+.vr-pill:active {
+  transform: scale(0.96);
+}
+
+.vr-pill--playing {
+  border-color: var(--vr-color, rgba(255, 45, 120, 0.7));
+  box-shadow:
+    0 0 18px color-mix(in srgb, var(--vr-color, #ff2d78) 30%, transparent),
+    inset 0 0 12px color-mix(in srgb, var(--vr-color, #ff2d78) 12%, transparent);
+  animation: vrPlayingPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes vrPlayingPulse {
+  0%, 100% { box-shadow: 0 0 14px color-mix(in srgb, var(--vr-color, #ff2d78) 24%, transparent); }
+  50% { box-shadow: 0 0 26px color-mix(in srgb, var(--vr-color, #ff2d78) 40%, transparent); }
+}
+
+.vr-pill--yours {
+  border-style: dashed;
+}
+
+.vr-pill--static .vr-pill-bars i { opacity: 0.55; }
+.vr-pill--whisper .vr-pill-bars i { transform: scaleY(0.55); }
+
+.vr-pill-bars {
+  display: flex;
+  align-items: center;
+  gap: 1.5px;
+  height: 16px;
+}
+
+.vr-pill-bars i {
+  display: block;
+  width: 2px;
+  height: var(--h, 50%);
+  border-radius: 1px;
+  background: var(--vr-color, #ff2d78);
+  opacity: 0.75;
+  transform-origin: center;
+}
+
+.vr-pill--playing .vr-pill-bars i {
+  animation: vrBarDance 0.55s ease-in-out infinite alternate;
+  animation-delay: var(--d, 0s);
+}
+
+@keyframes vrBarDance {
+  from { transform: scaleY(0.35); }
+  to { transform: scaleY(1.15); }
+}
+
+.vr-pill-meta {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgba(200, 210, 235, 0.6);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.vr-pill-meta em {
+  font-style: normal;
+  color: var(--vr-color, #ff2d78);
+  opacity: 0.8;
+}
+
+/* ─── Expand / record buttons ────────────────────────────────── */
+.vr-more,
+.vr-record {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(180, 190, 220, 0.55);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition: color 0.25s ease, border-color 0.25s ease, box-shadow 0.3s ease;
+}
+
+.vr-more:hover {
+  color: rgba(220, 228, 250, 0.85);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.vr-record {
+  color: var(--vr-color, #ff2d78);
+  border-color: color-mix(in srgb, var(--vr-color, #ff2d78) 35%, transparent);
+}
+
+.vr-record:hover {
+  box-shadow: 0 0 14px color-mix(in srgb, var(--vr-color, #ff2d78) 25%, transparent);
+}
+
+/* ─── Thread controls ────────────────────────────────────────── */
+.vr-thread-meta {
+  display: flex;
+  gap: 6px;
+}
+
+.vr-thread-meta button {
+  background: transparent;
+  border: 0;
+  padding: 2px 6px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: rgba(140, 155, 195, 0.45);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.vr-thread-meta button:hover { color: rgba(200, 210, 235, 0.8); }
+.vr-thread-meta button.on { color: var(--vr-color, #ff2d78); }
+
+/* ─── Transcript shimmer while playing ───────────────────────── */
+.vr-transcript {
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(220, 228, 250, 0.78);
+  line-height: 1.45;
+  animation: vrTranscriptIn 0.45s ease both;
+}
+
+.vr-transcript-handle {
+  font-style: normal;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: var(--vr-color, #ff2d78);
+  margin-right: 7px;
+  opacity: 0.85;
+}
+
+@keyframes vrTranscriptIn {
+  from { opacity: 0; transform: translateY(4px); filter: blur(2px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+/* ─── Recorder bar ───────────────────────────────────────────── */
+.vr-recorder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.36);
+  border: 1px solid color-mix(in srgb, var(--vr-color, #ff2d78) 28%, transparent);
+  animation: vrTranscriptIn 0.3s ease both;
+}
+
+.vr-rec-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--vr-color, #ff2d78);
+  box-shadow: 0 0 8px var(--vr-color, #ff2d78);
+  animation: vrRecBlink 1s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes vrRecBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.vr-rec-bars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+}
+
+.vr-rec-bars i {
+  display: block;
+  width: 2.5px;
+  height: 100%;
+  border-radius: 1px;
+  background: var(--vr-color, #ff2d78);
+  animation: vrBarDance 0.4s ease-in-out infinite alternate;
+}
+
+.vr-rec-bars i:nth-child(2) { animation-delay: 0.08s; }
+.vr-rec-bars i:nth-child(3) { animation-delay: 0.16s; }
+.vr-rec-bars i:nth-child(4) { animation-delay: 0.24s; }
+.vr-rec-bars i:nth-child(5) { animation-delay: 0.32s; }
+
+.vr-rec-time {
+  font-size: 10px;
+  color: rgba(220, 228, 250, 0.7);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
+.vr-rec-stop,
+.vr-rec-send,
+.vr-rec-action,
+.vr-rec-toggle,
+.vr-rec-discard {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(220, 228, 250, 0.8);
+  transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.25s ease;
+}
+
+.vr-rec-stop { margin-left: auto; }
+
+.vr-rec-send {
+  background: color-mix(in srgb, var(--vr-color, #ff2d78) 18%, transparent);
+  border-color: color-mix(in srgb, var(--vr-color, #ff2d78) 50%, transparent);
+  color: #fff;
+}
+
+.vr-rec-send:hover {
+  box-shadow: 0 0 14px color-mix(in srgb, var(--vr-color, #ff2d78) 35%, transparent);
+}
+
+.vr-rec-toggle.on {
+  border-color: rgba(0, 212, 255, 0.5);
+  color: #67e8f9;
+}
+
+.vr-rec-discard {
+  padding: 4px 8px;
+  color: rgba(180, 190, 220, 0.45);
+}
+
+.vr-recorder--denied {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: rgba(255, 170, 170, 0.85);
+  border-color: rgba(255, 90, 90, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vr-pill--playing,
+  .vr-pill--playing .vr-pill-bars i,
+  .vr-rec-dot,
+  .vr-rec-bars i,
+  .vr-transcript,
+  .vr-recorder {
+    animation: none;
+  }
+}
+
+/* ─── Playback progress + pill tools ─────────────────────────── */
+.vr-pill-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vr-pill {
+  position: relative;
+  overflow: hidden;
+}
+
+.vr-pill-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: var(--vp, 0%);
+  background: linear-gradient(90deg, var(--vr-color, #ff2d78), rgba(0, 212, 255, 0.8));
+  transition: width 0.15s linear;
+  border-radius: 1px;
+}
+
+.vr-pill-tools {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.vr-pill-tools button {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 9px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(180, 190, 220, 0.5);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.vr-pill-tools button:hover {
+  color: var(--vr-color, #ff2d78);
+  border-color: color-mix(in srgb, var(--vr-color, #ff2d78) 45%, transparent);
+}
+
+/* ─── Drift send + notices ───────────────────────────────────── */
+.vr-rec-drift {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  cursor: pointer;
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  color: #67e8f9;
+  transition: box-shadow 0.25s ease;
+}
+
+.vr-rec-drift:hover {
+  box-shadow: 0 0 14px rgba(0, 212, 255, 0.25);
+}
+
+.vr-notice {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: rgba(120, 225, 250, 0.85);
+  animation: vrTranscriptIn 0.4s ease both;
+}
+
+/* ─── Imprints: tap a sound, leave a mark ────────────────────── */
+.vr-imprints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.vr-imprint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: lowercase;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(180, 190, 220, 0.55);
+  transition: border-color 0.25s ease, color 0.25s ease, box-shadow 0.3s ease, transform 0.15s ease;
+}
+
+.vr-imprint span {
+  font-size: 11px;
+}
+
+.vr-imprint em {
+  font-style: normal;
+  font-weight: 800;
+  color: var(--vr-color, #ff2d78);
+}
+
+.vr-imprint.has {
+  border-color: color-mix(in srgb, var(--vr-color, #ff2d78) 30%, transparent);
+  color: rgba(220, 228, 250, 0.8);
+}
+
+.vr-imprint:hover {
+  border-color: color-mix(in srgb, var(--vr-color, #ff2d78) 55%, transparent);
+  color: #fff;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--vr-color, #ff2d78) 22%, transparent);
+}
+
+.vr-imprint.pop {
+  animation: vrImprintPop 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes vrImprintPop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.18); box-shadow: 0 0 18px color-mix(in srgb, var(--vr-color, #ff2d78) 45%, transparent); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vr-imprint.pop { animation: none; }
+}

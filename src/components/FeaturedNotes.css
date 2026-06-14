@@ -1,0 +1,41 @@
+.featured-notes { margin: 12px 0; }
+.featured-notes-kicker {
+  display: block;
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  color: rgba(202, 165, 127, 0.75);
+  font-weight: 700;
+  margin-bottom: 9px;
+}
+.featured-notes-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.featured-note {
+  position: relative;
+  max-width: 220px;
+  padding: 11px 12px 10px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--note, #caa57f) 76%, #1a160f);
+  color: #1a1408;
+  font-size: 12px;
+  line-height: 1.45;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.45);
+  transform: rotate(calc((var(--i, 0) - 1) * 1.6deg));
+  word-break: break-word;
+}
+.featured-note-mark { display: block; font-size: 11px; opacity: 0.55; margin-bottom: 3px; }
+
+@media (prefers-reduced-motion: reduce) { .featured-note { transform: none; } }
+
+.featured-note-react {
+  display: block;
+  margin-top: 7px;
+  padding: 3px 9px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(0, 0, 0, 0.14);
+  color: rgba(20, 16, 8, 0.72);
+  font-size: 9.5px;
+  font-weight: 700;
+  cursor: pointer;
+  width: fit-content;
+}
+.featured-note-react.on { background: rgba(0, 0, 0, 0.24); cursor: default; }

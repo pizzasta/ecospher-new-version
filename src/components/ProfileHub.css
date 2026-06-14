@@ -1,0 +1,1511 @@
+/* ═══ PROFILE HUB — listeners, echoes, vault ═════════════════ */
+.profile-hub {
+  display: block;
+  margin-bottom: 24px;
+}
+
+.ph-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.ph-card {
+  padding: 16px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ph-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.ph-card-kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: #f9a8d4;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9), 0 0 12px rgba(249, 168, 212, 0.3);
+}
+
+.ph-card-count {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: rgba(170, 185, 220, 0.78);
+}
+
+.ph-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.ph-username {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text-primary, #f0f4ff);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85), 0 2px 16px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ph-resonance {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: #67e8f9;
+  white-space: nowrap;
+}
+
+.ph-joined {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: rgba(170, 185, 220, 0.72);
+}
+
+.ph-bio-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ph-bio {
+  margin: 0;
+  flex: 1;
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.55;
+  color: rgba(230, 238, 255, 0.95);
+}
+
+.ph-icon-btn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: rgba(180, 190, 220, 0.6);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.ph-icon-btn--danger:hover {
+  border-color: rgba(255, 90, 90, 0.5);
+  color: #ff8f8f;
+}
+
+.ph-bio-edit textarea {
+  width: 100%;
+  resize: none;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 45, 120, 0.35);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text-primary, #f0f4ff);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+
+.ph-bio-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 10px;
+  color: rgba(140, 155, 195, 0.5);
+}
+
+.ph-bio-edit-actions button,
+.ph-ai-actions button,
+.ph-load-more,
+.ph-settings-links button {
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(220, 228, 250, 0.8);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.ph-ai-bio-btn {
+  align-self: flex-start;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(155, 93, 229, 0.5);
+  background: rgba(155, 93, 229, 0.1);
+  color: #c4b5fd;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+.ph-ai-modal {
+  border: 1px solid rgba(155, 93, 229, 0.3);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(155, 93, 229, 0.06);
+}
+
+.ph-ai-draft {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-style: italic;
+  color: rgba(235, 240, 255, 0.85);
+}
+
+.ph-ai-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ph-ai-actions button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ph-empty {
+  margin: 0;
+  font-size: 12px;
+  font-style: italic;
+  color: rgba(170, 185, 220, 0.72);
+}
+
+.ph-echo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ph-echo-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: rgba(175, 188, 220, 0.78);
+}
+
+.ph-echo-meta .ph-icon-btn {
+  margin-left: auto;
+}
+
+.ph-load-more {
+  align-self: center;
+}
+
+.ph-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.ph-history li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+}
+
+.ph-history-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(232, 240, 255, 0.92);
+}
+
+.ph-history-date {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: rgba(170, 184, 218, 0.68);
+}
+
+.ph-history button {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  background: transparent;
+  color: #67e8f9;
+  font-size: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ph-vault-row {
+  display: flex;
+  gap: 10px;
+}
+
+.ph-vault-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+
+.ph-vault-stat--static {
+  cursor: default;
+}
+
+.ph-vault-stat strong {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--pink, #ff2d78);
+}
+
+.ph-vault-stat span {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: rgba(170, 184, 218, 0.80);
+}
+
+.ph-hint {
+  margin: 0;
+  font-size: 10px;
+  font-style: italic;
+  color: rgba(170, 185, 220, 0.68);
+}
+
+.ph-settings-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ═══ FREQUENCY GRADIENT — background layer behind the hub ═══ */
+.profile-hub {
+  position: relative;
+  padding: 14px;
+  border-radius: 18px;
+  overflow: hidden;
+  /* NOTE: no `isolation: isolate` here. The gradient layer below is
+     position:fixed with z-index:-1 so it can sit behind ALL pod content —
+     the orb chamber (PodPresence) that precedes this section in the DOM as
+     well as the hub cards. Isolating this section into its own stacking
+     context trapped that z-index:-1 inside the hub, which made the full-
+     viewport gradient + dark scrim paint OVER the orb at the very top,
+     hiding it. Letting it resolve in the .screen stacking context (see the
+     `body[data-eco-page='pod'] .screen` rule) keeps it behind everything. */
+}
+
+/* the background is the whole page, not just the hub section. z-index:-1 keeps
+   it (and its darkening scrim) painted BEHIND the pod content — at z-index:0 the
+   positioned layer painted over the non-positioned headings, dimming the text. */
+.ph-gradient-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.92;
+  pointer-events: none;
+  will-change: background;
+}
+
+/* lift the pod screen's content above the fixed background layer */
+body[data-eco-page='pod'] .screen {
+  position: relative;
+  z-index: 1;
+}
+
+/* readability scrim: keep enough darkness top-to-bottom that the light text
+   (pink kickers, near-white headings) stays legible even when a profile's
+   gradient renders bright or pale. some color still reads through. */
+.ph-gradient-layer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(3, 7, 18, 0.75), rgba(3, 7, 18, 0.93));
+}
+
+/* cards go translucent inside the hub so the background reads through */
+.profile-hub .ph-card.glass {
+  background: rgba(4, 7, 18, 0.80);
+}
+
+/* ═══ IDENTITY CENTERPIECE — the ring that breathes ══════════ */
+.ph-centerpiece {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 10px 6px 4px;
+}
+
+.ph-ring {
+  position: relative;
+  width: 158px;
+  height: 158px;
+  flex-shrink: 0;
+}
+
+.ph-ring-bars {
+  position: absolute;
+  inset: 0;
+  animation: phRingSpin 90s linear infinite;
+  will-change: transform;
+}
+
+.ph-ring-bars i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: 26px;
+  margin: -13px 0 0 -1px;
+  border-radius: 1px;
+  background: var(--ring-color, #66ccff);
+  opacity: 0.55;
+  transform: rotate(var(--bar-angle, 0deg)) translateY(-64px) scaleY(var(--bar-scale, 0.6));
+  transform-origin: center;
+  animation: phRingBreath 4.2s ease-in-out infinite;
+  animation-delay: var(--bar-delay, 0s);
+}
+
+@keyframes phRingSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes phRingBreath {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.85; }
+}
+
+.ph-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.ph-ring-center strong {
+  font-size: 26px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: var(--ring-color, #66ccff);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--ring-color, #66ccff) 50%, transparent);
+}
+
+.ph-ring-center span {
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: rgba(170, 184, 218, 0.78);
+}
+
+.ph-identity {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ph-atmosphere {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: rgba(225, 232, 250, 0.85);
+}
+
+.ph-atmosphere i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pink, #ff2d78);
+  box-shadow: 0 0 10px rgba(255, 45, 120, 0.55);
+  animation: phRingBreath 2.8s ease-in-out infinite;
+}
+
+.ph-traits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ph-traits li {
+  font-size: 12px;
+  font-style: italic;
+  color: rgba(205, 215, 240, 0.88);
+}
+
+.ph-traits li::before {
+  content: '— ';
+  color: rgba(170, 184, 218, 0.58);
+}
+
+.ph-tonight {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ph-tonight li {
+  font-size: 12px;
+  color: rgba(230, 238, 255, 0.92);
+}
+
+.ph-memory {
+  border-top: 1px dashed rgba(140, 155, 195, 0.2);
+  padding-top: 8px;
+}
+
+.ph-memory p {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(210, 196, 255, 0.82);
+}
+
+.ph-shelf-line {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(232, 240, 255, 0.92);
+}
+
+.ph-shelf-line em {
+  font-style: normal;
+  color: #67e8f9;
+}
+
+@media (max-width: 720px) {
+  .ph-centerpiece {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .ph-atmosphere {
+    align-self: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-ring-bars,
+  .ph-ring-bars i,
+  .ph-atmosphere i {
+    animation: none;
+    will-change: auto;
+  }
+}
+
+/* active nights: 14-day replay heatmap */
+.ph-nights {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.ph-nights i {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--pink, #ff2d78);
+}
+
+.ph-nights span {
+  margin-left: 8px;
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  color: rgba(140, 155, 195, 0.5);
+  white-space: nowrap;
+}
+
+/* ═══ VISITOR STATIC — presence as texture, never as a list ══ */
+.ph-visitor-static {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.ph-visitor-static i {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  animation: phGrainFlicker 6s ease-in-out infinite;
+}
+
+.ph-visitor-static i:nth-child(3n) { animation-delay: 2s; }
+.ph-visitor-static i:nth-child(4n) { animation-delay: 4s; }
+
+@keyframes phGrainFlicker {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.6); }
+}
+
+/* ═══ THE WALL OF RETURNS — worn cassettes, wear = replays ═══ */
+.ph-returns {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ph-cassette {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(40, 36, 30, 0.65), rgba(22, 20, 18, 0.75));
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  overflow: hidden;
+}
+
+.ph-cassette-spools {
+  display: flex;
+  gap: 14px;
+}
+
+.ph-cassette-spools i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(220, 210, 190, 0.4);
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.7) 30%, rgba(120, 110, 95, 0.3) 32%);
+  animation: phSpoolTurn 5s linear infinite;
+  animation-play-state: paused;
+}
+
+.ph-cassette:hover .ph-cassette-spools i {
+  animation-play-state: running;
+}
+
+@keyframes phSpoolTurn {
+  to { transform: rotate(360deg); }
+}
+
+.ph-cassette-label {
+  font-size: 12px;
+  color: rgba(235, 228, 210, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ph-cassette-count {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: rgba(200, 185, 150, 0.6);
+  white-space: nowrap;
+}
+
+/* tape wear: scratches whose presence scales with replay count */
+.ph-cassette-wear {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: calc(var(--wear, 0.5) * 0.55);
+  background:
+    repeating-linear-gradient(94deg, transparent 0 17px, rgba(255, 255, 255, 0.05) 17px 18px),
+    repeating-linear-gradient(180deg, transparent 0 5px, rgba(0, 0, 0, 0.12) 5px 6px),
+    radial-gradient(ellipse 40% 70% at 80% 20%, rgba(255, 255, 255, 0.04), transparent 70%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-visitor-static i,
+  .ph-cassette-spools i {
+    animation: none;
+  }
+}
+
+/* one thing tonight */
+.ph-tonight-action {
+  border-color: rgba(255, 45, 120, 0.3);
+}
+
+.ph-tonight-btn {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 45, 120, 0.4);
+  background: rgba(255, 45, 120, 0.08);
+  color: rgba(240, 244, 255, 0.92);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ph-tonight-btn:hover {
+  background: rgba(255, 45, 120, 0.14);
+  box-shadow: 0 0 20px rgba(255, 45, 120, 0.12);
+}
+
+.ph-tonight-skip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: rgba(140, 155, 195, 0.55);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-tonight-btn {
+    transition: none;
+  }
+}
+
+/* tape intro: ten seconds instead of a bio */
+.ph-tape {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ph-tape-shell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(40, 36, 30, 0.65), rgba(22, 20, 18, 0.75));
+}
+
+.ph-tape-shell:hover .ph-cassette-spools i {
+  animation-play-state: running;
+}
+
+.ph-tape-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ph-tape-label {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  color: rgba(200, 185, 150, 0.7);
+}
+
+.ph-tape-missing,
+.ph-tape-empty {
+  margin: 0;
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(140, 155, 195, 0.55);
+}
+
+.ph-tape-rerecord {
+  align-self: flex-start;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(220, 228, 250, 0.75);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+/* ── private profile state (Settings → private profile) ───────── */
+.ph-private-chip {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto 14px;
+  width: fit-content;
+  max-width: 92%;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px dashed rgba(255, 45, 120, 0.45);
+  background: rgba(255, 45, 120, 0.08);
+  color: rgba(255, 200, 222, 0.9);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+/* ── live presence: someone is on your page right now ──────────── */
+.ph-live-visitor {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto 10px;
+  width: fit-content;
+  max-width: 92%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  background: rgba(0, 212, 255, 0.07);
+  color: rgba(170, 230, 250, 0.9);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  animation: phVisitorIn 0.5s ease both, phVisitorOut 0.8s ease 8.2s both;
+}
+
+.ph-live-visitor i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00d4ff;
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.8);
+  animation: phVisitorPulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes phVisitorIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes phVisitorOut {
+  to { opacity: 0; }
+}
+
+@keyframes phVisitorPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+
+.ph-live-comet {
+  position: absolute;
+  z-index: 1;
+  top: 24%;
+  left: -8%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--comet-color, #00d4ff);
+  box-shadow:
+    0 0 10px var(--comet-color, #00d4ff),
+    -14px 3px 16px -4px var(--comet-color, #00d4ff),
+    -30px 7px 22px -8px var(--comet-color, #00d4ff);
+  pointer-events: none;
+  animation: phCometCross 8.5s cubic-bezier(0.3, 0.1, 0.5, 1) both;
+}
+
+@keyframes phCometCross {
+  0% { transform: translate(0, 0); opacity: 0; }
+  8% { opacity: 0.9; }
+  92% { opacity: 0.9; }
+  100% { transform: translate(118vw, 14vh); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-live-comet { animation: none; opacity: 0; }
+  .ph-live-visitor { animation: none; }
+  .ph-live-visitor i { animation: none; }
+}
+
+/* ── avatar sigils: no photos, ever ─────────────────────────── */
+.ph-sigil {
+  font-size: 30px;
+  line-height: 1;
+  text-shadow: 0 0 18px currentColor;
+}
+
+.ph-sigil-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+
+.ph-sigil-option {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--sigil-color, #00d4ff);
+  font-size: 20px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.ph-sigil-option small {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: rgba(200, 212, 240, 0.7);
+}
+
+.ph-sigil-option:hover { transform: translateY(-1px); }
+
+.ph-sigil-option.active {
+  border-color: var(--sigil-color, #00d4ff);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--sigil-color, #00d4ff) 45%, transparent);
+}
+
+/* ── the board: masonry tiles you can rearrange ─────────────── */
+.ph-board {
+  columns: 300px 2;
+  column-gap: 14px;
+}
+
+.ph-tile {
+  position: relative;
+  break-inside: avoid;
+  margin-bottom: 14px;
+}
+
+.ph-board-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 4px 0 12px;
+}
+
+.ph-arrange-toggle {
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(200, 212, 240, 0.75);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.ph-arrange-toggle.on {
+  border-color: rgba(0, 212, 255, 0.5);
+  color: #9ae8ff;
+  box-shadow: 0 0 14px rgba(0, 212, 255, 0.2);
+}
+
+.ph-board--arranging .ph-tile {
+  outline: 1px dashed rgba(0, 212, 255, 0.35);
+  outline-offset: 3px;
+  border-radius: 16px;
+  animation: phTileWiggle 2.8s ease-in-out infinite;
+}
+
+.ph-board--arranging .ph-tile:nth-child(2n) { animation-delay: 0.4s; }
+.ph-board--arranging .ph-tile:nth-child(3n) { animation-delay: 0.8s; }
+
+@keyframes phTileWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(0.25deg); }
+  75% { transform: rotate(-0.25deg); }
+}
+
+.ph-tile-handle {
+  position: absolute;
+  top: -9px;
+  right: 10px;
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+}
+
+.ph-tile-handle button {
+  width: 26px;
+  height: 22px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 212, 255, 0.45);
+  background: rgba(4, 10, 24, 0.95);
+  color: #9ae8ff;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.ph-tile-handle button:hover {
+  background: rgba(0, 212, 255, 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-board--arranging .ph-tile { animation: none; }
+}
+
+/* ── voice prompts: deep questions, answered out loud ──────────── */
+.ph-prompt-question {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: rgba(240, 244, 255, 0.95);
+}
+
+.ph-prompt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ph-prompt-answer {
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 45, 120, 0.45);
+  background: rgba(255, 45, 120, 0.1);
+  color: #ffd3e2;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.ph-prompt-answer:hover {
+  background: rgba(255, 45, 120, 0.2);
+  box-shadow: 0 0 18px rgba(255, 45, 120, 0.25);
+}
+
+.ph-prompt-shuffle,
+.ph-prompt-skip {
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: rgba(190, 200, 230, 0.6);
+  font-size: 11px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.ph-prompt-skip { margin-top: 8px; }
+
+.ph-prompt-note {
+  margin: 10px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: rgba(150, 165, 200, 0.55);
+}
+
+.ph-prompt-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 12px;
+}
+
+.ph-prompt-entry-q {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-style: italic;
+  color: rgba(200, 210, 235, 0.75);
+}
+
+.ph-prompt-entry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.ph-prompt-share {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(190, 200, 230, 0.65);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ph-prompt-share.on {
+  border-color: rgba(0, 212, 255, 0.5);
+  color: #9ae8ff;
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.2);
+}
+
+/* ═══ IMMERSIVE PASS — identity chamber, recap, memories ═════ */
+.ph-identity-kicker {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  color: rgba(160, 228, 255, 0.88);
+  margin-bottom: 7px;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+/* traits as collectible glowing chips with waveform accents */
+.ph-traits li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+}
+
+.ph-traits li:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0, 212, 255, 0.45);
+  box-shadow: 0 0 16px rgba(0, 212, 255, 0.18);
+}
+
+.ph-trait-wave {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 10px;
+}
+
+.ph-trait-wave b {
+  width: 2px;
+  border-radius: 1px;
+  background: rgba(0, 212, 255, 0.7);
+  animation: phTraitWave 1.8s ease-in-out infinite;
+}
+
+.ph-trait-wave b:nth-child(1) { height: 40%; }
+.ph-trait-wave b:nth-child(2) { height: 90%; animation-delay: 0.2s; }
+.ph-trait-wave b:nth-child(3) { height: 60%; animation-delay: 0.4s; }
+.ph-trait-wave b:nth-child(4) { height: 80%; animation-delay: 0.6s; }
+
+@keyframes phTraitWave {
+  0%, 100% { transform: scaleY(0.6); }
+  50% { transform: scaleY(1.1); }
+}
+
+/* the readout: dossier lines, not form fields */
+.ph-identity-readout {
+  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ph-identity-readout div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+}
+
+.ph-identity-readout dt {
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  color: rgba(170, 185, 215, 0.75);
+  flex-shrink: 0;
+}
+
+.ph-identity-readout dd {
+  margin: 0;
+  font-size: 11.5px;
+  color: rgba(235, 242, 255, 0.96);
+  text-align: right;
+}
+
+/* ── tonight's recap: cinematic cards ───────────────────────── */
+.ph-recap-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ph-recap-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(105deg, rgba(0, 212, 255, 0.05), rgba(255, 45, 120, 0.04));
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgba(228, 236, 252, 0.9);
+  overflow: hidden;
+  animation: phRecapIn 0.5s ease both;
+  animation-delay: calc(var(--recap-idx, 0) * 120ms);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ph-recap-card:hover {
+  border-color: rgba(0, 212, 255, 0.35);
+  box-shadow: 0 0 18px rgba(0, 212, 255, 0.12);
+}
+
+.ph-recap-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.04) 50%, transparent 65%);
+  background-size: 260% 100%;
+  animation: phRecapSheen 6s ease-in-out infinite;
+  animation-delay: calc(var(--recap-idx, 0) * 0.9s);
+  pointer-events: none;
+}
+
+@keyframes phRecapIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes phRecapSheen {
+  0%, 100% { background-position: 130% 0; }
+  50% { background-position: -30% 0; }
+}
+
+.ph-recap-wave {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.ph-recap-wave b {
+  width: 2.5px;
+  border-radius: 2px;
+  height: var(--rw-h, 50%);
+  background: linear-gradient(180deg, #00d4ff, rgba(255, 45, 120, 0.8));
+  opacity: 0.7;
+  animation: phTraitWave 2.1s ease-in-out infinite;
+  animation-delay: var(--rw-d, 0s);
+  transform-origin: bottom;
+}
+
+/* ── listening history as recovered memories ────────────────── */
+.ph-history--memories {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ph-history--memories li {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(8, 11, 24, 0.7);
+  backdrop-filter: blur(8px);
+  margin-top: -4px;
+  transition: transform 0.25s ease, border-color 0.25s ease, z-index 0s;
+}
+
+.ph-history--memories li:first-child { margin-top: 0; }
+
+.ph-history--memories li:nth-child(2n) { transform: translateX(5px); }
+.ph-history--memories li:nth-child(3n) { transform: translateX(-4px); }
+
+.ph-history--memories li:hover {
+  transform: translateX(0) translateY(-2px);
+  border-color: rgba(255, 45, 120, 0.3);
+  z-index: 2;
+}
+
+.ph-mem-wave {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 18px;
+  width: 34px;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.ph-mem-wave b {
+  flex: 1;
+  border-radius: 1px;
+  background: linear-gradient(180deg, rgba(0, 212, 255, 0.8), rgba(155, 93, 229, 0.6));
+}
+
+.ph-mem-trace {
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 160, 200, 0.80);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.ph-history--memories .ph-history-date {
+  opacity: 0.45;
+}
+
+/* ── the wall: floating translucent depth ───────────────────── */
+.ph-returns .ph-cassette {
+  backdrop-filter: blur(10px);
+  background: rgba(10, 12, 26, 0.55);
+  transition: transform 0.3s ease, box-shadow 0.35s ease, border-color 0.3s ease;
+}
+
+.ph-returns .ph-cassette:nth-child(2n) { transform: translateY(4px) rotate(0.4deg); }
+.ph-returns .ph-cassette:nth-child(3n) { transform: translateY(-3px) rotate(-0.4deg); }
+
+.ph-returns .ph-cassette:hover {
+  transform: translateY(-4px) rotate(0deg) scale(1.02);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), 0 0 22px rgba(255, 45, 120, 0.12);
+  z-index: 2;
+}
+
+/* ── tiles breathe: depth on hover, never still ─────────────── */
+.ph-tile {
+  transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.ph-tile:hover {
+  transform: translateY(-3px);
+}
+
+.ph-tile:hover .ph-card {
+  border-color: rgba(0, 212, 255, 0.22);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 0 26px rgba(0, 212, 255, 0.06);
+}
+
+.ph-card {
+  transition: border-color 0.35s ease, box-shadow 0.45s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-trait-wave b,
+  .ph-recap-wave b,
+  .ph-recap-card,
+  .ph-recap-card::after { animation: none; }
+  .ph-history--memories li:nth-child(2n),
+  .ph-history--memories li:nth-child(3n),
+  .ph-returns .ph-cassette:nth-child(2n),
+  .ph-returns .ph-cassette:nth-child(3n) { transform: none; }
+  .ph-tile, .ph-tile:hover { transform: none; }
+}
+
+/* ─── sigil themes: choosing a constellation ─────────────────── */
+.ph-sigil-themes { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+.ph-sigil-theme-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 7px; }
+.ph-sigil-theme-head strong { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(180, 200, 240, 0.82); }
+.ph-sigil-theme-head em { font-style: italic; font-size: 10.5px; color: rgba(170, 180, 210, 0.5); }
+
+/* a sigil settling in — etching, not selecting */
+.ph-sigil-option.settling { animation: phSigilSettle 0.7s ease; }
+@keyframes phSigilSettle {
+  0% { transform: scale(1.5); filter: brightness(2); }
+  40% { transform: scale(0.9); }
+  70% { transform: scale(1.08); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* the identity ring reacting when you change your signal */
+.ph-centerpiece--settling .ph-ring { animation: phRingSettle 0.7s ease; }
+@keyframes phRingSettle {
+  0% { transform: scale(1); filter: brightness(1); }
+  35% { transform: scale(1.06); filter: brightness(1.5); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* ─── answering machine intro tape ───────────────────────────── */
+.ph-answerphone-head {
+  display: flex; align-items: center; gap: 9px;
+  margin-bottom: 11px;
+  padding: 7px 11px;
+  border-radius: 9px;
+  background: linear-gradient(180deg, rgba(20, 22, 30, 0.8), rgba(10, 11, 18, 0.7));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.ph-msg-light {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: rgba(120, 40, 40, 0.5);
+  flex-shrink: 0;
+}
+.ph-msg-light.on {
+  background: #ff3b3b;
+  box-shadow: 0 0 10px rgba(255, 59, 59, 0.9);
+  animation: phMsgBlink 1.6s steps(2) infinite;
+}
+@keyframes phMsgBlink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.25; } }
+.ph-answerphone-label { font-size: 9px; letter-spacing: 0.24em; color: rgba(188, 200, 228, 0.80); font-weight: 700; }
+.ph-msg-count { margin-left: auto; font-size: 10px; color: rgba(185, 198, 228, 0.75); font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-sigil-option.settling, .ph-centerpiece--settling .ph-ring, .ph-msg-light.on { animation: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   CODEX: ProfileHub zero-states, section structure, Soul Pod presence
+══════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── ph-card: cleaner reading surface ──────────────────────────────────────
+   Cards need a firmer base when content sits over the animated gradient. */
+.ph-card {
+  background: rgba(6, 10, 22, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+    0 6px 24px rgba(0, 0, 0, 0.36);
+}
+
+/* ─── Section kicker with readable text shadow ───────────────────────────── */
+.ph-card-kicker {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.80), 0 0 14px rgba(249, 168, 212, 0.25);
+}
+
+/* ─── Zero-state: empty echo list ───────────────────────────────────────────
+   When there are no echoes, show a faint waveform residue instead of nothing. */
+.ph-echo-list:empty::after {
+  content: '';
+  display: block;
+  height: 24px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 45, 120, 0.06) 0px,
+    rgba(255, 45, 120, 0.06) 3px,
+    transparent 3px,
+    transparent 7px
+  );
+  margin-top: 4px;
+  animation: wfResidueBreath 6s ease-in-out infinite;
+}
+
+/* ─── Zero-state: empty returns list ────────────────────────────────────────
+   Same residue treatment for the wall of returns. */
+.ph-returns:empty::after {
+  content: 'nothing here yet';
+  display: block;
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(170, 184, 218, 0.42);
+  text-align: center;
+  padding: 16px 0;
+  letter-spacing: 0.08em;
+  animation: wfResidueBreath 7s ease-in-out infinite;
+}
+
+/* ─── Vault stat active glow ─────────────────────────────────────────────────
+   Tap feedback so the user knows vault stats are interactive. */
+.ph-vault-stat:not(.ph-vault-stat--static):active {
+  background: rgba(255, 45, 120, 0.10);
+  border-color: rgba(255, 45, 120, 0.30);
+  transform: scale(0.97);
+  transition: transform 0.08s ease, background 0.1s ease;
+}
+
+/* ─── Memory: stronger section divider ───────────────────────────────────────
+   The dashed border was barely visible. */
+.ph-memory {
+  border-top-color: rgba(140, 155, 195, 0.28);
+}
+
+/* ─── Soul Pod: zero-state pulse rings behind stats ─────────────────────────
+   When all soul pod stats are 0, the section should pulse faintly to show
+   it's a live feature, not a dead placeholder. */
+.ph-vault-row {
+  position: relative;
+}
+.ph-vault-row::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 45, 120, 0.06);
+  pointer-events: none;
+  animation: pulseRingFade 7s ease-in-out infinite;
+}
+
+/* ─── Profile username mobile floor ─────────────────────────────────────────
+   On very small phones, the username must remain fully legible. */
+@media (max-width: 380px) {
+  .ph-username {
+    font-size: 16px;
+  }
+  .ph-resonance {
+    font-size: 10px;
+  }
+  .ph-ring {
+    width: 120px;
+    height: 120px;
+  }
+  .ph-ring-center strong {
+    font-size: 20px;
+  }
+  .ph-centerpiece {
+    gap: 14px;
+  }
+}
+
+/* ─── ph-prompt-question: readable over gradient ────────────────────────────
+   Questions in the voice prompt section need the strongest text treatment. */
+.ph-prompt-question {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65), 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* ─── ph-sigil-option hover + active feedback ───────────────────────────────
+   Better mobile tap response on sigil selection. */
+.ph-sigil-option:active {
+  transform: scale(0.94);
+  transition: transform 0.08s ease;
+}
+.ph-sigil-option {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* ─── ph-tape-shell touch feedback ──────────────────────────────────────────
+   The intro tape needs a clear pressed state. */
+.ph-tape-shell:active,
+.ph-cassette:active {
+  border-color: rgba(255, 200, 150, 0.35);
+  background: rgba(50, 40, 28, 0.72);
+  transition: background 0.08s ease, border-color 0.1s ease;
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ph-vault-row::before,
+  .ph-echo-list:empty::after,
+  .ph-returns:empty::after,
+  .ph-vault-stat:not(.ph-vault-stat--static):active,
+  .ph-sigil-option:active,
+  .ph-tape-shell:active,
+  .ph-cassette:active {
+    animation: none;
+    transform: none;
+    transition: none;
+  }
+}
