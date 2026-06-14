@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import EcosphereLandingScreen from './EcosphereLandingScreen'
 import IntroSequence from './IntroSequence'
+import SignalLockIn from './SignalLockIn'
 import { useEcosystemState } from '../hooks/useEcosystemState'
 import type { EcosystemPage } from '../hooks/useEcosystemState'
 import { migrateLocalDataToBackend, syncProfile } from '../lib'
@@ -717,6 +718,8 @@ export default function IntroGate({ children }: { children: ReactNode }) {
   const [signalIdentity, setSignalIdentity] = useState(() => safeStorageGet(signalIdentityStorageKey) ?? '')
   // the ritual only gates identities claimed in this session — existing carriers pass through
   const [needsFirstSignal, setNeedsFirstSignal] = useState(false)
+  // the lock-in moment only plays for a signal just claimed this session
+  const [lockInPending, setLockInPending] = useState(false)
 
   useEffect(() => {
     if (signalIdentity) {
@@ -740,6 +743,7 @@ export default function IntroGate({ children }: { children: ReactNode }) {
     safeStorageSet(signalIdentityStorageKey, nextSignalIdentity)
     safeStorageSet(signalProfileStorageKey, JSON.stringify(nextProfile))
     setSignalIdentity(nextSignalIdentity)
+    setLockInPending(true)
     if (safeStorageGet(firstSignalStorageKey) !== 'true') {
       setNeedsFirstSignal(true)
     }
@@ -792,6 +796,15 @@ export default function IntroGate({ children }: { children: ReactNode }) {
     return (
       <>
         <ClaimSignalIdentityStep onComplete={completeSignalClaim} />
+        <DevOnboardingReset onReset={resetIntroForTesting} />
+      </>
+    )
+  }
+
+  if (lockInPending) {
+    return (
+      <>
+        <SignalLockIn signalName={signalIdentity} onComplete={() => setLockInPending(false)} />
         <DevOnboardingReset onReset={resetIntroForTesting} />
       </>
     )
