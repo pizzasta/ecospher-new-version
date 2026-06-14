@@ -27,7 +27,9 @@
   position: absolute;
   inset: 0;
   filter: blur(26px);
-  opacity: 0.5;
+  /* pulled back so the smoke stays behind the orb as atmosphere, not haze
+     over the status text and callsign */
+  opacity: 0.32;
 }
 
 .pp-fog-a {
@@ -239,7 +241,8 @@
   font-size: 12px;
   letter-spacing: 0.14em;
   text-transform: lowercase;
-  color: rgba(215, 226, 248, 0.85);
+  color: rgba(224, 233, 250, 0.95);
+  text-shadow: var(--text-shadow-soft);
 }
 
 .pp-status i {
@@ -299,7 +302,8 @@
   font-size: 10px;
   letter-spacing: 0.22em;
   text-transform: lowercase;
-  color: rgba(150, 165, 200, 0.55);
+  color: var(--text-dim, rgba(170, 184, 214, 0.64));
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 /* ── grain ──────────────────────────────────────────────────── */

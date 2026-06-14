@@ -7,19 +7,45 @@
 
 /* ─── Root vars ──────────────────────────────────────────────────────────────── */
 :root {
+  /* cyan = the interactive / live signal colour. pink = warm brand accent.
+     violet desaturated so it stops muddying mid-tones against the navy. */
   --pink:   #ff2d78;
-  --pink-glow: rgba(255, 45, 120, 0.35);
+  --pink-glow: rgba(255, 45, 120, 0.30);
   --cyan:   #00d4ff;
   --cyan-glow: rgba(0, 212, 255, 0.3);
-  --violet: #9b5de5;
-  --violet-glow: rgba(155, 93, 229, 0.3);
+  --violet: #8a6fc6;
+  --violet-glow: rgba(138, 111, 198, 0.22);
   --navy:   #040d1a;
   --dark:   #030712;
-  --glass-bg: rgba(8, 18, 36, 0.55);
-  --glass-border: rgba(255, 255, 255, 0.07);
-  --text-primary: #f0f4ff;
-  --text-muted: rgba(180, 190, 220, 0.6);
-  --text-dim: rgba(140, 155, 195, 0.4);
+
+  /* foundations: darker + more opaque so content reads as a clean pocket
+     sitting on top of the cinematic background, not buried in it */
+  --glass-bg: rgba(7, 15, 30, 0.74);
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --edge-light: rgba(255, 255, 255, 0.14);
+
+  /* text hierarchy — four deliberate tiers, NOT one flat opacity.
+     primary: bright. secondary: faded but clearly readable.
+     muted/dim: supporting. decorative: truly ambient. */
+  --text-primary: #f3f5fb;
+  --text-secondary: rgba(208, 217, 238, 0.90);
+  --text-muted: rgba(196, 206, 230, 0.80);
+  --text-dim: rgba(170, 184, 214, 0.64);
+  --text-decorative: rgba(150, 165, 200, 0.42);
+
+  /* reusable readability treatment for text sitting over texture/bloom */
+  --text-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.55), 0 0 10px rgba(0, 0, 0, 0.30);
+}
+
+/* mobile opacity floor: thin low-opacity text vanishes on phones, so the
+   supporting tiers are lifted and slightly weighted up below 640px */
+@media (max-width: 640px) {
+  :root {
+    --text-secondary: rgba(214, 222, 240, 0.94);
+    --text-muted: rgba(206, 215, 236, 0.88);
+    --text-dim: rgba(182, 195, 223, 0.74);
+    --text-decorative: rgba(162, 177, 210, 0.56);
+  }
 }
 
 /* ─── Body ───────────────────────────────────────────────────────────────────── */
@@ -83,7 +109,8 @@ html, body, #root {
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  opacity: 0.7;
+  /* pulled back so particles stay ambient texture, not foreground noise */
+  opacity: 0.42;
 }
 
 /* ─── Content well ───────────────────────────────────────────────────────────── */
@@ -100,6 +127,22 @@ html, body, #root {
   min-height: 100dvh;
 }
 
+/* reading pocket: a fixed darkening behind the content column so body text
+   never sits directly on the brightest bloom. it paints inside the content
+   well's stacking context (above the page atmosphere + particles, below the
+   actual screen content), keeping the background cinematic at the edges while
+   the centre stays calm and legible — the adaptive-contrast/vignette zone. */
+.content-well::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 78% 82% at 50% 42%, rgba(3, 7, 16, 0.58), transparent 76%),
+    linear-gradient(180deg, rgba(3, 7, 16, 0.45) 0%, transparent 16%, transparent 84%, rgba(3, 7, 16, 0.55) 100%);
+}
+
 /* ─── Glass ──────────────────────────────────────────────────────────────────── */
 .glass {
   background: var(--glass-bg);
@@ -107,6 +150,13 @@ html, body, #root {
   -webkit-backdrop-filter: blur(16px) saturate(1.4);
   border: 1px solid var(--glass-border);
   border-radius: 14px;
+  /* edge-lighting + faint inner shadow + soft elevation: the card is felt
+     through light and depth rather than a hard border, so it stays subtle
+     without dissolving into the background */
+  box-shadow:
+    inset 0 1px 0 var(--edge-light),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    0 10px 32px rgba(0, 0, 0, 0.38);
 }
 
 /* ─── Screen base ────────────────────────────────────────────────────────────── */
@@ -549,15 +599,18 @@ html, body, #root {
   padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
   gap: 4px;
   scrollbar-width: none;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid rgba(255,255,255,0.09);
   border-radius: 0;
+  /* lift the bar off the content with a dark separation shadow */
+  box-shadow: 0 -10px 34px rgba(0, 0, 0, 0.55);
 }
 .bottom-nav::-webkit-scrollbar { display: none; }
 
 .glass-nav {
-  background: rgba(4, 13, 26, 0.88);
-  backdrop-filter: blur(20px) saturate(1.5);
-  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  /* denser glass so the nav is a clearly separate surface, not page texture */
+  background: rgba(4, 11, 24, 0.94);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
 }
 
 .nav-item {
@@ -573,14 +626,20 @@ html, body, #root {
   cursor: pointer;
   min-width: 54px;
   flex-shrink: 0;
-  transition: background 0.2s, color 0.2s;
-  color: var(--text-dim);
+  transition: background 0.2s, color 0.2s, box-shadow 0.25s;
+  /* inactive tabs recede further so the active one reads instantly */
+  color: var(--text-decorative);
 }
-.nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text-muted); }
+.nav-item .nav-glyph { opacity: 0.7; transition: opacity 0.2s, text-shadow 0.2s; }
+.nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+.nav-item:hover .nav-glyph { opacity: 0.95; }
 .nav-item.active {
-  background: rgba(255,45,120,0.1);
+  background: rgba(255,45,120,0.14);
   color: var(--pink);
+  box-shadow: inset 0 0 0 1px rgba(255,45,120,0.28), 0 0 16px rgba(255,45,120,0.16);
 }
+.nav-item.active .nav-glyph { opacity: 1; text-shadow: 0 0 12px var(--pink-glow); }
+.nav-item.active .nav-label { color: var(--pink); }
 .nav-glyph { font-size: 16px; line-height: 1; }
 .nav-label { font-size: 8px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
 
