@@ -1689,7 +1689,7 @@ function relicAnonCode(r: Relic): string {
 function relicLegend(r: Relic) {
   const seed = r.id.charCodeAt(2) * 97 + r.resonance * 3
   return {
-    replays: `${(3 + (seed % 19)) + ((seed % 10) / 10)}k`,
+    replays: `${(6 + (seed % 33)) + ((seed % 10) / 10)}k`,
     stayRate: 78 + (seed % 19),
     peak: TRACE_SPIKES[seed % TRACE_SPIKES.length],
     reactions: [
@@ -1716,11 +1716,34 @@ function relicHistory(r: Relic): string {
   return lines[seed % lines.length]
 }
 
+// digital folklore: the single emotionally-viral line strangers repeat about a
+// relic — the stat that makes it culturally famous, not just visually cool.
+// deterministic per relic, drawn from a vocabulary of late-night internet myth.
+function relicFolklore(r: Relic): string {
+  if (r.id === 'rl10') return 'never opened · kept sealed by strangers'
+  if (r.id === 'rl5') return 'nobody finished this recording'
+  const seed = r.id.charCodeAt(2) * 89 + r.resonance * 13
+  const big = 11 + (seed % 31)          // 11k–41k
+  const nights = 9 + (seed % 39)        // 9–47 nights
+  const stay = relicLegend(r).stayRate
+  const lines = [
+    `replayed ${big}k times`,
+    `kept alive by strangers · ${nights} nights running`,
+    `heard mostly between 1am–3am`,
+    `someone listened ${nights} nights in a row`,
+    `deleted everywhere else · only survives here`,
+    `the most abandoned replay on the shelf`,
+    `${big}k replays · ${stay}% never reached the end`,
+    `passed hand to hand for ${nights} nights`,
+  ]
+  return lines[seed % lines.length]
+}
+
 // status tags: emotional, not RPG inventory
 function relicStatus(r: Relic): string {
   if (r.id === 'rl10') return 'sealed away'
   const seed = r.id.charCodeAt(2) * 41 + r.resonance * 7
-  const tags = ['replayed constantly', 'nobody finished this', 'passed around', 'damaged audio', 'too personal', 'keeps resurfacing', 'recovered tonight']
+  const tags = ['replayed constantly', 'nobody finished this', 'passed around', 'damaged audio', 'too personal', 'keeps resurfacing', 'recovered tonight', 'deleted everywhere else', 'kept alive by strangers']
   return tags[seed % tags.length]
 }
 
@@ -1985,6 +2008,7 @@ function RelicsScreen() {
             <i className="rnc-reel rnc-reel-b"><b /></i>
           </span>
           <strong className="relic-night-name">{heroRelic.name}</strong>
+          <span className="relic-night-folklore">{relicFolklore(heroRelic)}</span>
           <span className="relic-night-why">{heroRelic.whyRelic}</span>
           <span className="relic-night-history">{relicHistory(heroRelic)} · {heroLegend.stayRate}% stayed until the end</span>
           <span className="relic-night-subs" aria-hidden="true">
@@ -2021,6 +2045,7 @@ function RelicsScreen() {
                 ) : (
                   <strong className="scrap-name">{r.name}</strong>
                 )}
+                <span className="scrap-folklore">{relicFolklore(r)}</span>
                 <span className="scrap-line">{r.description}</span>
                 <span className="scrap-history">{relicHistory(r)}</span>
                 <span className="scrap-wave" aria-hidden="true">

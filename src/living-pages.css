@@ -2958,15 +2958,47 @@
   transform: rotate(var(--tilt));
   background: linear-gradient(170deg, rgba(20, 17, 36, 0.95), rgba(11, 9, 22, 0.97));
   border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
-  transition: transform 0.25s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  /* layered archival depth: a close contact shadow, a deep cast shadow, and
+     worn paper edges (inset top sheen + bottom darkening) */
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    0 14px 34px rgba(0, 0, 0, 0.5),
+    0 28px 60px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -22px 30px rgba(0, 0, 0, 0.22);
+  /* relics linger — a barely-there settling breath, never positional drift */
+  animation: relicLinger 13s ease-in-out infinite;
+  transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.34s ease, border-color 0.3s ease, filter 0.3s ease;
 }
 
+/* slow, collected breathing — depth and light only, the tape never moves */
+@keyframes relicLinger {
+  0%, 100% { filter: brightness(1); box-shadow: 0 2px 4px rgba(0,0,0,0.5), 0 14px 34px rgba(0,0,0,0.5), 0 28px 60px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -22px 30px rgba(0,0,0,0.22); }
+  50%      { filter: brightness(1.035); box-shadow: 0 2px 4px rgba(0,0,0,0.46), 0 18px 40px rgba(0,0,0,0.46), 0 34px 70px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -22px 30px rgba(0,0,0,0.18); }
+}
+.scrap:nth-child(3n) { animation-duration: 16s; animation-delay: -4s; }
+.scrap:nth-child(4n) { animation-duration: 19s; animation-delay: -9s; }
+.scrap:nth-child(5n) { animation-duration: 14.5s; animation-delay: -2s; }
+
 .scrap:hover {
-  transform: rotate(0deg) translateY(-3px);
-  z-index: 3;
-  border-color: rgba(0, 212, 255, 0.35);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55), 0 0 22px rgba(0, 212, 255, 0.1);
+  transform: rotate(0deg) translateY(-5px) scale(1.012);
+  z-index: 5;
+  animation: none;
+  border-color: rgba(0, 212, 255, 0.4);
+  filter: brightness(1.06);
+  /* the tape lifts off the shelf, casting a longer, softer shadow */
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.5),
+    0 24px 50px rgba(0, 0, 0, 0.6),
+    0 44px 90px rgba(0, 0, 0, 0.34),
+    0 0 28px rgba(0, 212, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* tape peels at the corner as a relic is lifted */
+.scrap:hover .scrap-tape {
+  transform: translateX(-50%) rotate(calc(var(--tilt) * -1.5 - 4deg)) translateY(-3px);
+  opacity: 0.78;
 }
 
 .scrap--size-1 { width: calc(42% - 10px); }
@@ -2989,10 +3021,18 @@
   width: 58px;
   height: 16px;
   transform: translateX(-50%) rotate(calc(var(--tilt) * -1.5));
-  background: rgba(220, 230, 250, 0.16);
-  border-left: 1px dashed rgba(255, 255, 255, 0.2);
-  border-right: 1px dashed rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(2px);
+  /* frosted, translucent packing tape — light catches the middle */
+  background: linear-gradient(
+    100deg,
+    rgba(225, 233, 250, 0.08) 0%,
+    rgba(235, 242, 255, 0.2) 45%,
+    rgba(210, 222, 245, 0.1) 100%
+  );
+  border-left: 1px dashed rgba(255, 255, 255, 0.18);
+  border-right: 1px dashed rgba(255, 255, 255, 0.18);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(2.5px);
+  transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.3s ease;
 }
 
 .scrap-anon {
@@ -3011,10 +3051,26 @@
 
 .scrap--hero .scrap-name { font-size: 18px; }
 
+/* digital folklore — the loud, emotionally-viral stat. the second the eye lands
+   on after the name. high-contrast, archival, with a struck-marker underline. */
+.scrap-folklore {
+  align-self: flex-start;
+  font-size: 11.5px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  color: rgba(255, 236, 214, 0.95);
+  text-shadow: 0 1px 7px rgba(0, 0, 0, 0.55);
+  padding-bottom: 4px;
+  margin-bottom: 1px;
+  border-bottom: 1px solid rgba(255, 220, 180, 0.16);
+  font-variant-numeric: tabular-nums;
+}
+
 .scrap-line {
   font-size: 11px;
   line-height: 1.55;
-  color: rgba(205, 214, 240, 0.68);
+  color: rgba(205, 214, 240, 0.66);
 }
 
 .scrap-wave {
@@ -3129,6 +3185,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .scrap, .sticky { transform: none; }
+  .scrap, .relic-night,
   .sticky--live, .relic-live-chip i, .scrap-storm i, .scrap.awakened .scrap-wave b { animation: none; }
 }
 
@@ -3246,6 +3303,19 @@
   font-weight: 900;
   color: rgba(244, 248, 255, 0.97);
   text-shadow: 0 0 20px rgba(255, 45, 120, 0.3);
+}
+
+.relic-night-folklore {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: rgba(255, 240, 220, 0.97);
+  text-shadow: 0 0 18px rgba(255, 150, 190, 0.4), 0 1px 4px rgba(0, 0, 0, 0.6);
+  padding: 4px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 150, 190, 0.28);
+  background: rgba(255, 45, 120, 0.08);
+  font-variant-numeric: tabular-nums;
 }
 
 .relic-night-why {
