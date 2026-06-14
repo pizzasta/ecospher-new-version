@@ -196,7 +196,7 @@
   margin-bottom: 4px;
   font-size: 10px;
   letter-spacing: 0.1em;
-  color: rgba(140, 155, 195, 0.55);
+  color: rgba(175, 188, 220, 0.78);
 }
 
 .ph-echo-meta .ph-icon-btn {
@@ -235,7 +235,7 @@
 .ph-history-date {
   font-size: 9px;
   letter-spacing: 0.1em;
-  color: rgba(140, 155, 195, 0.5);
+  color: rgba(170, 184, 218, 0.68);
 }
 
 .ph-history button {
@@ -261,8 +261,8 @@
   gap: 3px;
   padding: 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.05);
   color: inherit;
   cursor: pointer;
   text-align: center;
@@ -282,7 +282,7 @@
   font-size: 9px;
   letter-spacing: 0.14em;
   text-transform: lowercase;
-  color: rgba(140, 155, 195, 0.6);
+  color: rgba(170, 184, 218, 0.80);
 }
 
 .ph-hint {
@@ -416,7 +416,7 @@ body[data-eco-page='pod'] .screen {
 .ph-ring-center span {
   font-size: 9px;
   letter-spacing: 0.3em;
-  color: rgba(140, 155, 195, 0.6);
+  color: rgba(170, 184, 218, 0.78);
 }
 
 .ph-identity {
@@ -468,7 +468,7 @@ body[data-eco-page='pod'] .screen {
 
 .ph-traits li::before {
   content: '— ';
-  color: rgba(140, 155, 195, 0.4);
+  color: rgba(170, 184, 218, 0.58);
 }
 
 .ph-tonight {
@@ -1064,7 +1064,7 @@ body[data-eco-page='pod'] .screen {
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.28em;
-  color: rgba(140, 220, 250, 0.7);
+  color: rgba(160, 228, 255, 0.88);
   margin-bottom: 7px;
   text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
 }
@@ -1261,7 +1261,7 @@ body[data-eco-page='pod'] .screen {
 .ph-mem-trace {
   font-size: 9.5px;
   letter-spacing: 0.08em;
-  color: rgba(255, 150, 190, 0.6);
+  color: rgba(255, 160, 200, 0.80);
   font-style: italic;
   white-space: nowrap;
 }
@@ -1359,9 +1359,153 @@ body[data-eco-page='pod'] .screen {
   animation: phMsgBlink 1.6s steps(2) infinite;
 }
 @keyframes phMsgBlink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.25; } }
-.ph-answerphone-label { font-size: 9px; letter-spacing: 0.24em; color: rgba(180, 190, 215, 0.6); font-weight: 700; }
-.ph-msg-count { margin-left: auto; font-size: 10px; color: rgba(170, 185, 215, 0.55); font-variant-numeric: tabular-nums; }
+.ph-answerphone-label { font-size: 9px; letter-spacing: 0.24em; color: rgba(188, 200, 228, 0.80); font-weight: 700; }
+.ph-msg-count { margin-left: auto; font-size: 10px; color: rgba(185, 198, 228, 0.75); font-variant-numeric: tabular-nums; }
 
 @media (prefers-reduced-motion: reduce) {
   .ph-sigil-option.settling, .ph-centerpiece--settling .ph-ring, .ph-msg-light.on { animation: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   CODEX: ProfileHub zero-states, section structure, Soul Pod presence
+══════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── ph-card: cleaner reading surface ──────────────────────────────────────
+   Cards need a firmer base when content sits over the animated gradient. */
+.ph-card {
+  background: rgba(6, 10, 22, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+    0 6px 24px rgba(0, 0, 0, 0.36);
+}
+
+/* ─── Section kicker with readable text shadow ───────────────────────────── */
+.ph-card-kicker {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.80), 0 0 14px rgba(249, 168, 212, 0.25);
+}
+
+/* ─── Zero-state: empty echo list ───────────────────────────────────────────
+   When there are no echoes, show a faint waveform residue instead of nothing. */
+.ph-echo-list:empty::after {
+  content: '';
+  display: block;
+  height: 24px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 45, 120, 0.06) 0px,
+    rgba(255, 45, 120, 0.06) 3px,
+    transparent 3px,
+    transparent 7px
+  );
+  margin-top: 4px;
+  animation: wfResidueBreath 6s ease-in-out infinite;
+}
+
+/* ─── Zero-state: empty returns list ────────────────────────────────────────
+   Same residue treatment for the wall of returns. */
+.ph-returns:empty::after {
+  content: 'nothing here yet';
+  display: block;
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(170, 184, 218, 0.42);
+  text-align: center;
+  padding: 16px 0;
+  letter-spacing: 0.08em;
+  animation: wfResidueBreath 7s ease-in-out infinite;
+}
+
+/* ─── Vault stat active glow ─────────────────────────────────────────────────
+   Tap feedback so the user knows vault stats are interactive. */
+.ph-vault-stat:not(.ph-vault-stat--static):active {
+  background: rgba(255, 45, 120, 0.10);
+  border-color: rgba(255, 45, 120, 0.30);
+  transform: scale(0.97);
+  transition: transform 0.08s ease, background 0.1s ease;
+}
+
+/* ─── Memory: stronger section divider ───────────────────────────────────────
+   The dashed border was barely visible. */
+.ph-memory {
+  border-top-color: rgba(140, 155, 195, 0.28);
+}
+
+/* ─── Soul Pod: zero-state pulse rings behind stats ─────────────────────────
+   When all soul pod stats are 0, the section should pulse faintly to show
+   it's a live feature, not a dead placeholder. */
+.ph-vault-row {
+  position: relative;
+}
+.ph-vault-row::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 45, 120, 0.06);
+  pointer-events: none;
+  animation: pulseRingFade 7s ease-in-out infinite;
+}
+
+/* ─── Profile username mobile floor ─────────────────────────────────────────
+   On very small phones, the username must remain fully legible. */
+@media (max-width: 380px) {
+  .ph-username {
+    font-size: 16px;
+  }
+  .ph-resonance {
+    font-size: 10px;
+  }
+  .ph-ring {
+    width: 120px;
+    height: 120px;
+  }
+  .ph-ring-center strong {
+    font-size: 20px;
+  }
+  .ph-centerpiece {
+    gap: 14px;
+  }
+}
+
+/* ─── ph-prompt-question: readable over gradient ────────────────────────────
+   Questions in the voice prompt section need the strongest text treatment. */
+.ph-prompt-question {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65), 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* ─── ph-sigil-option hover + active feedback ───────────────────────────────
+   Better mobile tap response on sigil selection. */
+.ph-sigil-option:active {
+  transform: scale(0.94);
+  transition: transform 0.08s ease;
+}
+.ph-sigil-option {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* ─── ph-tape-shell touch feedback ──────────────────────────────────────────
+   The intro tape needs a clear pressed state. */
+.ph-tape-shell:active,
+.ph-cassette:active {
+  border-color: rgba(255, 200, 150, 0.35);
+  background: rgba(50, 40, 28, 0.72);
+  transition: background 0.08s ease, border-color 0.1s ease;
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ph-vault-row::before,
+  .ph-echo-list:empty::after,
+  .ph-returns:empty::after,
+  .ph-vault-stat:not(.ph-vault-stat--static):active,
+  .ph-sigil-option:active,
+  .ph-tape-shell:active,
+  .ph-cassette:active {
+    animation: none;
+    transform: none;
+    transition: none;
+  }
 }
