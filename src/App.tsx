@@ -2597,6 +2597,15 @@ function FrequenciesScreen() {
   }, [ecosystemState.userSignalIdentity])
   // session cast count + live sync status for the pill
   const [castCount, setCastCount] = useState(0)
+  // inline feedback at the composer (the .sea-ping toast renders far below the
+  // tall sea field, off-screen — so cast results need a message right here)
+  const [castNote, setCastNote] = useState<{ text: string; ok: boolean } | null>(null)
+  const castNoteTimer = useRef<number | undefined>(undefined)
+  const flashCastNote = (text: string, ok: boolean) => {
+    setCastNote({ text, ok })
+    window.clearTimeout(castNoteTimer.current)
+    castNoteTimer.current = window.setTimeout(() => setCastNote(null), 3600)
+  }
   const composerInputRef = useRef<HTMLInputElement>(null)
   const myBuoys = buoys.filter(b => b.mine)
   const castingNow = myBuoys.filter(b => b.status === 'casting').length
@@ -2730,11 +2739,15 @@ function FrequenciesScreen() {
   const castLine = () => {
     const text = composer.trim().replace(/\s+/g, ' ')
     const words = wordCount(text)
-    if (words < 5 || words > 7) { say('five to seven words — like a line you\'d actually say'); return }
+    if (words < 5 || words > 7) {
+      const why = words < 5 ? `a few more words — you have ${words}, aim for 5–7` : `a touch shorter — you have ${words}, aim for 5–7`
+      flashCastNote(words === 0 ? 'type a short line first, then cast' : why, false)
+      return
+    }
     // AI audit before anything reaches the sea — nothing inappropriate drifts
-    if (moderatePublicSignalText(text).status === 'flagged') { say('that one can\'t drift here. try it softer.'); return }
+    if (moderatePublicSignalText(text).status === 'flagged') { flashCastNote('that one can\'t drift here — try it softer', false); return }
     const gate = castRateCheck()
-    if (!gate.allowed) { say(gate.reason ?? 'give it a moment'); return }
+    if (!gate.allowed) { flashCastNote(gate.reason ?? 'give it a moment', false); return }
     recordCast()
     bumpCastToday()
 
@@ -2743,6 +2756,7 @@ function FrequenciesScreen() {
     setBuoys(prev => [buoy, ...prev].slice(0, 44))
     setComposer('')
     setCastCount(n => n + 1)
+    flashCastNote('cast — it\'s drifting in the sea now ✓', true)
     // keep the composer ready — cast the next one without breaking the drift
     composerInputRef.current?.focus()
 
@@ -3020,7 +3034,11 @@ function FrequenciesScreen() {
             ● cast
           </button>
         </div>
-        <p className="sea-composer-note">cast as many as you like — they drift off in your color. others pass through them the way you pass through theirs.</p>
+        {castNote ? (
+          <p className={`sea-composer-feedback${castNote.ok ? ' ok' : ''}`} role="status">{castNote.text}</p>
+        ) : (
+          <p className="sea-composer-note">cast as many as you like — they drift off in your color. others pass through them the way you pass through theirs.</p>
+        )}
       </div>
 
       {/* mixed-drifting controls: layer text vs audio, quiet the water while writing */}

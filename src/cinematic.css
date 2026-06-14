@@ -2847,6 +2847,17 @@ body[data-eco-deepnight='on']:not([data-eco-night='on']) .atmosphere {
   color: rgba(185, 200, 225, 0.5);
 }
 
+/* cast result, shown right here at the composer (not in the far-off toast) */
+.sea-composer-feedback {
+  margin: 9px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #ffc06e;
+  animation: lpAmbientIn 0.3s ease both;
+}
+.sea-composer-feedback.ok { color: color-mix(in srgb, var(--yours-color, #ffd166) 70%, #d9ffe6); }
+
 @media (prefers-reduced-motion: reduce) {
   .sea-composer-count, .sea-composer-row input, .sea-composer-send { transition: none; }
 }
