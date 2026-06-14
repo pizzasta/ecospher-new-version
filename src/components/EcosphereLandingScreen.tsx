@@ -81,14 +81,11 @@ export default function EcosphereLandingScreen({ onEnterComplete }: EcosphereLan
           <b />
         </div>
         <h1>ECOSPHERE</h1>
-        <p className="ecosphere-landing__subtitle">anonymous signals drifting through the late-night frequency field.</p>
-
         <div className="ecosphere-landing__explainer">
-          <p className="ecosphere-landing__tagline">somewhere out there, someone's still awake.</p>
-          <p className="ecosphere-landing__plain">
-            ecosphere is anonymous ten-second voices from strangers you'll never meet. nothing to post, no one to follow — you just drift, listen to what others left, and send one signal of your own before it fades.
-          </p>
-          <p className="ecosphere-landing__cue">to start, press play on whatever's passing through — the gate's open when you are.</p>
+          <p className="ecosphere-landing__stagline">somewhere out there, someone's still awake.</p>
+          <p className="ecosphere-landing__plain">10 second voices.</p>
+          <p className="ecosphere-landing__plain">listen quietly.</p>
+          <p className="ecosphere-landing__plain">leave one thing behind.</p>
         </div>
 
         <div className="ecosphere-landing__wave" aria-hidden="true">
