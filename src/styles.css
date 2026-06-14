@@ -3967,6 +3967,28 @@ html, body, #root {
 
 .boot-sequence-screen {
   overflow: hidden;
+  /* on mobile, allow vertical scroll if content overflows the viewport */
+}
+
+@media (max-width: 600px) {
+  .boot-sequence-screen {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .boot-phase {
+    position: relative;
+    top: auto;
+    left: auto;
+    translate: none;
+    margin: 0 auto;
+    padding: 16px;
+  }
+  .boot-detection {
+    top: auto;
+  }
+  .claim-orb-field {
+    width: min(80vw, 55vh);
+  }
 }
 
 .boot-audio-toggle {
@@ -4127,13 +4149,17 @@ html, body, #root {
   translate: -50% -50%;
   width: 100%;
   z-index: 5;
+  /* prevent text clipping on small screens */
+  overflow: visible;
+  padding: 0 16px;
+  box-sizing: border-box;
 }
 
 .boot-detection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  top: 54%;
+  top: 52%;
 }
 
 .boot-dot {
@@ -4149,31 +4175,35 @@ html, body, #root {
 .boot-detection p,
 .boot-enter p {
   color: #f9a8d4;
-  font-size: clamp(15px, 3vw, 22px);
+  font-size: clamp(13px, 3vw, 22px);
   font-weight: 850;
-  /* responsive tracking: roomy on desktop, never wide enough to clip on a phone */
-  letter-spacing: clamp(0.1em, 1.6vw, 0.28em);
+  letter-spacing: clamp(0.06em, 1.2vw, 0.26em);
   margin: 0;
   max-width: 100%;
   overflow-wrap: break-word;
   text-transform: uppercase;
   text-wrap: balance;
   white-space: normal;
+  /* ensure signal detected never clips */
+  width: 100%;
+  padding: 0 4px;
+  box-sizing: border-box;
 }
 
 .boot-detection small {
   animation: bootTextBlink 3.4s ease-in-out infinite;
   color: rgba(233, 213, 255, 0.74);
   display: block;
-  font-size: clamp(10px, 2.4vw, 11px);
-  letter-spacing: clamp(0.08em, 1.2vw, 0.18em);
+  font-size: clamp(9px, 2vw, 11px);
+  letter-spacing: clamp(0.05em, 0.9vw, 0.16em);
   margin-top: 13px;
   max-width: 100%;
   overflow-wrap: break-word;
-  padding: 0 6px;
+  padding: 0 8px;
   text-transform: uppercase;
   text-wrap: balance;
   white-space: normal;
+  box-sizing: border-box;
 }
 
 .typewriter-text {
@@ -4245,12 +4275,15 @@ html, body, #root {
 
 .boot-human h2 {
   color: #fff7fb;
-  font-size: clamp(31px, 8vw, 76px);
-  line-height: 0.96;
+  font-size: clamp(24px, 7vw, 76px);
+  line-height: 1.0;
   margin: 0 auto 24px;
   max-width: 780px;
-  overflow: hidden;
+  overflow: visible;
   text-shadow: 0 0 46px rgba(255, 42, 116, 0.16);
+  overflow-wrap: break-word;
+  word-break: break-word;
+  width: 100%;
 }
 
 .boot-mic-wave {
