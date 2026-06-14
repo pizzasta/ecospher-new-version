@@ -1,3 +1,5 @@
+import { useState, useEffect, useRef } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { deleteAccountData, getOptionalSupabaseClient, isSupabaseConfigured, syncProfile, updateProfileFlags } from './lib'
@@ -4363,7 +4365,8 @@ export default function App() {
       </main>
 
       <SpeedInsights />
-      <Nav active={screen} onNav={navigate} />
+      <Analytics />
+            <Nav active={screen} onNav={navigate} />
 
       {/* cinematic route veil */}
       {veilKey > 0 && (
@@ -4371,6 +4374,7 @@ export default function App() {
           <span className="eco-route-veil-wave" />
         </div>
       )}
+
     </div>
   )
 }
