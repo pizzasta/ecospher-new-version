@@ -147,7 +147,7 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
           {step === 0 && (
             <>
               <h2>the mark people will know you by</h2>
-              <p>no photos here, ever. just a shape that feels like you when someone tunes in.</p>
+              <p>no photos, ever. just a shape that feels like you.</p>
               <div className="po-sigils" role="radiogroup" aria-label="Sigil">
                 {AVATAR_SIGILS.map(s => (
                   <button
@@ -169,7 +169,7 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
           {step === 1 && (
             <>
               <h2>the color you give off</h2>
-              <p>a mood for your whole page — washed and dim, the way late screens look. change it any night.</p>
+              <p>the mood your whole page gives off. change it any night.</p>
               <div className="po-palettes" role="radiogroup" aria-label="Color palette">
                 {PROFILE_PALETTES.map(p => (
                   <button
@@ -191,7 +191,7 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
           {step === 2 && (
             <>
               <h2>where you drift</h2>
-              <p>the world behind you when someone finds your frequency.</p>
+              <p>the world behind you when someone tunes in.</p>
               <div className="po-styles" role="radiogroup" aria-label="Background style">
                 {GRADIENT_STYLES.map(s => (
                   <button
@@ -212,7 +212,7 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
           {step === 3 && (
             <>
               <h2>how your signal feels</h2>
-              <p>even when you're quiet, this is the feeling you leave on. it shapes how your page drifts, glows, and fades.</p>
+              <p>the feeling you leave on, even when you're quiet.</p>
               <div className="po-moods">
                 {MOOD_FIELDS.filter(f => ONBOARD_MOOD_FIELDS.includes(f.id)).map(field => (
                   <div key={field.id} className="po-mood-field">
@@ -240,7 +240,7 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
           {step === 4 && (
             <>
               <h2>you're on the band now</h2>
-              <p>this is your frequency. quiet or loud, it stays open — someone drifting through tonight will feel it. change any of it from your page, any time.</p>
+              <p>your frequency's open now. someone drifting through tonight will feel it.</p>
             </>
           )}
         </div>
