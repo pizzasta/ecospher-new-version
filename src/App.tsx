@@ -4362,6 +4362,7 @@ export default function App() {
         </Suspense>
       </main>
 
+      <SpeedInsights />
       <Nav active={screen} onNav={navigate} />
 
       {/* cinematic route veil */}
