@@ -59,6 +59,7 @@ import { ensureProfileAfterAuth, signInWithGoogle } from './lib/googleAuth'
 import { sendLive } from './lib/liveBus'
 import type { LiveEvent } from './lib/liveBus'
 import { moderatePublicSignalText } from './lib/signalModeration'
+import { fireMoment, momentAppOpen, momentScreenTransition } from './lib/audioMoments'
 
 const FeedScreen = lazy(() => import('./FeedScreen'))
 const RoomsScreenComponent = lazy(() => import('./components/RoomsScreen'))
@@ -4086,6 +4087,7 @@ export default function App() {
 
   const navigate = (next: Screen) => {
     if (next === screen) return
+    fireMoment('screenTransition', momentScreenTransition)
     setScreen(next)
     setVeilKey(k => k + 1)
     try {
@@ -4106,6 +4108,16 @@ export default function App() {
   useEffect(() => {
     document.title = `Ecosphere · ${SCREEN_TITLES[screen]}`
   }, [screen])
+
+  // cinematic audio: fire once after the first user gesture unlocks AudioContext
+  useEffect(() => {
+    const unlock = () => {
+      fireMoment('appOpen', momentAppOpen)
+      window.removeEventListener('pointerdown', unlock, true)
+    }
+    window.addEventListener('pointerdown', unlock, true)
+    return () => window.removeEventListener('pointerdown', unlock, true)
+  }, [])
 
   // 18+ gate: one-time, remembered on the device, shown before anything else
   const [ageOk, setAgeOk] = useState(ageConfirmed)
