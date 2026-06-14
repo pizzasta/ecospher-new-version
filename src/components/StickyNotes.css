@@ -1,99 +1,524 @@
-.sticky-notes {
-  margin: 22px 0;
-  padding: 16px 14px 18px;
-  border-radius: 16px;
-  background: rgba(20, 18, 28, 0.55);
-  border: 1px solid rgba(202, 165, 127, 0.22);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02), 0 8px 24px rgba(0, 0, 0, 0.3);
-}
-.sticky-head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
-.sticky-kicker {
-  font-size: 13px; letter-spacing: 0.2em; font-weight: 800;
-  color: #e8c79a;
-  text-shadow: 0 0 14px rgba(202, 165, 127, 0.35);
-}
-.sticky-head small { font-size: 12px; color: #cdbfa8; opacity: 0.95; }
+/* ═══════════════════════════════════════════════════════════════════════════
+   DRIFT BOARD — a memory wall of thoughts left at 2am
+   Notes are physically imperfect, temporally alive, emotionally real.
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-.sticky-compose {
-  display: flex; flex-direction: column; gap: 9px;
-  padding: 12px 13px;
-  border-radius: 14px;
-  background: rgba(14, 14, 22, 0.5);
-  border: 1px solid rgba(150, 140, 130, 0.16);
-  margin-bottom: 14px;
+/* ── section wrapper ────────────────────────────────────────────────────── */
+.drift-section {
+  margin: 24px 0;
+  padding: 18px 16px 20px;
+  border-radius: 18px;
+  background: rgba(16, 14, 22, 0.6);
+  border: 1px solid rgba(180, 148, 110, 0.18);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.02),
+    0 12px 36px rgba(0, 0, 0, 0.38);
+  position: relative;
+  overflow: hidden;
 }
-.sticky-compose textarea {
+
+/* faint analog noise background on section */
+.drift-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  opacity: 0.45;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ── header ─────────────────────────────────────────────────────────────── */
+.drift-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 2;
+}
+.drift-kicker {
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  font-weight: 800;
+  color: #d4b896;
+  text-shadow: 0 0 18px rgba(196, 158, 110, 0.3);
+  opacity: 0.9;
+}
+.drift-sub {
+  font-size: 11px;
+  color: rgba(190, 178, 162, 0.65);
+  letter-spacing: 0.03em;
+}
+
+/* ── compose area ───────────────────────────────────────────────────────── */
+.drift-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  background: rgba(10, 10, 18, 0.55);
+  border: 1px solid rgba(140, 130, 118, 0.14);
+  margin-bottom: 18px;
+  position: relative;
+  z-index: 2;
+}
+.drift-textarea {
   resize: none;
-  min-height: 52px;
-  padding: 9px 11px;
+  min-height: 54px;
+  padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(150, 140, 130, 0.18);
-  background: rgba(6, 6, 12, 0.5);
-  color: #ece3d8;
+  border: 1px solid rgba(148, 138, 126, 0.16);
+  background: rgba(6, 6, 12, 0.52);
+  color: #ece2d4;
   font-size: 13px;
   font-family: inherit;
+  line-height: 1.55;
+  outline: none;
+  transition: border-color 0.25s ease;
+}
+.drift-textarea:focus {
+  border-color: rgba(196, 162, 118, 0.4);
+}
+.drift-textarea::placeholder {
+  color: rgba(210, 198, 182, 0.45);
+  font-style: italic;
+}
+.drift-compose-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.drift-colors {
+  display: inline-flex;
+  gap: 6px;
+}
+.drift-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  padding: 0;
+  filter: saturate(0.6) brightness(0.88);
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+.drift-swatch:hover {
+  filter: saturate(0.75) brightness(0.95);
+  transform: scale(1.1);
+}
+.drift-swatch.on {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.42);
+  filter: saturate(0.8) brightness(0.92);
+}
+.drift-public-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: rgba(196, 180, 160, 0.7);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+.drift-public-label input {
+  accent-color: #bca47c;
+}
+.drift-pin-btn {
+  margin-left: auto;
+  padding: 7px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(196, 162, 118, 0.35);
+  background: rgba(196, 162, 118, 0.12);
+  color: #ddc9a8;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.drift-pin-btn:hover:not(:disabled) {
+  background: rgba(196, 162, 118, 0.2);
+  border-color: rgba(196, 162, 118, 0.55);
+}
+.drift-pin-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.drift-error {
+  font-size: 11px;
+  color: rgba(240, 140, 155, 0.8);
+  font-style: italic;
+}
+.drift-empty {
+  font-size: 12px;
+  color: rgba(180, 172, 160, 0.45);
+  text-align: center;
+  padding: 24px 0;
+  font-style: italic;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE DRIFT BOARD
+   ══════════════════════════════════════════════════════════════════════════ */
+.drift-board {
+  position: relative;
+  width: 100%;
+  min-height: 320px;
+  /* board feels like a desk surface */
+  background:
+    radial-gradient(ellipse at 30% 60%, rgba(80, 60, 40, 0.06) 0%, transparent 65%),
+    radial-gradient(ellipse at 75% 25%, rgba(60, 80, 90, 0.05) 0%, transparent 55%);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* ── dust particles ─────────────────────────────────────────────────────── */
+.drift-dust-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.drift-dust {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(220, 200, 175, 0.7);
+  animation: dustDrift linear infinite;
+}
+@keyframes dustDrift {
+  0%   { transform: translate(0, 0) scale(1); opacity: var(--d-op, 0.04); }
+  33%  { transform: translate(8px, -12px) scale(0.8); }
+  66%  { transform: translate(-5px, 6px) scale(1.1); }
+  100% { transform: translate(0, 0) scale(1); opacity: var(--d-op, 0.04); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DRIFT NOTE BASE
+   ══════════════════════════════════════════════════════════════════════════ */
+.drift-note {
+  width: clamp(130px, 18%, 185px);
+  min-height: 100px;
+  padding: 14px 13px 11px;
+  border-radius: 3px 4px 5px 3px;
+  /* base color from --note var, aged with age factor */
+  background:
+    color-mix(in srgb, var(--note, #caa57f) 72%, rgba(22, 18, 12, 0.9));
+  color: rgba(18, 14, 8, 0.82);
+  position: absolute;
+  /* will-change only while dragging — set inline */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* paper grain texture overlay */
+.note-grain {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.09'/%3E%3C/svg%3E");
+  background-size: 90px 90px;
+  mix-blend-mode: multiply;
+  opacity: calc(0.55 + var(--wear, 0) * 0.3);
+  pointer-events: none;
+}
+
+/* aging fade layer — deepens with age */
+.note-age-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  /* subtle vignette on aged notes */
+  background: radial-gradient(ellipse at 50% 50%,
+    transparent 55%,
+    rgba(14, 10, 6, calc(var(--age, 0) * 0.18)) 100%
+  );
+  /* edge fading */
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, calc(var(--age, 0) * 0.12));
+  pointer-events: none;
+}
+
+/* ── tape strip variant ─────────────────────────────────────────────────── */
+.note-tape {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-1.5deg);
+  width: 46px;
+  height: 18px;
+  background: rgba(240, 230, 210, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  /* subtle tape texture */
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 0px,
+    rgba(255,255,255,0.04) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
+
+/* ── folded corner variant ──────────────────────────────────────────────── */
+.note-folded::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(
+    225deg,
+    rgba(0, 0, 0, 0.2) 0%,
+    color-mix(in srgb, var(--note, #caa57f) 60%, rgba(10, 8, 4, 0.9)) 100%
+  );
+  border-top-left-radius: 3px;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+/* ── torn edge variant ──────────────────────────────────────────────────── */
+.note-torn {
+  border-bottom: none;
+  padding-bottom: 18px;
+}
+.note-torn::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: color-mix(in srgb, var(--note, #caa57f) 55%, rgba(8, 6, 4, 0.95));
+  clip-path: polygon(
+    0% 30%, 4% 10%, 8% 40%, 13% 15%, 18% 45%, 23% 5%, 28% 35%,
+    33% 20%, 38% 50%, 43% 10%, 48% 40%, 53% 25%, 58% 55%, 63% 20%,
+    68% 45%, 73% 5%, 78% 35%, 83% 15%, 88% 42%, 93% 8%, 98% 38%, 100% 30%,
+    100% 100%, 0% 100%
+  );
+}
+
+/* ── note text button ───────────────────────────────────────────────────── */
+.note-text-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0 0 10px;
+  color: inherit;
+  font-size: 12px;
   line-height: 1.5;
+  font-family: inherit;
+  cursor: text;
+  word-break: break-word;
+  /* handwriting-style opacity variance */
+  opacity: calc(0.88 - var(--age, 0) * 0.14);
+}
+
+/* ── inline edit area ───────────────────────────────────────────────────── */
+.note-edit-area {
+  width: 100%;
+  min-height: 60px;
+  resize: none;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 3px;
+  color: rgba(18, 14, 8, 0.85);
+  font-size: 12px;
+  font-family: inherit;
+  line-height: 1.5;
+  padding: 4px 5px;
+  margin-bottom: 10px;
   outline: none;
 }
-.sticky-compose textarea:focus { border-color: rgba(202, 165, 127, 0.45); }
-.sticky-compose textarea::placeholder { color: rgba(220, 210, 196, 0.6); }
-.sticky-compose-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.sticky-colors { display: inline-flex; gap: 5px; }
-.sticky-swatch { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.18); cursor: pointer; padding: 0; filter: saturate(0.7); }
-.sticky-swatch.on { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5); }
-.sticky-public { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: #c8bca8; cursor: pointer; }
-.sticky-public input { accent-color: #caa57f; }
-.sticky-add {
-  margin-left: auto;
-  padding: 8px 14px; border-radius: 10px;
-  border: 1px solid rgba(202, 165, 127, 0.4);
-  background: rgba(202, 165, 127, 0.14);
-  color: #e8d2b4; font-size: 12px; font-weight: 700; cursor: pointer;
-}
-.sticky-add:disabled { opacity: 0.4; cursor: default; }
-.sticky-error { font-size: 11px; color: rgba(255, 150, 170, 0.85); }
-.sticky-empty { font-size: 12px; color: rgba(190, 190, 210, 0.5); padding: 16px 0; text-align: center; }
 
-/* the wall of post-its */
-.sticky-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
-.sticky-note {
-  position: relative;
-  min-height: 96px;
-  padding: 13px 12px 10px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--note, #caa57f) 78%, #1a160f);
-  color: #1a1408;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
-  cursor: grab;
-  transform: rotate(var(--tilt, -1deg));
-  transition: transform 0.18s ease, box-shadow 0.2s ease;
+/* ── note footer ────────────────────────────────────────────────────────── */
+.note-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
-.sticky-note:nth-child(2n) { --tilt: 1.4deg; }
-.sticky-note:nth-child(3n) { --tilt: -2deg; }
-.sticky-note:nth-child(4n) { --tilt: 0.8deg; }
-.sticky-note:hover { transform: rotate(0deg) translateY(-2px); box-shadow: 0 10px 22px rgba(0, 0, 0, 0.55); }
-.sticky-note::before {
+.note-state-toggle {
+  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  border-radius: 5px;
+  padding: 3px 7px;
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(18, 14, 8, 0.6);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.2s ease;
+}
+.note-state-toggle:hover {
+  background: rgba(0, 0, 0, 0.18);
+}
+.note-del {
+  background: transparent;
+  border: none;
+  color: rgba(18, 14, 8, 0.38);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  transition: color 0.2s ease;
+}
+.note-del:hover {
+  color: rgba(100, 20, 20, 0.75);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   NOTE STATES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* PRIVATE — stable, softer, stays close */
+.drift-note.is-private {
+  filter: saturate(0.68) brightness(0.92);
+}
+
+/* DRIFTING — subtle pulse glow, slight motion feel */
+.drift-note.is-drifting {
+  filter: saturate(0.78) brightness(0.96);
+  /* soft glow pulse */
+  animation: driftPulse 4.5s ease-in-out infinite;
+}
+.drift-note.is-drifting::before {
   content: '';
-  position: absolute; top: -7px; left: 50%; transform: translateX(-50%) rotate(-3deg);
-  width: 42px; height: 16px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: absolute;
+  inset: -2px;
+  border-radius: 5px;
+  background: transparent;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--note, #caa57f) 50%, transparent);
+  animation: driftGlow 4.5s ease-in-out infinite;
+  pointer-events: none;
 }
-.sticky-note.is-public { box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45), 0 0 0 1px color-mix(in srgb, var(--note) 60%, #fff); }
-.sticky-note-text {
-  display: block; width: 100%; text-align: left;
-  background: transparent; border: none; padding: 0; margin: 0 0 8px;
-  color: inherit; font-size: 12.5px; line-height: 1.45; font-family: inherit; cursor: text;
-  word-break: break-word;
+@keyframes driftPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.88; }
 }
-.sticky-note textarea {
-  width: 100%; min-height: 56px; resize: none;
-  background: rgba(255, 255, 255, 0.18); border: none; border-radius: 3px;
-  color: #1a1408; font-size: 12.5px; font-family: inherit; line-height: 1.45; padding: 4px 5px; margin-bottom: 8px; outline: none;
+@keyframes driftGlow {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.85; }
 }
-.sticky-note-foot { display: flex; align-items: center; justify-content: space-between; }
-.sticky-toggle { background: rgba(0, 0, 0, 0.12); border: none; border-radius: 6px; padding: 3px 8px; font-size: 9.5px; font-weight: 700; color: rgba(20, 16, 8, 0.7); cursor: pointer; }
-.sticky-del { background: transparent; border: none; color: rgba(20, 16, 8, 0.5); font-size: 12px; cursor: pointer; padding: 2px 4px; }
-.sticky-del:hover { color: rgba(120, 20, 20, 0.9); }
 
-@media (prefers-reduced-motion: reduce) { .sticky-note { transition: none; transform: none; } .sticky-note:hover { transform: translateY(-2px); } }
+/* ANCHORED — strong, stable, high contrast */
+.drift-note.is-anchored {
+  filter: saturate(0.88) brightness(1.02);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255,255,255,0.08) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   AGING SYSTEM
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* worn — slightly used */
+.drift-note.is-worn {
+  filter: saturate(0.62) brightness(0.9) sepia(0.08);
+}
+.drift-note.is-worn .note-text-btn {
+  opacity: calc(0.82 - var(--age, 0) * 0.1);
+}
+
+/* aged — deeply faded, desaturated, worn */
+.drift-note.is-aged {
+  filter: saturate(0.45) brightness(0.84) sepia(0.15);
+}
+.drift-note.is-aged .note-grain {
+  opacity: 0.88;
+}
+.drift-note.is-aged .note-text-btn {
+  opacity: 0.65;
+  /* faded ink */
+  color: rgba(18, 14, 8, 0.68);
+}
+.drift-note.is-aged::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  /* faint residue — emotional ghost */
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
+/* wrinkle shadows on aged notes */
+.drift-note.is-aged .note-age-overlay {
+  background: radial-gradient(ellipse at 30% 70%,
+    rgba(14, 10, 6, 0.12) 0%,
+    transparent 55%
+  ), radial-gradient(ellipse at 70% 30%,
+    rgba(14, 10, 6, 0.08) 0%,
+    transparent 45%
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DRAG INTERACTION MICRODETAILS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* note edges lift while dragging — handled inline via transform scale */
+/* shadow deepens — handled inline */
+/* tape peel — subtle on drag */
+.drift-note:active .note-tape,
+.drift-note[style*="grabbing"] .note-tape {
+  transform: translateX(-50%) rotate(-3.5deg) translateY(-1px);
+  opacity: 0.7;
+}
+
+/* soft hover bloom — barely noticeable */
+.drift-note:hover:not(:active) {
+  filter: brightness(1.03) saturate(1.04);
+}
+.drift-note.is-private:hover:not(:active) {
+  filter: saturate(0.72) brightness(0.95);
+}
+.drift-note.is-worn:hover:not(:active) {
+  filter: saturate(0.66) brightness(0.93);
+}
+.drift-note.is-aged:hover:not(:active) {
+  filter: saturate(0.48) brightness(0.87) sepia(0.15);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  .drift-board {
+    min-height: 420px;
+  }
+  .drift-note {
+    width: clamp(115px, 42vw, 160px);
+    font-size: 11.5px;
+  }
+  .drift-textarea {
+    font-size: 16px; /* prevent iOS zoom */
+  }
+}
+
+@media (max-width: 380px) {
+  .drift-note {
+    width: clamp(108px, 44vw, 148px);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   REDUCED MOTION
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .drift-note {
+    transition: box-shadow 0.2s ease, opacity 0.3s ease !important;
+    animation: none !important;
+  }
+  .drift-note.is-drifting {
+    animation: none !important;
+  }
+  .drift-note.is-drifting::before {
+    animation: none !important;
+  }
+  .drift-dust {
+    animation: none !important;
+  }
+}
