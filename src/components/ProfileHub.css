@@ -307,11 +307,13 @@
   isolation: isolate;
 }
 
-/* the background is the whole page, not just the hub section */
+/* the background is the whole page, not just the hub section. z-index:-1 keeps
+   it (and its darkening scrim) painted BEHIND the pod content — at z-index:0 the
+   positioned layer painted over the non-positioned headings, dimming the text. */
 .ph-gradient-layer {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   opacity: 0.92;
   pointer-events: none;
   will-change: background;
