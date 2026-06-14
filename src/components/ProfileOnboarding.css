@@ -1,87 +1,186 @@
+/* ═══════════════════════════════════════════════════════════════════
+   PROFILE ONBOARDING — tuning into a late-night frequency
+   Visual language matches the calibration screen and intro boot:
+   deep dark, neon-lit, cinematic. Not a form. A signal ritual.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Overlay ─────────────────────────────────────────────────────── */
 .po-overlay {
   position: fixed;
   inset: 0;
   z-index: 600;
   display: grid;
   place-items: center;
-  padding: 18px;
+  padding: 16px;
   overflow: hidden;
   background:
-    radial-gradient(120% 90% at 50% 20%, rgba(20, 14, 28, 0.5), transparent 60%),
-    rgba(2, 3, 8, 0.9);
-  backdrop-filter: blur(10px) saturate(0.8);
+    radial-gradient(circle at 50% 30%, rgba(236, 72, 153, 0.12), transparent 45%),
+    radial-gradient(circle at 80% 70%, rgba(103, 232, 249, 0.07), transparent 40%),
+    radial-gradient(circle at 20% 80%, rgba(138, 111, 198, 0.08), transparent 38%),
+    linear-gradient(170deg, #01010a 0%, #04030f 55%, #010208 100%);
+  backdrop-filter: blur(12px) saturate(0.75);
 }
 
-/* faint anonymous carriers drifting past while you tune in */
-.po-drifters { position: absolute; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+/* atmospheric glow ring around the whole overlay */
+.po-overlay::before {
+  content: '';
+  position: absolute;
+  inset: -10%;
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 20%,
+      rgba(236, 72, 153, 0.09), transparent 65%),
+    radial-gradient(ellipse 50% 50% at 70% 75%,
+      rgba(103, 232, 249, 0.06), transparent 60%);
+  pointer-events: none;
+  animation: poAtmoBreath 11s ease-in-out infinite alternate;
+}
+
+@keyframes poAtmoBreath {
+  from { opacity: 0.7; transform: scale(1); }
+  to   { opacity: 1;   transform: scale(1.04); }
+}
+
+/* ── Drifting carriers ───────────────────────────────────────────── */
+.po-drifters {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
 .po-drifters em {
   position: absolute;
   left: -30%;
   font-style: normal;
   font-size: 10px;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.2em;
   text-transform: lowercase;
-  color: color-mix(in srgb, var(--mood-tint) 55%, #b9c2d6);
+  color: color-mix(in srgb, var(--mood-tint) 65%, #b9c2d6);
   opacity: 0;
   white-space: nowrap;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--mood-tint) 50%, transparent);
   animation: poDrift linear infinite;
 }
 @keyframes poDrift {
-  0% { transform: translateX(0); opacity: 0; }
-  12% { opacity: calc(0.34 * var(--mood-density)); }
-  88% { opacity: calc(0.34 * var(--mood-density)); }
+  0%   { transform: translateX(0);     opacity: 0; }
+  10%  { opacity: calc(0.42 * var(--mood-density)); }
+  90%  { opacity: calc(0.42 * var(--mood-density)); }
   100% { transform: translateX(160vw); opacity: 0; }
 }
 
-.po-pulses { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.po-pulses {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
 
+/* ── Panel ───────────────────────────────────────────────────────── */
 .po-panel {
   position: relative;
   z-index: 2;
-  width: min(440px, 100%);
-  max-height: 92vh;
+  width: min(450px, 100%);
+  max-height: 92dvh;
   overflow-y: auto;
+  overflow-x: hidden;
   border-radius: 24px;
-  padding: 18px 20px 20px;
-  /* this panel SCROLLS, so the inherited radial edge-fade mask from
-     .atmo-soft-panel was clipping the header and the footer buttons at the
-     top/bottom — content felt cut off. Drop the mask here and replace the
-     heavy edge-darkening inner shadow with a clean edge-lit panel so every
-     step (and the 'drift in' button) stays fully visible. */
+  padding: 20px 22px 22px;
+  /* rich glassy panel — matches calibration screen energy */
+  background:
+    radial-gradient(130% 80% at 50% 0%,
+      color-mix(in srgb, var(--mood-tint) 16%, transparent), transparent 55%),
+    linear-gradient(180deg, rgba(8, 6, 20, 0.82), rgba(4, 4, 14, 0.88));
+  border: 1px solid color-mix(in srgb, var(--mood-tint) 28%, rgba(255,255,255,0.08));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--mood-tint) 22%, rgba(255,255,255,0.1)),
+    0 0 60px color-mix(in srgb, var(--mood-tint) 12%, transparent),
+    0 40px 100px rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(20px) saturate(1.1);
+  /* no mask — ensures footer buttons always visible */
   -webkit-mask-image: none;
   mask-image: none;
-  border: 1px solid rgba(160, 172, 210, 0.14);
-  box-shadow:
-    inset 0 1px 0 var(--edge-light, rgba(255, 255, 255, 0.14)),
-    0 30px 90px rgba(0, 0, 0, 0.6);
   scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--mood-tint) 30%, transparent) transparent;
 }
 
-.po-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+/* faint animated grain texture on panel */
+.po-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0.35;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  animation: atmoGrain 1.4s steps(2) infinite;
+}
+@keyframes atmoGrain {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(-2%, 2%); }
+  100% { transform: translate(2%, -2%); }
+}
+
+/* ── Header ──────────────────────────────────────────────────────── */
+.po-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
 .po-kicker {
-  font-size: 10px;
-  letter-spacing: 0.34em;
+  font-size: 9.5px;
+  letter-spacing: 0.38em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--mood-tint) 60%, #aeb6cc);
-  font-weight: 500;
+  color: color-mix(in srgb, var(--mood-tint) 80%, #aeb6cc);
+  font-weight: 800;
+  text-shadow: 0 0 14px color-mix(in srgb, var(--mood-tint) 50%, transparent);
 }
-.po-dots { display: flex; gap: 6px; margin-left: auto; }
-.po-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(150, 160, 200, 0.18); transition: background 1.4s ease; }
-.po-dots i.on { background: var(--mood-tint); box-shadow: 0 0 10px color-mix(in srgb, var(--mood-tint) 70%, transparent); }
-.po-dots i.done { background: color-mix(in srgb, var(--mood-tint) 40%, transparent); }
-.po-kicker { text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
-.po-skip { background: transparent; border: none; color: rgba(184, 193, 215, 0.62); font-size: 12px; cursor: pointer; letter-spacing: 0.04em; }
-.po-skip:hover { color: rgba(220, 226, 240, 0.85); }
+.po-dots {
+  display: flex;
+  gap: 7px;
+  margin-left: auto;
+}
+.po-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(150, 160, 200, 0.16);
+  transition: background 0.7s ease, box-shadow 0.7s ease;
+}
+.po-dots i.on {
+  background: var(--mood-tint);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--mood-tint) 80%, transparent),
+              0 0 28px color-mix(in srgb, var(--mood-tint) 40%, transparent);
+}
+.po-dots i.done {
+  background: color-mix(in srgb, var(--mood-tint) 50%, rgba(80,80,120,0.3));
+}
+.po-skip {
+  background: transparent;
+  border: none;
+  color: rgba(180, 190, 215, 0.5);
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: color 0.25s ease;
+}
+.po-skip:hover { color: rgba(220, 226, 240, 0.82); }
 
-/* the live, faded preview */
+/* ── Live preview ────────────────────────────────────────────────── */
 .po-preview {
   position: relative;
-  height: clamp(178px, 26vh, 226px);
+  height: clamp(180px, 27vh, 230px);
   border-radius: 18px;
   overflow: hidden;
   margin-bottom: 18px;
-  background: #05060d;
-  box-shadow: inset 0 0 70px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  background: #05060f;
+  border: 1px solid color-mix(in srgb, var(--mood-tint) 22%, rgba(255,255,255,0.06));
+  box-shadow:
+    inset 0 0 70px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 0 30px color-mix(in srgb, var(--mood-tint) 14%, transparent);
 }
 .po-preview-flat { position: absolute; inset: 0; }
 .po-preview .ph-scene { position: absolute; inset: 0; }
@@ -91,11 +190,12 @@
   z-index: 2;
   pointer-events: none;
   background:
-    radial-gradient(120% 100% at 50% 40%, transparent 40%, rgba(4, 5, 12, 0.55) 100%),
-    linear-gradient(180deg, rgba(10, 10, 22, 0.28), rgba(6, 7, 16, 0.42));
+    radial-gradient(120% 100% at 50% 40%, transparent 38%, rgba(2, 3, 12, 0.52) 100%),
+    linear-gradient(180deg, rgba(6, 6, 18, 0.22), rgba(4, 5, 14, 0.38));
   mix-blend-mode: multiply;
 }
-/* frequency waveform along the floor of the preview — the signal breathing */
+
+/* frequency waveform breathing along the floor of preview */
 .po-preview-waves {
   position: absolute;
   left: 0;
@@ -109,23 +209,25 @@
   gap: 3px;
   padding: 0 14px 12px;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(180deg, transparent, #000 60%);
-  mask-image: linear-gradient(180deg, transparent, #000 60%);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 55%);
+  mask-image: linear-gradient(180deg, transparent, #000 55%);
 }
 .po-preview-waves i {
   flex: 1;
   max-width: 5px;
   height: var(--w-h, 50%);
   border-radius: 2px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--mood-tint) 85%, #fff), color-mix(in srgb, var(--mood-tint-2) 70%, transparent));
-  opacity: 0.5;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--mood-tint) 90%, #fff),
+    color-mix(in srgb, var(--mood-tint-2) 60%, transparent));
+  opacity: 0.65;
   transform-origin: bottom;
   animation: poWave 2.4s ease-in-out infinite;
   animation-delay: var(--w-d, 0s);
 }
 @keyframes poWave {
-  0%, 100% { transform: scaleY(0.55); opacity: 0.4; }
-  50% { transform: scaleY(1); opacity: 0.75; }
+  0%, 100% { transform: scaleY(0.45); opacity: 0.45; }
+  50%       { transform: scaleY(1);    opacity: 0.85; }
 }
 
 .po-preview-sigil {
@@ -133,165 +235,320 @@
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: 44px;
-  color: #e6dbe6;
-  text-shadow: 0 0 30px color-mix(in srgb, var(--mood-tint) 80%, transparent), 0 2px 10px rgba(0, 0, 0, 0.6);
+  font-size: 48px;
+  color: color-mix(in srgb, var(--mood-tint) 60%, #fff);
+  text-shadow:
+    0 0 36px color-mix(in srgb, var(--mood-tint) 90%, transparent),
+    0 0 80px color-mix(in srgb, var(--mood-tint) 40%, transparent),
+    0 2px 12px rgba(0, 0, 0, 0.7);
   z-index: 4;
 }
-/* a faint tuning ring breathing around the sigil */
+/* tuning ring around sigil */
 .po-preview-sigil::before {
   content: '';
   position: absolute;
-  width: 92px;
-  height: 92px;
+  width: 98px;
+  height: 98px;
   border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--mood-tint) 45%, transparent);
-  box-shadow: 0 0 30px color-mix(in srgb, var(--mood-tint) 30%, transparent), inset 0 0 24px color-mix(in srgb, var(--mood-tint) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mood-tint) 55%, transparent);
+  box-shadow:
+    0 0 36px color-mix(in srgb, var(--mood-tint) 36%, transparent),
+    inset 0 0 30px color-mix(in srgb, var(--mood-tint) 22%, transparent);
+  animation: poRingBreath 4s ease-in-out infinite;
+}
+@keyframes poRingBreath {
+  0%, 100% { transform: scale(0.96); opacity: 0.7; }
+  50%       { transform: scale(1.04); opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .po-preview-waves i { animation: none; }
+  .po-preview-waves i, .po-preview-sigil::before { animation: none; }
 }
 
+/* ── Oracle button ───────────────────────────────────────────────── */
+.po-oracle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+.po-oracle-btn {
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--mood-tint, #b9889b) 55%, transparent);
+  background: color-mix(in srgb, var(--mood-tint, #b9889b) 16%, rgba(10,8,24,0.7));
+  color: color-mix(in srgb, var(--mood-tint, #b9889b) 90%, #fff);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--mood-tint, #b9889b) 60%, transparent);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--mood-tint, #b9889b) 16%, transparent);
+  transition: background 0.3s ease, transform 0.15s ease, box-shadow 0.3s ease;
+}
+.po-oracle-btn:hover {
+  background: color-mix(in srgb, var(--mood-tint, #b9889b) 28%, rgba(10,8,24,0.7));
+  box-shadow: 0 0 44px color-mix(in srgb, var(--mood-tint, #b9889b) 28%, transparent);
+  transform: translateY(-1px);
+}
+.po-oracle-flavor {
+  font-size: 11px;
+  font-style: italic;
+  color: color-mix(in srgb, var(--mood-tint) 65%, rgba(210,216,234,0.7));
+  text-align: center;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--mood-tint) 40%, transparent);
+  letter-spacing: 0.04em;
+}
+
+/* ── Body copy ───────────────────────────────────────────────────── */
 .po-body h2 {
-  margin: 0 0 6px;
-  font-size: clamp(18px, 4.2vw, 22px);
-  font-weight: 600;
-  letter-spacing: 0.005em;
+  margin: 0 0 7px;
+  font-size: clamp(17px, 4vw, 21px);
+  font-weight: 700;
+  letter-spacing: 0.008em;
   line-height: 1.2;
-  color: #f1ecf3;
-  text-shadow: var(--text-shadow-soft);
+  color: #fff7fb;
+  text-shadow:
+    0 0 24px color-mix(in srgb, var(--mood-tint) 35%, transparent),
+    var(--text-shadow-soft, none);
   text-wrap: balance;
 }
 .po-body p {
   margin: 0 0 16px;
   font-size: 12.5px;
   font-weight: 300;
-  line-height: 1.6;
-  color: rgba(206, 213, 233, 0.82);
-  max-width: 360px;
+  line-height: 1.65;
+  color: rgba(210, 218, 238, 0.78);
+  max-width: 380px;
 }
 
-.po-sigils { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 8px; }
+/* ── Sigils ──────────────────────────────────────────────────────── */
+.po-sigils {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  gap: 8px;
+}
 .po-sigil {
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  font-size: 19px;
-  border-radius: 13px;
-  border: 1px solid rgba(150, 160, 200, 0.1);
-  background: rgba(14, 16, 28, 0.5);
-  color: rgba(206, 214, 235, 0.82);
+  font-size: 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(150, 160, 200, 0.12);
+  background: rgba(10, 10, 22, 0.6);
+  color: rgba(210, 218, 238, 0.72);
   cursor: pointer;
-  transition: border-color 0.5s ease, background 0.5s ease, transform 0.4s ease;
+  transition: border-color 0.4s ease, background 0.4s ease, transform 0.3s ease, box-shadow 0.4s ease;
 }
-.po-sigil:hover { transform: translateY(-1px); background: rgba(20, 22, 38, 0.6); }
+.po-sigil:hover {
+  transform: translateY(-2px);
+  background: rgba(18, 16, 34, 0.7);
+  border-color: color-mix(in srgb, var(--mood-tint) 40%, transparent);
+}
 .po-sigil.active {
-  border-color: color-mix(in srgb, var(--mood-tint) 70%, transparent);
-  box-shadow: 0 0 22px color-mix(in srgb, var(--mood-tint) 24%, transparent);
+  border-color: color-mix(in srgb, var(--mood-tint) 80%, transparent);
+  box-shadow:
+    0 0 24px color-mix(in srgb, var(--mood-tint) 32%, transparent),
+    0 0 50px color-mix(in srgb, var(--mood-tint) 14%, transparent),
+    inset 0 0 16px color-mix(in srgb, var(--mood-tint) 10%, transparent);
+  background: color-mix(in srgb, var(--mood-tint) 14%, rgba(8,8,20,0.7));
   color: #fff;
 }
 
-.po-palettes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+/* ── Color palettes ──────────────────────────────────────────────── */
+.po-palettes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
 .po-palette {
-  display: flex; align-items: center; gap: 9px;
-  padding: 9px 11px;
-  border-radius: 13px;
-  border: 1px solid rgba(150, 160, 200, 0.1);
-  background: rgba(14, 16, 28, 0.5);
-  color: rgba(214, 220, 238, 0.78);
-  font-size: 12.5px; font-weight: 300;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(150, 160, 200, 0.12);
+  background: rgba(10, 10, 22, 0.6);
+  color: rgba(218, 224, 242, 0.78);
+  font-size: 12.5px;
+  font-weight: 400;
   cursor: pointer;
-  transition: border-color 0.5s ease;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
 }
-.po-palette.active { border-color: color-mix(in srgb, var(--mood-tint) 70%, transparent); box-shadow: 0 0 20px color-mix(in srgb, var(--mood-tint) 18%, transparent); }
-.po-palette-swatch { width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0; filter: saturate(0.7) brightness(0.92); }
+.po-palette.active {
+  border-color: color-mix(in srgb, var(--mood-tint) 80%, transparent);
+  box-shadow:
+    0 0 22px color-mix(in srgb, var(--mood-tint) 24%, transparent),
+    inset 0 0 14px color-mix(in srgb, var(--mood-tint) 8%, transparent);
+  background: color-mix(in srgb, var(--mood-tint) 10%, rgba(8,8,20,0.7));
+}
+.po-palette-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  filter: saturate(0.85) brightness(0.95);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
 
-.po-styles { display: flex; flex-wrap: wrap; gap: 8px; }
+/* ── Styles ──────────────────────────────────────────────────────── */
+.po-styles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .po-style {
-  padding: 8px 13px;
+  padding: 8px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(150, 160, 200, 0.12);
-  background: rgba(14, 16, 28, 0.5);
-  color: rgba(214, 220, 238, 0.78);
-  font-size: 12px; font-weight: 300;
+  border: 1px solid rgba(150, 160, 200, 0.13);
+  background: rgba(10, 10, 22, 0.6);
+  color: rgba(218, 224, 242, 0.75);
+  font-size: 12px;
+  font-weight: 400;
   cursor: pointer;
-  transition: border-color 0.5s ease, color 0.5s ease;
+  transition: border-color 0.4s ease, color 0.3s ease, background 0.3s ease;
 }
-.po-style.is3d::before { content: '◇ '; opacity: 0.5; }
-.po-style.active { border-color: color-mix(in srgb, var(--mood-tint) 70%, transparent); color: #fff; }
+.po-style.is3d::before { content: '◇ '; opacity: 0.55; }
+.po-style.active {
+  border-color: color-mix(in srgb, var(--mood-tint) 80%, transparent);
+  color: #fff;
+  background: color-mix(in srgb, var(--mood-tint) 14%, rgba(8,8,20,0.7));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--mood-tint) 22%, transparent);
+}
 
-/* atmosphere step: emotional dimensions */
-.po-moods { display: flex; flex-direction: column; gap: 13px; }
-.po-mood-field { display: flex; flex-direction: column; gap: 6px; }
-.po-mood-label {
-  font-size: 10.5px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--mood-tint) 50%, #9aa2bc);
-  font-weight: 500;
+/* ── Mood fields ─────────────────────────────────────────────────── */
+.po-moods {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
-.po-mood-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.po-mood-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.po-mood-label {
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--mood-tint) 70%, #9aa2bc);
+  font-weight: 700;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--mood-tint) 40%, transparent);
+}
+.po-mood-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .po-mood-opt {
-  padding: 6px 12px;
+  padding: 7px 13px;
   border-radius: 999px;
-  border: 1px solid rgba(150, 160, 200, 0.12);
-  background: rgba(12, 14, 26, 0.45);
-  color: rgba(206, 214, 235, 0.7);
-  font-size: 11.5px; font-weight: 300;
+  border: 1px solid rgba(150, 160, 200, 0.13);
+  background: rgba(10, 10, 22, 0.55);
+  color: rgba(210, 218, 238, 0.7);
+  font-size: 11.5px;
+  font-weight: 400;
   cursor: pointer;
-  transition: border-color 0.5s ease, color 0.5s ease, background 0.5s ease;
+  transition: border-color 0.4s ease, color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
 }
 .po-mood-opt.active {
-  border-color: color-mix(in srgb, var(--mood-tint) 75%, transparent);
-  background: color-mix(in srgb, var(--mood-tint) 14%, transparent);
+  border-color: color-mix(in srgb, var(--mood-tint) 80%, transparent);
+  background: color-mix(in srgb, var(--mood-tint) 18%, rgba(8,8,20,0.7));
   color: #fff;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--mood-tint) 22%, transparent);
 }
 
-.po-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+/* ── Footer ──────────────────────────────────────────────────────── */
+.po-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 22px;
+  gap: 12px;
+}
 .po-back {
-  padding: 9px 16px;
+  padding: 10px 18px;
   border-radius: 12px;
-  border: 1px solid rgba(150, 160, 200, 0.14);
+  border: 1px solid rgba(150, 160, 200, 0.16);
   background: transparent;
-  color: rgba(200, 208, 228, 0.6);
-  font-size: 13px; font-weight: 300;
+  color: rgba(206, 214, 234, 0.6);
+  font-size: 13px;
+  font-weight: 400;
   cursor: pointer;
-  transition: color 0.5s ease;
+  transition: color 0.3s ease, border-color 0.3s ease;
 }
-.po-back:hover { color: rgba(236, 240, 250, 0.92); }
+.po-back:hover {
+  color: rgba(236, 240, 250, 0.92);
+  border-color: rgba(200, 210, 230, 0.28);
+}
 .po-next {
-  padding: 11px 24px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--mood-tint) 40%, transparent);
-  font-size: 13px; font-weight: 500; letter-spacing: 0.02em;
+  padding: 12px 28px;
+  border-radius: 13px;
+  border: 1px solid color-mix(in srgb, var(--mood-tint) 55%, transparent);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   cursor: pointer;
-  color: #f3eef4;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--mood-tint) 40%, rgba(20,22,40,0.6)), color-mix(in srgb, var(--mood-tint-2) 40%, rgba(14,16,30,0.6)));
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 24px color-mix(in srgb, var(--mood-tint) calc(var(--mood-glow) * 60%), transparent);
-  transition: transform 0.4s ease, box-shadow 0.6s ease;
+  color: #fff7fb;
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--mood-tint) 50%, rgba(16,14,36,0.5)),
+      color-mix(in srgb, var(--mood-tint-2) 45%, rgba(10,10,28,0.5)));
+  box-shadow:
+    0 0 32px color-mix(in srgb, var(--mood-tint) calc(var(--mood-glow, 0.24) * 70%), transparent),
+    0 12px 36px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: transform 0.3s ease, box-shadow 0.4s ease;
 }
-.po-next:hover { transform: translateY(-1px); }
-.po-next:active { transform: scale(0.97); box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.45); }
-.po-finish { letter-spacing: 0.06em; }
+.po-next:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 48px color-mix(in srgb, var(--mood-tint) calc(var(--mood-glow, 0.24) * 90%), transparent),
+    0 16px 44px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+.po-next:active {
+  transform: scale(0.97);
+}
+.po-finish {
+  letter-spacing: 0.1em;
+  /* extra glow on final CTA */
+  box-shadow:
+    0 0 50px color-mix(in srgb, var(--mood-tint) 50%, transparent),
+    0 0 100px color-mix(in srgb, var(--mood-tint) 20%, transparent),
+    0 16px 44px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
 
+/* ── Reduced motion ──────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .po-drifters em { animation: none; opacity: calc(0.2 * var(--mood-density)); }
-  .po-sigil, .po-next, .po-palette, .po-style, .po-mood-opt, .po-dots i { transition: none; }
+  .po-drifters em { animation: none; opacity: calc(0.25 * var(--mood-density)); }
+  .po-overlay::before { animation: none; }
+  .po-panel::after { animation: none; }
+  .po-sigil, .po-next, .po-back, .po-palette,
+  .po-style, .po-mood-opt, .po-dots i,
+  .po-oracle-btn { transition: none; }
 }
 
-/* let the frequency choose */
-.po-oracle { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 16px; }
-.po-oracle-btn {
-  padding: 8px 16px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--mood-tint, #b9889b) 45%, transparent);
-  background: color-mix(in srgb, var(--mood-tint, #b9889b) 12%, transparent);
-  color: color-mix(in srgb, var(--mood-tint, #b9889b) 80%, #fff);
-  font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
-  cursor: pointer;
-  transition: background 0.3s ease, transform 0.15s ease;
+/* ── Mobile ──────────────────────────────────────────────────────── */
+@media (max-width: 500px) {
+  .po-panel {
+    padding: 16px 16px 18px;
+    border-radius: 20px;
+    max-height: 96dvh;
+  }
+  .po-preview {
+    height: clamp(150px, 24vw, 190px);
+    border-radius: 14px;
+  }
+  .po-palettes {
+    grid-template-columns: 1fr;
+  }
+  .po-next {
+    padding: 12px 22px;
+  }
+  .po-body h2 {
+    font-size: clamp(16px, 4.5vw, 20px);
+  }
 }
-.po-oracle-btn:hover { background: color-mix(in srgb, var(--mood-tint, #b9889b) 20%, transparent); transform: translateY(-1px); }
-.po-oracle-flavor { font-size: 11px; font-style: italic; color: rgba(210, 216, 234, 0.85); text-align: center; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); }
-@media (prefers-reduced-motion: reduce) { .po-oracle-btn { transition: none; } }
