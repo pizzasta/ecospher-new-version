@@ -178,6 +178,15 @@ html, body, #root {
 .screen-title  { font-size: clamp(28px, 8vw, 44px); font-weight: 900; letter-spacing: -0.03em; line-height: 1; color: var(--text-primary); }
 .screen-sub    { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
 
+/* the eyebrow label breathes a little so every screen header has a pulse */
+@media (prefers-reduced-motion: no-preference) {
+  .screen-kicker { animation: kickerBreathe 6.5s ease-in-out infinite; }
+}
+@keyframes kickerBreathe {
+  0%, 100% { opacity: 0.84; transform: translateX(0); }
+  50%      { opacity: 1; transform: translateX(1.5px); }
+}
+
 /* ─── Home screen ────────────────────────────────────────────────────────────── */
 .home-screen { gap: 20px; }
 .home-kicker {
@@ -4035,6 +4044,69 @@ html, body, #root {
 .boot-orb-field {
   opacity: 0.98;
   transition: filter 900ms ease, opacity 900ms ease, transform 1200ms ease;
+  /* sit slightly off-center against the centered text — imperfect tension.
+     uses the independent `translate` property so it composes with the
+     per-phase `transform: scale()` instead of overriding it. */
+  translate: 3.5% -2%;
+  animation: bootOrbDrift 26s ease-in-out infinite;
+}
+
+/* slow off-center wander — barely there, never returns to dead center */
+@keyframes bootOrbDrift {
+  0%, 100% { translate: 3.5% -2%; }
+  50%      { translate: 6%   0.8%; }
+}
+
+/* ── ambient signal HUD — drifting metadata in the margins ───────────────── */
+.boot-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* z-index 0 keeps the HUD above the orb but below the later-in-DOM text */
+  z-index: 0;
+  font-family: 'SFMono-Regular', ui-monospace, monospace;
+  text-transform: uppercase;
+}
+
+.boot-hud-item {
+  position: absolute;
+  font-size: 9px;
+  line-height: 1.5;
+  letter-spacing: 0.16em;
+  color: rgba(186, 202, 234, 0.22);
+  text-shadow: 0 0 12px rgba(120, 160, 220, 0.12);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  animation: bootHudDrift 18s ease-in-out infinite;
+}
+
+.boot-hud-bars { color: rgba(120, 220, 255, 0.3); font-style: normal; letter-spacing: 0.05em; }
+
+/* asymmetric placement — staggered tops, never mirrored side to side */
+.boot-hud-tl { top: 13%;  left: 4.5%;  animation-duration: 21s; }
+.boot-hud-l  { top: 49%;  left: 3%;    animation-duration: 17s; animation-delay: -6s; }
+.boot-hud-bl { bottom: 11%; left: 7%;  animation-duration: 24s; animation-delay: -3s; }
+.boot-hud-tr { top: 22%;  right: 5.5%; text-align: right; animation-duration: 19s; animation-delay: -9s; }
+.boot-hud-r  { top: 63%;  right: 4%;   text-align: right; animation-duration: 22s; animation-delay: -2s; }
+.boot-hud-br { bottom: 17%; right: 6.5%; text-align: right; animation-duration: 16s; animation-delay: -11s; }
+
+@keyframes bootHudDrift {
+  0%, 100% { transform: translate(0, 0); opacity: 0.85; }
+  50%      { transform: translate(-3px, -7px); opacity: 1; }
+}
+
+/* keep the margins clear on phones — readability and scroll come first */
+@media (max-width: 720px) {
+  .boot-hud { display: none; }
+}
+@media (max-width: 600px) {
+  .boot-orb-field { translate: 0 0; animation: none; }
+}
+
+/* reduced motion: hold everything still, but keep the off-center placement */
+.cinematic-boot.motion-reduced .boot-orb-field,
+.cinematic-boot.motion-reduced .boot-hud-item {
+  animation: none;
 }
 
 .phase-0 .boot-orb-field {
@@ -4274,16 +4346,28 @@ html, body, #root {
 }
 
 .boot-human h2 {
-  color: #fff7fb;
+  color: #fdf6fa;
   font-size: clamp(24px, 7vw, 76px);
-  line-height: 1.0;
+  font-weight: 600;
+  line-height: 1.08;
+  /* a hair of tracking — cinematic, intimate, premium (not a gaming HUD) */
+  letter-spacing: -0.005em;
   margin: 0 auto 24px;
   max-width: 780px;
   overflow: visible;
-  text-shadow: 0 0 46px rgba(255, 42, 116, 0.16);
   overflow-wrap: break-word;
   word-break: break-word;
   width: 100%;
+  /* elegant line breaks for the sentence */
+  text-wrap: balance;
+  /* crisp first, dreamy second: a tight dark lift keeps the words sharp on the
+     haze, with only a faint warm bloom (~40% less blur & glow than before). */
+  text-shadow:
+    0 1px 2px rgba(8, 6, 14, 0.55),
+    0 0 28px rgba(255, 64, 130, 0.1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .boot-mic-wave {

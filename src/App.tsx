@@ -214,38 +214,93 @@ function Particles() {
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
-    type P = { x: number; y: number; vx: number; vy: number; r: number; o: number; hue: number; pulse: number }
-    const particles: P[] = Array.from({ length: 60 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      r: Math.random() * 2 + 0.5,
-      o: Math.random() * 0.5 + 0.1,
-      hue: Math.random() > 0.5 ? 320 : (Math.random() > 0.5 ? 190 : 270),
-      pulse: Math.random() * Math.PI * 2,
-    }))
+    // bx/by = the particle's resting drift; vx/vy ease back to it after a nudge
+    type P = { x: number; y: number; vx: number; vy: number; bx: number; by: number; r: number; o: number; hue: number; pulse: number }
+    const particles: P[] = Array.from({ length: 60 }, () => {
+      const bx = (Math.random() - 0.5) * 0.3
+      const by = (Math.random() - 0.5) * 0.3
+      return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: bx, vy: by, bx, by,
+        r: Math.random() * 2 + 0.5,
+        o: Math.random() * 0.5 + 0.1,
+        hue: Math.random() > 0.5 ? 320 : (Math.random() > 0.5 ? 190 : 270),
+        pulse: Math.random() * Math.PI * 2,
+      }
+    })
+
+    const drawOne = (p: P, alpha: number) => {
+      ctx.beginPath()
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
+      ctx.fillStyle = `hsla(${p.hue}, 80%, 65%, ${alpha})`
+      ctx.fill()
+    }
+
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
+    window.addEventListener('resize', resize)
+
+    // reduced motion: a single static field, no loop, no cursor reactivity
+    if (reduced) {
+      particles.forEach(p => drawOne(p, p.o * 0.85))
+      return () => window.removeEventListener('resize', resize)
+    }
+
+    // the cursor leaves a faint wake — particles drift toward it and light up,
+    // trailing thin signal lines while it's near. all of it tiny and slow.
+    const pointer = { x: -9999, y: -9999, active: false }
+    const RADIUS = 150
+    const onMove = (e: PointerEvent) => { pointer.x = e.clientX; pointer.y = e.clientY; pointer.active = true }
+    const onLeave = () => { pointer.active = false; pointer.x = -9999; pointer.y = -9999 }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    window.addEventListener('pointerleave', onLeave)
+    window.addEventListener('blur', onLeave)
+
     let animId: number
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       particles.forEach(p => {
+        let near = 0
+        if (pointer.active) {
+          const dx = pointer.x - p.x, dy = pointer.y - p.y
+          const dist = Math.hypot(dx, dy)
+          if (dist < RADIUS) {
+            near = 1 - dist / RADIUS
+            const pull = near * 0.07
+            p.vx += (dx / (dist || 1)) * pull
+            p.vy += (dy / (dist || 1)) * pull
+          }
+        }
+        // ease back toward resting drift so nudges never accumulate
+        p.vx += (p.bx - p.vx) * 0.03
+        p.vy += (p.by - p.vy) * 0.03
         p.x += p.vx; p.y += p.vy; p.pulse += 0.02
         if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0
         if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0
-        const alpha = p.o * (0.7 + 0.3 * Math.sin(p.pulse))
-        ctx.beginPath()
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
-        ctx.fillStyle = `hsla(${p.hue}, 80%, 65%, ${alpha})`
-        ctx.fill()
+        const alpha = p.o * (0.7 + 0.3 * Math.sin(p.pulse)) * (1 + near * 1.4)
+        drawOne(p, Math.min(1, alpha))
+        if (near > 0) {
+          ctx.beginPath()
+          ctx.moveTo(p.x, p.y)
+          ctx.lineTo(pointer.x, pointer.y)
+          ctx.strokeStyle = `hsla(${p.hue}, 80%, 70%, ${near * 0.14})`
+          ctx.lineWidth = 0.5
+          ctx.stroke()
+        }
       })
       animId = requestAnimationFrame(draw)
     }
     draw()
-    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
-    window.addEventListener('resize', resize)
-    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize) }
+    return () => {
+      cancelAnimationFrame(animId)
+      window.removeEventListener('resize', resize)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerleave', onLeave)
+      window.removeEventListener('blur', onLeave)
+    }
   }, [])
   return <canvas ref={canvasRef} className="particles-canvas" />
 }
@@ -1689,7 +1744,7 @@ function relicAnonCode(r: Relic): string {
 function relicLegend(r: Relic) {
   const seed = r.id.charCodeAt(2) * 97 + r.resonance * 3
   return {
-    replays: `${(3 + (seed % 19)) + ((seed % 10) / 10)}k`,
+    replays: `${(6 + (seed % 33)) + ((seed % 10) / 10)}k`,
     stayRate: 78 + (seed % 19),
     peak: TRACE_SPIKES[seed % TRACE_SPIKES.length],
     reactions: [
@@ -1716,11 +1771,34 @@ function relicHistory(r: Relic): string {
   return lines[seed % lines.length]
 }
 
+// digital folklore: the single emotionally-viral line strangers repeat about a
+// relic — the stat that makes it culturally famous, not just visually cool.
+// deterministic per relic, drawn from a vocabulary of late-night internet myth.
+function relicFolklore(r: Relic): string {
+  if (r.id === 'rl10') return 'never opened · kept sealed by strangers'
+  if (r.id === 'rl5') return 'nobody finished this recording'
+  const seed = r.id.charCodeAt(2) * 89 + r.resonance * 13
+  const big = 11 + (seed % 31)          // 11k–41k
+  const nights = 9 + (seed % 39)        // 9–47 nights
+  const stay = relicLegend(r).stayRate
+  const lines = [
+    `replayed ${big}k times`,
+    `kept alive by strangers · ${nights} nights running`,
+    `heard mostly between 1am–3am`,
+    `someone listened ${nights} nights in a row`,
+    `deleted everywhere else · only survives here`,
+    `the most abandoned replay on the shelf`,
+    `${big}k replays · ${stay}% never reached the end`,
+    `passed hand to hand for ${nights} nights`,
+  ]
+  return lines[seed % lines.length]
+}
+
 // status tags: emotional, not RPG inventory
 function relicStatus(r: Relic): string {
   if (r.id === 'rl10') return 'sealed away'
   const seed = r.id.charCodeAt(2) * 41 + r.resonance * 7
-  const tags = ['replayed constantly', 'nobody finished this', 'passed around', 'damaged audio', 'too personal', 'keeps resurfacing', 'recovered tonight']
+  const tags = ['replayed constantly', 'nobody finished this', 'passed around', 'damaged audio', 'too personal', 'keeps resurfacing', 'recovered tonight', 'deleted everywhere else', 'kept alive by strangers']
   return tags[seed % tags.length]
 }
 
@@ -1985,6 +2063,7 @@ function RelicsScreen() {
             <i className="rnc-reel rnc-reel-b"><b /></i>
           </span>
           <strong className="relic-night-name">{heroRelic.name}</strong>
+          <span className="relic-night-folklore">{relicFolklore(heroRelic)}</span>
           <span className="relic-night-why">{heroRelic.whyRelic}</span>
           <span className="relic-night-history">{relicHistory(heroRelic)} · {heroLegend.stayRate}% stayed until the end</span>
           <span className="relic-night-subs" aria-hidden="true">
@@ -2022,6 +2101,7 @@ function RelicsScreen() {
                   <strong className="scrap-name">{r.name}</strong>
                 )}
                 <span className="scrap-line">{r.description}</span>
+                <span className="scrap-folklore">{relicFolklore(r)}</span>
                 <span className="scrap-history">{relicHistory(r)}</span>
                 <span className="scrap-wave" aria-hidden="true">
                   {Array.from({ length: 11 }, (_, b) => (
