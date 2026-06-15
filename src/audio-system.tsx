@@ -234,6 +234,166 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     setDebug((current) => ({ ...current, ...patch }))
   }, [])
 
+  const frequencySeaRef = useRef<FrequencySeaLayerState | null>(null)
+
+  const stopFrequencySea = useCallback(() => {
+    const sea = frequencySeaRef.current
+    if (!sea) return
+    const context = audioContextRef.current
+    const now = context?.currentTime ?? 0
+    if (sea.modulationTimer !== null) {
+      window.clearInterval(sea.modulationTimer)
+    }
+    try {
+      sea.masterGain.gain.cancelScheduledValues(now)
+      sea.masterGain.gain.setValueAtTime(sea.masterGain.gain.value, now)
+      sea.masterGain.gain.linearRampToValueAtTime(0, now + 0.7)
+    } catch {
+      // The context may have already been closed by the browser.
+    }
+    window.setTimeout(() => {
+      ;[sea.deepOscillator, sea.deepLfo, sea.hissSource, sea.crackleSource].forEach((node) => {
+        try { node.stop() } catch { /* Already stopped. */ }
+      })
+      ;[
+        sea.deepOscillator, sea.deepLfo, sea.deepLfoGain, sea.deepGain,
+        sea.hissSource, sea.hissFilter, sea.hissGain,
+        sea.crackleSource, sea.crackleFilter, sea.crackleGain,
+        sea.masterGain,
+      ].forEach((node) => {
+        try { node.disconnect() } catch { /* Already disconnected. */ }
+      })
+    }, 760)
+    frequencySeaRef.current = null
+    updateDebug({ currentSource: null })
+  }, [updateDebug])
+
+  const createNoiseBuffer = useCallback((context: AudioContext, durationSeconds = 2, amplitude = 1) => {
+    const noiseBuffer = context.createBuffer(1, Math.max(1, Math.floor(context.sampleRate * durationSeconds)), context.sampleRate)
+    const noiseData = noiseBuffer.getChannelData(0)
+    let previousWhite = 0
+    let pink = 0
+    for (let index = 0; index < noiseData.length; index += 1) {
+      const white = Math.random() * 2 - 1
+      pink = (pink * 0.985) + ((white + previousWhite) * 0.0075)
+      previousWhite = white
+      noiseData[index] = pink * amplitude
+    }
+    return noiseBuffer
+  }, [])
+
+  const setFrequencySeaIntensity = useCallback((value: number) => {
+    const sea = frequencySeaRef.current
+    const context = audioContextRef.current
+    if (!sea || !context) return
+    const intensity = Math.min(1, Math.max(0.18, value))
+    const now = context.currentTime
+    sea.intensity = intensity
+    sea.masterGain.gain.cancelScheduledValues(now)
+    sea.masterGain.gain.setTargetAtTime(0.045 * intensity, now, 0.24)
+    sea.deepGain.gain.setTargetAtTime(0.018 * intensity, now, 0.3)
+    sea.hissGain.gain.setTargetAtTime(0.032 * intensity, now, 0.28)
+    sea.crackleGain.gain.setTargetAtTime(0.004 * intensity, now, 0.18)
+  }, [])
+
+  const startFrequencySea = useCallback(async (label = 'frequency sea') => {
+    updateDebug({ lastAttempt: label, lastError: null })
+    const context = ensureAudioContext()
+    if (!context) return false
+    try {
+      if (context.state === 'suspended') {
+        await context.resume()
+      }
+      if (frequencySeaRef.current) {
+        setSoundEnabled(true)
+        updateDebug({ currentSource: label, unlocked: true })
+        return true
+      }
+      const now = context.currentTime
+      const masterGain = context.createGain()
+      const deepOscillator = context.createOscillator()
+      const deepLfo = context.createOscillator()
+      const deepGain = context.createGain()
+      const hissSource = context.createBufferSource()
+      const hissFilter = context.createBiquadFilter()
+      const hissGain = context.createGain()
+      const crackleSource = context.createBufferSource()
+      const crackleFilter = context.createBiquadFilter()
+      const crackleGain = context.createGain()
+      const lfoGain = context.createGain()
+      masterGain.gain.setValueAtTime(0.0001, now)
+      masterGain.gain.exponentialRampToValueAtTime(0.045, now + 0.9)
+      deepOscillator.type = 'sine'
+      deepOscillator.frequency.setValueAtTime(38, now)
+      deepLfo.type = 'sine'
+      deepLfo.frequency.setValueAtTime(0.05, now)
+      lfoGain.gain.setValueAtTime(7, now)
+      deepGain.gain.setValueAtTime(0.018, now)
+      hissSource.buffer = createNoiseBuffer(context, 2, 0.75)
+      hissSource.loop = true
+      hissFilter.type = 'bandpass'
+      hissFilter.Q.setValueAtTime(2.1, now)
+      hissFilter.frequency.setValueAtTime(280, now)
+      hissGain.gain.setValueAtTime(0.032, now)
+      crackleSource.buffer = createNoiseBuffer(context, 1.2, 0.36)
+      crackleSource.loop = true
+      crackleFilter.type = 'highpass'
+      crackleFilter.frequency.setValueAtTime(3200, now)
+      crackleGain.gain.setValueAtTime(0.0035, now)
+      deepLfo.connect(lfoGain)
+      lfoGain.connect(deepOscillator.frequency)
+      deepOscillator.connect(deepGain)
+      deepGain.connect(masterGain)
+      hissSource.connect(hissFilter)
+      hissFilter.connect(hissGain)
+      hissGain.connect(masterGain)
+      crackleSource.connect(crackleFilter)
+      crackleFilter.connect(crackleGain)
+      crackleGain.connect(masterGain)
+      masterGain.connect(context.destination)
+      deepOscillator.start(now)
+      deepLfo.start(now)
+      hissSource.start(now)
+      crackleSource.start(now)
+      const seaState: FrequencySeaLayerState = {
+        crackleGain,
+        crackleFilter,
+        crackleSource,
+        deepGain,
+        deepLfo,
+        deepLfoGain: lfoGain,
+        deepOscillator,
+        hissFilter,
+        hissGain,
+        hissSource,
+        intensity: 1,
+        masterGain,
+        modulationTimer: null,
+      }
+      seaState.modulationTimer = window.setInterval(() => {
+        const activeSea = frequencySeaRef.current
+        const activeContext = audioContextRef.current
+        if (!activeSea || !activeContext) return
+        const activeNow = activeContext.currentTime
+        const wave = (Math.sin(activeNow * 1.2) + 1) / 2
+        const filterFrequency = 150 + (wave * 300)
+        activeSea.hissFilter.frequency.setTargetAtTime(filterFrequency, activeNow, 0.42)
+        activeSea.crackleGain.gain.setTargetAtTime((0.002 + wave * 0.006) * activeSea.intensity, activeNow, 0.09)
+        activeSea.deepOscillator.frequency.setTargetAtTime(32 + wave * 16, activeNow, 0.62)
+      }, 80)
+      frequencySeaRef.current = seaState
+      setSoundEnabled(true)
+      updateDebug({ currentSource: label, unlocked: true })
+      return true
+    } catch (error) {
+      const message = `${label} could not start.`
+      updateDebug({ currentSource: null, lastError: message })
+      devWarn(message, error)
+      stopFrequencySea()
+      return false
+    }
+  }, [createNoiseBuffer, ensureAudioContext, setSoundEnabled, stopFrequencySea, updateDebug])
+
   const setSoundEnabled = useCallback((enabled: boolean) => {
     window.localStorage.setItem('ecosphere:sound-enabled', enabled ? 'true' : 'false')
     if (!enabled) {
@@ -493,166 +653,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       return false
     }
   }, [ensureAudioContext, setSoundEnabled, stopAll, updateDebug])
-
-  const frequencySeaRef = useRef<FrequencySeaLayerState | null>(null)
-
-  const stopFrequencySea = useCallback(() => {
-    const sea = frequencySeaRef.current
-    if (!sea) return
-    const context = audioContextRef.current
-    const now = context?.currentTime ?? 0
-    if (sea.modulationTimer !== null) {
-      window.clearInterval(sea.modulationTimer)
-    }
-    try {
-      sea.masterGain.gain.cancelScheduledValues(now)
-      sea.masterGain.gain.setValueAtTime(sea.masterGain.gain.value, now)
-      sea.masterGain.gain.linearRampToValueAtTime(0, now + 0.7)
-    } catch {
-      // The context may have already been closed by the browser.
-    }
-    window.setTimeout(() => {
-      ;[sea.deepOscillator, sea.deepLfo, sea.hissSource, sea.crackleSource].forEach((node) => {
-        try { node.stop() } catch { /* Already stopped. */ }
-      })
-      ;[
-        sea.deepOscillator, sea.deepLfo, sea.deepLfoGain, sea.deepGain,
-        sea.hissSource, sea.hissFilter, sea.hissGain,
-        sea.crackleSource, sea.crackleFilter, sea.crackleGain,
-        sea.masterGain,
-      ].forEach((node) => {
-        try { node.disconnect() } catch { /* Already disconnected. */ }
-      })
-    }, 760)
-    frequencySeaRef.current = null
-    updateDebug({ currentSource: null })
-  }, [updateDebug])
-
-  const createNoiseBuffer = useCallback((context: AudioContext, durationSeconds = 2, amplitude = 1) => {
-    const noiseBuffer = context.createBuffer(1, Math.max(1, Math.floor(context.sampleRate * durationSeconds)), context.sampleRate)
-    const noiseData = noiseBuffer.getChannelData(0)
-    let previousWhite = 0
-    let pink = 0
-    for (let index = 0; index < noiseData.length; index += 1) {
-      const white = Math.random() * 2 - 1
-      pink = (pink * 0.985) + ((white + previousWhite) * 0.0075)
-      previousWhite = white
-      noiseData[index] = pink * amplitude
-    }
-    return noiseBuffer
-  }, [])
-
-  const setFrequencySeaIntensity = useCallback((value: number) => {
-    const sea = frequencySeaRef.current
-    const context = audioContextRef.current
-    if (!sea || !context) return
-    const intensity = Math.min(1, Math.max(0.18, value))
-    const now = context.currentTime
-    sea.intensity = intensity
-    sea.masterGain.gain.cancelScheduledValues(now)
-    sea.masterGain.gain.setTargetAtTime(0.045 * intensity, now, 0.24)
-    sea.deepGain.gain.setTargetAtTime(0.018 * intensity, now, 0.3)
-    sea.hissGain.gain.setTargetAtTime(0.032 * intensity, now, 0.28)
-    sea.crackleGain.gain.setTargetAtTime(0.004 * intensity, now, 0.18)
-  }, [])
-
-  const startFrequencySea = useCallback(async (label = 'frequency sea') => {
-    updateDebug({ lastAttempt: label, lastError: null })
-    const context = ensureAudioContext()
-    if (!context) return false
-    try {
-      if (context.state === 'suspended') {
-        await context.resume()
-      }
-      if (frequencySeaRef.current) {
-        setSoundEnabled(true)
-        updateDebug({ currentSource: label, unlocked: true })
-        return true
-      }
-      const now = context.currentTime
-      const masterGain = context.createGain()
-      const deepOscillator = context.createOscillator()
-      const deepLfo = context.createOscillator()
-      const deepGain = context.createGain()
-      const hissSource = context.createBufferSource()
-      const hissFilter = context.createBiquadFilter()
-      const hissGain = context.createGain()
-      const crackleSource = context.createBufferSource()
-      const crackleFilter = context.createBiquadFilter()
-      const crackleGain = context.createGain()
-      const lfoGain = context.createGain()
-      masterGain.gain.setValueAtTime(0.0001, now)
-      masterGain.gain.exponentialRampToValueAtTime(0.045, now + 0.9)
-      deepOscillator.type = 'sine'
-      deepOscillator.frequency.setValueAtTime(38, now)
-      deepLfo.type = 'sine'
-      deepLfo.frequency.setValueAtTime(0.05, now)
-      lfoGain.gain.setValueAtTime(7, now)
-      deepGain.gain.setValueAtTime(0.018, now)
-      hissSource.buffer = createNoiseBuffer(context, 2, 0.75)
-      hissSource.loop = true
-      hissFilter.type = 'bandpass'
-      hissFilter.Q.setValueAtTime(2.1, now)
-      hissFilter.frequency.setValueAtTime(280, now)
-      hissGain.gain.setValueAtTime(0.032, now)
-      crackleSource.buffer = createNoiseBuffer(context, 1.2, 0.36)
-      crackleSource.loop = true
-      crackleFilter.type = 'highpass'
-      crackleFilter.frequency.setValueAtTime(3200, now)
-      crackleGain.gain.setValueAtTime(0.0035, now)
-      deepLfo.connect(lfoGain)
-      lfoGain.connect(deepOscillator.frequency)
-      deepOscillator.connect(deepGain)
-      deepGain.connect(masterGain)
-      hissSource.connect(hissFilter)
-      hissFilter.connect(hissGain)
-      hissGain.connect(masterGain)
-      crackleSource.connect(crackleFilter)
-      crackleFilter.connect(crackleGain)
-      crackleGain.connect(masterGain)
-      masterGain.connect(context.destination)
-      deepOscillator.start(now)
-      deepLfo.start(now)
-      hissSource.start(now)
-      crackleSource.start(now)
-      const seaState: FrequencySeaLayerState = {
-        crackleGain,
-        crackleFilter,
-        crackleSource,
-        deepGain,
-        deepLfo,
-        deepLfoGain: lfoGain,
-        deepOscillator,
-        hissFilter,
-        hissGain,
-        hissSource,
-        intensity: 1,
-        masterGain,
-        modulationTimer: null,
-      }
-      seaState.modulationTimer = window.setInterval(() => {
-        const activeSea = frequencySeaRef.current
-        const activeContext = audioContextRef.current
-        if (!activeSea || !activeContext) return
-        const activeNow = activeContext.currentTime
-        const wave = (Math.sin(activeNow * 1.2) + 1) / 2
-        const filterFrequency = 150 + (wave * 300)
-        activeSea.hissFilter.frequency.setTargetAtTime(filterFrequency, activeNow, 0.42)
-        activeSea.crackleGain.gain.setTargetAtTime((0.002 + wave * 0.006) * activeSea.intensity, activeNow, 0.09)
-        activeSea.deepOscillator.frequency.setTargetAtTime(32 + wave * 16, activeNow, 0.62)
-      }, 80)
-      frequencySeaRef.current = seaState
-      setSoundEnabled(true)
-      updateDebug({ currentSource: label, unlocked: true })
-      return true
-    } catch (error) {
-      const message = `${label} could not start.`
-      updateDebug({ currentSource: null, lastError: message })
-      devWarn(message, error)
-      stopFrequencySea()
-      return false
-    }
-  }, [createNoiseBuffer, ensureAudioContext, setSoundEnabled, stopFrequencySea, updateDebug])
 
   const manager = useMemo<AudioManager>(() => ({
     debug,
