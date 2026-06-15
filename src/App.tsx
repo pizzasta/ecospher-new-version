@@ -4984,9 +4984,10 @@ export default function App() {
 
 
   // nothing loads — no audio, no screens — until 18+ is confirmed
+  const appAudio = useGlobalAudio()
+
   if (!ageOk) return <AgeGate onConfirm={() => setAgeOk(true)} />
 
-  const appAudio = useGlobalAudio()
   const [activeRitual] = useState<ActiveSignalRitual>(() => createActiveSignalRitual())
   const performSignalRitual = (surface: RitualSurface) => {
     recordSignalRitualTrace(activeRitual, surface)
