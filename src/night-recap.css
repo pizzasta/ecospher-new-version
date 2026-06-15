@@ -1,0 +1,211 @@
+.night-recap-panel {
+  background:
+    linear-gradient(145deg, rgba(255, 247, 235, 0.06), rgba(255, 255, 255, 0.018)),
+    rgba(9, 7, 14, 0.76);
+  border: 1px solid rgba(255, 230, 190, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.28), inset 0 0 42px rgba(255, 159, 122, 0.024);
+  color: #fff7fb;
+  display: grid;
+  gap: 16px;
+  margin: 14px auto 0;
+  max-width: 1120px;
+  overflow: hidden;
+  padding: 18px;
+  position: relative;
+  width: 100%;
+}
+
+.night-recap-panel::before {
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 190, 146, 0.1), transparent),
+    repeating-linear-gradient(90deg, transparent 0 46px, rgba(255, 255, 255, 0.04) 47px 48px, transparent 49px 92px);
+  content: "";
+  height: 40%;
+  left: -12%;
+  opacity: 0.32;
+  pointer-events: none;
+  position: absolute;
+  right: -12%;
+  top: 36%;
+  transform: rotate(-5deg);
+}
+
+.night-recap-panel header {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  position: relative;
+  z-index: 1;
+}
+
+.night-recap-panel header span {
+  color: rgba(255, 190, 146, 0.72);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.night-recap-panel h2 {
+  color: #fff7fb;
+  font-size: clamp(28px, 5vw, 58px);
+  grid-column: 1;
+  letter-spacing: 0;
+  line-height: 0.94;
+  margin: 0;
+}
+
+.night-recap-panel header p {
+  color: rgba(255, 239, 226, 0.66);
+  font-size: 13px;
+  grid-column: 1;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 560px;
+}
+
+.night-recap-panel header button {
+  align-self: center;
+  background: rgba(158, 66, 92, 0.12);
+  border: 1px solid rgba(204, 102, 132, 0.28);
+  border-radius: 999px;
+  color: rgba(255, 224, 211, 0.9);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 900;
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  letter-spacing: 0.12em;
+  min-height: 38px;
+  padding: 0 14px;
+  text-transform: uppercase;
+}
+
+.night-recap-timeline {
+  display: grid;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.night-recap-card {
+  align-items: start;
+  background:
+    linear-gradient(145deg, rgba(255, 247, 235, 0.045), rgba(255, 255, 255, 0.014)),
+    rgba(255, 255, 255, 0.026);
+  border: 1px solid rgba(255, 230, 190, 0.1);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 18px minmax(0, 1fr);
+  padding: 13px;
+}
+
+.night-recap-card i {
+  background: radial-gradient(circle, rgba(255, 190, 146, 0.8), rgba(158, 66, 92, 0.28) 55%, transparent 72%);
+  border-radius: 999px;
+  box-shadow: 0 0 24px rgba(178, 78, 106, 0.16);
+  height: 12px;
+  margin-top: 4px;
+  width: 12px;
+}
+
+.night-recap-card small,
+.night-recap-card span {
+  color: rgba(255, 190, 146, 0.62);
+  display: block;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.night-recap-card h3 {
+  color: rgba(255, 247, 235, 0.94);
+  font-size: 18px;
+  line-height: 1.12;
+  margin: 5px 0 6px;
+}
+
+.night-recap-card p {
+  color: rgba(255, 239, 226, 0.64);
+  font-size: 13px;
+  line-height: 1.48;
+  margin: 0 0 8px;
+}
+
+.night-recap-residue {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.night-recap-residue span {
+  animation: nightResidueDrift 9s ease-in-out infinite;
+  background: rgba(255, 190, 146, 0.18);
+  border-radius: 999px;
+  filter: blur(10px);
+  height: 42px;
+  position: absolute;
+  width: 42px;
+}
+
+.night-recap-residue span:nth-child(1) {
+  left: 12%;
+  top: 18%;
+}
+
+.night-recap-residue span:nth-child(2) {
+  animation-delay: 1.6s;
+  right: 18%;
+  top: 40%;
+}
+
+.night-recap-residue span:nth-child(3) {
+  animation-delay: 3s;
+  bottom: 12%;
+  left: 58%;
+}
+
+@keyframes nightResidueDrift {
+  0%,
+  100% {
+    opacity: 0.28;
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    opacity: 0.48;
+    transform: translate3d(4px, -6px, 0);
+  }
+}
+
+@media (max-width: 720px) {
+  .night-recap-panel {
+    padding: 15px;
+  }
+
+  .night-recap-panel header {
+    grid-template-columns: 1fr;
+  }
+
+  .night-recap-panel header button {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+  }
+
+  .night-recap-card {
+    grid-template-columns: 14px minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .night-recap-residue span,
+  .night-recap-card {
+    animation: none !important;
+    transform: none !important;
+  }
+}
