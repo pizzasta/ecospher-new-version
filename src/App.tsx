@@ -4838,6 +4838,7 @@ export default function App() {
     try {
       window.history.pushState({}, '', SCREEN_PATHS[next])
     } catch { /* sandboxed iframe — state-only navigation still works */ }
+    setCoreFrequency(calculateCoreFrequency(recordCoreFrequencyVisit(next as string)))
   }
 
   // browser back/forward moves between screens
@@ -4973,6 +4974,15 @@ export default function App() {
     recordSignalRitualTrace(activeRitual, surface)
     void playSample(appAudio, { id: `ritual-${activeRitual.id}`, label: `signal ritual: ${activeRitual.title}`, source: 'home' }, activeRitual.audioKey, getDateSeed(activeRitual.todayKey), 4000)
   }
+  const [coreFrequency, setCoreFrequency] = useState(() => calculateCoreFrequency())
+  const [shelfTraces, setShelfTraces] = useState<TraceShelfItem[]>(() => readTraceShelf())
+  const [tideReports] = useState<TideReport[]>(() => ensureTideReport())
+  const witchHour = getWitchHourState()
+
+  const claimRelicToShelf = (relic: ArchiveRelic) => {
+    setShelfTraces(claimTraceToShelf(relic))
+  }
+
 
   const screenMap: Record<Screen, React.ReactNode> = {
     home: <HomeScreen onNavigate={navigate} />,
@@ -5053,7 +5063,7 @@ export default function App() {
       )}
 
       {/* Content */}
-      <main className="content-well">
+      <main className={`observatory-shell ${witchHour.active ? 'witch-hour-active' : ''}`}>
         <Suspense fallback={<ScreenLoading />}>
           {screenMap[screen]}
         </Suspense>
@@ -5369,6 +5379,231 @@ function DeskCanvasZone() {
           <p key={`${fragment.time}-${fragment.text}`}><time>{fragment.time}</time>{fragment.text}</p>
         ))}
       </section>
+    </section>
+  )
+}
+
+
+// ───────────────────────────────────────────────────────────────────────────────
+// WITCH HOUR / REPLAY STORM / TIDE REPORT / SHELF OF TRACES / CORE FREQUENCY
+// ───────────────────────────────────────────────────────────────────────────────
+
+type TraceShelfItem = {
+  id: string
+  name: string
+  tapeCode: string
+  claimedAt: string
+  origin: string
+  preservedFor: string
+}
+
+type TideReport = {
+  id: string
+  line: string
+  createdAt: string
+}
+
+type WitchHourState = {
+  active: boolean
+  label: string
+  window: string
+}
+
+type ArchiveRelic = {
+  id: string
+  name: string
+  tapeCode: string
+  origin: string
+  preservedFor: string
+}
+
+const traceShelfStorageKey = 'ecosphereTraceShelf'
+const tideReportsStorageKey = 'ecosphereTideReports'
+const coreFrequencyEventsStorageKey = 'ecosphereCoreFrequencyEvents'
+function getWitchHourState(date = new Date()): WitchHourState {
+  const hour = date.getHours()
+  const active = hour >= 1 && hour < 3
+  return {
+    active,
+    label: active ? 'replay storm active' : 'some signals only surface late',
+    window: '1am-3am',
+  }
+}
+
+function readTraceShelf(): TraceShelfItem[] {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(traceShelfStorageKey) ?? '[]')
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((item): item is TraceShelfItem => (
+      item &&
+      typeof item.id === 'string' &&
+      typeof item.name === 'string' &&
+      typeof item.tapeCode === 'string' &&
+      typeof item.claimedAt === 'string' &&
+      typeof item.origin === 'string' &&
+      typeof item.preservedFor === 'string'
+    )).slice(0, 8)
+  } catch {
+    window.localStorage.removeItem(traceShelfStorageKey)
+    return []
+  }
+}
+
+function claimTraceToShelf(relic: ArchiveRelic): TraceShelfItem[] {
+  const item: TraceShelfItem = {
+    id: relic.id,
+    name: relic.name,
+    tapeCode: relic.tapeCode,
+    claimedAt: new Date().toISOString(),
+    origin: relic.origin,
+    preservedFor: relic.preservedFor,
+  }
+  const nextShelf = [item, ...readTraceShelf().filter((trace) => trace.id !== item.id)].slice(0, 8)
+  window.localStorage.setItem(traceShelfStorageKey, JSON.stringify(nextShelf))
+  return nextShelf
+}
+
+function readTideReports(): TideReport[] {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(tideReportsStorageKey) ?? '[]')
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((report): report is TideReport => (
+      report &&
+      typeof report.id === 'string' &&
+      typeof report.line === 'string' &&
+      typeof report.createdAt === 'string'
+    )).slice(0, 4)
+  } catch {
+    window.localStorage.removeItem(tideReportsStorageKey)
+    return []
+  }
+}
+
+function getLocalDateKey(date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function createTideReport(date = new Date()): TideReport {
+  const hour = String(Math.max(1, Math.min(4, date.getHours() || 2))).padStart(2, '0')
+  const dateKey = getLocalDateKey(date)
+  const seed = getDateSeed(dateKey)
+  const minute = String((seed * 7) % 60).padStart(2, '0')
+  const miles = 18 + (seed % 47)
+  const held = 2 + (getDateSeed(`${dateKey}held`) % 6)
+  const stayed = 1 + (getDateSeed(`${dateKey}stayed`) % 3)
+  return {
+    id: `tide-${dateKey}`,
+    line: `Your ${hour}:${minute} AM signal drifted ${miles} miles into the unresolved band. ${held} strangers held it to keep it warm. ${stayed} person stayed with it silently until it decayed into static at dawn.`,
+    createdAt: new Date().toISOString(),
+  }
+}
+
+function ensureTideReport(): TideReport[] {
+  const todayKey = getLocalDateKey()
+  const existingReports = readTideReports()
+  const existingReport = existingReports.find((report) => report.id === `tide-${todayKey}`)
+  if (existingReport) return existingReports
+  const nextReports = [createTideReport(), ...existingReports].slice(0, 4)
+  window.localStorage.setItem(tideReportsStorageKey, JSON.stringify(nextReports))
+  return nextReports
+}
+
+function readCoreFrequencyEvents(): string[] {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(coreFrequencyEventsStorageKey) ?? '[]')
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((item): item is string => typeof item === 'string').slice(0, 24)
+  } catch {
+    window.localStorage.removeItem(coreFrequencyEventsStorageKey)
+    return []
+  }
+}
+
+function recordCoreFrequencyVisit(navItem: string): string[] {
+  const currentEvents = readCoreFrequencyEvents()
+  const nextEvents = [navItem, ...currentEvents].slice(0, 24)
+  window.localStorage.setItem(coreFrequencyEventsStorageKey, JSON.stringify(nextEvents))
+  return nextEvents
+}
+
+function calculateCoreFrequency(events = readCoreFrequencyEvents()) {
+  const weights = events.reduce((total, event) => {
+    if (event === 'Chambers' || event === 'Collective Frequency') return total + 1.8
+    if (event === 'Relics' || event === 'Capsules') return total + 2.6
+    if (event === 'Frequencies' || event === 'Find') return total + 3.1
+    if (event === 'Drift' || event === 'Dead Zones') return total + 2.2
+    if (event === 'Soul Pod') return total + 1.2
+    return total + 1.6
+  }, 0)
+  const frequency = 69.6 + Math.min(8.8, weights / Math.max(3, events.length || 1))
+  const rounded = Math.round(frequency * 10) / 10
+  if (rounded >= 76) return { frequency: rounded, color: '#67e8f9', comfortNoise: 'rain on a car roof' }
+  if (rounded >= 73) return { frequency: rounded, color: '#ff9f7a', comfortNoise: 'low-register room hum' }
+  return { frequency: rounded, color: '#ff66b2', comfortNoise: 'soft analog static' }
+}
+
+function ReplayStormBanner({
+  surface,
+  witchHour,
+}: {
+  surface: 'find' | 'observatory' | 'relics'
+  witchHour: WitchHourState
+}) {
+  const copy = {
+    find: 'Ghost Signals are briefly visible in the band. They will lock again at dawn.',
+    observatory: 'The field is heavier between 1am and 3am. Some signals only surface late.',
+    relics: 'Replay Storm metadata is active. Handled tapes are warming under static.',
+  }
+  return (
+    <section className={`replay-storm-banner storm-${surface}`} aria-label="Replay Storm">
+      <span>◍ {witchHour.label} / {witchHour.window}</span>
+      <strong>some signals only surface late</strong>
+      <p>{copy[surface]}</p>
+    </section>
+  )
+}
+
+function TideReportPanel({ reports }: { reports: TideReport[] }) {
+  const report = reports[0]
+  return (
+    <section className="soul-zone tide-report-panel" aria-label="Tide Report">
+      <header className="soul-zone-header">
+        <div>
+          <span>tide report / morning fade</span>
+          <h2>what came back from the sea</h2>
+        </div>
+        <p>By 6:00 AM, cast lines dissolve. What remains is only the trail they left behind.</p>
+      </header>
+      <p className="tide-report-line">
+        {report?.line ?? 'quiet traffic last night. nothing asked to be kept.'}
+      </p>
+    </section>
+  )
+}
+
+function ShelfOfTraces({ traces }: { traces: TraceShelfItem[] }) {
+  return (
+    <section className="soul-zone shelf-of-traces" aria-label="Shelf of Traces">
+      <header className="soul-zone-header">
+        <div>
+          <span>shelf of traces</span>
+          <h2>claimed tapes</h2>
+        </div>
+        <p>Permanent marks inside a temporary ecosystem. The tapes stay private here.</p>
+      </header>
+      <div className="trace-shelf-grid">
+        {traces.length > 0 ? traces.map((trace) => (
+          <article key={trace.id}>
+            <span>{trace.tapeCode}</span>
+            <strong>{trace.name}</strong>
+            <p>{trace.preservedFor} / recovered from {trace.origin}</p>
+          </article>
+        )) : (
+          <p className="empty-trace-shelf">
+            No tapes claimed yet. Relics can be stored here when a dying signal feels worth keeping.
+          </p>
+        )}
+      </div>
     </section>
   )
 }
