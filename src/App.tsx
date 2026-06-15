@@ -30,6 +30,7 @@ import DormantFrequencies from './components/DormantFrequencies'
 import DriftedTextRelics from './components/DriftedTextRelics'
 import FeaturedNotes from './components/FeaturedNotes'
 import StickyNotes from './components/StickyNotes'
+import { DriftNotesBoard, usePersistedDriftNotes } from './components/ecosphere-memory-loop'
 import { quietFor } from './lib/dormantRooms'
 import type { DormantRoom } from './lib/dormantRooms'
 import DeepListen from './components/DeepListen'
@@ -5384,12 +5385,14 @@ function DeckMiniPlayerNew({ active, duration, label, onToggle }: { active: bool
 }
 
 function DeskCanvasZone() {
+  const [driftNotes, setDriftNotes] = usePersistedDriftNotes()
   return (
     <section className="soul-zone desk-canvas-zone" aria-label="Desk Canvas">
       <header className="soul-zone-header">
         <div><span>zone 3 / desk canvas</span><h2>your notes</h2></div>
         <p>Move the fragments by hand. Let them drift, or pin them where they stop shaking.</p>
       </header>
+      <DriftNotesBoard notes={driftNotes} onNotesChange={setDriftNotes} />
       <section className="static-graveyard" aria-label="Static Graveyard archive history">
         <span>static graveyard</span>
         {[
