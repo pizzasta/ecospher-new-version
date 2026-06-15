@@ -385,6 +385,151 @@ const signalRituals: SignalRitual[] = [
       chambers: { atmosphere: 'quiet chamber', copy: 'The chamber held the silence without filling it.', cta: 'enter', surface: 'chambers' },
     },
   },
+,
+  {
+    id: 'leave-one-behind',
+    title: 'Leave One Thing Behind',
+    body: 'Before the signal closes tonight, leave something in the room that you no longer need to carry.',
+    cta: 'leave it here',
+    trace: 'left one thing behind',
+    recap: 'You let something go.',
+    tone: 'amber',
+    audioKey: 'static',
+    modifiers: {
+      observatory: { atmosphere: 'amber release', copy: 'The room holds what you leave.', cta: 'leave it', surface: 'observatory' },
+      feed: { atmosphere: 'signal fading', copy: 'Others are leaving things too. The feed carries it.', cta: 'add yours', surface: 'feed' },
+      unsent: { atmosphere: 'unsent weight', copy: "Write what you're leaving. Then close it without sending.", cta: 'write it', surface: 'unsent' },
+      drift: { atmosphere: 'drifting release', copy: 'Let it drift out. The frequency will carry it away.', cta: 'release', surface: 'drift' },
+      chambers: { atmosphere: 'chamber clearing', copy: 'The room absorbs what you bring to it tonight.', cta: 'set it down', surface: 'chambers' },
+      relics: { atmosphere: 'relic of leaving', copy: 'Some things left behind become relics. This might.', cta: 'acknowledge', surface: 'relics' },
+    },
+  },
+  {
+    id: 'silent-room-night',
+    title: 'Silent Room Night',
+    body: "Tonight's ritual is silence. Stay in the room without speaking. The frequency will do the rest.",
+    cta: 'enter silence',
+    trace: 'entered silent room',
+    recap: 'You sat in the silence.',
+    tone: 'graphite',
+    audioKey: 'zone',
+    modifiers: {
+      observatory: { atmosphere: 'deep silence', copy: 'The observatory holds tonight without sound.', cta: 'enter', surface: 'observatory' },
+      feed: { atmosphere: 'muted signal', copy: 'The feed is quiet tonight. Others are listening.', cta: 'listen', surface: 'feed' },
+      unsent: { atmosphere: 'unspoken', copy: 'Nothing needs to be sent. Just stay.', cta: 'stay', surface: 'unsent' },
+      drift: { atmosphere: 'silent drift', copy: 'Drift without words. The signal is enough.', cta: 'drift', surface: 'drift' },
+      chambers: { atmosphere: 'still chamber', copy: 'The chamber is holding this silence for everyone.', cta: 'enter', surface: 'chambers' },
+      relics: { atmosphere: 'silent relic', copy: 'Some silences become artifacts. This one might.', cta: 'mark it', surface: 'relics' },
+    },
+  },
+  {
+    id: 'confession-hour',
+    title: 'Disappearing Confession Hour',
+    body: "For the next hour, confessions disappear at dawn. Say what you've been holding. It won't stay.",
+    cta: 'confess it',
+    trace: 'confession left before dawn',
+    recap: 'You said the thing.',
+    tone: 'magenta',
+    audioKey: 'whisper',
+    modifiers: {
+      observatory: { atmosphere: 'confession window', copy: 'The observatory holds your words until morning.', cta: 'say it', surface: 'observatory' },
+      feed: { atmosphere: 'disappearing signal', copy: 'These confessions vanish by 5am. Leave yours.', cta: 'confess', surface: 'feed' },
+      unsent: { atmosphere: 'unsent truth', copy: 'This is the room for what you never sent. Tonight it disappears.', cta: 'write it', surface: 'unsent' },
+      drift: { atmosphere: 'drifting confession', copy: 'Let it drift out before it solidifies.', cta: 'release it', surface: 'drift' },
+      chambers: { atmosphere: 'confessional chamber', copy: 'The chamber keeps nothing past morning.', cta: 'enter', surface: 'chambers' },
+      relics: { atmosphere: 'relic of honesty', copy: 'What you confess tonight leaves a trace, but not a record.', cta: 'add yours', surface: 'relics' },
+    },
+  },
+  {
+    id: 'replay-circle',
+    title: 'Replay Circle',
+    body: 'Something that happened is replaying for someone tonight. You might be in it. Or near it.',
+    cta: 'enter the circle',
+    trace: 'joined the replay circle',
+    recap: 'You were in the loop.',
+    tone: 'cyan',
+    audioKey: 'tone',
+    modifiers: {
+      observatory: { atmosphere: 'looping signal', copy: 'The observatory is catching replays tonight.', cta: 'tune in', surface: 'observatory' },
+      feed: { atmosphere: 'replay feed', copy: 'The feed is circling back. Signals are repeating.', cta: 'watch', surface: 'feed' },
+      unsent: { atmosphere: 'replayed words', copy: "Someone is replaying your unsent. They don't know it.", cta: 'feel it', surface: 'unsent' },
+      drift: { atmosphere: 'looping drift', copy: 'The drift has caught in a loop tonight.', cta: 'enter', surface: 'drift' },
+      chambers: { atmosphere: 'echo chamber', copy: 'The chamber is in replay mode. Sit with what returns.', cta: 'listen', surface: 'chambers' },
+      relics: { atmosphere: 'relic replay', copy: 'Old relics are resonating again. Something came back.', cta: 'revisit', surface: 'relics' },
+    },
+  },
+  {
+    id: 'shared-midnight',
+    title: 'Shared Midnight Prompt',
+    body: "At midnight, everyone in the room answers the same prompt. You won't see each other. But you'll know.",
+    cta: 'receive the prompt',
+    trace: 'answered the midnight prompt',
+    recap: 'You answered at midnight.',
+    tone: 'amber',
+    audioKey: 'tone',
+    modifiers: {
+      observatory: { atmosphere: 'midnight signal', copy: "The observatory carries tonight's shared prompt.", cta: 'receive it', surface: 'observatory' },
+      feed: { atmosphere: 'shared frequency', copy: 'The feed carries the prompt. Everyone is answering.', cta: 'join', surface: 'feed' },
+      unsent: { atmosphere: 'midnight unsent', copy: "Write your answer. Don't send it. It connects anyway.", cta: 'answer', surface: 'unsent' },
+      drift: { atmosphere: 'midnight drift', copy: 'The prompt drifts through tonight. Catch it.', cta: 'catch it', surface: 'drift' },
+      chambers: { atmosphere: 'shared chamber', copy: "The chamber holds everyone's answers without mixing them.", cta: 'enter', surface: 'chambers' },
+      relics: { atmosphere: 'prompt relic', copy: "Tonight's prompt will become a relic by morning.", cta: 'mark yours', surface: 'relics' },
+    },
+  },
+  {
+    id: 'drifting-note-wall',
+    title: 'Drifting Note Wall',
+    body: 'Notes left tonight drift across the frequency until morning. You can catch one. Or leave one.',
+    cta: 'leave a note',
+    trace: 'left a drifting note',
+    recap: 'Your note drifted out.',
+    tone: 'cyan',
+    audioKey: 'static',
+    modifiers: {
+      observatory: { atmosphere: 'note frequency', copy: 'Notes are drifting through the observatory tonight.', cta: 'catch one', surface: 'observatory' },
+      feed: { atmosphere: 'floating signal', copy: 'The feed is carrying notes from earlier tonight.', cta: 'read one', surface: 'feed' },
+      unsent: { atmosphere: 'drifting unsent', copy: 'Leave a note that drifts without a destination.', cta: 'leave it', surface: 'unsent' },
+      drift: { atmosphere: 'note drift', copy: 'The drift is full of notes tonight. Add yours.', cta: 'add yours', surface: 'drift' },
+      chambers: { atmosphere: 'note chamber', copy: 'The chamber has notes on every wall tonight.', cta: 'enter', surface: 'chambers' },
+      relics: { atmosphere: 'note relic', copy: 'Some notes left tonight will become relics.', cta: 'browse', surface: 'relics' },
+    },
+  },
+  {
+    id: 'one-word-night',
+    title: 'One-Word Night',
+    body: "Tonight's frequency only carries one word. Choose yours carefully. It travels further than you think.",
+    cta: 'send your word',
+    trace: 'sent one word into the night',
+    recap: 'Your word went out.',
+    tone: 'graphite',
+    audioKey: 'whisper',
+    modifiers: {
+      observatory: { atmosphere: 'single frequency', copy: 'The observatory is listening for one word tonight.', cta: 'send it', surface: 'observatory' },
+      feed: { atmosphere: 'one-word signal', copy: 'The feed tonight: one word per person.', cta: 'add yours', surface: 'feed' },
+      unsent: { atmosphere: 'the unsendable word', copy: "The word you couldn't send. Just one. Tonight it goes.", cta: 'send it', surface: 'unsent' },
+      drift: { atmosphere: 'word drift', copy: 'One word, drifting. Make it yours.', cta: 'release', surface: 'drift' },
+      chambers: { atmosphere: 'word chamber', copy: 'The chamber echoes with single words tonight.', cta: 'enter', surface: 'chambers' },
+      relics: { atmosphere: 'word relic', copy: 'Some words sent tonight will linger as relics.', cta: 'browse', surface: 'relics' },
+    },
+  },
+  {
+    id: 'ambient-listening',
+    title: 'Ambient Listening Session',
+    body: 'No signal. No response. Just ambient frequency, shared across everyone still awake.',
+    cta: 'start listening',
+    trace: 'joined ambient listening',
+    recap: 'You listened without responding.',
+    tone: 'cyan',
+    audioKey: 'zone',
+    modifiers: {
+      observatory: { atmosphere: 'ambient observatory', copy: 'The observatory is in ambient mode tonight.', cta: 'tune in', surface: 'observatory' },
+      feed: { atmosphere: 'ambient feed', copy: 'The feed is quiet. Ambient only.', cta: 'listen', surface: 'feed' },
+      unsent: { atmosphere: 'ambient unsent', copy: 'Nothing needs to be sent. Just receive.', cta: 'receive', surface: 'unsent' },
+      drift: { atmosphere: 'ambient drift', copy: 'Drift with the ambient frequency.', cta: 'drift', surface: 'drift' },
+      chambers: { atmosphere: 'ambient chamber', copy: 'The chamber is broadcasting ambient tonight.', cta: 'enter', surface: 'chambers' },
+      relics: { atmosphere: 'ambient relic', copy: "Tonight's ambient will leave a trace.", cta: 'mark it', surface: 'relics' },
+    },
+  }
 ]
 
 // a relic is a signal the network refused to forget Ã¢ÂÂ replayed, revisited,
@@ -963,7 +1108,7 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
 
       <TonightsFrequency />
 
-      <NightRecapPanel returnRitual={{ todayKey: localDateString(), daysAway: 0, cameBack: [] }} />
+      <NightRecapPanel returnRitual={{ todayKey: localDateString(), daysAway: 0, cameBack: [], ritualTraces: readRitualTraces() }} />
       <SignalRitualCard onAct={() => performSignalRitual('observatory')} ritual={activeRitual} />
 
       <div className={`obs-daily glass${tunedToday ? ' obs-daily--tuned' : ''}`}>
@@ -4788,13 +4933,38 @@ export default function App() {
 
   const screenMap: Record<Screen, React.ReactNode> = {
     home: <HomeScreen onNavigate={navigate} />,
-    signals: <FeedScreen />,
-    drift: <DriftScreen />,
-    rooms: <RoomsScreenComponent />,
-    unsent: <UnsentRoom />,
+    signals: (
+      <RitualAtmosphere ritual={activeRitual} surface="feed">
+        <FeedScreen />
+        <RitualModifierPanel ritual={activeRitual} surface="feed" onAct={performSignalRitual} />
+      </RitualAtmosphere>
+    ),
+    drift: (
+      <RitualAtmosphere ritual={activeRitual} surface="drift">
+        <DriftScreen />
+        <RitualModifierPanel ritual={activeRitual} surface="drift" onAct={performSignalRitual} />
+      </RitualAtmosphere>
+    ),
+    rooms: (
+      <RitualAtmosphere ritual={activeRitual} surface="chambers">
+        <RoomsScreenComponent />
+        <RitualModifierPanel ritual={activeRitual} surface="chambers" onAct={performSignalRitual} />
+      </RitualAtmosphere>
+    ),
+    unsent: (
+      <RitualAtmosphere ritual={activeRitual} surface="unsent">
+        <UnsentRoom />
+        <RitualModifierPanel ritual={activeRitual} surface="unsent" onAct={performSignalRitual} />
+      </RitualAtmosphere>
+    ),
     capsules: <CapsulesScreen />,
     chains: <SignalChainsScreen />,
-    relics: <RelicsScreen />,
+    relics: (
+      <RitualAtmosphere ritual={activeRitual} surface="relics">
+        <RelicsScreen />
+        <RitualModifierPanel ritual={activeRitual} surface="relics" onAct={performSignalRitual} />
+      </RitualAtmosphere>
+    ),
     zones: <DeadZonesScreen />,
     frequencies: <FrequenciesScreen />,
     anomalies: <AnomaliesScreen />,
