@@ -385,7 +385,6 @@ const signalRituals: SignalRitual[] = [
       chambers: { atmosphere: 'quiet chamber', copy: 'The chamber held the silence without filling it.', cta: 'enter', surface: 'chambers' },
     },
   },
-,
   {
     id: 'leave-one-behind',
     title: 'Leave One Thing Behind',
