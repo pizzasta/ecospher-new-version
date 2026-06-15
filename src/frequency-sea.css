@@ -1,0 +1,146 @@
+.frequencies-page {
+  position: relative;
+}
+
+.frequencies-page.sea-active .frequency-ambient span {
+  animation-duration: 7.5s;
+  background: rgba(103, 232, 249, 0.48);
+  box-shadow: 0 0 22px rgba(103, 232, 249, 0.2);
+}
+
+.frequencies-page.sea-active .tuner-visual,
+.frequencies-page.sea-active .spectrum-visualizer {
+  animation: frequencySeaVisualBreath 5.8s ease-in-out infinite;
+}
+
+.frequencies-page.sea-active .tuner-ring {
+  border-color: rgba(103, 232, 249, 0.22);
+  box-shadow: 0 0 46px rgba(103, 232, 249, 0.08);
+}
+
+.frequency-sea-console {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(103, 232, 249, 0.07), rgba(255, 102, 178, 0.035)),
+    rgba(6, 5, 12, 0.72);
+  border: 1px solid rgba(103, 232, 249, 0.16);
+  border-radius: 18px;
+  box-shadow: 0 22px 68px rgba(0, 0, 0, 0.24), inset 0 0 42px rgba(103, 232, 249, 0.035);
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.42fr);
+  margin: 18px auto;
+  max-width: 1120px;
+  overflow: hidden;
+  padding: clamp(16px, 3vw, 24px);
+  position: relative;
+  width: 100%;
+}
+
+.frequency-sea-console::before {
+  background:
+    linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.18), transparent),
+    repeating-linear-gradient(90deg, transparent 0 48px, rgba(255, 255, 255, 0.035) 49px 50px, transparent 51px 96px);
+  content: "";
+  height: 1px;
+  left: 0;
+  opacity: 0.8;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.frequency-sea-console span {
+  color: rgba(183, 242, 255, 0.76);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.frequency-sea-console h3 {
+  color: #f4fbff;
+  font-size: clamp(1.2rem, 3vw, 2rem);
+  line-height: 1.04;
+  margin: 6px 0 8px;
+}
+
+.frequency-sea-console p {
+  color: rgba(231, 244, 250, 0.68);
+  line-height: 1.55;
+  margin: 0;
+  max-width: 620px;
+}
+
+.frequency-sea-controls {
+  display: grid;
+  gap: 12px;
+}
+
+.frequency-sea-controls button {
+  background: rgba(103, 232, 249, 0.09);
+  border: 1px solid rgba(103, 232, 249, 0.24);
+  border-radius: 999px;
+  color: #effcff;
+  cursor: pointer;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  min-height: 46px;
+  padding: 0 18px;
+}
+
+.frequency-sea-controls button[aria-pressed="true"] {
+  background: rgba(255, 102, 178, 0.095);
+  border-color: rgba(255, 141, 204, 0.34);
+}
+
+.frequency-sea-controls label {
+  display: grid;
+  gap: 8px;
+}
+
+.frequency-sea-controls input {
+  accent-color: #67e8f9;
+  min-height: 36px;
+  width: 100%;
+}
+
+.frequency-sea-layers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.frequency-sea-layers span {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  color: rgba(255, 247, 251, 0.74);
+  padding: 8px 10px;
+}
+
+@keyframes frequencySeaVisualBreath {
+  0%,
+  100% {
+    filter: saturate(0.94) brightness(0.98);
+    transform: translateY(0);
+  }
+  50% {
+    filter: saturate(1.08) brightness(1.04);
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 760px) {
+  .frequency-sea-console {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frequencies-page.sea-active .tuner-visual,
+  .frequencies-page.sea-active .spectrum-visualizer {
+    animation: none;
+  }
+}
