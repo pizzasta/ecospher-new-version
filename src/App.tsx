@@ -103,6 +103,8 @@ import './rooms.css'
 import './living-pages.css'
 import './cinematic.css'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useAudioManager, AudioDebugPanel } from './audio-system'
+import type { AmbientLayerKey, SampleAudioKey } from './audio-system'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'unsent' | 'capsules' | 'relics' | 'pod' | 'zones' | 'frequencies' | 'anomalies' | 'settings' | 'chains'
@@ -5069,5 +5071,304 @@ export default function App() {
       )}
 
     </div>
+  )
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NEW ADDITIONS: getAmbientLayerForNav, decayStringByResonance, FindPage,
+// SoulPodPageNew (three-zone layout), SignalProfileZone, TransmissionDeckZone,
+// DeskCanvasZone
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function getAmbientLayerForNav(navItem: string): AmbientLayerKey {
+  if (navItem === 'Find') return 'find'
+  if (navItem === 'Signal Stream' || navItem === 'Unsent Room' || navItem === 'Drift' || navItem === 'Dead Zones') return 'signals'
+  if (navItem === 'Chambers' || navItem === 'Collective Frequency') return 'rooms'
+  if (navItem === 'Frequencies') return 'frequencies'
+  if (navItem === 'Relics' || navItem === 'Capsules') return 'relics'
+  if (navItem === 'Soul Pod') return 'soul-pod'
+  if (navItem === 'Calibration') return 'settings'
+  return 'observatory'
+}
+
+export function decayStringByResonance(value: string, resonance: number) {
+  if (resonance >= 80) return value
+  const decayStep = resonance < 55 ? 3 : 5
+  return value
+    .split(' ')
+    .map((word, index) => (index % decayStep === decayStep - 1 ? '░░░░' : word))
+    .join(' ')
+}
+
+type FindMoodNew = 'quiet' | 'heavy' | 'comforting' | 'chaotic' | 'unresolved' | 'insomnia' | 'abandoned' | 'replayed heavily'
+
+type FindDiscoveryResultNew = {
+  id: string
+  classification: 'THE SEA' | 'ROOMS' | 'RADAR' | 'RELICS' | 'SIGNAL'
+  title: string
+  ticker: string
+  body: string
+  tags: FindMoodNew[]
+  hiddenTags: string[]
+  sampleKey: SampleAudioKey
+}
+
+const findMoodPillsNew: FindMoodNew[] = ['quiet', 'heavy', 'comforting', 'chaotic', 'unresolved', 'insomnia', 'abandoned', 'replayed heavily']
+
+const findDiscoveryResultsNew: FindDiscoveryResultNew[] = [
+  { id: 'sea-silence', classification: 'THE SEA', title: 'silence, but nobody leaves', ticker: '14 listening', body: 'A low room-tone current where people stay without making themselves visible.', tags: ['quiet', 'comforting', 'insomnia'], hiddenTags: ['still here', 'soft room', 'ambient listening', 'late night', 'held silence'], sampleKey: 'live-room' },
+  { id: 'room-night-bus', classification: 'ROOMS', title: 'heartbeat on the night bus', ticker: 'fading fast', body: 'A moving chamber for tired routes, window reflections, and names you do not text.', tags: ['heavy', 'unresolved', 'insomnia'], hiddenTags: ['transit', 'alone together', 'almost called', 'motion', 'memory loop'], sampleKey: 'room' },
+  { id: 'radar-abandoned', classification: 'RADAR', title: 'abandoned room still blinking', ticker: 'signal thin', body: 'The radar keeps finding a place that emptied out before the last reply arrived.', tags: ['abandoned', 'chaotic', 'unresolved'], hiddenTags: ['dead zone', 'static', 'broken orbit', 'left open', 'ghost room'], sampleKey: 'distant-voice' },
+  { id: 'relic-replayed', classification: 'RELICS', title: 'the tape everyone keeps touching', ticker: 'replayed heavily', body: 'A saved fragment with worn edges, handled by strangers until the metadata warmed.', tags: ['replayed heavily', 'heavy', 'comforting'], hiddenTags: ['cassette', 'archive', 'kept alive', 'handled', 'famous anonymous moment'], sampleKey: 'relic' },
+  { id: 'signal-unsent', classification: 'SIGNAL', title: 'i wrote it, erased it, missed it', ticker: '3 returns', body: 'A private-feeling signal that keeps resurfacing around the same hour.', tags: ['unresolved', 'quiet', 'replayed heavily'], hiddenTags: ['unsent', 'almost deleted', 'soft return', 'note drift', '2am'], sampleKey: 'archive' },
+  { id: 'sea-static', classification: 'THE SEA', title: 'static for people who cannot sleep', ticker: 'low tide', body: 'Pink noise, washed cyan, and the sense that the band is listening back.', tags: ['insomnia', 'comforting', 'quiet'], hiddenTags: ['frequency sea', 'pink static', 'sleep', 'drift current', 'wavelength'], sampleKey: 'opening' },
+]
+
+export function FindPage() {
+  const [searchText, setSearchText] = useState('')
+  const [activeMoods, setActiveMoods] = useState<FindMoodNew[]>([])
+  const [previewId, setPreviewId] = useState<string | null>(null)
+  const longPressTimerRef = useRef<number | null>(null)
+  const audio = useAudioManager()
+  const normalizedSearch = searchText.trim().toLowerCase()
+
+  const filteredResults = useMemo(() => {
+    return findDiscoveryResultsNew.filter((result) => {
+      const searchable = [result.title, result.body, result.classification, result.ticker, ...result.tags, ...result.hiddenTags].join(' ').toLowerCase()
+      const matchesSearch = !normalizedSearch || normalizedSearch.split(/\s+/).every((word) => searchable.includes(word))
+      const matchesMood = activeMoods.length === 0 || activeMoods.every((mood) => result.tags.includes(mood) || result.hiddenTags.includes(mood))
+      return matchesSearch && matchesMood
+    })
+  }, [activeMoods, normalizedSearch])
+
+  const toggleMood = (mood: FindMoodNew) => {
+    setActiveMoods((currentMoods) => currentMoods.includes(mood) ? currentMoods.filter((item) => item !== mood) : [...currentMoods, mood])
+  }
+
+  const startPreview = (result: FindDiscoveryResultNew) => {
+    setPreviewId(result.id)
+    void audio.playSample(result.sampleKey, `find preview: ${result.title}`)
+  }
+
+  const stopPreview = () => {
+    if (longPressTimerRef.current) {
+      window.clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+    setPreviewId(null)
+    audio.stopAll()
+  }
+
+  const beginLongPressPreview = (result: FindDiscoveryResultNew) => {
+    if (longPressTimerRef.current) window.clearTimeout(longPressTimerRef.current)
+    longPressTimerRef.current = window.setTimeout(() => startPreview(result), 420)
+  }
+
+  return (
+    <section className="find-page" aria-label="Find room discovery system">
+      <header className="find-header">
+        <div>
+          <span>⌖ FIND / ROOM DISCOVERY</span>
+          <h2>search the band</h2>
+          <p>Find rooms, relics, live signals, and emotional wavelengths by typing a name or a feeling.</p>
+        </div>
+      </header>
+      <section className="find-input-core" aria-label="Search input">
+        <span>∿</span>
+        <input
+          aria-label="Search the band"
+          onChange={(event) => setSearchText(event.target.value)}
+          placeholder="search the band — a name, or a feeling…"
+          value={searchText}
+        />
+      </section>
+      <section className="find-mood-pills" aria-label="Mood filters">
+        {findMoodPillsNew.map((mood) => (
+          <button aria-pressed={activeMoods.includes(mood)} className={activeMoods.includes(mood) ? 'active' : ''} key={mood} onClick={() => toggleMood(mood)} type="button">{mood}</button>
+        ))}
+      </section>
+      <section className="find-discovery-feed" aria-label="Discovery results">
+        {filteredResults.length > 0 ? (
+          filteredResults.map((result, index) => (
+            <FindResultRowNew active={previewId === result.id} index={index} key={result.id} onLongPressStart={beginLongPressPreview} onPreviewStart={startPreview} onPreviewStop={stopPreview} result={result} />
+          ))
+        ) : (
+          <p className="find-empty-state">absolute static. nobody is using that wavelength tonight. try another feeling…</p>
+        )}
+      </section>
+    </section>
+  )
+}
+
+function FindResultRowNew({
+  active, index, onLongPressStart, onPreviewStart, onPreviewStop, result,
+}: {
+  active: boolean
+  index: number
+  onLongPressStart: (result: FindDiscoveryResultNew) => void
+  onPreviewStart: (result: FindDiscoveryResultNew) => void
+  onPreviewStop: () => void
+  result: FindDiscoveryResultNew
+}) {
+  const body = result.ticker.includes('fading') || result.ticker.includes('thin') ? decayStringByResonance(result.body, 64) : result.body
+  return (
+    <article
+      className={`find-result-row ${active ? 'previewing' : ''}`}
+      onMouseEnter={() => onPreviewStart(result)}
+      onMouseLeave={onPreviewStop}
+      onPointerCancel={onPreviewStop}
+      onPointerDown={(event) => { if (event.pointerType !== 'mouse') onLongPressStart(result) }}
+      onPointerUp={onPreviewStop}
+      style={{ '--find-row-delay': `${index * 54}ms` } as React.CSSProperties}
+    >
+      <b>[{result.classification}]</b>
+      <div><strong>{result.title}</strong><p>{body}</p></div>
+      <em>{result.ticker}</em>
+    </article>
+  )
+}
+
+// ─── Soul Pod Three-Zone Layout (new addition) ────────────────────────────────
+
+export function SoulPodPageNew({
+  authProfile, localSignalName, onLogout,
+}: {
+  authProfile: { id: string; username: string; signal_core: string | null; profile_energy: string | null } | null
+  localSignalName: string
+  onLogout: () => void
+}) {
+  return (
+    <section className="soul-page" aria-label="Soul Pod personal capsule">
+      <SoulCollageLayerNew />
+      <SignalProfileZone onLogout={onLogout} signalHandle={authProfile?.username ?? localSignalName ?? 'private signal'} />
+      <TransmissionDeckZone />
+      <DeskCanvasZone />
+    </section>
+  )
+}
+
+function SoulCollageLayerNew() {
+  const fragments = ['i still check your typing bubble in my head.', 'someone replayed this memory 42 times.', 'i almost called you at 2:11am.', 'archived message // never sent', 'voice note recovered from a quiet room', 'the silence kept buffering.']
+  return (
+    <div className="soul-collage-layer" aria-hidden="true">
+      <strong>UNSENT</strong>
+      <b>2:11AM</b>
+      {fragments.map((fragment, index) => (<span className={`soul-fragment fragment-${index + 1}`} key={fragment}>{fragment}</span>))}
+      <div className="soul-stamp stamp-one">RELIC // 042</div>
+      <div className="soul-stamp stamp-two">ARCHIVED SILENCE</div>
+      <div className="soul-collage-wave wave-one"><i /><i /><i /><i /><i /><i /></div>
+      <div className="soul-collage-wave wave-two"><i /><i /><i /><i /><i /></div>
+    </div>
+  )
+}
+
+function SignalProfileZone({ onLogout, signalHandle }: { onLogout: () => void; signalHandle: string }) {
+  const telemetry = [{ label: 'FREQUENCY', value: '69.6 Hz' }, { label: 'WEATHER', value: 'quiet tonight' }, { label: 'PATTERN', value: 'explores more than it loops' }, { label: 'ACTIVE HOURS', value: 'daylight hours' }]
+  return (
+    <section className="soul-zone signal-profile-zone" aria-label="Signal Profile">
+      <header className="soul-zone-header">
+        <div><span>zone 1 / signal profile</span><h2>personal telemetry</h2></div>
+        <aside className="signal-profile-node" aria-label="Active signal identity">
+          <strong>{signalHandle}</strong>
+          <button type="button" onClick={onLogout}>synced quietly</button>
+        </aside>
+      </header>
+      <div className="signal-telemetry-grid" aria-label="Soul Pod telemetry">
+        {telemetry.map((item) => (<article key={item.label}><span>{item.label}</span><strong>{item.value}</strong></article>))}
+      </div>
+    </section>
+  )
+}
+
+function TransmissionDeckZone() {
+  const [passcode, setPasscode] = useState('')
+  const [selfVaultOpen, setSelfVaultOpen] = useState(false)
+  const [activePlayer, setActivePlayer] = useState<string | null>(null)
+  const audio = useAudioManager()
+  const prompt = "what do you keep apologizing for that wasn't your fault?"
+
+  const togglePlayer = (id: string, sample: SampleAudioKey, label: string) => {
+    if (activePlayer === id) { setActivePlayer(null); audio.stopAll(); return }
+    setActivePlayer(id)
+    void audio.playSample(sample, label)
+  }
+
+  const updatePasscode = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 4)
+    setPasscode(digits)
+    setSelfVaultOpen(digits.length === 4)
+  }
+
+  return (
+    <section className="soul-zone transmission-deck-zone" aria-label="Transmission Deck">
+      <header className="soul-zone-header">
+        <div><span>zone 2 / transmission deck</span><h2>tape deck</h2></div>
+        <p>voice inputs, night prompts, and private signal-to-self fragments.</p>
+      </header>
+      <div className="tape-deck-grid">
+        <article className="tape-interface answering-machine">
+          <span>interface a / answering machine</span>
+          <h3>10-second greeting</h3>
+          <p>For strangers who land on your page and need one quiet sign that someone is here.</p>
+          <DeckMiniPlayerNew active={activePlayer === 'greeting'} duration="0:10" label="greeting preview" onToggle={() => togglePlayer('greeting', 'distant-voice', 'soul pod greeting')} />
+          <button className="deck-record-button" type="button" onClick={() => togglePlayer('greeting', 'recording', 'answering machine record')}>● record</button>
+        </article>
+        <article className="tape-interface night-prompt">
+          <span>interface b / night prompt</span>
+          <h3>{prompt}</h3>
+          <p>Answer only if it wants to be a voice. Thirty seconds is enough.</p>
+          <DeckMiniPlayerNew active={activePlayer === 'night-prompt'} duration="0:30" label="night prompt answer" onToggle={() => togglePlayer('night-prompt', 'distant-voice', 'night prompt answer')} />
+          <button className="deck-record-button" type="button" onClick={() => togglePlayer('night-prompt', 'recording', 'night prompt record')}>● answer out loud — 30s max</button>
+        </article>
+        <article className="tape-interface signal-self">
+          <span>interface c / signal to self</span>
+          <h3>private diary vault</h3>
+          <p>Local passcode gate only. It keeps the room quiet, not encrypted.</p>
+          <label className="passcode-lock">
+            <span>4-digit passcode</span>
+            <input aria-label="Signal to Self passcode" inputMode="numeric" maxLength={4} onChange={(event) => updatePasscode(event.target.value)} placeholder="····" type="password" value={passcode} />
+          </label>
+          {selfVaultOpen ? (
+            <div className="self-vault-open">
+              <DeckMiniPlayerNew active={activePlayer === 'self-vault'} duration="0:04" label="private diary playback" onToggle={() => togglePlayer('self-vault', 'archive', 'private diary vault')} />
+              <p>private signal unlocked for this session</p>
+            </div>
+          ) : <p className="self-vault-locked">locked until four numbers are entered</p>}
+        </article>
+      </div>
+    </section>
+  )
+}
+
+function DeckMiniPlayerNew({ active, duration, label, onToggle }: { active: boolean; duration: string; label: string; onToggle: () => void }) {
+  return (
+    <div className={`deck-mini-player ${active ? 'active' : ''}`} aria-label={label}>
+      <button aria-label={active ? `Stop ${label}` : `Play ${label}`} onClick={onToggle} type="button">{active ? '✕' : '▶'}</button>
+      <span>0:00 / {duration}</span>
+      <div aria-hidden="true"><i /><i /><i /><i /><i /></div>
+    </div>
+  )
+}
+
+function DeskCanvasZone() {
+  return (
+    <section className="soul-zone desk-canvas-zone" aria-label="Desk Canvas">
+      <header className="soul-zone-header">
+        <div><span>zone 3 / desk canvas</span><h2>your notes</h2></div>
+        <p>Move the fragments by hand. Let them drift, or pin them where they stop shaking.</p>
+      </header>
+      <section className="static-graveyard" aria-label="Static Graveyard archive history">
+        <span>static graveyard</span>
+        {[
+          { time: '02:11', text: 'never answered: "i keep almost calling them"' },
+          { time: '03:04', text: 'never answered: "sorry for needing less noise"' },
+          { time: 'last week', text: 'never answered: "i was softer before this"' },
+          { time: 'archived', text: 'never answered: "tell me it mattered once"' },
+        ].map((fragment) => (
+          <p key={`${fragment.time}-${fragment.text}`}><time>{fragment.time}</time>{fragment.text}</p>
+        ))}
+      </section>
+    </section>
   )
 }
