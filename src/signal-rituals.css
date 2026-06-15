@@ -1,0 +1,274 @@
+/* signal-rituals.css — Signal Ritual UI: daily ritual card, atmosphere layers, modifier panels */
+
+/* ─── Ritual Card ─────────────────────────────────────────────────────────── */
+
+.signal-ritual-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  backdrop-filter: blur(12px);
+  transition: border-color 0.4s ease, background 0.4s ease;
+}
+
+.signal-ritual-card > span:first-of-type {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.5;
+}
+
+.signal-ritual-card h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0;
+  color: var(--eco-text, #e0e0f0);
+}
+
+.signal-ritual-card p {
+  font-size: 0.88rem;
+  opacity: 0.72;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.signal-ritual-card footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.25rem;
+}
+
+.signal-ritual-card footer small {
+  font-size: 0.72rem;
+  opacity: 0.45;
+  letter-spacing: 0.04em;
+}
+
+.signal-ritual-card footer button {
+  font-size: 0.78rem;
+  padding: 0.45rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--eco-text, #e0e0f0);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.signal-ritual-card footer button:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ─── Ritual Card Traces (ambient lines behind card) ─────────────────────── */
+
+.ritual-card-traces {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ritual-card-traces i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  animation: traceSlide 6s ease-in-out infinite;
+}
+
+.ritual-card-traces i:nth-child(1) { top: 25%; animation-delay: 0s; }
+.ritual-card-traces i:nth-child(2) { top: 55%; animation-delay: 2s; }
+.ritual-card-traces i:nth-child(3) { top: 80%; animation-delay: 4s; }
+
+@keyframes traceSlide {
+  0%, 100% { opacity: 0; transform: translateX(-20%); }
+  50% { opacity: 1; transform: translateX(20%); }
+}
+
+/* ─── Tone Variants ──────────────────────────────────────────────────────── */
+
+.ritual-tone-amber {
+  border-color: rgba(251, 191, 36, 0.2);
+}
+.ritual-tone-amber .ritual-card-traces i {
+  background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.12), transparent);
+}
+.ritual-tone-amber footer button {
+  border-color: rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+}
+
+.ritual-tone-magenta {
+  border-color: rgba(236, 72, 153, 0.2);
+}
+.ritual-tone-magenta .ritual-card-traces i {
+  background: linear-gradient(90deg, transparent, rgba(236, 72, 153, 0.12), transparent);
+}
+.ritual-tone-magenta footer button {
+  border-color: rgba(236, 72, 153, 0.3);
+  color: #ec4899;
+}
+
+.ritual-tone-cyan {
+  border-color: rgba(34, 211, 238, 0.2);
+}
+.ritual-tone-cyan .ritual-card-traces i {
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.12), transparent);
+}
+.ritual-tone-cyan footer button {
+  border-color: rgba(34, 211, 238, 0.3);
+  color: #22d3ee;
+}
+
+.ritual-tone-graphite {
+  border-color: rgba(148, 163, 184, 0.2);
+}
+.ritual-tone-graphite .ritual-card-traces i {
+  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.1), transparent);
+}
+.ritual-tone-graphite footer button {
+  border-color: rgba(148, 163, 184, 0.25);
+  color: #94a3b8;
+}
+
+/* ─── Ritual Atmosphere Layer ────────────────────────────────────────────── */
+
+.ritual-atmosphere {
+  position: relative;
+  padding: 0.6rem 1rem;
+  margin: 0.5rem 0;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ritual-atmosphere > span {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.ritual-atmosphere i {
+  position: absolute;
+  width: 2px;
+  height: 100%;
+  top: 0;
+  background: rgba(255, 255, 255, 0.06);
+  animation: atmospherePulse 4s ease-in-out infinite;
+}
+
+.ritual-atmosphere i:nth-child(2) { right: 20%; animation-delay: 0s; }
+.ritual-atmosphere i:nth-child(3) { right: 50%; animation-delay: 1.3s; }
+.ritual-atmosphere i:nth-child(4) { right: 75%; animation-delay: 2.6s; }
+
+@keyframes atmospherePulse {
+  0%, 100% { opacity: 0; transform: scaleY(0.6); }
+  50% { opacity: 1; transform: scaleY(1); }
+}
+
+/* ─── Ritual Modifier Panel ─────────────────────────────────────────────── */
+
+.ritual-modifier-panel {
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 1rem 0;
+}
+
+.ritual-modifier-panel > span {
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.45;
+}
+
+.ritual-modifier-panel > strong {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--eco-text, #e0e0f0);
+}
+
+.ritual-modifier-panel > p {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.ritual-modifier-panel > button {
+  align-self: flex-start;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--eco-text, #e0e0f0);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.ritual-modifier-panel > button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ─── Tone modifiers for ritual panels ──────────────────────────────────── */
+
+.ritual-modifier-panel.ritual-tone-amber { border-color: rgba(251, 191, 36, 0.18); }
+.ritual-modifier-panel.ritual-tone-magenta { border-color: rgba(236, 72, 153, 0.18); }
+.ritual-modifier-panel.ritual-tone-cyan { border-color: rgba(34, 211, 238, 0.18); }
+.ritual-modifier-panel.ritual-tone-graphite { border-color: rgba(148, 163, 184, 0.15); }
+
+/* ─── Ritual waveform in card ───────────────────────────────────────────── */
+
+.ritual-waveform {
+  margin: 0.25rem 0;
+  opacity: 0.7;
+}
+
+/* ─── Responsive ────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .signal-ritual-card {
+    padding: 1.1rem;
+    border-radius: 0.75rem;
+  }
+  .signal-ritual-card footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ritual-modifier-panel {
+    padding: 0.85rem 1rem;
+  }
+}
+
+/* ─── Reduced motion ────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .ritual-card-traces i,
+  .ritual-atmosphere i {
+    animation: none;
+    opacity: 0.06;
+  }
+}
