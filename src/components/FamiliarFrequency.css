@@ -1,0 +1,209 @@
+/* FamiliarFrequency.css
+ * The visual language of quiet recognition.
+  * Understated — this should feel like noticing, not announcing.
+   * No glow explosions, no confetti. Just a stillness that says: the app sees it too.
+    */
+
+/* ── container ──────────────────────────────────────────────────────────────── */
+.familiar-frequency {
+    position: relative;
+    margin: 0 0 1.5rem 0;
+    padding: 0;
+    overflow: hidden;
+    /* enters from nothing — a peripheral awareness arriving */
+    animation: ff-surface 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes ff-surface {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* header label — barely there */
+.familiar-frequency__label {
+    font-size: 0.625rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.22);
+    margin-bottom: 0.75rem;
+    padding-left: 1px;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+}
+
+/* ── the strip of familiar cards ────────────────────────────────────────────── */
+.familiar-frequency__strip {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 2px; /* room for box-shadow */
+}
+
+.familiar-frequency__strip::-webkit-scrollbar {
+    display: none;
+}
+
+/* ── individual card ─────────────────────────────────────────────────────────── */
+.ff-card {
+    flex: 0 0 auto;
+    width: 160px;
+    background: rgba(255, 255, 255, 0.028);
+    border: 1px solid rgba(255, 255, 255, 0.065);
+    border-radius: 10px;
+    padding: 0.75rem 0.875rem 0.7rem;
+    cursor: default;
+    transition:
+      background 0.25s ease,
+      border-color 0.25s ease,
+      transform 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.ff-card:hover {
+    background: rgba(255, 255, 255, 0.045);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+/* stage-specific accent line — a thin stripe of mood color at the top edge */
+.ff-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 12px;
+    right: 12px;
+    height: 1px;
+    border-radius: 0 0 1px 1px;
+    opacity: 0.4;
+    transition: opacity 0.3s ease;
+}
+
+.ff-card:hover::before {
+    opacity: 0.65;
+}
+
+.ff-card--drifting::before  { background: rgba(148, 163, 184, 0.6); }
+.ff-card--crossing::before  { background: rgba(99, 202, 183, 0.7); }
+.ff-card--known::before     { background: rgba(167, 139, 250, 0.75); }
+.ff-card--deep::before      { background: rgba(251, 191, 36, 0.6); }
+
+/* quiet state — card fades slightly when a familiar has gone silent */
+.ff-card--quiet {
+    opacity: 0.55;
+    filter: saturate(0.6);
+}
+
+.ff-card--quiet:hover {
+    opacity: 0.75;
+    filter: saturate(0.8);
+}
+
+/* ── card interior ───────────────────────────────────────────────────────────── */
+.ff-card__handle {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.82);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.2rem;
+    letter-spacing: -0.01em;
+}
+
+.ff-card__stage {
+    font-size: 0.595rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.3);
+    margin-bottom: 0.55rem;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+}
+
+.ff-card--crossing .ff-card__stage { color: rgba(99, 202, 183, 0.55); }
+.ff-card--known    .ff-card__stage { color: rgba(167, 139, 250, 0.6); }
+.ff-card--deep     .ff-card__stage { color: rgba(251, 191, 36, 0.5); }
+
+.ff-card__content {
+    font-size: 0.68rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.42);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-style: italic;
+    margin-bottom: 0.6rem;
+}
+
+.ff-card__reason {
+    font-size: 0.585rem;
+    color: rgba(255, 255, 255, 0.22);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* mood dot — matches the feed's mood color system */
+.ff-card__moods {
+    display: flex;
+    gap: 3px;
+    margin-bottom: 0.5rem;
+}
+
+.ff-card__mood-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    opacity: 0.55;
+}
+
+.ff-card__mood-dot--nocturne  { background: #a78bfa; }
+.ff-card__mood-dot--bloom     { background: #34d399; }
+.ff-card__mood-dot--drift     { background: #60a5fa; }
+.ff-card__mood-dot--static    { background: #f472b6; }
+.ff-card__mood-dot--lost      { background: #94a3b8; }
+
+/* ── quiet badge ──────────────────────────────────────────────────────────────── */
+.ff-card__quiet-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.6rem;
+    font-size: 0.55rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.25);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+}
+
+/* ── ambient pulse on deep-stage cards ─────────────────────────────────────── */
+.ff-card--deep {
+    animation: ff-surface 0.8s cubic-bezier(0.16, 1, 0.3, 1) both,
+               ff-deep-pulse 6s ease-in-out 2s infinite;
+}
+
+@keyframes ff-deep-pulse {
+    0%, 100% { box-shadow: none; }
+    50%       { box-shadow: 0 0 14px rgba(251, 191, 36, 0.06); }
+}
+
+/* ── empty / zero state ─────────────────────────────────────────────────────── */
+.familiar-frequency--empty {
+    display: none; /* if there's nothing to show, don't show the container */
+}
+
+/* ── reduced motion ─────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .familiar-frequency,
+    .ff-card--deep {
+          animation: none;
+    }
+    .ff-card {
+          transition: none;
+    }
+}
