@@ -296,104 +296,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     sea.crackleGain.gain.setTargetAtTime(0.004 * intensity, now, 0.18)
   }, [])
 
-  const startFrequencySea = useCallback(async (label = 'frequency sea') => {
-    updateDebug({ lastAttempt: label, lastError: null })
-    const context = ensureAudioContext()
-    if (!context) return false
-    try {
-      if (context.state === 'suspended') {
-        await context.resume()
-      }
-      if (frequencySeaRef.current) {
-        setSoundEnabled(true)
-        updateDebug({ currentSource: label, unlocked: true })
-        return true
-      }
-      const now = context.currentTime
-      const masterGain = context.createGain()
-      const deepOscillator = context.createOscillator()
-      const deepLfo = context.createOscillator()
-      const deepGain = context.createGain()
-      const hissSource = context.createBufferSource()
-      const hissFilter = context.createBiquadFilter()
-      const hissGain = context.createGain()
-      const crackleSource = context.createBufferSource()
-      const crackleFilter = context.createBiquadFilter()
-      const crackleGain = context.createGain()
-      const lfoGain = context.createGain()
-      masterGain.gain.setValueAtTime(0.0001, now)
-      masterGain.gain.exponentialRampToValueAtTime(0.045, now + 0.9)
-      deepOscillator.type = 'sine'
-      deepOscillator.frequency.setValueAtTime(38, now)
-      deepLfo.type = 'sine'
-      deepLfo.frequency.setValueAtTime(0.05, now)
-      lfoGain.gain.setValueAtTime(7, now)
-      deepGain.gain.setValueAtTime(0.018, now)
-      hissSource.buffer = createNoiseBuffer(context, 2, 0.75)
-      hissSource.loop = true
-      hissFilter.type = 'bandpass'
-      hissFilter.Q.setValueAtTime(2.1, now)
-      hissFilter.frequency.setValueAtTime(280, now)
-      hissGain.gain.setValueAtTime(0.032, now)
-      crackleSource.buffer = createNoiseBuffer(context, 1.2, 0.36)
-      crackleSource.loop = true
-      crackleFilter.type = 'highpass'
-      crackleFilter.frequency.setValueAtTime(3200, now)
-      crackleGain.gain.setValueAtTime(0.0035, now)
-      deepLfo.connect(lfoGain)
-      lfoGain.connect(deepOscillator.frequency)
-      deepOscillator.connect(deepGain)
-      deepGain.connect(masterGain)
-      hissSource.connect(hissFilter)
-      hissFilter.connect(hissGain)
-      hissGain.connect(masterGain)
-      crackleSource.connect(crackleFilter)
-      crackleFilter.connect(crackleGain)
-      crackleGain.connect(masterGain)
-      masterGain.connect(context.destination)
-      deepOscillator.start(now)
-      deepLfo.start(now)
-      hissSource.start(now)
-      crackleSource.start(now)
-      const seaState: FrequencySeaLayerState = {
-        crackleGain,
-        crackleFilter,
-        crackleSource,
-        deepGain,
-        deepLfo,
-        deepLfoGain: lfoGain,
-        deepOscillator,
-        hissFilter,
-        hissGain,
-        hissSource,
-        intensity: 1,
-        masterGain,
-        modulationTimer: null,
-      }
-      seaState.modulationTimer = window.setInterval(() => {
-        const activeSea = frequencySeaRef.current
-        const activeContext = audioContextRef.current
-        if (!activeSea || !activeContext) return
-        const activeNow = activeContext.currentTime
-        const wave = (Math.sin(activeNow * 1.2) + 1) / 2
-        const filterFrequency = 150 + (wave * 300)
-        activeSea.hissFilter.frequency.setTargetAtTime(filterFrequency, activeNow, 0.42)
-        activeSea.crackleGain.gain.setTargetAtTime((0.002 + wave * 0.006) * activeSea.intensity, activeNow, 0.09)
-        activeSea.deepOscillator.frequency.setTargetAtTime(32 + wave * 16, activeNow, 0.62)
-      }, 80)
-      frequencySeaRef.current = seaState
-      setSoundEnabled(true)
-      updateDebug({ currentSource: label, unlocked: true })
-      return true
-    } catch (error) {
-      const message = `${label} could not start.`
-      updateDebug({ currentSource: null, lastError: message })
-      devWarn(message, error)
-      stopFrequencySea()
-      return false
-    }
-  }, [createNoiseBuffer, ensureAudioContext, setSoundEnabled, stopFrequencySea, updateDebug])
-
   const setSoundEnabled = useCallback((enabled: boolean) => {
     window.localStorage.setItem('ecosphere:sound-enabled', enabled ? 'true' : 'false')
     if (!enabled) {
@@ -544,6 +446,104 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       return false
     }
   }, [ensureAudioContext, setSoundEnabled, updateDebug])
+
+  const startFrequencySea = useCallback(async (label = 'frequency sea') => {
+    updateDebug({ lastAttempt: label, lastError: null })
+    const context = ensureAudioContext()
+    if (!context) return false
+    try {
+      if (context.state === 'suspended') {
+        await context.resume()
+      }
+      if (frequencySeaRef.current) {
+        setSoundEnabled(true)
+        updateDebug({ currentSource: label, unlocked: true })
+        return true
+      }
+      const now = context.currentTime
+      const masterGain = context.createGain()
+      const deepOscillator = context.createOscillator()
+      const deepLfo = context.createOscillator()
+      const deepGain = context.createGain()
+      const hissSource = context.createBufferSource()
+      const hissFilter = context.createBiquadFilter()
+      const hissGain = context.createGain()
+      const crackleSource = context.createBufferSource()
+      const crackleFilter = context.createBiquadFilter()
+      const crackleGain = context.createGain()
+      const lfoGain = context.createGain()
+      masterGain.gain.setValueAtTime(0.0001, now)
+      masterGain.gain.exponentialRampToValueAtTime(0.045, now + 0.9)
+      deepOscillator.type = 'sine'
+      deepOscillator.frequency.setValueAtTime(38, now)
+      deepLfo.type = 'sine'
+      deepLfo.frequency.setValueAtTime(0.05, now)
+      lfoGain.gain.setValueAtTime(7, now)
+      deepGain.gain.setValueAtTime(0.018, now)
+      hissSource.buffer = createNoiseBuffer(context, 2, 0.75)
+      hissSource.loop = true
+      hissFilter.type = 'bandpass'
+      hissFilter.Q.setValueAtTime(2.1, now)
+      hissFilter.frequency.setValueAtTime(280, now)
+      hissGain.gain.setValueAtTime(0.032, now)
+      crackleSource.buffer = createNoiseBuffer(context, 1.2, 0.36)
+      crackleSource.loop = true
+      crackleFilter.type = 'highpass'
+      crackleFilter.frequency.setValueAtTime(3200, now)
+      crackleGain.gain.setValueAtTime(0.0035, now)
+      deepLfo.connect(lfoGain)
+      lfoGain.connect(deepOscillator.frequency)
+      deepOscillator.connect(deepGain)
+      deepGain.connect(masterGain)
+      hissSource.connect(hissFilter)
+      hissFilter.connect(hissGain)
+      hissGain.connect(masterGain)
+      crackleSource.connect(crackleFilter)
+      crackleFilter.connect(crackleGain)
+      crackleGain.connect(masterGain)
+      masterGain.connect(context.destination)
+      deepOscillator.start(now)
+      deepLfo.start(now)
+      hissSource.start(now)
+      crackleSource.start(now)
+      const seaState: FrequencySeaLayerState = {
+        crackleGain,
+        crackleFilter,
+        crackleSource,
+        deepGain,
+        deepLfo,
+        deepLfoGain: lfoGain,
+        deepOscillator,
+        hissFilter,
+        hissGain,
+        hissSource,
+        intensity: 1,
+        masterGain,
+        modulationTimer: null,
+      }
+      seaState.modulationTimer = window.setInterval(() => {
+        const activeSea = frequencySeaRef.current
+        const activeContext = audioContextRef.current
+        if (!activeSea || !activeContext) return
+        const activeNow = activeContext.currentTime
+        const wave = (Math.sin(activeNow * 1.2) + 1) / 2
+        const filterFrequency = 150 + (wave * 300)
+        activeSea.hissFilter.frequency.setTargetAtTime(filterFrequency, activeNow, 0.42)
+        activeSea.crackleGain.gain.setTargetAtTime((0.002 + wave * 0.006) * activeSea.intensity, activeNow, 0.09)
+        activeSea.deepOscillator.frequency.setTargetAtTime(32 + wave * 16, activeNow, 0.62)
+      }, 80)
+      frequencySeaRef.current = seaState
+      setSoundEnabled(true)
+      updateDebug({ currentSource: label, unlocked: true })
+      return true
+    } catch (error) {
+      const message = `${label} could not start.`
+      updateDebug({ currentSource: null, lastError: message })
+      devWarn(message, error)
+      stopFrequencySea()
+      return false
+    }
+  }, [createNoiseBuffer, ensureAudioContext, setSoundEnabled, stopFrequencySea, updateDebug])
 
   const playUrl = useCallback(async (url: string | undefined | null, options: PlayUrlOptions) => {
     updateDebug({ lastAttempt: options.label, lastError: null })
