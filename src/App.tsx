@@ -4983,19 +4983,22 @@ export default function App() {
   }
 
 
-  // nothing loads — no audio, no screens — until 18+ is confirmed
+  // All hooks must be called unconditionally before any early return (Rules of Hooks).
+  // useGlobalAudio, activeRitual, coreFrequency, shelfTraces, and tideReports are
+  // declared here so the hook call count stays stable regardless of the ageOk gate.
   const appAudio = useGlobalAudio()
+  const [activeRitual] = useState<ActiveSignalRitual>(() => createActiveSignalRitual())
+  const [coreFrequency, setCoreFrequency] = useState(() => calculateCoreFrequency())
+  const [shelfTraces, setShelfTraces] = useState<TraceShelfItem[]>(() => readTraceShelf())
+  const [tideReports] = useState<TideReport[]>(() => ensureTideReport())
 
+  // nothing renders — no audio, no screens — until 18+ is confirmed
   if (!ageOk) return <AgeGate onConfirm={() => setAgeOk(true)} />
 
-  const [activeRitual] = useState<ActiveSignalRitual>(() => createActiveSignalRitual())
   const performSignalRitual = (surface: RitualSurface) => {
     recordSignalRitualTrace(activeRitual, surface)
     void playSample(appAudio, { id: `ritual-${activeRitual.id}`, label: `signal ritual: ${activeRitual.title}`, source: 'home' }, activeRitual.audioKey, getDateSeed(activeRitual.todayKey), 4000)
   }
-  const [coreFrequency, setCoreFrequency] = useState(() => calculateCoreFrequency())
-  const [shelfTraces, setShelfTraces] = useState<TraceShelfItem[]>(() => readTraceShelf())
-  const [tideReports] = useState<TideReport[]>(() => ensureTideReport())
   const witchHour = getWitchHourState()
 
   const claimRelicToShelf = (relic: ArchiveRelic) => {
