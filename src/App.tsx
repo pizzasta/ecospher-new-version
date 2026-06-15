@@ -5626,3 +5626,75 @@ function ShelfOfTraces({ traces }: { traces: TraceShelfItem[] }) {
     </section>
   )
 }
+
+
+// ───────────────────────────────────────────────────────────────────────────────
+// FREQUENCIES PAGE — Frequency Sea Web Audio Engine
+// ───────────────────────────────────────────────────────────────────────────────
+
+export function FrequenciesPage() {
+  const audio = useAudioManager()
+  const [seaActive, setSeaActive] = useState(false)
+  const [seaIntensity, setSeaIntensity] = useState(0.72)
+  const stopFrequencySeaRef = useRef(audio.stopFrequencySea)
+
+  useEffect(() => {
+    stopFrequencySeaRef.current = audio.stopFrequencySea
+  }, [audio.stopFrequencySea])
+
+  useEffect(() => () => {
+    stopFrequencySeaRef.current()
+  }, [])
+
+  const toggleFrequencySea = async () => {
+    if (seaActive) {
+      audio.stopFrequencySea()
+      setSeaActive(false)
+      return
+    }
+    const started = await audio.startFrequencySea('frequency sea')
+    setSeaActive(started)
+    if (started) {
+      audio.setFrequencySeaIntensity(seaIntensity)
+    }
+  }
+
+  const updateSeaIntensity = (value: number) => {
+    setSeaIntensity(value)
+    audio.setFrequencySeaIntensity(value)
+  }
+
+  return (
+    <section className={`frequencies-page ${seaActive ? 'sea-active' : ''}`} aria-label="Frequencies tuning space">
+      <section className="frequency-sea-console" aria-label="Frequency Sea sound engine">
+        <div>
+          <span>frequency sea / synthesized live</span>
+          <h3>{seaActive ? 'the sea is breathing through the band' : 'let the sea under the band'}</h3>
+          <p>Deep swell, tidal hiss, and ionosphere crackle are generated in-browser from the shared audio engine.</p>
+        </div>
+        <div className="frequency-sea-controls">
+          <button aria-pressed={seaActive} onClick={() => { void toggleFrequencySea() }} type="button">
+            {seaActive ? 'let the sea fade' : 'listen to the sea'}
+          </button>
+          <label>
+            <span>pressure</span>
+            <input
+              aria-label="Frequency Sea pressure"
+              max="1"
+              min="0.18"
+              onChange={(event) => updateSeaIntensity(Number(event.target.value))}
+              step="0.01"
+              type="range"
+              value={seaIntensity}
+            />
+          </label>
+        </div>
+        <div className="frequency-sea-layers" aria-label="Frequency Sea layers">
+          <span>deep swell</span>
+          <span>tidal hiss</span>
+          <span>ionosphere crackle</span>
+        </div>
+      </section>
+    </section>
+  )
+}
