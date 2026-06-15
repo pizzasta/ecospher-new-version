@@ -16,11 +16,14 @@ import './global-architecture.css'
 import './stability-pass.css'
 import App from './App'
 import { AudioProvider } from './audio-system'
+import { GlobalAudioProvider } from './hooks/useGlobalAudio'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AudioProvider>
-      <App />
+      <GlobalAudioProvider>
+        <App />
+      </GlobalAudioProvider>
     </AudioProvider>
   </React.StrictMode>,
 )
