@@ -4727,6 +4727,7 @@ export function SettingsScreen() {
             {confirmWipe ? tr('settings.confirm') : tr('settings.eraseLocal.action')}
           </button>
         </div>
+      <PublicReleaseBasics />
       </div>
 
       {note && <div className="setting-note">{note}</div>}
@@ -4738,6 +4739,40 @@ export function SettingsScreen() {
         <div className="settings-build">build {__BUILD_STAMP__}</div>
       </div>
     </div>
+  )
+}
+
+function PublicReleaseBasics() {
+  return (
+    <section className="public-release-basics" aria-label="Public release basics">
+      <header>
+        <span>public launch basics</span>
+        <h3>Safety before scale.</h3>
+        <p>Quiet spaces still need clear boundaries, private defaults, and a way to reach a human.</p>
+      </header>
+      <div>
+        <article>
+          <span>privacy</span>
+          <strong>anonymous first</strong>
+          <p>Signals can drift without names. Private archives, local rituals, and saved memories stay personal unless someone deliberately lets them surface.</p>
+        </article>
+        <article>
+          <span>community safety</span>
+          <strong>no performance layer</strong>
+          <p>No follower counts, leaderboards, or public popularity loops. Reported signals are hidden for review without making the person more visible.</p>
+        </article>
+        <article>
+          <span>support</span>
+          <strong>contact before launch</strong>
+          <p>Add the launch support email here before production. Until then, keep the app in release-candidate review.</p>
+        </article>
+        <article>
+          <span>reporting</span>
+          <strong>review quietly</strong>
+          <p>Reports should be tested end to end with Supabase enabled before public traffic is invited.</p>
+        </article>
+      </div>
+    </section>
   )
 }
 
