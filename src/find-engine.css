@@ -1,0 +1,247 @@
+.find-page {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  gap: 18px;
+  min-height: 78dvh;
+  padding: clamp(18px, 4vw, 34px) 16px 120px;
+  color: #fff7fb;
+}
+
+.find-page::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background:
+    radial-gradient(circle at 18% 8%, rgba(255, 102, 178, 0.14), transparent 28%),
+    radial-gradient(circle at 82% 16%, rgba(103, 232, 249, 0.12), transparent 26%),
+    linear-gradient(180deg, rgba(4, 4, 8, 0.84), rgba(10, 8, 16, 0.96));
+}
+
+.find-ambient span {
+  animation-duration: 12s;
+  background: rgba(255, 181, 223, 0.48);
+  box-shadow: 0 0 18px rgba(255, 102, 178, 0.22);
+}
+
+.find-header,
+.find-input-core,
+.find-mood-pills,
+.find-discovery-feed {
+  width: min(1120px, 100%);
+  margin-inline: auto;
+}
+
+.find-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.find-header span {
+  display: block;
+  color: rgba(255, 181, 223, 0.88);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.find-header h2 {
+  margin: 8px 0 0;
+  color: #fff7fb;
+  font-size: clamp(3rem, 10vw, 7.5rem);
+  line-height: 0.85;
+}
+
+.find-header p {
+  max-width: 620px;
+  margin: 14px 0 0;
+  color: rgba(245, 234, 246, 0.72);
+  line-height: 1.55;
+}
+
+.find-input-core {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 78px;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.015)),
+    rgba(0, 0, 0, 0.36);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3), inset 0 0 42px rgba(255, 102, 178, 0.035);
+}
+
+.find-input-core span {
+  color: #73e5ff;
+  font-size: 1.35rem;
+}
+
+.find-input-core input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: #fff7fb;
+  background: transparent;
+  font-size: clamp(1.2rem, 3vw, 2rem);
+  font-weight: 800;
+}
+
+.find-input-core input::placeholder {
+  color: rgba(255, 232, 246, 0.74);
+  opacity: 1;
+}
+
+.find-input-core:focus-within {
+  border-color: rgba(255, 141, 204, 0.58);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34), 0 0 34px rgba(255, 102, 178, 0.12);
+}
+
+.find-mood-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.find-mood-pills button {
+  min-height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 0 14px;
+  color: rgba(255, 247, 251, 0.86);
+  background: rgba(255, 255, 255, 0.045);
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  transition: border-color 180ms ease, color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.find-mood-pills button:hover,
+.find-mood-pills button.active {
+  border-color: rgba(255, 102, 178, 0.72);
+  color: #ffc7e5;
+  background: rgba(255, 102, 178, 0.11);
+  transform: translateY(-1px);
+}
+
+.find-discovery-feed {
+  display: grid;
+  gap: 10px;
+}
+
+.find-result-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.18fr) minmax(0, 1fr) minmax(96px, 0.18fr);
+  align-items: center;
+  gap: 16px;
+  min-height: 94px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.095);
+  border-radius: 12px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.014)),
+    rgba(8, 8, 13, 0.74);
+  box-shadow: 0 18px 62px rgba(0, 0, 0, 0.24);
+  opacity: 0;
+  transform: translateY(8px);
+  animation: find-row-tide 360ms ease forwards;
+  animation-delay: var(--find-row-delay);
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.find-result-row:hover,
+.find-result-row.previewing {
+  border-color: rgba(103, 232, 249, 0.32);
+  background:
+    linear-gradient(145deg, rgba(103, 232, 249, 0.075), rgba(255, 102, 178, 0.035)),
+    rgba(8, 8, 13, 0.82);
+  transform: translateY(-1px);
+}
+
+.find-result-row b {
+  color: #bdf3ff;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+}
+
+.find-result-row strong {
+  display: block;
+  color: #fff7fb;
+  font-size: clamp(1.1rem, 2.4vw, 1.7rem);
+  line-height: 1.05;
+}
+
+.find-result-row p {
+  margin: 6px 0 0;
+  color: rgba(238, 230, 240, 0.66);
+  line-height: 1.45;
+}
+
+.find-result-row em {
+  justify-self: end;
+  color: #ffc7e5;
+  font-size: 0.86rem;
+  font-style: italic;
+  font-weight: 800;
+  text-align: right;
+}
+
+.find-empty-state {
+  margin: 0;
+  padding: 26px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  color: rgba(255, 232, 246, 0.72);
+  background: rgba(0, 0, 0, 0.24);
+  font-size: clamp(1rem, 2.5vw, 1.35rem);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+@keyframes find-row-tide {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 720px) {
+  .find-result-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .find-result-row em {
+    justify-self: start;
+    text-align: left;
+  }
+}
+
+@media (max-width: 520px) {
+  .find-page {
+    padding-inline: 12px;
+  }
+
+  .find-input-core {
+    min-height: 66px;
+  }
+
+  .find-input-core input {
+    font-size: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .find-result-row,
+  .find-mood-pills button {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    transition-duration: 1ms;
+  }
+}
