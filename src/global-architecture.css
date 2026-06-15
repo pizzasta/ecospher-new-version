@@ -65,3 +65,76 @@ body,
     transition-duration: 1ms;
   }
 }
+
+.observatory-shell.witch-hour-active::before {
+  opacity: 0.34;
+  filter: contrast(1.18) saturate(1.1);
+  animation: witchStaticBreath 8s ease-in-out infinite alternate;
+}
+
+.replay-storm-banner {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 102, 178, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 102, 178, 0.11), rgba(103, 232, 249, 0.045)),
+    rgba(7, 6, 12, 0.78);
+  box-shadow: inset 0 0 34px rgba(255, 102, 178, 0.08), 0 18px 60px rgba(0, 0, 0, 0.24);
+  padding: 18px;
+  margin: 16px 0;
+  border-radius: 18px;
+}
+
+.replay-storm-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  transform: translateX(-120%);
+  animation: stormSweep 7s ease-in-out infinite;
+}
+
+.replay-storm-banner span {
+  display: block;
+  color: rgba(255, 182, 213, 0.86);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.replay-storm-banner strong {
+  display: block;
+  color: #ffe7f3;
+  margin-top: 8px;
+  font-size: 1.05rem;
+}
+
+.replay-storm-banner p {
+  color: rgba(231, 236, 255, 0.72);
+  margin: 8px 0 0;
+}
+
+.relic-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.relic-card-actions button {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.055);
+  color: #f4eef8;
+  border-radius: 999px;
+  padding: 9px 13px;
+}
+
+@keyframes witchStaticBreath {
+  from { opacity: 0.22; }
+  to { opacity: 0.38; }
+}
+
+@keyframes stormSweep {
+  0%, 58% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
