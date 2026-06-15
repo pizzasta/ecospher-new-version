@@ -12,6 +12,7 @@ import { speakSignal, speechSupported, cancelSpeech } from './lib/speech'
 import { castRateCheck, recordCast } from './lib/castLine'
 import { bumpCastToday } from './lib/castMetrics'
 import { castToSea, fetchSeaLines, subscribeSeaLines, seaSyncEnabled } from './lib/seaSync'
+import { frequencySeaEngine } from './lib/frequencySeaEngine'
 import type { SeaLineRow } from './lib/seaSync'
 import { lastExaminedBy, listenerCount, livedInLines } from './lib/livedIn'
 import { subscribeToEcosphereActivity } from './lib/backendBridge'
@@ -3532,6 +3533,19 @@ function FrequenciesScreen() {
   const lastNearRef = useRef<number | null>(null)
   const lastSoundAtRef = useRef(0)
   const [muted, setMuted] = useState(false)
+  // ─── Frequency Sea audio engine ─────────────────────────────────────────────
+  // Starts the organic Web Audio sea sound on mount; stops cleanly on unmount.
+  // Muted state ducks the master volume rather than killing the engine so there
+  // is no AudioContext restart cost on re-enable.
+  useEffect(() => {
+    frequencySeaEngine.start({ masterVolume: muted ? 0 : 0.85 })
+    return () => { frequencySeaEngine.stop() }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    frequencySeaEngine.setMasterVolume(muted ? 0 : 0.85)
+  }, [muted])
   const [chasedId, setChasedId] = useState<number | null>(null)
 
   const handleSeaPointer = (event: React.PointerEvent) => {
@@ -3821,7 +3835,11 @@ function FrequenciesScreen() {
             </div>
           )
         })}
-        {buoys.filter(b => textFilter === 'all' || (textFilter === 'audio' ? b.voice : !b.voice)).map(b => {
+        {buoys.filter(b => {
+          if (!b || b.fragment == null) return false
+          if (textFilter === 'all') return true
+          return textFilter === 'audio' ? b.voice === true : b.voice !== true
+        }).map(b => {
           const near = nearId === b.id
           const isStable = stabilized.includes(b.id)
           return (
