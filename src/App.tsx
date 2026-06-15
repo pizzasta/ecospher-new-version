@@ -30,7 +30,7 @@ import DormantFrequencies from './components/DormantFrequencies'
 import DriftedTextRelics from './components/DriftedTextRelics'
 import FeaturedNotes from './components/FeaturedNotes'
 import StickyNotes from './components/StickyNotes'
-import { DriftNotesBoard, usePersistedDriftNotes } from './components/ecosphere-memory-loop'
+import { DriftNotesBoard, RelicSeedPanel, usePersistedDriftNotes } from './components/ecosphere-memory-loop'
 import { quietFor } from './lib/dormantRooms'
 import type { DormantRoom } from './lib/dormantRooms'
 import DeepListen from './components/DeepListen'
@@ -2201,6 +2201,7 @@ const HIDDEN_SHARD_THRESHOLD = 4
 
 function RelicsScreen() {
   const [selected, setSelected] = useState<Relic | null>(null)
+  const [driftNotes] = usePersistedDriftNotes()
   const { archiveEntry, saveToLibrary, unsaveFromLibrary, unlockRelic: unlockEcosystemRelic } = useEcosystemState()
   const relicAudio = useGlobalAudio()
   const [store, setStore] = usePersistentState<Record<string, RelicActivity>>('ecosphere:relicActivity', {})
@@ -2375,6 +2376,7 @@ function RelicsScreen() {
 
   return (
     <div className="screen">
+      <RelicSeedPanel notes={driftNotes} />
       {/* archive dust hanging in the vault light */}
       <div className="capsule-dust" aria-hidden="true">
         {Array.from({ length: 10 }, (_, i) => (
