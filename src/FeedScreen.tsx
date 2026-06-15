@@ -15,6 +15,8 @@ import HzBadge from './components/HzBadge'
 import ListenerTraces from './components/ListenerTraces'
 import { RETURN_TAGS, addReturn, listReturns, removeReturn } from './lib/returnQueue'
 import { DECAY_LABELS, decayLevel, decayText, heatFor, preserveSignal, presenceLine, whyFoundYou } from './lib/signalLife'
+import FamiliarFrequency from './components/FamiliarFrequency'
+import { recordCrossing } from './lib/familiarFrequency'
 
 const hiddenKey = 'ecosphere:hiddenSignals'
 function loadHidden(): string[] {
@@ -928,6 +930,9 @@ export default function FeedScreen() {
       <div className="feed-content">
         {/* Header */}
         <FeedHeader />
+
+        {/* recurring strangers — signals that keep crossing yours */}
+        <FamiliarFrequency />
 
         {/* Ambient toggle */}
         <div className="feed-ambient-row">
