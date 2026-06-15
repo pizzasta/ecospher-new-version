@@ -1,0 +1,67 @@
+html,
+body,
+#root {
+  background: #000;
+}
+
+.observatory-shell {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 102, 178, 0.055), transparent 34%),
+    linear-gradient(180deg, #000 0%, #0d0d11 52%, #000 100%);
+}
+
+.ecosystem-route-transition {
+  position: relative;
+  min-width: 0;
+  animation: ecosystemRouteEnter 280ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
+  will-change: opacity, transform;
+}
+
+.ecosystem-route-transition::before {
+  position: absolute;
+  top: -10px;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  height: 1px;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(90deg, transparent, rgba(255, 181, 223, 0.24), rgba(103, 232, 249, 0.16), transparent);
+}
+
+.ecosystem-route-transition[data-route='find']::before,
+.ecosystem-route-transition[data-route='observatory']::before,
+.ecosystem-route-transition[data-route='signal-stream']::before,
+.ecosystem-route-transition[data-route='chambers']::before,
+.ecosystem-route-transition[data-route='frequencies']::before,
+.ecosystem-route-transition[data-route='relics']::before,
+.ecosystem-route-transition[data-route='soul-pod']::before {
+  opacity: 0.9;
+}
+
+.bottom-nav button {
+  transition: border-color 180ms ease, color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.bottom-nav button.active {
+  text-shadow: 0 0 18px rgba(255, 102, 178, 0.28);
+}
+
+@keyframes ecosystemRouteEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(14px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ecosystem-route-transition,
+  .bottom-nav button {
+    animation: none;
+    transition-duration: 1ms;
+  }
+}
