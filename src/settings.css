@@ -64,7 +64,9 @@
 .settings-hero,
 .settings-card,
 .settings-panel,
-.account-status-panel {
+.account-status-panel,
+.public-release-basics,
+.public-release-basics article {
   background: rgba(7, 5, 22, 0.62);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;
@@ -129,7 +131,8 @@
 .identity-settings span,
 .settings-card header span,
 .settings-panel span,
-.signal-slider span {
+.signal-slider span,
+.public-release-basics span {
   color: #d8b4fe;
   font-size: 10px;
   font-weight: 850;
@@ -214,7 +217,8 @@
 .settings-card header p,
 .settings-panel p,
 .signal-slider small,
-.glowing-toggle small {
+.glowing-toggle small,
+.public-release-basics p {
   color: #e9d5ff;
   font-size: 13px;
   line-height: 1.6;
@@ -508,3 +512,42 @@
   transition: border-color 0.25s ease, color 0.25s ease;
 }
 .pod-skip-auth:hover { border-color: rgba(0, 212, 255, 0.45); color: #aef0ff; }
+
+.public-release-basics {
+  display: grid;
+  gap: 14px;
+  overflow: hidden;
+  padding: 18px;
+  position: relative;
+}
+
+.public-release-basics header,
+.public-release-basics > div,
+.public-release-basics article {
+  position: relative;
+  z-index: 1;
+}
+
+.public-release-basics h3 {
+  color: #f8fafc;
+  font-size: clamp(28px, 5vw, 48px);
+  line-height: 0.98;
+  margin: 10px 0;
+}
+
+.public-release-basics > div {
+  display: grid;
+  gap: 12px;
+}
+
+.public-release-basics article {
+  display: grid;
+  gap: 7px;
+  padding: 14px;
+}
+
+.public-release-basics article strong {
+  color: #cffafe;
+  font-size: 18px;
+  line-height: 1.1;
+}
