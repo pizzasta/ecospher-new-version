@@ -18,13 +18,16 @@ import './stability-pass.css'
 import App from './App'
 import { AudioProvider } from './audio-system'
 import { GlobalAudioProvider } from './hooks/useGlobalAudio'
+import { EcosystemProvider } from './hooks/useEcosystemState'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <AudioProvider>
-      <GlobalAudioProvider>
-        <App />
-      </GlobalAudioProvider>
-    </AudioProvider>
+    <EcosystemProvider>
+      <AudioProvider>
+        <GlobalAudioProvider>
+          <App />
+        </GlobalAudioProvider>
+      </AudioProvider>
+    </EcosystemProvider>
   </React.StrictMode>,
 )
