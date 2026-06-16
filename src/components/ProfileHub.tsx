@@ -82,12 +82,21 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
   const [nameError, setNameError] = useState<string | null>(null)
-  const commitRename = () => {
+  const [renaming, setRenaming] = useState(false)
+  const commitRename = async () => {
     const clean = nameDraft.trim().replace(/\s+/g, ' ').slice(0, 40)
     if (clean.length < 2) { setNameError('give your signal at least 2 characters'); return }
     if (moderatePublicSignalText(clean).status === 'flagged') { setNameError('that name can’t go on the band'); return }
+    // with a backend, sync FIRST — syncProfile returns null on failure (e.g. the
+    // username is taken / unique-violation), so confirm it stuck before applying
+    // locally, or the profile diverges across devices.
+    if (isSupabaseConfigured) {
+      setRenaming(true)
+      const saved = await syncProfile(clean)
+      setRenaming(false)
+      if (!saved) { setNameError('that name is taken — or wouldn’t sync. try another.'); return }
+    }
     setSignalIdentity(clean)
-    if (isSupabaseConfigured) void syncProfile(clean).catch(() => { /* local rename still applied */ })
     setEditingName(false); setNameError(null)
   }
   // avatar sigil: a chosen mark instead of a photo — there are no photos here
@@ -857,9 +866,9 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
                           aria-label="rename your signal"
                           placeholder="your signal name"
                           onChange={e => { setNameDraft(e.target.value); setNameError(null) }}
-                          onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') { setEditingName(false); setNameError(null) } }}
+                          onKeyDown={e => { if (e.key === 'Enter') void commitRename(); if (e.key === 'Escape') { setEditingName(false); setNameError(null) } }}
                         />
-                        <button type="button" className="ph-name-save" onClick={commitRename}>set</button>
+                        <button type="button" className="ph-name-save" disabled={renaming} onClick={() => void commitRename()}>{renaming ? '…' : 'set'}</button>
                       </span>
                     ) : (
                       <button
