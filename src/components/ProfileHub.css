@@ -1136,10 +1136,21 @@ body[data-eco-page='pod'] .screen {
   margin: 12px 0 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 14px;
 }
 
-.ph-identity-readout div {
+.ph-readout-group { display: flex; flex-direction: column; gap: 3px; }
+.ph-readout-label {
+  font-size: 8.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(150, 168, 205, 0.55);
+  margin-bottom: 3px;
+}
+.ph-readout-group--chosen .ph-readout-label { color: color-mix(in srgb, var(--ring-color, #66ccff) 55%, rgba(150, 168, 205, 0.6)); }
+.ph-readout-group dl { margin: 0; display: flex; flex-direction: column; gap: 5px; }
+
+.ph-identity-readout dl > div {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -1147,6 +1158,7 @@ body[data-eco-page='pod'] .screen {
   padding: 4px 0;
   border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
 }
+.ph-identity-readout dl > div.ph-readout-error { border: none; padding: 0; justify-content: flex-end; }
 
 .ph-identity-readout dt {
   font-size: 9.5px;
@@ -1162,6 +1174,28 @@ body[data-eco-page='pod'] .screen {
   color: rgba(235, 242, 255, 0.96);
   text-align: right;
 }
+
+/* rename your signal */
+.ph-name-current {
+  background: none; border: none; cursor: pointer;
+  font: inherit; font-size: 11.5px; color: #fff;
+  padding: 0; display: inline-flex; align-items: center; gap: 6px;
+}
+.ph-name-current span { color: color-mix(in srgb, var(--ring-color, #66ccff) 70%, #9fb0d0); font-size: 10px; }
+.ph-name-current:hover { color: color-mix(in srgb, var(--ring-color, #66ccff) 60%, #ffffff); }
+.ph-name-edit { display: inline-flex; gap: 6px; align-items: center; }
+.ph-name-edit input {
+  width: 130px; max-width: 42vw;
+  background: rgba(8, 12, 24, 0.7);
+  border: 1px solid color-mix(in srgb, var(--ring-color, #66ccff) 45%, transparent);
+  border-radius: 8px; color: #eef3fb; font-size: 11.5px; padding: 4px 8px;
+}
+.ph-name-save {
+  border: 1px solid color-mix(in srgb, var(--ring-color, #66ccff) 50%, transparent);
+  background: color-mix(in srgb, var(--ring-color, #66ccff) 14%, transparent);
+  color: #fff; border-radius: 8px; font-size: 10.5px; padding: 4px 10px; cursor: pointer;
+}
+.ph-readout-error dd { color: #ff9bb4; font-size: 10.5px; }
 
 /* ── tonight's recap: cinematic cards ───────────────────────── */
 .ph-recap-cards {

@@ -5,8 +5,9 @@ import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { playSample } from '../lib/sampleAudio'
 import { deleteLocalRecording, listLocalRecordings } from '../lib/localAudioStore'
 import type { StoredRecording } from '../lib/localAudioStore'
-import { getListenCounts, getProfile } from '../lib'
+import { getListenCounts, getProfile, syncProfile } from '../lib'
 import { isSupabaseConfigured } from '../lib/supabase-env'
+import { moderatePublicSignalText } from '../lib/signalModeration'
 import { getHzProfile, getLocalHzProfile } from '../lib/hzSignature'
 import { useEcoPref } from '../hooks/useEcoPrefs'
 import { readAvatar, saveAvatar, sigilGlyph } from '../lib/avatar'
@@ -74,9 +75,21 @@ const VOICE_PROMPTS = [
 ]
 
 export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: string) => void }) {
-  const { ecosystemState } = useEcosystemState()
+  const { ecosystemState, setSignalIdentity } = useEcosystemState()
   const globalAudio = useGlobalAudio()
   const privateProfile = useEcoPref('privateProfile', false)
+  // rename your signal — the one identity field you choose outright
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+  const [nameError, setNameError] = useState<string | null>(null)
+  const commitRename = () => {
+    const clean = nameDraft.trim().replace(/\s+/g, ' ').slice(0, 40)
+    if (clean.length < 2) { setNameError('give your signal at least 2 characters'); return }
+    if (moderatePublicSignalText(clean).status === 'flagged') { setNameError('that name can’t go on the band'); return }
+    setSignalIdentity(clean)
+    if (isSupabaseConfigured) void syncProfile(clean).catch(() => { /* local rename still applied */ })
+    setEditingName(false); setNameError(null)
+  }
   // avatar sigil: a chosen mark instead of a photo — there are no photos here
   const [avatar, setAvatar] = useState(() => readAvatar())
   const [settling, setSettling] = useState<string | null>(null)
@@ -827,13 +840,54 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
           ) : (
             <p className="ph-empty">the ecosystem is still learning how you listen.</p>
           )}
-          <dl className="ph-identity-readout">
-            <div><dt>signature frequency</dt><dd>{hzProfile.hz.toFixed(1)} Hz · {hzProfile.displayName}</dd></div>
-            <div><dt>emotional weather</dt><dd>{atmosphere}</dd></div>
-            <div><dt>listening pattern</dt><dd>{listeningPattern}</dd></div>
-            <div><dt>active hours</dt><dd>{activeHoursLabel}</dd></div>
-            <div><dt>replay tendency</dt><dd>{replayTendency}</dd></div>
-          </dl>
+          <div className="ph-identity-readout">
+            <div className="ph-readout-group ph-readout-group--chosen">
+              <span className="ph-readout-label">chosen by you</span>
+              <dl>
+                <div className="ph-readout-name">
+                  <dt>signal name</dt>
+                  <dd>
+                    {editingName ? (
+                      <span className="ph-name-edit">
+                        <input
+                          type="text"
+                          autoFocus
+                          maxLength={40}
+                          value={nameDraft}
+                          aria-label="rename your signal"
+                          placeholder="your signal name"
+                          onChange={e => { setNameDraft(e.target.value); setNameError(null) }}
+                          onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') { setEditingName(false); setNameError(null) } }}
+                        />
+                        <button type="button" className="ph-name-save" onClick={commitRename}>set</button>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="ph-name-current"
+                        title="rename your signal"
+                        onClick={() => { setNameDraft(username === 'unclaimed frequency' ? '' : username); setEditingName(true) }}
+                      >
+                        {username} <span aria-hidden="true">✎</span>
+                      </button>
+                    )}
+                  </dd>
+                </div>
+                {nameError && <div className="ph-readout-error"><dd role="alert">{nameError}</dd></div>}
+                <div><dt>sigil</dt><dd>{avatar === 'hz' ? `${hzProfile.hz.toFixed(0)}hz` : sigilGlyph(avatar)}</dd></div>
+              </dl>
+            </div>
+            <div className="ph-readout-group ph-readout-group--sensed">
+              <span className="ph-readout-label">how you listen · sensed by the band</span>
+              <dl>
+                <div><dt>signature frequency</dt><dd>{hzProfile.hz.toFixed(1)} Hz · {hzProfile.displayName}</dd></div>
+                <div><dt>emotional weather</dt><dd>{atmosphere}</dd></div>
+                <div><dt>listening pattern</dt><dd>{listeningPattern}</dd></div>
+                <div><dt>active hours</dt><dd>{activeHoursLabel}</dd></div>
+                <div><dt>replay tendency</dt><dd>{replayTendency}</dd></div>
+              </dl>
+            </div>
+          </div>
         </div>
       </div>
 
