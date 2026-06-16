@@ -144,6 +144,7 @@ export async function listSavedSignals() {
     .select('*, signals(*)')
     .eq('user_id', ctx.userId)
     .order('saved_at', { ascending: false })
+    .limit(200)
   return data ?? []
 }
 
@@ -263,7 +264,7 @@ export async function listAudioLibrary(includeArchived = false) {
     .eq('owner_id', ctx.userId)
     .order('created_at', { ascending: false })
   if (!includeArchived) query = query.eq('is_archived', false)
-  const { data } = await query
+  const { data } = await query.limit(200)
   return data ?? []
 }
 
@@ -438,6 +439,7 @@ export async function listCapsules() {
     .select('*')
     .eq('user_id', ctx.userId)
     .order('created_at', { ascending: false })
+    .limit(200)
   return data ?? []
 }
 
@@ -494,6 +496,7 @@ export async function listUserRelics() {
     .select('*, relics(*)')
     .eq('user_id', ctx.userId)
     .order('unlocked_at', { ascending: false })
+    .limit(200)
   return data ?? []
 }
 
@@ -542,6 +545,7 @@ export async function listArchive() {
     .select('*')
     .eq('user_id', ctx.userId)
     .order('archived_at', { ascending: false })
+    .limit(200)
   return data ?? []
 }
 
