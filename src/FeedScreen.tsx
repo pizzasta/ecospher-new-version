@@ -16,6 +16,7 @@ import ListenerTraces from './components/ListenerTraces'
 import { RETURN_TAGS, addReturn, listReturns, removeReturn } from './lib/returnQueue'
 import { DECAY_LABELS, decayLevel, decayText, heatFor, preserveSignal, presenceLine, whyFoundYou } from './lib/signalLife'
 import FamiliarFrequency from './components/FamiliarFrequency'
+import { recordCrossing } from './lib/familiarFrequency'
 
 const hiddenKey = 'ecosphere:hiddenSignals'
 function loadHidden(): string[] {
@@ -368,7 +369,12 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
   const [reportNote, setReportNote] = useState<string | null>(null)
   const [fading, setFading] = useState(false)
   const [fadedAway, setFadedAway] = useState(false)
+  const [confirmingFade, setConfirmingFade] = useState(false)
   const playing = globalAudio.current?.id === signal.id && globalAudio.playing
+  // guard delayed state updates so a card scrolled/filtered away mid-timeout
+  // never sets state after unmount
+  const mountedRef = useRef(true)
+  useEffect(() => () => { mountedRef.current = false }, [])
 
   // fully automated report flow: instant hide + AI screening verdict, no human review
   const submitReport = (reason: string) => {
@@ -380,7 +386,7 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
     setReportNote(verdict.status === 'flagged'
       ? 'auto-review: content flagged · removed and logged'
       : 'auto-review complete · hidden from your feed')
-    window.setTimeout(() => setReportNote('__hide__'), 2600)
+    window.setTimeout(() => { if (mountedRef.current) setReportNote('__hide__') }, 2600)
   }
 
   const wasReplayed = ecosystemState.playedSignals.includes(signal.id)
@@ -393,6 +399,8 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
       return
     }
     const meta = { id: signal.id, label: signal.handle, source: 'signals' as const }
+    // a deliberate replay is a real crossing — recurring strangers become familiar
+    if (!signal.anonymous) recordCrossing(signal.handle, signal.id, signal.mood, signal.content)
     // speakable signals are read aloud in a real voice; static/corrupted stay textured
     const speakable = signal.status !== 'corrupted' && signal.mood !== 'static'
     if (speakable && speechSupported()) {
@@ -426,15 +434,14 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
   const isCorrupted = signal.status === 'corrupted'
   const isFading = signal.status === 'fading' || signal.status === 'archiving'
 
-  // fade: chosen forgetting — confirm, dissolve, never resurface
-  const fadeSignal = () => {
-    const sure = window.confirm('This signal will disappear from your memory. You will never see it again. Continue?')
-    if (!sure) return
+  // fade: chosen forgetting — confirm in-world, dissolve, never resurface
+  const runFade = () => {
+    setConfirmingFade(false)
     if (playing) globalAudio.stop()
     setFading(true)
     storeFaded([signal.id, ...loadFaded().filter(id => id !== signal.id)])
     mirrorSignalFade(signal.id)
-    window.setTimeout(() => setFadedAway(true), 720)
+    window.setTimeout(() => { if (mountedRef.current) setFadedAway(true) }, 720)
   }
 
   // hooks above must run every render; the post-report hide bails out here
@@ -589,13 +596,22 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
             <span>⚑</span> report
           </button>
           <button
-            className="action-btn action-btn--fade"
+            className={`action-btn action-btn--fade${confirmingFade ? ' action-btn--fade-armed' : ''}`}
             title="Fade — this signal leaves your memory forever"
-            onClick={fadeSignal}
+            aria-expanded={confirmingFade}
+            onClick={() => setConfirmingFade(c => !c)}
           >
             <span>◌</span> fade
           </button>
         </div>
+
+        {confirmingFade && (
+          <div className="card-fade-row" role="group" aria-label="Let this signal fade forever?">
+            <span className="card-fade-warn">this one leaves your memory for good.</span>
+            <button type="button" className="card-fade-go" onClick={runFade}>let it fade ◌</button>
+            <button type="button" className="card-fade-keep" onClick={() => setConfirmingFade(false)}>keep it</button>
+          </div>
+        )}
 
         {tagPicker && (
           <div className="card-return-row" role="group" aria-label="Come back to this">
@@ -781,7 +797,7 @@ export default function FeedScreen() {
         const safe = mapped.filter(m => !known.has(m.id) && !hidden.has(m.id) && moderatePublicSignalText(m.content).status !== 'flagged')
         return [...safe, ...prev]
       })
-    })
+    }).catch(() => { /* offline — the seeded + ghost feed is the source of truth */ })
     return () => { cancelled = true }
   }, [])
 
@@ -869,9 +885,12 @@ export default function FeedScreen() {
 
   // Ecosystem events
   useEffect(() => {
+    let cancelled = false
+    let recurring = 0
     const scheduleNext = () => {
       const delay = Math.random() * 18000 + 12000
-      return setTimeout(() => {
+      recurring = window.setTimeout(() => {
+        if (cancelled) return
         const pool = eventIndexRef.current % 3 === 2 ? livedInLines('signals', 4) : ECOSYSTEM_EVENTS
         const msg = pool[eventIndexRef.current % pool.length]
         eventIndexRef.current++
@@ -880,11 +899,11 @@ export default function FeedScreen() {
       }, delay)
     }
     // First event after a short delay
-    const t = setTimeout(() => {
-      setActiveEvent({ id: '0', message: ECOSYSTEM_EVENTS[0], visible: true })
+    const t = window.setTimeout(() => {
+      if (!cancelled) setActiveEvent({ id: '0', message: ECOSYSTEM_EVENTS[0], visible: true })
     }, 6000)
-    const recurring = scheduleNext()
-    return () => { clearTimeout(t); clearTimeout(recurring) }
+    scheduleNext()
+    return () => { cancelled = true; window.clearTimeout(t); window.clearTimeout(recurring) }
   }, [])
 
   const dismissEvent = useCallback(() => setActiveEvent(null), [])
@@ -962,6 +981,11 @@ export default function FeedScreen() {
               />
             )
           })}
+          {signals.length === 0 && (
+            <p className="feed-empty" role="status">
+              the frequency is quiet right now — no signals in range. drift back later; the band never stays empty for long.
+            </p>
+          )}
         </div>
 
         {/* Bottom drift zone — older archive signals surface as you approach */}

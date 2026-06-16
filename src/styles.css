@@ -9602,6 +9602,39 @@ body[data-eco-view='mobile'] .helpbot-panel { width: min(440px, 96vw); }
 .card-return-row button:hover { border-color: rgba(0, 212, 255, 0.7); }
 .card-return-row .card-return-clear { border-color: rgba(255, 255, 255, 0.15); color: rgba(190, 200, 230, 0.6); }
 
+/* in-world fade confirmation (replaces the native confirm dialog) */
+.card-fade-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 90, 130, 0.28);
+  background: rgba(40, 10, 22, 0.4);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.card-fade-warn { flex: 1 1 auto; font-size: 11px; font-style: italic; color: rgba(255, 190, 205, 0.78); }
+.card-fade-row button { padding: 6px 12px; border-radius: 999px; font-size: 10.5px; letter-spacing: 0.05em; cursor: pointer; }
+.card-fade-go { border: 1px solid rgba(255, 90, 130, 0.55); background: rgba(255, 90, 130, 0.14); color: #ffd0dc; }
+.card-fade-go:hover { border-color: rgba(255, 90, 130, 0.85); }
+.card-fade-keep { border: 1px solid rgba(255, 255, 255, 0.16); background: transparent; color: rgba(200, 210, 235, 0.7); }
+.action-btn--fade-armed { color: #ff8aa6; border-color: rgba(255, 90, 130, 0.5); }
+
+/* feed empty state — the band is quiet, not broken */
+.feed-empty {
+  margin: 40px auto;
+  max-width: 420px;
+  text-align: center;
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.6;
+  color: rgba(190, 200, 230, 0.5);
+  text-shadow: 0 0 20px rgba(0, 140, 200, 0.2);
+}
+
 /* ─── Signal life: decay + replay heat + human reasons ──────────────────────── */
 .signal-card--decay-1 .card-content { opacity: 0.78; }
 .signal-card--decay-2 .card-content { opacity: 0.62; }
