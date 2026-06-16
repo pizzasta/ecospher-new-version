@@ -1,0 +1,120 @@
+/* ============================================================
+   relics-polish.css
+   Additive polish for the Relics page. Layers ON TOP of
+   living-pages.css and styles.css - removes/replaces nothing.
+   Loaded after both.
+
+   Covers three refinements:
+     2. Make the LIVE ECHOES banner feel live (breathing pulse + glow)
+     3. Lift secondary telemetry text to readable-but-dusty contrast
+     4. Cryptic bottom nav: glyph-only at rest, label fades in on hover
+   ============================================================ */
+
+/* ---- 2. Live Echoes vs. static relics ---- */
+/* a slow-breathing neon-pink dot so the chip reads as a real-time
+   event, distinct from the archived tapes below it */
+.relic-live-chip {
+  position: relative;
+  box-shadow: 0 0 18px rgba(127, 240, 176, 0.12);
+}
+
+.relic-live-chip > i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff3d8b;
+  box-shadow: 0 0 8px rgba(255, 61, 139, 0.9);
+  animation: relic-live-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes relic-live-breathe {
+  0%, 100% {
+    opacity: 0.55;
+    box-shadow: 0 0 4px rgba(255, 61, 139, 0.6);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 11px rgba(255, 61, 139, 1);
+  }
+}
+
+/* a subtle glow gradient behind the whole live banner so the
+   eye is drawn to it as "happening now" */
+.relic-board-top {
+  position: relative;
+}
+
+.relic-board-top::before {
+  content: "";
+  position: absolute;
+  inset: -8px -12px;
+  z-index: -1;
+  border-radius: 18px;
+  background: radial-gradient(
+    120% 140% at 12% 50%,
+    rgba(255, 61, 139, 0.1) 0%,
+    rgba(127, 240, 176, 0.05) 38%,
+    rgba(0, 0, 0, 0) 72%
+  );
+  pointer-events: none;
+}
+
+/* the TUNE IN button gets a gentle living glow too */
+.relic-tunein {
+  animation: relic-tunein-glow 3.6s ease-in-out infinite;
+}
+
+@keyframes relic-tunein-glow {
+  0%, 100% { box-shadow: 0 0 0 rgba(255, 45, 120, 0); }
+  50% { box-shadow: 0 0 18px rgba(255, 45, 120, 0.22); }
+}
+
+/* respect users who prefer reduced motion: drop the pulsing */
+@media (prefers-reduced-motion: reduce) {
+  .relic-live-chip > i,
+  .relic-tunein {
+    animation: none;
+  }
+}
+
+/* ---- 3. Contrast on secondary telemetry data ---- */
+/* keep it dusty and forgotten, but lift it off the floor so it
+   stays readable on mobile / low-brightness screens */
+.scrap-foot {
+  color: rgba(168, 182, 214, 0.58);
+  font-weight: 500;
+}
+
+/* ---- 4. Cryptic bottom nav: glyph-first, label on hover ---- */
+/* at rest, lean into the ambient symbols; the text label softly
+   fades in on hover / keyboard focus, rewarding exploration.
+   The ACTIVE tab always keeps its label so users never lose their
+   place (important on touch, where there is no hover). */
+.bottom-nav--minimal .nav-label {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  overflow: hidden;
+  transform: translateY(-2px);
+  transition: max-height 0.22s ease, opacity 0.22s ease,
+    transform 0.22s ease;
+}
+
+.bottom-nav--minimal .nav-item:hover .nav-label,
+.bottom-nav--minimal .nav-item:focus-visible .nav-label,
+.bottom-nav--minimal .nav-item.active .nav-label {
+  max-height: 14px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* the glyph lifts slightly toward the label as it reveals,
+   keeping the dock feeling intentional rather than crowded */
+.bottom-nav--minimal .nav-item:hover .nav-glyph,
+.bottom-nav--minimal .nav-item:focus-visible .nav-glyph {
+  transform: translateY(-1px);
+}
+
+.bottom-nav--minimal .nav-glyph {
+  transition: transform 0.2s ease;
+}
