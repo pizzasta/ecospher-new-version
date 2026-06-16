@@ -135,7 +135,6 @@ export function bandIndicators(now = Date.now(), opts: { carriers?: number; stor
   const h = new Date(now).getHours()
   const deep = h >= 0 && h < 5
   const carriers = opts.carriers != null && opts.carriers > 0 ? opts.carriers : Math.floor(8 + a * 46)
-  const hz = (40 + (seed % 1600) / 10).toFixed(1)
   const heat = Math.round(a * 100) + (opts.stormy ? 18 : 0)
 
   return [
@@ -144,7 +143,6 @@ export function bandIndicators(now = Date.now(), opts: { carriers?: number; stor
     { id: 'peak', label: 'deepest hour', value: deep ? 'now' : `${minutesToPeak(now)}m`, sub: deep ? 'you’re in it' : 'until the band peaks' },
     { id: 'current', label: 'drift current', value: ['east', 'north', 'outward', 'west'][seed % 4], sub: 'where it’s pulling' },
     { id: 'heat', label: 'replay heat', value: String(Math.min(100, heat)), sub: opts.stormy ? 'storming' : 'replays per hour' },
-    { id: 'station', label: 'tonight’s frequency', value: `${hz} Hz`, sub: `${Math.floor(carriers * 0.4 + 3)} tuned in` },
     { id: 'fade', label: 'fade rate', value: ['slow', 'steady', 'quick'][seed % 3], sub: 'how fast signals decay' },
   ]
 }
