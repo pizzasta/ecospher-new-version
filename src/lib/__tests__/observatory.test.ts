@@ -40,9 +40,9 @@ describe('observatory — the nocturne band', () => {
     expect(MOOD_SPECTRUM).toContain(m.label as typeof MOOD_SPECTRUM[number])
   })
 
-  it('gives 7 live indicators and honors a live carrier count', () => {
+  it('gives 6 live indicators and honors a live carrier count', () => {
     const inds = bandIndicators(at(2), { carriers: 42 })
-    expect(inds).toHaveLength(7)
+    expect(inds).toHaveLength(6)
     expect(inds.find(i => i.id === 'carriers')?.value).toBe('42')
     expect(bandNow(at(2))).toBeGreaterThan(0)
   })
