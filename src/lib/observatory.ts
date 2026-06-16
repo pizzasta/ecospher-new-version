@@ -135,14 +135,15 @@ export function bandIndicators(now = Date.now(), opts: { carriers?: number; stor
   const h = new Date(now).getHours()
   const deep = h >= 0 && h < 5
   const carriers = opts.carriers != null && opts.carriers > 0 ? opts.carriers : Math.floor(8 + a * 46)
-  const heat = Math.round(a * 100) + (opts.stormy ? 18 : 0)
+  // replay heat reads as a word, not a fabricated "N per hour" number
+  const heat = opts.stormy ? 'storming' : a >= 0.66 ? 'high' : a >= 0.33 ? 'building' : 'low'
 
   return [
     { id: 'carriers', label: 'carriers adrift', value: String(carriers), sub: 'here right now' },
-    { id: 'pressure', label: 'band pressure', value: `${Math.round(40 + a * 55)}%`, sub: 'overall resonance' },
+    { id: 'pressure', label: 'band pressure', value: `${Math.round(40 + a * 55)}%`, sub: 'how full the band is' },
     { id: 'peak', label: 'deepest hour', value: deep ? 'now' : `${minutesToPeak(now)}m`, sub: deep ? 'you’re in it' : 'until the band peaks' },
     { id: 'current', label: 'drift current', value: ['east', 'north', 'outward', 'west'][seed % 4], sub: 'where it’s pulling' },
-    { id: 'heat', label: 'replay heat', value: String(Math.min(100, heat)), sub: opts.stormy ? 'storming' : 'replays per hour' },
+    { id: 'heat', label: 'replay heat', value: heat, sub: 'how hard signals are echoing' },
     { id: 'fade', label: 'fade rate', value: ['slow', 'steady', 'quick'][seed % 3], sub: 'how fast signals decay' },
   ]
 }
