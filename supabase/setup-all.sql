@@ -1077,3 +1077,88 @@ language sql security definer set search_path = public as $$
   update public.public_notes set reactions = reactions + 1 where id = p_id;
 $$;
 grant execute on function public.react_to_note(uuid) to authenticated;
+
+-- ═══ 202606140020_guard_public_text.sql ═══
+-- Server-side moderation for the anonymous public-text tables (clients are
+-- bypassable via the REST API). Flagged inserts are rejected outright (these
+-- tables have no private fallback). Reuses public.moderate_signal_text().
+create or replace function public.guard_public_text()
+returns trigger language plpgsql as $$
+begin
+  if array_length(public.moderate_signal_text(new.text), 1) > 0 then
+    raise exception 'content blocked: failed automated screening';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists trg_guard_sea_line on public.sea_lines;
+create trigger trg_guard_sea_line
+  before insert or update of text on public.sea_lines
+  for each row execute function public.guard_public_text();
+
+drop trigger if exists trg_guard_public_note on public.public_notes;
+create trigger trg_guard_public_note
+  before insert or update of text on public.public_notes
+  for each row execute function public.guard_public_text();
+
+-- ═══ 202606140021_quota_and_anon_rate_limit.sql ═══
+-- 1) monthly audio byte quota (the real cost guardrail; client budget is bypassable)
+create or replace function public.enforce_audio_monthly_quota()
+returns trigger language plpgsql as $$
+declare
+  used bigint;
+begin
+  if new.owner_id is not null then
+    select coalesce(sum(file_size_bytes), 0) into used
+    from public.audio_files
+    where owner_id = new.owner_id
+      and created_at >= date_trunc('month', now())
+      and deleted_at is null;
+    if used + coalesce(new.file_size_bytes, 0) > 60 * 1024 * 1024 then
+      raise exception 'monthly audio quota exceeded';
+    end if;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists trg_audio_monthly_quota on public.audio_files;
+create trigger trg_audio_monthly_quota
+  before insert on public.audio_files
+  for each row execute function public.enforce_audio_monthly_quota();
+
+-- 2) per-author hourly rate limit on the anonymous public-text tables
+alter table public.sea_lines    add column if not exists author uuid;
+alter table public.public_notes add column if not exists author uuid;
+
+revoke select (author) on public.sea_lines    from anon, authenticated;
+revoke select (author) on public.public_notes from anon, authenticated;
+
+create index if not exists sea_lines_author_idx    on public.sea_lines (author, created_at desc);
+create index if not exists public_notes_author_idx on public.public_notes (author, created_at desc);
+
+create or replace function public.enforce_public_text_rate_limit()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  cnt integer;
+begin
+  new.author := auth.uid();
+  if new.author is null then return new; end if;
+  execute format(
+    'select count(*) from public.%I where author = $1 and created_at > now() - interval ''1 hour''',
+    tg_table_name
+  ) into cnt using new.author;
+  if cnt >= 15 then
+    raise exception 'rate limit: too many posts this hour';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists trg_sea_line_rate_limit on public.sea_lines;
+create trigger trg_sea_line_rate_limit
+  before insert on public.sea_lines
+  for each row execute function public.enforce_public_text_rate_limit();
+
+drop trigger if exists trg_public_note_rate_limit on public.public_notes;
+create trigger trg_public_note_rate_limit
+  before insert on public.public_notes
+  for each row execute function public.enforce_public_text_rate_limit();
