@@ -3340,6 +3340,15 @@ const SEA_STATUS_LINES = [
   'a laugh carrying further than it should',
 ]
 
+const SEA_DRIFTWOOD = [
+  'half a voicemail, waterlogged',
+  "someone's laugh, three currents over",
+  'a hummed chorus nobody finished',
+  'the quiet after a question',
+  'forty seconds of rain from somewhere else',
+  'a name, said once, carried far',
+]
+
 function FrequenciesScreen() {
   const { ecosystemState, reactToSignal, saveToLibrary } = useEcosystemState()
   const night = (() => { const h = new Date().getHours(); return h >= 22 || h < 5 })()
@@ -3352,7 +3361,7 @@ function FrequenciesScreen() {
   // your cast lines carry your sigil color; others drift in their own tones
   const [myColor, setMyColor] = useState('#ffd166')
   useEffect(() => {
-    void getHzProfile(ecosystemState.userSignalIdentity ?? 'unclaimed').then(p => setMyColor(p.color))
+    void getHzProfile(ecosystemState.userSignalIdentity ?? 'unclaimed').then(p => setMyColor(p.color)).catch(() => { /* keep the default sigil color */ })
   }, [ecosystemState.userSignalIdentity])
   // session cast count + live sync status for the pill
   const [castCount, setCastCount] = useState(0)
@@ -3388,11 +3397,12 @@ function FrequenciesScreen() {
   const [orbOpen, setOrbOpen] = useState<number | null>(null)
   // things the sea carries past you — passive discovery, no action required
   const [driftwood, setDriftwood] = useState<{ id: number; text: string; top: number; seed: number } | null>(null)
+  const [catchFlash, setCatchFlash] = useState(0)
   const seaOrbs = useMemo(() => [
-    { presence: 'a quiet listener', replaying: 'still awake. the quiet feels different tonight.', cassette: 'unlabeled tape, side B', trace: 'drifting for 18 min · paused twice near you' },
-    { presence: 'someone half asleep', replaying: 'i kept the voicemail. i know.', cassette: 'heartbeat on the night bus', trace: 'crossed your path 4 min ago' },
-    { presence: 'a restless presence', replaying: '(laughing, far away)', cassette: 'static that turns into a song', trace: 'following the same current as you' },
-    { presence: 'someone on a long drive', replaying: 'replaying the same memory again.', cassette: 'the hold music', trace: 'left a trail heading east' },
+    { presence: 'a quiet listener', replaying: 'still awake. the quiet feels different tonight.', cassette: 'unlabeled tape, side B', trace: 'drifted close, then held still' },
+    { presence: 'someone half asleep', replaying: 'i kept the voicemail. i know.', cassette: 'heartbeat on the night bus', trace: 'passed by without a word' },
+    { presence: 'a restless presence', replaying: '(laughing, far away)', cassette: 'static that turns into a song', trace: 'caught in the same current as you' },
+    { presence: 'someone on a long drive', replaying: 'replaying the same memory again.', cassette: 'the hold music', trace: 'leaving a wake that fades east' },
   ], [])
   const timersRef = useRef<number[]>([])
 
@@ -3400,17 +3410,9 @@ function FrequenciesScreen() {
   useEffect(() => {
     let spawn = 0
     let clear = 0
-    const DRIFTWOOD = [
-      'half a voicemail, waterlogged',
-      "someone's laugh, three currents over",
-      'a hummed chorus nobody finished',
-      'the quiet after a question',
-      'forty seconds of rain from somewhere else',
-      'a name, said once, carried far',
-    ]
     const cycle = () => {
       spawn = window.setTimeout(() => {
-        setDriftwood({ id: Date.now(), text: DRIFTWOOD[Math.floor(Math.random() * DRIFTWOOD.length)], top: 18 + Math.random() * 50, seed: Math.floor(Math.random() * 9000) })
+        setDriftwood({ id: Date.now(), text: SEA_DRIFTWOOD[Math.floor(Math.random() * SEA_DRIFTWOOD.length)], top: 18 + Math.random() * 50, seed: Math.floor(Math.random() * 9000) })
         clear = window.setTimeout(() => setDriftwood(null), 14000)
         cycle()
       }, 22000 + Math.random() * 23000)
@@ -3425,6 +3427,8 @@ function FrequenciesScreen() {
     setPing(`caught: ${driftwood.text}`)
     leaveTrace(`caught in the sea: ${driftwood.text}`, 'frequencies')
     setDriftwood(null)
+    // a brief ripple through the sea when something is caught
+    setCatchFlash(n => n + 1)
   }
 
   // tides shift; the sea slowly carries you into new zones
@@ -3526,7 +3530,9 @@ function FrequenciesScreen() {
       reactToSignal('frequency-sea', `cast a line into the sea: "${text}"`)
       leaveTrace(`a line you cast is drifting in the sea: "${text}"`, 'frequencies')
       if (seaSyncEnabled) {
-        void castToSea(text).then(ok => setBuoys(prev => prev.map(b => (b.id === id ? { ...b, status: ok ? 'drifting' : 'failed' } : b))))
+        void castToSea(text)
+          .then(ok => setBuoys(prev => prev.map(b => (b.id === id ? { ...b, status: ok ? 'drifting' : 'failed' } : b))))
+          .catch(() => setBuoys(prev => prev.map(b => (b.id === id ? { ...b, status: 'failed' } : b))))
       } else {
         setBuoys(prev => prev.map(b => (b.id === id ? { ...b, status: 'drifting' } : b)))
       }
@@ -3535,7 +3541,9 @@ function FrequenciesScreen() {
 
   const retryCast = (b: SeaBuoy) => {
     setBuoys(prev => prev.map(x => (x.id === b.id ? { ...x, status: 'casting' } : x)))
-    void castToSea(b.fragment).then(ok => setBuoys(prev => prev.map(x => (x.id === b.id ? { ...x, status: ok ? 'drifting' : 'failed' } : x))))
+    void castToSea(b.fragment)
+      .then(ok => setBuoys(prev => prev.map(x => (x.id === b.id ? { ...x, status: ok ? 'drifting' : 'failed' } : x))))
+      .catch(() => setBuoys(prev => prev.map(x => (x.id === b.id ? { ...x, status: 'failed' } : x))))
   }
 
   // others' cast lines drift in live (when a backend is configured)
@@ -3652,15 +3660,16 @@ function FrequenciesScreen() {
   const [dial, setDial] = useState(88)
   const [lockedStation, setLockedStation] = useState<string | null>(null)
   const [foundStations, setFoundStations] = useState<string[]>([])
+  const today = dayOfYear()
   const stations = useMemo(() => {
-    const d = dayOfYear()
+    const d = today
     return [
       { at: 26 + ((d * 7) % 44), label: 'somebody humming over engine noise', kind: 'voice' as const },
       { at: 82 + ((d * 13) % 36), label: 'rain on a tent, two voices under it', kind: 'whisper' as const },
       { at: 128 + ((d * 29) % 30), label: 'a station that only plays the sea', kind: 'static' as const },
       { at: 168 + ((d * 11) % 26), label: 'numbers read slowly, then goodnight', kind: 'tone' as const },
     ]
-  }, [])
+  }, [today])
   const lastSweepRef = useRef(0)
   const tune = (value: number) => {
     setDial(value)
@@ -3763,7 +3772,7 @@ function FrequenciesScreen() {
         </div>
         <div className="sea-tuner-readout">
           <strong>{dial.toFixed(1)} Hz</strong>
-          <em>{lockedStation ?? 'mostly static out here. four stations are hiding — sweep slowly.'}</em>
+          <em>{lockedStation ?? `${foundStations.length}/4 found · the static thins where a station hides — sweep slowly.`}</em>
         </div>
       </div>
 
@@ -3828,6 +3837,7 @@ function FrequenciesScreen() {
       </div>
 
       <div className="sea-field sea-field--big" style={{ '--yours-color': myColor } as CSSProperties} onPointerMove={handleSeaPointer}>
+        {catchFlash > 0 && <span key={catchFlash} className="sea-catch-ripple" aria-hidden="true" />}
         {resurfaced && (
           <button
             type="button"
@@ -3920,6 +3930,9 @@ function FrequenciesScreen() {
             </div>
           )
         })}
+        {buoys.filter(b => b && b.fragment != null && (textFilter === 'all' || (textFilter === 'audio' ? b.voice === true : b.voice !== true))).length === 0 && (
+          <p className="sea-empty" role="status">the sea is quiet right now — cast a line and wait for the current.</p>
+        )}
       </div>
 
       {ping && <div className="sea-ping" key={ping}>{ping}</div>}
