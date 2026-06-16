@@ -1,4 +1,4 @@
-import { createVoiceRecorder } from '../lib/audioBudget'
+import { createVoiceRecorder, micErrorReason } from '../lib/audioBudget'
 import './FloatingUnsendRecorder.css'
 import type { CSSProperties } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -14,6 +14,19 @@ type LocalUnsentRecording = {
 
 const maxRecordingSeconds = 15
 const minRecordingSeconds = 5
+
+function micErrorMessage(err: unknown): string {
+  switch (micErrorReason(err)) {
+    case 'permission':
+      return 'Microphone permission was not granted.'
+    case 'device':
+      return 'No microphone was found. Check it is connected and not in use elsewhere.'
+    case 'unsupported':
+      return 'Recording is not supported in this browser.'
+    default:
+      return 'The microphone could not be opened. Try again.'
+  }
+}
 
 export default function FloatingUnsendRecorder() {
   const [isOpen, setIsOpen] = useState(false)
@@ -155,8 +168,8 @@ export default function FloatingUnsendRecorder() {
           return Math.min(next, maxRecordingSeconds)
         })
       }, 1000)
-    } catch {
-      setError('Microphone permission was not granted.')
+    } catch (err) {
+      setError(micErrorMessage(err))
       stopStream()
     }
   }, [saveRecording, stopRecording, stopStream])

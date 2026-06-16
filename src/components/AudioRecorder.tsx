@@ -1,4 +1,4 @@
-import { AUDIO_BUDGET, LISTEN_ONLY_MESSAGE, createVoiceRecorder, uploadsPaused } from '../lib/audioBudget'
+import { AUDIO_BUDGET, LISTEN_ONLY_MESSAGE, createVoiceRecorder, micErrorReason, uploadsPaused } from '../lib/audioBudget'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import AudioPlayer from './AudioPlayer'
@@ -12,6 +12,19 @@ import './recording.css'
 import { momentRecordStart, momentRecordEnd, fireMoment } from '../lib/audioMoments'
 
 const LIVE_BAR_COUNT = 22
+
+function micErrorMessage(err: unknown): string {
+  switch (micErrorReason(err)) {
+    case 'permission':
+      return 'microphone access was declined — your signal stays quiet for now'
+    case 'device':
+      return 'no microphone answered — check it is connected and not in use elsewhere'
+    case 'unsupported':
+      return 'this browser cannot record — try Chrome, or Safari on a recent iPhone'
+    default:
+      return 'the microphone did not open — your signal stays quiet for now'
+  }
+}
 
 function formatTimer(seconds: number) {
   const m = Math.floor(seconds / 60)
@@ -171,10 +184,10 @@ export default function AudioRecorder({
         setElapsed(seconds)
         if (seconds >= maxSeconds) stopRecording()
       }, 250)
-    } catch {
+    } catch (err) {
       cleanupCapture()
       setState('denied')
-      setNote('microphone access was not opened — your signal stays quiet for now')
+      setNote(micErrorMessage(err))
       onDenied?.()
     }
   }

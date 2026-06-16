@@ -1,4 +1,4 @@
-import { createVoiceRecorder } from '../lib/audioBudget'
+import { createVoiceRecorder, micErrorReason } from '../lib/audioBudget'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useEcosystemState } from '../hooks/useEcosystemState'
@@ -36,6 +36,19 @@ type VoiceReaction = {
 type RecorderPhase = 'idle' | 'recording' | 'preview' | 'denied'
 
 const MAX_REACTION_MS = 5000
+
+function reactionMicMessage(err: unknown): string {
+  switch (micErrorReason(err)) {
+    case 'permission':
+      return 'microphone access declined · reaction not recorded'
+    case 'device':
+      return 'no microphone answered · reaction not recorded'
+    case 'unsupported':
+      return 'this browser cannot record · reaction not captured'
+    default:
+      return 'microphone unavailable · reaction not recorded'
+  }
+}
 
 const FILTER_RATES: Record<ReactionFilter, number> = { none: 1, slowed: 0.82, sped: 1.32 }
 const FILTER_LABELS: Record<ReactionFilter, string> = { none: 'raw', slowed: 'slowed', sped: 'sped' }
@@ -202,6 +215,7 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
   const [playingId, setPlayingId] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
   const [phase, setPhase] = useState<RecorderPhase>('idle')
+  const [deniedReason, setDeniedReason] = useState('microphone unavailable · reaction not recorded')
   const [elapsed, setElapsed] = useState(0)
   // global anonymous mode (Settings) seeds the per-reaction choice
   const [anonymous, setAnonymous] = useState(() => anonymousMode())
@@ -326,6 +340,16 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
     const src = blob ? URL.createObjectURL(blob) : reaction.dataUrl
 
     if (src) {
+      // a replay may have started during the await above; release whatever
+      // element and object URL still hold the slot before taking it over
+      if (playbackRef.current) {
+        playbackRef.current.pause()
+        playbackRef.current = null
+      }
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+        objectUrlRef.current = null
+      }
       if (blob) objectUrlRef.current = src
       const audio = new Audio(src)
       playbackRef.current = audio
@@ -365,6 +389,7 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
   // ── recording ───────────────────────────────────────────────────────────────
   const startRecording = async () => {
     if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setDeniedReason('this browser cannot record · reaction not captured')
       setPhase('denied')
       return
     }
@@ -399,7 +424,8 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
         window.clearInterval(tick)
         if (recorder.state === 'recording') recorder.stop()
       }, MAX_REACTION_MS))
-    } catch {
+    } catch (err) {
+      setDeniedReason(reactionMicMessage(err))
       setPhase('denied')
       timersRef.current.push(window.setTimeout(() => setPhase('idle'), 4000))
     }
@@ -616,7 +642,7 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
       )}
 
       {phase === 'denied' && (
-        <div className="vr-recorder vr-recorder--denied">microphone unavailable · reaction not recorded</div>
+        <div className="vr-recorder vr-recorder--denied">{deniedReason}</div>
       )}
     </div>
   )
