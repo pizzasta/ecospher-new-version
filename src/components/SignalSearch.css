@@ -79,10 +79,18 @@
 .sig-search-row kbd {
   font-size: 9px;
   letter-spacing: 0.1em;
-  padding: 3px 7px;
+  padding: 4px 9px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   color: rgba(170, 182, 215, 0.6);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.sig-search-row kbd:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(210, 220, 245, 0.9);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .sig-search-chips {
@@ -136,12 +144,17 @@
   background: transparent;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
+}
+
+.sig-result:hover {
+  background: rgba(0, 212, 255, 0.035);
 }
 
 .sig-result.active {
-  background: rgba(0, 212, 255, 0.07);
-  border-color: rgba(0, 212, 255, 0.3);
+  background: rgba(0, 212, 255, 0.09);
+  border-color: rgba(0, 212, 255, 0.32);
+  box-shadow: inset 2px 0 0 rgba(0, 212, 255, 0.55), 0 0 18px rgba(0, 212, 255, 0.08);
 }
 
 .sig-result-glyph {
@@ -204,12 +217,15 @@
 }
 
 .sig-search-foot {
+  position: relative;
   margin: 0;
-  padding: 8px 18px 12px;
+  padding: 12px 18px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   font-size: 9.5px;
   letter-spacing: 0.08em;
-  color: rgba(140, 155, 195, 0.45);
+  color: rgba(140, 155, 195, 0.55);
   text-align: center;
+  background: linear-gradient(180deg, rgba(6, 10, 24, 0) 0%, rgba(6, 10, 24, 0.65) 45%, rgba(6, 10, 24, 0.85) 100%);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -239,7 +255,11 @@
 
 /* keyboard glow: the row warms up while you type */
 .sig-search-row { transition: box-shadow 0.4s ease; }
-.sig-search-row.typing { box-shadow: inset 0 -1px 0 rgba(0, 212, 255, 0.45), 0 8px 30px -18px rgba(0, 212, 255, 0.6); }
+.sig-search-row.typing,
+.sig-search-row:focus-within { box-shadow: inset 0 -1px 0 rgba(0, 212, 255, 0.45), 0 8px 30px -18px rgba(0, 212, 255, 0.6); }
+.sig-search-row:focus-within { border-bottom-color: rgba(0, 212, 255, 0.45); }
+.sig-search-row input { caret-color: #00d4ff; }
+.sig-search-row:focus-within .sig-search-glyph { text-shadow: 0 0 18px rgba(0, 212, 255, 0.95); }
 
 .sig-result--return .sig-result-glyph { border-color: rgba(255, 200, 130, 0.45); color: #ffe2b8; }
 .sig-result--return .sig-result-page { color: #7ff0b0; }
