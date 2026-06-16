@@ -872,7 +872,7 @@ export const UnsentRoom: React.FC = () => {
     setRecordingState('processing');
 
     mediaRecorderRef.current.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+      const blob = new Blob(chunksRef.current, { type: mediaRecorderRef.current?.mimeType || 'audio/webm' });
       const duration = Date.now() - (recordStart ?? Date.now());
       const tag = SIGNAL_TAGS[Math.floor(Math.random() * SIGNAL_TAGS.length)];
 
