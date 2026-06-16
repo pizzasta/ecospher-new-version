@@ -10,7 +10,18 @@ import { playSampleBuffer, stopPreviewBuffer } from '../lib/sampleAudio'
 import { joinCarrierRoom, liveRoomsEnabled } from '../lib/carrierRoomLive'
 import type { CarrierRoomSession, LivePeer } from '../lib/carrierRoomLive'
 import { resolveSignalState, SIGNAL_GLYPH } from '../lib/signalState'
+import RoomAtmosphere from './RoomAtmosphere'
 import './CarrierRoom.css'
+
+// half-thoughts that surface through the band when no one's saying much
+const CR_AMBIENT = [
+  'someone stayed longer than they meant to.',
+  'still here.',
+  'the frequency held.',
+  'nobody left yet.',
+  'quiet, but not empty.',
+  'we drifted in at the same time.',
+] as const
 
 // One frequency. The keeper sets the flow; the carrier passes accordingly. You
 // always arrive a listener. Anonymous sigils only. Simulated for this local
@@ -271,13 +282,19 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
 
   return (
     <div className="carrier-room" style={{ '--carrier-color': activeColor } as CSSProperties}>
-      <div className="cr-atmosphere" aria-hidden="true"><span /><span /><span /></div>
+      <RoomAtmosphere
+        accent={activeColor}
+        level={level}
+        whisperLines={hushed || mode === 'listen-only' || !primary ? CR_AMBIENT : undefined}
+      />
+      <div className={`cr-vignette${hushed ? ' cr-vignette--hushed' : ''}`} aria-hidden="true" />
 
       <header className="cr-head">
         <div className="cr-freq">
           <span className="cr-freq-glyph" aria-hidden="true">∿</span>
-          <div>
-            <strong>{frequency.hz} · {frequency.label}</strong>
+          <div className="cr-freq-text">
+            <span className="cr-freq-hz">{frequency.hz}<i>Hz</i></span>
+            <strong className="cr-freq-name">{frequency.label}</strong>
             <em>
               {livePeers.length > 0 ? <span className="cr-live">◉ live · {livePeers.length}</span> : `${count} drifting here`}
               {' · '}{FLOW_MODES.find(f => f.value === mode)?.label} mode
