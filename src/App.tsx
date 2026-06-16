@@ -1132,16 +1132,16 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
 
       <div className="stat-row">
         <div className="stat-card glass">
-          <div className="stat-value pink">{useCountUp(Math.round(ecosystemState.resonanceLevel))}<span className="stat-unit">%</span></div>
-          <div className="stat-label">resonance</div>
-        </div>
-        <div className="stat-card glass">
           <div className="stat-value cyan">{useCountUp(liveThreads).toLocaleString()}</div>
-          <div className="stat-label">{livePresence.total > 0 ? 'carriers online' : 'live threads'}</div>
+          <div className="stat-label">drifting now</div>
         </div>
         <div className="stat-card glass">
-          <div className="stat-value violet">{Math.max(0, Math.round(ecosystemState.driftActivity / 4)) > 0 ? '+' : ''}{Math.max(0, Math.round(ecosystemState.driftActivity / 4))}</div>
-          <div className="stat-label">drift cycles</div>
+          <div className="stat-value pink">{useCountUp(streak)}</div>
+          <div className="stat-label">night streak</div>
+        </div>
+        <div className="stat-card glass">
+          <div className="stat-value violet">{useCountUp(ecosystemState.savedSignals.length)}</div>
+          <div className="stat-label">echoes kept</div>
         </div>
       </div>
 
