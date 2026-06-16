@@ -28,6 +28,7 @@ import TonightsFrequency from './components/TonightsFrequency'
 import CarrierRoom from './components/CarrierRoom'
 import DormantFrequencies from './components/DormantFrequencies'
 import DriftedTextRelics from './components/DriftedTextRelics'
+import PostRelics from './components/PostRelics'
 import FeaturedNotes from './components/FeaturedNotes'
 import StickyNotes from './components/StickyNotes'
 import { DriftNotesBoard, RelicSeedPanel, usePersistedDriftNotes } from './components/ecosphere-memory-loop'
@@ -2445,6 +2446,7 @@ function RelicsScreen() {
         <p className="screen-sub">relics are voice moments the network refused to forget.</p>
       </div>
       <DriftedTextRelics />
+      <PostRelics view="relics" />
       <FeaturedNotes />
 
       {/* a ghost in the archive — a stranger's signal the network kept */}
@@ -4218,6 +4220,7 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
         onTouch={touchPod}
       />
       <ProfileHub onNavigate={screen => onNavigate?.(screen as Screen)} />
+      <PostRelics view="hub" />
       <StickyNotes />
       <div className="hub-actions">
         {[

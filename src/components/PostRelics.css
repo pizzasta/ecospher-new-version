@@ -1,0 +1,34 @@
+.post-relics {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(20, 14, 26, 0.55), rgba(12, 9, 20, 0.45));
+  border: 1px solid rgba(192, 132, 252, 0.16);
+}
+.post-relics-kicker {
+  display: block;
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  font-weight: 700;
+  color: rgba(196, 181, 253, 0.7);
+  margin-bottom: 9px;
+}
+.post-relic { display: flex; align-items: flex-start; gap: 11px; padding: 7px 0; }
+.post-relic + .post-relic { border-top: 1px solid rgba(192, 132, 252, 0.08); }
+.post-relic-mark { font-size: 14px; color: #c4b5fd; flex-shrink: 0; margin-top: 2px; text-shadow: 0 0 10px rgba(155, 93, 233, 0.5); }
+.post-relic-mark--done { color: #67e8f9; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5); }
+.post-relic-play {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(192, 132, 252, 0.4);
+  background: rgba(192, 132, 252, 0.12);
+  color: #e9d5ff;
+  cursor: pointer;
+  font-size: 12px;
+}
+.post-relic-play:hover { border-color: rgba(192, 132, 252, 0.8); }
+.post-relic-body { min-width: 0; }
+.post-relic-body strong { display: block; font-size: 13px; color: #ece6f6; font-weight: 600; line-height: 1.45; }
+.post-relic-body em { display: block; font-style: normal; font-size: 10px; color: rgba(190, 180, 215, 0.55); margin-top: 2px; }
+.post-relic--pending .post-relic-body em { color: rgba(196, 181, 253, 0.6); }

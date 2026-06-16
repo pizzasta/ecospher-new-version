@@ -18,6 +18,7 @@ import { DECAY_LABELS, decayLevel, decayText, heatFor, preserveSignal, presenceL
 import FamiliarFrequency from './components/FamiliarFrequency'
 import { recordCrossing } from './lib/familiarFrequency'
 import { wordReactionsFor } from './lib/wordReactions'
+import { MY_POSTS_KEY } from './lib/postRelics'
 import { createVoiceRecorder, micErrorReason } from './lib/audioBudget'
 import { saveRecordingLocally, listLocalRecordings } from './lib/localAudioStore'
 import { publicHandle, anonymousMode } from './lib/anonymity'
@@ -64,10 +65,11 @@ type FeedSignal = {
   audioId?: string
   audioUrl?: string
   remote?: boolean
+  postedAt?: number
 }
 
 // ─── Local feed posts (what you upload to the feed) ─────────────────────────
-const myPostsKey = 'ecosphere:myFeedPosts'
+const myPostsKey = MY_POSTS_KEY
 function loadMyPosts(): FeedSignal[] {
   try { return JSON.parse(window.localStorage.getItem(myPostsKey) ?? '[]') } catch { return [] }
 }
@@ -922,6 +924,7 @@ function FeedComposer({ onPost }: { onPost: (s: FeedSignal) => void }) {
       mine: true,
       audioId: draftBlob ? id : undefined,
       remote,
+      postedAt: Date.now(),
     }
     onPost(signal)
     setText(''); clearDraft(); setError(null); setOpen(false)
