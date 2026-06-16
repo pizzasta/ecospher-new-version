@@ -588,3 +588,65 @@
     transition: none !important;
   }
 }
+
+/* ============================================================
+   SOUL POD drift notes tactile pass (additive, reversible)
+   Append-only. Delete this block to fully revert.
+   Fix 1: visible grab-handle affordance (cursor already grab/grabbing inline)
+   Fix 2: crisper card boundary so notes stay readable over any background
+   ============================================================ */
+
+/* Fix 1: faint 6-dot grab handle in the top-right corner of each note.
+   Invites the drag interaction without competing with the note text.
+   Lives on the outer .drift-note so it ignores the paper idle tilt. */
+.drift-note::after {
+     content: "";
+     position: absolute;
+     top: 6px;
+     right: 6px;
+     width: 9px;
+     height: 13px;
+     background-image: radial-gradient(rgba(40, 30, 18, 0.42) 38%, transparent 42%);
+     background-size: 4px 4px;
+     background-position: 0 0;
+     background-repeat: round;
+     border-radius: 1px;
+     opacity: 0.28;
+     pointer-events: none;
+     transition: opacity 0.25s ease;
+     z-index: 3;
+}
+
+.drift-note:hover::after {
+     opacity: 0.6;
+}
+
+.drift-note.is-dragging::after,
+.drift-note:active::after {
+     opacity: 0;
+}
+
+/* Fix 2: keep notes legible over any background. A hairline edge plus a
+   faint inner backing so card text never clashes with background micro-copy. */
+.note-float {
+     outline: 1px solid rgba(20, 14, 6, 0.10);
+     outline-offset: -1px;
+     background-clip: padding-box;
+}
+
+.note-float::after {
+     content: "";
+     position: absolute;
+     inset: 0;
+     border-radius: inherit;
+     background: linear-gradient(160deg, rgba(255, 250, 240, 0.05) 0%, transparent 38%, rgba(20, 14, 6, 0.05) 100%);
+     pointer-events: none;
+     z-index: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+     .drift-note::after,
+     .drift-note:hover::after {
+            transition: none;
+     }
+}
