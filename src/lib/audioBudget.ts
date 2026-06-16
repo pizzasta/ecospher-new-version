@@ -102,13 +102,57 @@ export function isQuotaError(message: string | null | undefined): boolean {
   return /quota|exceeded|too large|payload|413|storage.*(full|limit)|insufficient/.test(m)
 }
 
+// Why a microphone capture failed, so the UI can say the true thing instead of
+// always blaming permissions. Safari/iOS without MediaRecorder lands in
+// 'unsupported'; a denied prompt is 'permission'; a busy/absent mic is 'device'.
+export type MicErrorReason = 'permission' | 'device' | 'unsupported' | 'other'
+
+export function micErrorReason(error: unknown): MicErrorReason {
+  if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+    return 'unsupported'
+  }
+  const name = (error as { name?: string } | null)?.name
+  switch (name) {
+    case 'NotAllowedError':
+    case 'SecurityError':
+    case 'PermissionDeniedError':
+      return 'permission'
+    case 'NotFoundError':
+    case 'NotReadableError':
+    case 'OverconstrainedError':
+    case 'DevicesNotFoundError':
+      return 'device'
+    case 'NotSupportedError':
+      return 'unsupported'
+    default:
+      return 'other'
+  }
+}
+
+// First container the browser can actually encode. Chrome/Firefox prefer
+// opus-in-webm; Safari/iOS only do mp4 (aac), so naming it keeps the blob's
+// type honest instead of being force-labeled webm on upload.
+const PREFERRED_RECORDER_MIME_TYPES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'] as const
+
+function supportedRecorderMimeType(): string | undefined {
+  if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
+    return undefined
+  }
+  return PREFERRED_RECORDER_MIME_TYPES.find(type => MediaRecorder.isTypeSupported(type))
+}
+
 /**
  * Every recorder in the app goes through here: compressed opus at voice
- * bitrate when the browser allows options, plain recorder otherwise.
+ * bitrate when the browser allows options, plain recorder otherwise. Picks a
+ * supported container so the recorded blob's MIME type matches its encoding.
  */
 export function createVoiceRecorder(stream: MediaStream): MediaRecorder {
+  const mimeType = supportedRecorderMimeType()
   try {
-    return new MediaRecorder(stream, { audioBitsPerSecond: AUDIO_BUDGET.bitsPerSecond })
+    return new MediaRecorder(stream, {
+      audioBitsPerSecond: AUDIO_BUDGET.bitsPerSecond,
+      ...(mimeType ? { mimeType } : {}),
+    })
   } catch {
     return new MediaRecorder(stream)
   }

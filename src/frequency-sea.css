@@ -195,3 +195,32 @@
           transition: none;
     }
 }
+
+/* ============================================================
+   Catch flourish: a single ripple expands through the sea when a
+   piece of driftwood is caught. Mounted with a changing key so it
+   re-runs each catch, then fades out on its own. Append-only.
+   ============================================================ */
+.sea-catch-ripple {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 212, 255, 0.55);
+    box-shadow: 0 0 24px rgba(0, 212, 255, 0.35);
+    pointer-events: none;
+    z-index: 4;
+    animation: seaCatchRipple 900ms ease-out forwards;
+}
+
+@keyframes seaCatchRipple {
+    0% { opacity: 0.8; transform: scale(0.4); }
+    100% { opacity: 0; transform: scale(7); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sea-catch-ripple { animation: none; opacity: 0; }
+}

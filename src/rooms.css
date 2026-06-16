@@ -1314,6 +1314,10 @@
   color: transparent;
 }
 
+/* keep temporal content above its cinematic backdrop */
+.temporal-room .rooms-eco-inner { position: relative; z-index: 2; }
+.temporal-atmosphere { z-index: 0; }
+
 .temporal-room-exit {
   margin-top: 10px;
   padding: 8px 16px;

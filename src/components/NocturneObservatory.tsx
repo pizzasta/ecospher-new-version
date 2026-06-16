@@ -41,15 +41,20 @@ export default function NocturneObservatory({ onTune }: { onTune?: () => void })
 
   // a live replay storm turns the weather stormy for a moment
   useEffect(() => {
+    let stormTimer = 0
     const onLive = (event: Event) => {
       const detail = (event as CustomEvent<LiveEvent>).detail
       if (detail?.type === 'storm') {
         setStormy(true)
-        window.setTimeout(() => setStormy(false), 12000)
+        window.clearTimeout(stormTimer)
+        stormTimer = window.setTimeout(() => setStormy(false), 12000)
       }
     }
     window.addEventListener('ecosphere:live', onLive)
-    return () => window.removeEventListener('ecosphere:live', onLive)
+    return () => {
+      window.removeEventListener('ecosphere:live', onLive)
+      window.clearTimeout(stormTimer)
+    }
   }, [])
 
   const wave = useMemo(() => nightlyWave(now), [now])

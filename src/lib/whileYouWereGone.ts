@@ -19,6 +19,13 @@ function readNumber(key: string): number {
   try { return Number(window.localStorage.getItem(key) ?? 0) || 0 } catch { return 0 }
 }
 
+/** Whole days since the device was last seen (0 if never recorded). Read-only. */
+export function daysSinceLastSeen(now = Date.now()): number {
+  const lastSeen = readNumber(LAST_SEEN_KEY)
+  if (!lastSeen) return 0
+  return Math.max(0, Math.floor((now - lastSeen) / 86400000))
+}
+
 /** True when the user has been away long enough AND we haven't welcomed recently. */
 export function shouldWelcome(now = Date.now()): boolean {
   const lastSeen = readNumber(LAST_SEEN_KEY)

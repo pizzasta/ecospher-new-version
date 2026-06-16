@@ -6,7 +6,14 @@ import './DriftedTextRelics.css'
 
 export default function DriftedTextRelics() {
   const relics = driftedTextRelics()
-  if (relics.length === 0) return null
+  if (relics.length === 0) {
+    return (
+      <div className="drifted-relics drifted-relics--empty">
+        <span className="drifted-relics-kicker">DRIFTED TEXT · kept by the current</span>
+        <p className="drifted-relics-empty">no lines have travelled far enough yet — cast one into the sea and let the current carry it.</p>
+      </div>
+    )
+  }
   return (
     <div className="drifted-relics">
       <span className="drifted-relics-kicker">DRIFTED TEXT · kept by the current</span>

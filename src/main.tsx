@@ -19,15 +19,18 @@ import App from './App'
 import { AudioProvider } from './audio-system'
 import { GlobalAudioProvider } from './hooks/useGlobalAudio'
 import { EcosystemProvider } from './hooks/useEcosystemState'
+import SignalErrorBoundary from './components/SignalErrorBoundary'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <EcosystemProvider>
-      <AudioProvider>
-        <GlobalAudioProvider>
-          <App />
-        </GlobalAudioProvider>
-      </AudioProvider>
-    </EcosystemProvider>
+    <SignalErrorBoundary>
+      <EcosystemProvider>
+        <AudioProvider>
+          <GlobalAudioProvider>
+            <App />
+          </GlobalAudioProvider>
+        </AudioProvider>
+      </EcosystemProvider>
+    </SignalErrorBoundary>
   </React.StrictMode>,
 )

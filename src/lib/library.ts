@@ -144,6 +144,7 @@ export async function listSavedSignals() {
     .select('*, signals(*)')
     .eq('user_id', ctx.userId)
     .order('saved_at', { ascending: false })
+    .limit(200)
   return data ?? []
 }
 
@@ -157,6 +158,26 @@ export async function recordReplay(signalId: string, sourcePage: string) {
     source_page: sourcePage,
   })
   return !error
+}
+
+/**
+ * Publish a user's feed post as a public signal so it fans out to everyone.
+ * The server guardian trigger screens the text and forces it private if
+ * flagged, so nothing unmoderated reaches the public feed. Returns the new
+ * signal id (so the local card and its reactions reference the real row), or
+ * null when offline/unconfigured/blocked.
+ */
+export async function publishSignal(content: string, mood: string, anonymous: boolean, audioFileId?: string | null): Promise<string | null> {
+  const ctx = await requireUser()
+  if (!ctx) return null
+  const title = content.trim().slice(0, 80) || 'a signal'
+  const { data, error } = await ctx.db
+    .from('signals')
+    .insert({ creator_id: ctx.userId, type: 'voice_note', title, caption: content, mood, visibility: 'public', is_anonymous: anonymous, audio_file_id: audioFileId ?? null })
+    .select('id')
+    .maybeSingle()
+  if (error || !data) return null
+  return (data as { id: string }).id
 }
 
 // ─── Audio library ────────────────────────────────────────────────────────────
@@ -263,7 +284,7 @@ export async function listAudioLibrary(includeArchived = false) {
     .eq('owner_id', ctx.userId)
     .order('created_at', { ascending: false })
   if (!includeArchived) query = query.eq('is_archived', false)
-  const { data } = await query
+  const { data } = await query.limit(200)
   return data ?? []
 }
 
@@ -438,6 +459,7 @@ export async function listCapsules() {
     .select('*')
     .eq('user_id', ctx.userId)
     .order('created_at', { ascending: false })
+    .limit(200)
   return data ?? []
 }
 
@@ -494,6 +516,7 @@ export async function listUserRelics() {
     .select('*, relics(*)')
     .eq('user_id', ctx.userId)
     .order('unlocked_at', { ascending: false })
+    .limit(200)
   return data ?? []
 }
 
@@ -542,6 +565,7 @@ export async function listArchive() {
     .select('*')
     .eq('user_id', ctx.userId)
     .order('archived_at', { ascending: false })
+    .limit(200)
   return data ?? []
 }
 

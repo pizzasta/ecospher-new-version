@@ -28,6 +28,7 @@ import TonightsFrequency from './components/TonightsFrequency'
 import CarrierRoom from './components/CarrierRoom'
 import DormantFrequencies from './components/DormantFrequencies'
 import DriftedTextRelics from './components/DriftedTextRelics'
+import PostRelics from './components/PostRelics'
 import FeaturedNotes from './components/FeaturedNotes'
 import StickyNotes from './components/StickyNotes'
 import { DriftNotesBoard, RelicSeedPanel, usePersistedDriftNotes } from './components/ecosphere-memory-loop'
@@ -38,6 +39,7 @@ import ProfileHub from './components/ProfileHub'
 import NotificationBell from './components/NotificationBell'
 import FirstTour from './components/FirstTour'
 import AgeGate, { ageConfirmed } from './components/AgeGate'
+import TuningIn from './components/TuningIn'
 import HelpBot from './components/HelpBot'
 import PodPresence from './components/PodPresence'
 import SignalSearch from './components/SignalSearch'
@@ -55,7 +57,9 @@ import { LOCALES, LOCALE_NAMES } from './lib/i18n'
 import { useRecordingSession } from './hooks/useRecordingSession'
 import { useEcoPref } from './hooks/useEcoPrefs'
 import { useLivePresence } from './hooks/useLivePresence'
+import { daysSinceLastSeen } from './lib/whileYouWereGone'
 import { leaveTrace } from './lib/pageTrace'
+import { GHOST_ARCHIVE } from './lib/ghostArchive'
 import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 import { enablePushNotifications } from './lib/pushNotifications'
 import { SCREEN_PATHS, screenForPath } from './lib/routes'
@@ -1094,9 +1098,17 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
     void playSample(homeAudio, { id: `daily-${dailySignal.id}`, label: `daily signal · ${dailySignal.handle}`, source: 'home' }, 'voice', dayOfYear() * 31, 6000)
     tuneInDaily(dailySignal.handle)
   }
-  const [tick, setTick] = useState(0)
   const [deepListen, setDeepListen] = useState(false)
-  useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 3000); return () => clearInterval(t) }, [])
+  const livePresence = useLivePresence()
+  // honest "live threads": real carriers online when present, otherwise a calm
+  // local figure drawn from real activity — never an ever-climbing fake counter
+  const liveThreads = livePresence.total > 0
+    ? livePresence.total
+    : 38 + (dayOfYear() % 60) + ecosystemState.recentInteractions.length
+  const nightRecap = useMemo(
+    () => ({ todayKey: localDateString(), daysAway: daysSinceLastSeen(), cameBack: [], ritualTraces: readRitualTraces() }),
+    [],
+  )
   const liveActivity = humanizeActivity(ecosystemState.recentInteractions, 5).map(a => a.text)
   const activityLines = useMemo(
     () => {
@@ -1121,16 +1133,16 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
 
       <div className="stat-row">
         <div className="stat-card glass">
-          <div className="stat-value pink">{useCountUp(Math.round(ecosystemState.resonanceLevel)) + (tick % 2)}<span className="stat-unit">%</span></div>
-          <div className="stat-label">resonance</div>
+          <div className="stat-value cyan">{useCountUp(liveThreads).toLocaleString()}</div>
+          <div className="stat-label">drifting now</div>
         </div>
         <div className="stat-card glass">
-          <div className="stat-value cyan">{(1000 + useCountUp(248) + tick * 3).toLocaleString()}</div>
-          <div className="stat-label">live threads</div>
+          <div className="stat-value pink">{useCountUp(streak)}</div>
+          <div className="stat-label">night streak</div>
         </div>
         <div className="stat-card glass">
-          <div className="stat-value violet">+{Math.max(1, Math.round(ecosystemState.driftActivity / 4))}</div>
-          <div className="stat-label">drift cycles</div>
+          <div className="stat-value violet">{useCountUp(ecosystemState.savedSignals.length)}</div>
+          <div className="stat-label">echoes kept</div>
         </div>
       </div>
 
@@ -1138,7 +1150,7 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
 
       <TonightsFrequency />
 
-      <NightRecapPanel returnRitual={{ todayKey: localDateString(), daysAway: 0, cameBack: [], ritualTraces: readRitualTraces() }} />
+      <NightRecapPanel returnRitual={nightRecap} />
       <SignalRitualCard onAct={() => performSignalRitual('observatory')} ritual={activeRitual} />
 
       <div className={`obs-daily glass${tunedToday ? ' obs-daily--tuned' : ''}`}>
@@ -2273,6 +2285,17 @@ function RelicsScreen() {
     unlockEcosystemRelic(heroRelic.id, heroRelic.name)
   }
 
+  // a ghost in the archive: one curated stranger's signal surfaces each night,
+  // so the shelf is haunted, not just full of your own tapes
+  const ghost = useMemo(() => GHOST_ARCHIVE[dayOfYear() % GHOST_ARCHIVE.length], [])
+  const [ghostHeard, setGhostHeard] = useState(false)
+  const playGhost = () => {
+    const kind: SampleKind = ghost.mood === 'static' ? 'static' : ghost.mood === 'bloom' ? 'tone' : ghost.mood === 'drift' ? 'voice' : 'whisper'
+    void playSampleBuffer(kind, ghost.waveformSeed, 5200, 0.28)
+    setGhostHeard(true)
+    leaveTrace(`a ghost relic surfaced tonight · ${ghost.anonymous ? 'an unnamed signal' : ghost.handle}`, 'relics')
+  }
+
   // live listener count on tonight's relic — it climbs while you watch
   const [heroListeners, setHeroListeners] = useState(() => 40 + (dayOfYear() * 7) % 60)
   useEffect(() => {
@@ -2423,7 +2446,23 @@ function RelicsScreen() {
         <p className="screen-sub">relics are voice moments the network refused to forget.</p>
       </div>
       <DriftedTextRelics />
+      <PostRelics view="relics" />
       <FeaturedNotes />
+
+      {/* a ghost in the archive — a stranger's signal the network kept */}
+      <button type="button" className={`ghost-relic ghost-relic--${ghost.mood}${ghostHeard ? ' heard' : ''}`} onClick={playGhost}>
+        <span className="ghost-relic-kicker"><i aria-hidden="true">◌</i> A GHOST IN THE ARCHIVE · {ghost.timeAgo}</span>
+        <p className="ghost-relic-line">"{ghost.content}"</p>
+        <span className="ghost-relic-foot">
+          <span className="ghost-relic-wave" aria-hidden="true">
+            {Array.from({ length: 13 }, (_, b) => (
+              <i key={b} style={{ height: `${20 + ((ghost.waveformSeed * (b + 3) * 7) % 70)}%` }} />
+            ))}
+          </span>
+          <span className="ghost-relic-meta">{ghost.anonymous ? '⬡ anonymous' : `◈ ${ghost.handle}`} · {ghost.duration}{ghostHeard ? ' · heard' : ''}</span>
+        </span>
+      </button>
+
       <AmbientLine lines={useMemo(() => [...RELIC_EVENTS, ...livedInLines('relics', 3)], [])} />
       {shelfNote && <div className="lp-drift-ping" key={shelfNote}>{shelfNote}</div>}
 
@@ -2562,7 +2601,7 @@ function RelicsScreen() {
                     {relicShards[selected.id] ?? 'hidden shard · it has noticed you noticing it.'}
                   </p>
                 ) : (
-                  <p className="lp-frag lp-shard-locked" style={{ '--d': `${(relicFragments[selected.id]?.length ?? 1) * 0.55 + 0.3}s` } as CSSProperties}>
+                  <p className={`lp-frag lp-shard-locked${shardRemaining <= 2 ? ' lp-shard-locked--close' : ''}`} style={{ '--d': `${(relicFragments[selected.id]?.length ?? 1) * 0.55 + 0.3}s` } as CSSProperties}>
                     a hidden shard resists · {shardRemaining} more {shardRemaining === 1 ? 'interaction' : 'interactions'}
                   </p>
                 )}
@@ -2667,6 +2706,7 @@ function RelicsScreen() {
                       <input
                         type="text"
                         maxLength={60}
+                        aria-label="leave a note on this relic"
                         placeholder="leave a note on the case…"
                         value={noteDraft}
                         onChange={e => setNoteDraft(e.target.value)}
@@ -2715,9 +2755,8 @@ function GlitchQuote({ text, recovery, flickerTick }: { text: string; recovery: 
         const stable = recovery >= threshold
         const flick = !stable && ((i * 13 + flickerTick * 7) % 5 === 0)
         return (
-          <span key={i} className={stable ? 'zq-stable' : 'zq-glitch'}>
+          <span key={i} className={stable ? 'zq-stable' : flick ? 'zq-glitch zq-flick' : 'zq-glitch'}>
             {stable ? ch : GLITCH_CHARS[(i + flickerTick) % GLITCH_CHARS.length]}
-            {flick ? '' : ''}
           </span>
         )
       })}
@@ -3330,6 +3369,15 @@ const SEA_STATUS_LINES = [
   'a laugh carrying further than it should',
 ]
 
+const SEA_DRIFTWOOD = [
+  'half a voicemail, waterlogged',
+  "someone's laugh, three currents over",
+  'a hummed chorus nobody finished',
+  'the quiet after a question',
+  'forty seconds of rain from somewhere else',
+  'a name, said once, carried far',
+]
+
 function FrequenciesScreen() {
   const { ecosystemState, reactToSignal, saveToLibrary } = useEcosystemState()
   const night = (() => { const h = new Date().getHours(); return h >= 22 || h < 5 })()
@@ -3342,7 +3390,7 @@ function FrequenciesScreen() {
   // your cast lines carry your sigil color; others drift in their own tones
   const [myColor, setMyColor] = useState('#ffd166')
   useEffect(() => {
-    void getHzProfile(ecosystemState.userSignalIdentity ?? 'unclaimed').then(p => setMyColor(p.color))
+    void getHzProfile(ecosystemState.userSignalIdentity ?? 'unclaimed').then(p => setMyColor(p.color)).catch(() => { /* keep the default sigil color */ })
   }, [ecosystemState.userSignalIdentity])
   // session cast count + live sync status for the pill
   const [castCount, setCastCount] = useState(0)
@@ -3378,11 +3426,12 @@ function FrequenciesScreen() {
   const [orbOpen, setOrbOpen] = useState<number | null>(null)
   // things the sea carries past you — passive discovery, no action required
   const [driftwood, setDriftwood] = useState<{ id: number; text: string; top: number; seed: number } | null>(null)
+  const [catchFlash, setCatchFlash] = useState(0)
   const seaOrbs = useMemo(() => [
-    { presence: 'a quiet listener', replaying: 'still awake. the quiet feels different tonight.', cassette: 'unlabeled tape, side B', trace: 'drifting for 18 min · paused twice near you' },
-    { presence: 'someone half asleep', replaying: 'i kept the voicemail. i know.', cassette: 'heartbeat on the night bus', trace: 'crossed your path 4 min ago' },
-    { presence: 'a restless presence', replaying: '(laughing, far away)', cassette: 'static that turns into a song', trace: 'following the same current as you' },
-    { presence: 'someone on a long drive', replaying: 'replaying the same memory again.', cassette: 'the hold music', trace: 'left a trail heading east' },
+    { presence: 'a quiet listener', replaying: 'still awake. the quiet feels different tonight.', cassette: 'unlabeled tape, side B', trace: 'drifted close, then held still' },
+    { presence: 'someone half asleep', replaying: 'i kept the voicemail. i know.', cassette: 'heartbeat on the night bus', trace: 'passed by without a word' },
+    { presence: 'a restless presence', replaying: '(laughing, far away)', cassette: 'static that turns into a song', trace: 'caught in the same current as you' },
+    { presence: 'someone on a long drive', replaying: 'replaying the same memory again.', cassette: 'the hold music', trace: 'leaving a wake that fades east' },
   ], [])
   const timersRef = useRef<number[]>([])
 
@@ -3390,17 +3439,9 @@ function FrequenciesScreen() {
   useEffect(() => {
     let spawn = 0
     let clear = 0
-    const DRIFTWOOD = [
-      'half a voicemail, waterlogged',
-      "someone's laugh, three currents over",
-      'a hummed chorus nobody finished',
-      'the quiet after a question',
-      'forty seconds of rain from somewhere else',
-      'a name, said once, carried far',
-    ]
     const cycle = () => {
       spawn = window.setTimeout(() => {
-        setDriftwood({ id: Date.now(), text: DRIFTWOOD[Math.floor(Math.random() * DRIFTWOOD.length)], top: 18 + Math.random() * 50, seed: Math.floor(Math.random() * 9000) })
+        setDriftwood({ id: Date.now(), text: SEA_DRIFTWOOD[Math.floor(Math.random() * SEA_DRIFTWOOD.length)], top: 18 + Math.random() * 50, seed: Math.floor(Math.random() * 9000) })
         clear = window.setTimeout(() => setDriftwood(null), 14000)
         cycle()
       }, 22000 + Math.random() * 23000)
@@ -3415,6 +3456,8 @@ function FrequenciesScreen() {
     setPing(`caught: ${driftwood.text}`)
     leaveTrace(`caught in the sea: ${driftwood.text}`, 'frequencies')
     setDriftwood(null)
+    // a brief ripple through the sea when something is caught
+    setCatchFlash(n => n + 1)
   }
 
   // tides shift; the sea slowly carries you into new zones
@@ -3516,7 +3559,9 @@ function FrequenciesScreen() {
       reactToSignal('frequency-sea', `cast a line into the sea: "${text}"`)
       leaveTrace(`a line you cast is drifting in the sea: "${text}"`, 'frequencies')
       if (seaSyncEnabled) {
-        void castToSea(text).then(ok => setBuoys(prev => prev.map(b => (b.id === id ? { ...b, status: ok ? 'drifting' : 'failed' } : b))))
+        void castToSea(text)
+          .then(ok => setBuoys(prev => prev.map(b => (b.id === id ? { ...b, status: ok ? 'drifting' : 'failed' } : b))))
+          .catch(() => setBuoys(prev => prev.map(b => (b.id === id ? { ...b, status: 'failed' } : b))))
       } else {
         setBuoys(prev => prev.map(b => (b.id === id ? { ...b, status: 'drifting' } : b)))
       }
@@ -3525,7 +3570,9 @@ function FrequenciesScreen() {
 
   const retryCast = (b: SeaBuoy) => {
     setBuoys(prev => prev.map(x => (x.id === b.id ? { ...x, status: 'casting' } : x)))
-    void castToSea(b.fragment).then(ok => setBuoys(prev => prev.map(x => (x.id === b.id ? { ...x, status: ok ? 'drifting' : 'failed' } : x))))
+    void castToSea(b.fragment)
+      .then(ok => setBuoys(prev => prev.map(x => (x.id === b.id ? { ...x, status: ok ? 'drifting' : 'failed' } : x))))
+      .catch(() => setBuoys(prev => prev.map(x => (x.id === b.id ? { ...x, status: 'failed' } : x))))
   }
 
   // others' cast lines drift in live (when a backend is configured)
@@ -3642,15 +3689,16 @@ function FrequenciesScreen() {
   const [dial, setDial] = useState(88)
   const [lockedStation, setLockedStation] = useState<string | null>(null)
   const [foundStations, setFoundStations] = useState<string[]>([])
+  const today = dayOfYear()
   const stations = useMemo(() => {
-    const d = dayOfYear()
+    const d = today
     return [
       { at: 26 + ((d * 7) % 44), label: 'somebody humming over engine noise', kind: 'voice' as const },
       { at: 82 + ((d * 13) % 36), label: 'rain on a tent, two voices under it', kind: 'whisper' as const },
       { at: 128 + ((d * 29) % 30), label: 'a station that only plays the sea', kind: 'static' as const },
       { at: 168 + ((d * 11) % 26), label: 'numbers read slowly, then goodnight', kind: 'tone' as const },
     ]
-  }, [])
+  }, [today])
   const lastSweepRef = useRef(0)
   const tune = (value: number) => {
     setDial(value)
@@ -3753,7 +3801,7 @@ function FrequenciesScreen() {
         </div>
         <div className="sea-tuner-readout">
           <strong>{dial.toFixed(1)} Hz</strong>
-          <em>{lockedStation ?? 'mostly static out here. four stations are hiding — sweep slowly.'}</em>
+          <em>{lockedStation ?? `${foundStations.length}/4 found · the static thins where a station hides — sweep slowly.`}</em>
         </div>
       </div>
 
@@ -3818,6 +3866,7 @@ function FrequenciesScreen() {
       </div>
 
       <div className="sea-field sea-field--big" style={{ '--yours-color': myColor } as CSSProperties} onPointerMove={handleSeaPointer}>
+        {catchFlash > 0 && <span key={catchFlash} className="sea-catch-ripple" aria-hidden="true" />}
         {resurfaced && (
           <button
             type="button"
@@ -3910,6 +3959,9 @@ function FrequenciesScreen() {
             </div>
           )
         })}
+        {buoys.filter(b => b && b.fragment != null && (textFilter === 'all' || (textFilter === 'audio' ? b.voice === true : b.voice !== true))).length === 0 && (
+          <p className="sea-empty" role="status">the sea is quiet right now — cast a line and wait for the current.</p>
+        )}
       </div>
 
       {ping && <div className="sea-ping" key={ping}>{ping}</div>}
@@ -3988,7 +4040,7 @@ function PodAudioLibrary() {
             >
               ⬡
             </button>
-            <button type="button" aria-label="delete recording" onClick={() => { setRecordings(prev => prev.filter(r => r.id !== rec.id)); void deleteLocalRecording(rec.id) }}>✕</button>
+            <button type="button" aria-label="delete recording" onClick={() => { setRecordings(prev => prev.filter(r => r.id !== rec.id)); void deleteLocalRecording(rec.id).catch(() => setRecordings(prev => prev.some(r => r.id === rec.id) ? prev : [rec, ...prev].sort((a, b) => b.createdAt - a.createdAt))) }}>✕</button>
           </div>
         </div>
       ))}
@@ -4024,7 +4076,7 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
 
   const [podHz, setPodHz] = useState<HzProfile | null>(null)
   useEffect(() => {
-    void getHzProfile(eco.userSignalIdentity ?? 'unclaimed').then(setPodHz)
+    void getHzProfile(eco.userSignalIdentity ?? 'unclaimed').then(setPodHz).catch(() => { /* keep fallback hz color */ })
   }, [eco.userSignalIdentity])
 
   const podEnergy = Math.min(1, (eco.resonanceLevel + podPulses * 2 + eco.streak.count * 4) / 130)
@@ -4151,9 +4203,6 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
               {loading ? 'transmitting…' : authMode === 'login' ? 'Enter Pod' : 'Create Signal'}
             </button>
           </form>
-          {!supabase && (
-            <div className="pod-auth-hint">⚡ Supabase not yet configured — add env vars to enable auth</div>
-          )}
         </div>
       </div>
     )
@@ -4171,6 +4220,7 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
         onTouch={touchPod}
       />
       <ProfileHub onNavigate={screen => onNavigate?.(screen as Screen)} />
+      <PostRelics view="hub" />
       <StickyNotes />
       <div className="hub-actions">
         {[
@@ -4919,6 +4969,15 @@ export default function App() {
   // 18+ gate: one-time, remembered on the device, shown before anything else
   const [ageOk, setAgeOk] = useState(ageConfirmed)
 
+  // a brief one-time "tuning in" beat after the age gate, before the tour
+  const [tunedIn, setTunedIn] = useState(() => {
+    try { return window.localStorage.getItem('ecosphere:tunedIn') === 'yes' } catch { return true }
+  })
+  const finishTuningIn = () => {
+    try { window.localStorage.setItem('ecosphere:tunedIn', 'yes') } catch { /* session only */ }
+    setTunedIn(true)
+  }
+
   // first-visit tour: one pass through what each page is for
   const [tourOpen, setTourOpen] = useState(() => {
     try { return window.localStorage.getItem('ecosphere:tourDone') !== 'yes' } catch { return false }
@@ -5027,6 +5086,9 @@ export default function App() {
 
   // nothing renders — no audio, no screens — until 18+ is confirmed
   if (!ageOk) return <AgeGate onConfirm={() => setAgeOk(true)} />
+
+  // then a short, skippable "tuning in" beat the first time through
+  if (!tunedIn) return <TuningIn onDone={finishTuningIn} />
 
   const performSignalRitual = (surface: RitualSurface) => {
     recordSignalRitualTrace(activeRitual, surface)

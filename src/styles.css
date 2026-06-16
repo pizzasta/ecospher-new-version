@@ -2745,7 +2745,6 @@ html, body, #root {
     animation: pageSoftReveal 780ms ease both;
   }
 
-  .dashboard-card,
   .feed-card,
   .drift-discovery-card,
   .dead-zone-card,
@@ -2764,7 +2763,6 @@ html, body, #root {
     will-change: transform, filter;
   }
 
-  .dashboard-card:nth-child(2),
   .feed-card:nth-child(2n),
   .drift-discovery-card:nth-child(2n),
   .dead-zone-card:nth-child(2n),
@@ -2781,7 +2779,6 @@ html, body, #root {
     animation-delay: -2.5s;
   }
 
-  .dashboard-card:nth-child(3),
   .feed-card:nth-child(3n),
   .drift-discovery-card:nth-child(3n),
   .dead-zone-card:nth-child(3n),
@@ -5181,8 +5178,7 @@ html, body, #root {
   z-index: 6;
 }
 
-.node-inspector span,
-.dash-card span {
+.node-inspector span {
   color: #a8a29e;
   font-size: 10px;
   font-weight: 800;
@@ -5215,115 +5211,6 @@ html, body, #root {
 .node-inspector small {
   color: #cbd5e1;
   font-size: 11px;
-}
-
-.dashboard-cards {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: 1fr;
-  position: relative;
-}
-
-.dash-card {
-  animation: cardDepthFloat 8s ease-in-out infinite, ambientCardGlow 7.2s ease-in-out infinite;
-  background:
-    radial-gradient(circle at 82% 16%, rgba(244, 114, 182, 0.12), transparent 34%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.018)),
-    rgba(2, 3, 12, 0.58);
-  border: 1px solid rgba(244, 114, 182, 0.13);
-  border-radius: 14px;
-  backdrop-filter: blur(18px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 24px 88px rgba(0, 0, 0, 0.28),
-    0 0 42px rgba(244, 114, 182, 0.055);
-  color: #f8fafc;
-  cursor: pointer;
-  display: grid;
-  gap: 4px;
-  min-height: 154px;
-  padding: 20px;
-  position: relative;
-  text-align: left;
-  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
-  overflow: hidden;
-}
-
-.dash-card::after {
-  background:
-    radial-gradient(circle, rgba(244, 114, 182, 0.18), transparent 62%),
-    linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.12), transparent);
-  content: "";
-  height: 120px;
-  position: absolute;
-  right: -48px;
-  top: -38px;
-  width: 120px;
-}
-
-.dash-card:hover {
-  border-color: rgba(244, 114, 182, 0.48);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 24px 90px rgba(0, 0, 0, 0.24),
-    0 0 48px rgba(244, 114, 182, 0.13);
-  transform: translateY(-4px);
-}
-
-.dash-card strong {
-  font-size: clamp(38px, 8vw, 72px);
-  letter-spacing: -0.02em;
-  line-height: 0.9;
-}
-
-.dash-card small {
-  color: #d6d3d1;
-  font-size: 13px;
-  text-transform: capitalize;
-}
-
-.dash-card.mint strong {
-  color: #f9a8d4;
-}
-
-.dash-card.cyan strong {
-  color: #a5f3fc;
-}
-
-.dash-card.gold strong {
-  color: #e9d5ff;
-}
-
-.dash-card em {
-  align-items: center;
-  color: #fce7f3;
-  display: flex;
-  font-size: 12px;
-  font-style: normal;
-  gap: 8px;
-  line-height: 1.45;
-  margin-top: 8px;
-  position: relative;
-  z-index: 1;
-}
-
-.dash-card em::before {
-  animation: chipPulse 2.4s ease-out infinite;
-  background: #fb7185;
-  border-radius: 999px;
-  box-shadow: 0 0 16px rgba(244, 114, 182, 0.72);
-  content: "";
-  flex: 0 0 auto;
-  height: 7px;
-  width: 7px;
-}
-
-.dash-card:nth-child(2) {
-  margin-left: clamp(0px, 4vw, 42px);
-}
-
-.dash-card:nth-child(3) {
-  margin-right: clamp(0px, 5vw, 58px);
 }
 
 .bottom-nav-new {
@@ -9007,10 +8894,6 @@ html, body, #root {
     min-height: 620px;
   }
 
-  .dashboard-cards {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
   .hero-copy {
     left: 26px;
     top: 26px;
@@ -9718,6 +9601,117 @@ body[data-eco-view='mobile'] .helpbot-panel { width: min(440px, 96vw); }
 
 .card-return-row button:hover { border-color: rgba(0, 212, 255, 0.7); }
 .card-return-row .card-return-clear { border-color: rgba(255, 255, 255, 0.15); color: rgba(190, 200, 230, 0.6); }
+
+/* in-world fade confirmation (replaces the native confirm dialog) */
+.card-fade-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 90, 130, 0.28);
+  background: rgba(40, 10, 22, 0.4);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.card-fade-warn { flex: 1 1 auto; font-size: 11px; font-style: italic; color: rgba(255, 190, 205, 0.78); }
+.card-fade-row button { padding: 6px 12px; border-radius: 999px; font-size: 10.5px; letter-spacing: 0.05em; cursor: pointer; }
+.card-fade-go { border: 1px solid rgba(255, 90, 130, 0.55); background: rgba(255, 90, 130, 0.14); color: #ffd0dc; }
+.card-fade-go:hover { border-color: rgba(255, 90, 130, 0.85); }
+.card-fade-keep { border: 1px solid rgba(255, 255, 255, 0.16); background: transparent; color: rgba(200, 210, 235, 0.7); }
+.action-btn--fade-armed { color: #ff8aa6; border-color: rgba(255, 90, 130, 0.5); }
+
+/* feed empty state — the band is quiet, not broken */
+.feed-empty {
+  margin: 40px auto;
+  max-width: 420px;
+  text-align: center;
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.6;
+  color: rgba(190, 200, 230, 0.5);
+  text-shadow: 0 0 20px rgba(0, 140, 200, 0.2);
+}
+
+/* ─── Feed composer: release your own signal ──────────────────────────────── */
+.feed-compose-open {
+  width: 100%;
+  margin: 4px 0 14px;
+  padding: 13px 16px;
+  border-radius: 14px;
+  border: 1px dashed rgba(255, 45, 120, 0.4);
+  background: rgba(255, 45, 120, 0.06);
+  color: rgba(255, 190, 215, 0.9);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+.feed-compose-open:hover { border-color: rgba(255, 45, 120, 0.7); background: rgba(255, 45, 120, 0.1); }
+
+.feed-composer {
+  margin: 4px 0 16px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(150, 170, 215, 0.18);
+  background: rgba(10, 14, 26, 0.72);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 0 36px rgba(255, 45, 120, 0.08);
+}
+.feed-composer-input {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #eef3fb;
+  font-size: 14px;
+  line-height: 1.5;
+  font-family: inherit;
+}
+.feed-composer-input::placeholder { color: rgba(180, 195, 225, 0.4); font-style: italic; }
+.feed-composer-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; }
+.feed-composer-count { font-size: 10.5px; letter-spacing: 0.1em; color: rgba(170, 188, 218, 0.5); }
+.feed-composer-rec {
+  padding: 7px 13px; border-radius: 999px;
+  border: 1px solid rgba(0, 212, 255, 0.35); background: rgba(0, 212, 255, 0.06);
+  color: #aee9fb; font-size: 11.5px; cursor: pointer;
+}
+.feed-composer-rec.on { border-color: rgba(255, 45, 120, 0.55); background: rgba(255, 45, 120, 0.12); color: #ffd0dc; }
+.feed-composer-error { display: block; margin-top: 8px; font-size: 11.5px; color: #ff9bb4; }
+.feed-composer-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 12px; }
+.feed-composer-cancel { padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.14); background: transparent; color: rgba(200,210,235,0.65); font-size: 12px; cursor: pointer; }
+.feed-composer-post {
+  padding: 8px 18px; border-radius: 999px;
+  border: 1px solid rgba(255, 45, 120, 0.55);
+  background: rgba(255, 45, 120, 0.16); color: #fff; font-weight: 600; font-size: 12.5px; cursor: pointer;
+}
+.feed-composer-post:hover { box-shadow: 0 0 22px rgba(255, 45, 120, 0.35); }
+
+/* ─── Auto word-reactions on a signal ─────────────────────────────────────── */
+.card-word-reactions { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0 2px; }
+.word-react {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--btn-color, #00d4ff) 32%, transparent);
+  background: color-mix(in srgb, var(--btn-color, #00d4ff) 8%, rgba(10, 14, 26, 0.5));
+  color: rgba(224, 232, 248, 0.82);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color 0.25s ease, color 0.25s ease, background 0.25s ease;
+}
+.word-react:hover { border-color: color-mix(in srgb, var(--btn-color, #00d4ff) 60%, transparent); color: #fff; }
+.word-react--on {
+  border-color: color-mix(in srgb, var(--btn-color, #00d4ff) 70%, transparent);
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) { .word-react, .feed-compose-open, .feed-composer-rec { transition: none; } }
 
 /* ─── Signal life: decay + replay heat + human reasons ──────────────────────── */
 .signal-card--decay-1 .card-content { opacity: 0.78; }

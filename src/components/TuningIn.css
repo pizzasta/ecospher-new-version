@@ -1,0 +1,86 @@
+.tuning-in {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 40%, #050b18 0%, #03060f 70%, #020409 100%);
+  animation: tuningInFade 0.5s ease both;
+}
+.tuning-in--leaving { animation: tuningOutFade 0.46s ease forwards; }
+
+.tuning-in-core {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+}
+
+.tuning-in-glyph {
+  font-size: 40px;
+  color: #00d4ff;
+  text-shadow: 0 0 30px rgba(0, 212, 255, 0.6);
+  animation: tuningPulse 3s ease-in-out infinite;
+}
+
+.tuning-in-kicker {
+  font-size: 10px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: rgba(0, 212, 255, 0.5);
+}
+
+.tuning-in-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 92px;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: rgba(220, 232, 250, 0.82);
+}
+.tuning-in-lines .typewriter-line { display: block; }
+.tuning-in-lines .typewriter-line i {
+  display: inline-block;
+  width: 7px;
+  height: 1em;
+  margin-left: 2px;
+  background: #00d4ff;
+  vertical-align: text-bottom;
+  animation: tuningCaret 0.9s steps(1) infinite;
+}
+
+.tuning-in-skip {
+  position: absolute;
+  bottom: 28px;
+  right: 24px;
+  z-index: 3;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(150, 170, 215, 0.22);
+  background: rgba(14, 18, 32, 0.5);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: rgba(206, 220, 245, 0.7);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: border-color 0.3s ease, color 0.3s ease;
+}
+.tuning-in-skip:hover { border-color: rgba(0, 212, 255, 0.45); color: #d6ecff; }
+
+@keyframes tuningInFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tuningOutFade { from { opacity: 1; } to { opacity: 0; } }
+@keyframes tuningPulse { 0%, 100% { opacity: 0.75; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
+@keyframes tuningCaret { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .tuning-in, .tuning-in-glyph, .tuning-in-skip { animation: none; }
+}

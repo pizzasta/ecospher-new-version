@@ -6,7 +6,7 @@
 // metadata); real audio recordings mirror into storage + audio_files.
 
 import { isSupabaseConfigured } from './supabase-env'
-import { deleteAudio, getAudioPlaybackUrl, listAudioLibrary, logActivity, uploadAudio } from './library'
+import { deleteAudio, getAudioPlaybackUrl, listAudioLibrary, logActivity, publishSignal, uploadAudio } from './library'
 import { getOptionalSupabaseClient } from './supabase'
 import type { ActivityEventType, AudioFileRow } from './library'
 
@@ -73,6 +73,62 @@ export type RemoteSignal = {
   caption: string
   mood: string
   createdAt: number
+  audioUrl?: string
+}
+
+/**
+ * Publish a feed post to the backend so other users see it. Returns the real
+ * signal id (use it as the card id so reactions reference the right row), or
+ * null when offline/unconfigured/screened-out.
+ */
+export async function publishSignalToFeed(content: string, mood: string, anonymous: boolean): Promise<string | null> {
+  if (!isSupabaseConfigured) return null
+  try { return await publishSignal(content, mood, anonymous) } catch { return null }
+}
+
+/**
+ * Record a reaction to a public signal. Inserts a voice_reaction activity for
+ * the signal, which the DB trigger turns into a 'new_reaction' notification for
+ * that signal's author. No-op offline; only call for real backend signals.
+ */
+export function mirrorReaction(signalId: string, label: string) {
+  if (!isSupabaseConfigured) return
+  void logActivity('voice_reaction', { signal_id: signalId }, { label }).catch(() => { /* offline — local trace already recorded */ })
+}
+
+/** Ask moderate-audio to transcribe + screen a clip and promote it to public.
+ *  Fail-closed: anything but a clean 'passed' leaves the clip private. */
+async function screenAudio(audioId: string, bucket: string, path: string, mime: string): Promise<boolean> {
+  const client = getOptionalSupabaseClient()
+  if (!client) return false
+  try {
+    const { data, error } = await client.functions.invoke('moderate-audio', { body: { audioId, bucket, path, mime } })
+    if (error) return false
+    return (data as { status?: string } | null)?.status === 'passed'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Publish a VOICE feed post: upload the clip (private), publish the signal
+ * linked to it, then run the clip through moderate-audio — only a clean pass
+ * promotes the audio to public so others can hear it. The post card + caption
+ * fan out regardless (screened by the signals guardian). Returns the signal id.
+ */
+export async function publishVoiceSignalToFeed(
+  blob: Blob, caption: string, mood: string, anonymous: boolean, durationSeconds: number,
+): Promise<{ id: string | null; audioPublic: boolean }> {
+  if (!isSupabaseConfigured) return { id: null, audioPublic: false }
+  try {
+    const row = await uploadAudio(blob, { title: caption.slice(0, 40) || 'a signal', durationSeconds, kind: 'signal' })
+    if (!row) return { id: null, audioPublic: false }
+    const id = await publishSignal(caption, mood, anonymous, row.id)
+    const audioPublic = await screenAudio(row.id, row.bucket, row.path, row.mime_type ?? blob.type)
+    return { id, audioPublic }
+  } catch {
+    return { id: null, audioPublic: false }
+  }
 }
 
 /** Public signals from the live backend (empty when offline/unconfigured). */
@@ -83,17 +139,27 @@ export async function fetchPublicSignals(limit = 12): Promise<RemoteSignal[]> {
   try {
     const { data, error } = await client
       .from('signals')
-      .select('id, title, caption, mood, created_at')
+      .select('id, title, caption, mood, created_at, audio_files(bucket, path, is_public)')
       .eq('visibility', 'public')
       .order('created_at', { ascending: false })
       .limit(limit)
     if (error || !data) return []
-    return data.map((row) => ({
-      id: row.id,
-      title: row.title,
-      caption: row.caption ?? row.title,
-      mood: row.mood ?? 'drift',
-      createdAt: new Date(row.created_at).getTime(),
+    type Row = { id: string; title: string; caption: string | null; mood: string | null; created_at: string; audio_files: { bucket: string; path: string; is_public: boolean } | null }
+    return await Promise.all((data as unknown as Row[]).map(async (row) => {
+      let audioUrl: string | undefined
+      const audio = row.audio_files
+      if (audio?.is_public && audio.bucket && audio.path) {
+        const url = await getAudioPlaybackUrl({ bucket: audio.bucket, path: audio.path }).catch(() => null)
+        if (url) audioUrl = url
+      }
+      return {
+        id: row.id,
+        title: row.title,
+        caption: row.caption ?? row.title,
+        mood: row.mood ?? 'drift',
+        createdAt: new Date(row.created_at).getTime(),
+        audioUrl,
+      }
     }))
   } catch {
     return []

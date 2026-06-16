@@ -395,6 +395,28 @@ body[data-eco-page='pod'] .screen {
   50% { opacity: 0.85; }
 }
 
+/* while a signal is replaying, the ring picks up — brighter bars, a faster
+   breath, and a soft glow behind the center — settling back when audio stops */
+.ph-ring--live .ph-ring-bars { animation-duration: 48s; }
+.ph-ring--live .ph-ring-bars i {
+  opacity: 0.85;
+  animation-duration: 2.1s;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--ring-color, #66ccff) 60%, transparent);
+}
+.ph-ring--live .ph-ring-center::before {
+  content: '';
+  position: absolute;
+  inset: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--ring-color, #66ccff) 32%, transparent), transparent 68%);
+  animation: phRingLivePulse 2.1s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes phRingLivePulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.94); }
+  50% { opacity: 0.8; transform: scale(1.08); }
+}
+
 .ph-ring-center {
   position: absolute;
   inset: 0;
@@ -522,6 +544,8 @@ body[data-eco-page='pod'] .screen {
 @media (prefers-reduced-motion: reduce) {
   .ph-ring-bars,
   .ph-ring-bars i,
+  .ph-ring--live .ph-ring-bars i,
+  .ph-ring--live .ph-ring-center::before,
   .ph-atmosphere i {
     animation: none;
     will-change: auto;

@@ -116,3 +116,28 @@
   );
   border-color: rgba(120, 200, 255, 0.28);
 }
+
+/* ---- 5. Keyboard focus: the sea is pointer-first, so give tab users a
+   crisp, on-identity focus ring on every interactive drift element ---- */
+.sea-buoy-light:focus-visible,
+.sea-driftwood:focus-visible,
+.sea-orb:focus-visible {
+  outline: 1px solid rgba(0, 212, 255, 0.7);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+
+/* ---- 6. Empty state: a calm line if the field ever has nothing drifting ---- */
+.sea-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 80%;
+  text-align: center;
+  font-size: 13px;
+  font-style: italic;
+  color: rgba(190, 214, 240, 0.5);
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 18px rgba(0, 140, 200, 0.25);
+}

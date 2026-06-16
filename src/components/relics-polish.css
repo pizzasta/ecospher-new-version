@@ -118,3 +118,68 @@
 .bottom-nav--minimal .nav-glyph {
   transition: transform 0.2s ease;
 }
+
+/* ============================================================
+   Ghost relic: a stranger's signal the network kept, surfaced
+   nightly on the shelf so it reads as haunted, not just full.
+   ============================================================ */
+.ghost-relic {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 12px 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(155, 93, 233, 0.22);
+  background:
+    radial-gradient(120% 100% at 12% 0%, rgba(155, 93, 233, 0.12), transparent 60%),
+    linear-gradient(180deg, rgba(14, 12, 26, 0.66), rgba(9, 8, 18, 0.5));
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: #ece6f6;
+  cursor: pointer;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+.ghost-relic:hover { border-color: rgba(155, 93, 233, 0.45); box-shadow: 0 0 30px rgba(155, 93, 233, 0.18); transform: translateY(-2px); }
+.ghost-relic:focus-visible { outline: 1px solid rgba(0, 212, 255, 0.7); outline-offset: 3px; }
+.ghost-relic-kicker {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 9.5px; letter-spacing: 0.2em; font-weight: 700;
+  color: rgba(190, 160, 235, 0.72);
+}
+.ghost-relic-kicker i { font-style: normal; color: #b89fe0; animation: ghostBlink 3.4s ease-in-out infinite; }
+.ghost-relic-line { margin: 9px 0 11px; font-size: 14px; line-height: 1.5; color: #efeaf8; font-style: italic; }
+.ghost-relic-foot { display: flex; align-items: center; gap: 12px; }
+.ghost-relic-wave { display: inline-flex; align-items: flex-end; gap: 2px; height: 18px; flex-shrink: 0; }
+.ghost-relic-wave i { width: 2px; border-radius: 1px; background: #b89fe0; opacity: 0.6; animation: ghostWave 1.3s ease-in-out infinite; }
+.ghost-relic-wave i:nth-child(3n) { animation-delay: -0.4s; }
+.ghost-relic-wave i:nth-child(4n) { animation-delay: -0.8s; }
+.ghost-relic.heard .ghost-relic-wave i { background: #67e8f9; opacity: 0.8; }
+.ghost-relic-meta { font-size: 10px; color: rgba(190, 180, 215, 0.6); letter-spacing: 0.03em; }
+.ghost-relic--lost { border-color: rgba(120, 150, 210, 0.22); }
+.ghost-relic--bloom { border-color: rgba(255, 120, 180, 0.22); }
+.ghost-relic--static { border-color: rgba(120, 200, 255, 0.2); }
+@keyframes ghostBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes ghostWave { 0%, 100% { transform: scaleY(0.5); } 50% { transform: scaleY(1.1); } }
+
+/* hidden shard: glow a little harder when you're 1-2 interactions away */
+.lp-shard-locked--close { animation: shardClosePulse 1.8s ease-in-out infinite; }
+@keyframes shardClosePulse {
+  0%, 100% { opacity: 0.55; text-shadow: none; }
+  50% { opacity: 0.95; text-shadow: 0 0 12px rgba(0, 212, 255, 0.5); }
+}
+
+/* keyboard focus for the shelf's interactive stickies and scraps */
+.scrap:focus-visible,
+.sticky--live:focus-visible,
+.relic-night:focus-visible {
+  outline: 1px solid rgba(0, 212, 255, 0.7);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ghost-relic-kicker i,
+  .ghost-relic-wave i,
+  .lp-shard-locked--close { animation: none; }
+  .ghost-relic:hover { transform: none; }
+}

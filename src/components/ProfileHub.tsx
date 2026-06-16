@@ -104,8 +104,8 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   const gradientAngle = useFrequencyGradient(gradient)
 
   useEffect(() => {
-    void getHzProfile(username).then(setHzProfile)
-    void loadGradientSettings().then(setGradient)
+    void getHzProfile(username).then(setHzProfile).catch(() => { /* keep local hz fallback */ })
+    void loadGradientSettings().then(setGradient).catch(() => { /* keep current gradient */ })
   }, [username])
 
   const [gradientStart, gradientEnd] = resolveGradientColors(gradient, hzProfile.hz)
@@ -226,7 +226,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
       if (Number.isFinite(local) && local > 0) {
         setJoined(new Date(local).toLocaleDateString([], { month: 'short', year: 'numeric' }))
       }
-    })
+    }).catch(() => { /* fall back to local first-seen date */ })
   }, [])
 
   const saveTapeIntro = (meta: { id: string; durationMs: number }) => {
@@ -234,10 +234,10 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
     setTapeIntro(next)
     setTapeRecording(false)
     writeLocal('ecosphere:tapeIntro', JSON.stringify(next))
-    void listLocalRecordings().then(rows => setEchoes(rows.sort((a, b) => b.createdAt - a.createdAt)))
+    void listLocalRecordings().then(rows => setEchoes(rows.sort((a, b) => b.createdAt - a.createdAt))).catch(() => { /* keep current echoes */ })
   }
   useEffect(() => {
-    void listLocalRecordings().then(rows => setEchoes(rows.sort((a, b) => b.createdAt - a.createdAt)))
+    void listLocalRecordings().then(rows => setEchoes(rows.sort((a, b) => b.createdAt - a.createdAt))).catch(() => { /* none stored / store unavailable */ })
   }, [])
 
   const echoBlobFor = (id: string): Blob | null => echoes.find(e => e.id === id)?.blob ?? null
@@ -258,7 +258,10 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
   const featuredPrompt = openPrompts.length > 0 ? openPrompts[(dayIndex + promptShuffle) % openPrompts.length] : null
 
   const deleteEcho = (id: string) => {
-    void deleteLocalRecording(id).then(() => setEchoes(prev => prev.filter(e => e.id !== id)))
+    // only drop it from the list once the store confirms — keep it on failure
+    void deleteLocalRecording(id)
+      .then(() => setEchoes(prev => prev.filter(e => e.id !== id)))
+      .catch(() => { /* delete didn't take — leave the echo in place */ })
   }
 
   // ── listening history (last 7 days) ──
@@ -782,7 +785,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
 
       {/* centerpiece: the identity ring — your frequency, breathing */}
       <div className={`ph-centerpiece${settling ? ' ph-centerpiece--settling' : ''}`}>
-        <div className="ph-ring" style={{ '--ring-color': hzProfile.color } as CSSProperties} aria-hidden="true">
+        <div className={`ph-ring${ecosystemState.activeAudio ? ' ph-ring--live' : ''}`} style={{ '--ring-color': hzProfile.color } as CSSProperties} aria-hidden="true">
           <div className="ph-ring-bars">
             {Array.from({ length: 36 }, (_, i) => (
               <i
