@@ -3470,3 +3470,69 @@
 @media (prefers-reduced-motion: reduce) {
   .do-carrier-real { animation: none; }
 }
+
+/* ============================================================
+   FREQUENCY SEA signal refinements (additive, reversible)
+   Append-only. Delete this block to fully revert.
+   Refinement 1: larger invisible hitbox + soft neon aura on the
+   floating signal text, so the tiny labels are easier to engage.
+   Refinement 2: the drift dock action buttons (chase / mute / etc.)
+   rest dimmed and lift into focus on hover, like a contextual menu.
+   ============================================================ */
+
+/* Refinement 1: expand the click target and add a hover/focus aura.
+   .do-signal already has padding + a ::before trail, so the aura
+   lives on ::after to avoid disturbing existing styles. */
+.do-signal {
+     padding: 16px;
+     margin: -16px;
+     border-radius: 14px;
+}
+
+.do-signal::after {
+     content: "";
+     position: absolute;
+     inset: 0;
+     border-radius: inherit;
+     background: radial-gradient(circle at center, currentColor 0%, transparent 68%);
+     opacity: 0;
+     filter: blur(8px);
+     transform: scale(0.7);
+     pointer-events: none;
+     transition: opacity 0.4s ease, transform 0.4s ease;
+     z-index: -1;
+}
+
+.do-signal:hover::after,
+.do-signal:focus-visible::after,
+.do-signal.chased::after {
+     opacity: 0.16;
+     transform: scale(1.05);
+}
+
+/* Refinement 2: drift dock actions feel contextual. They sit calm
+   and slightly dimmed, then brighten and lift when the dock is
+   hovered or focused, so the controls surface only on intent. */
+.drift-dock button {
+     opacity: 0.62;
+     transition: opacity 0.35s ease, transform 0.35s ease, color 0.25s ease;
+}
+
+.drift-dock:hover button,
+.drift-dock:focus-within button {
+     opacity: 1;
+}
+
+.drift-dock button:hover,
+.drift-dock button:focus-visible {
+     opacity: 1;
+     transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+     .do-signal::after,
+     .drift-dock button {
+            transition: none;
+            transform: none;
+     }
+}
