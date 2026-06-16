@@ -442,8 +442,18 @@ function useEcosystemStore() {
     updateState((current) => (current.currentAtmosphere === atmosphere ? current : { ...current, currentAtmosphere: atmosphere }))
   }, [updateState])
 
+  // rename your signal: persists to the dedicated identity key (which wins on
+  // load) and into the live state so the hz signature re-derives from it
+  const setSignalIdentity = useCallback((name: string) => {
+    const clean = name.trim().replace(/\s+/g, ' ').slice(0, 40)
+    if (!clean) return
+    try { window.localStorage.setItem(signalIdentityStorageKey, clean) } catch { /* session only */ }
+    updateState((current) => (current.userSignalIdentity === clean ? current : { ...current, userSignalIdentity: clean }))
+  }, [updateState])
+
   return useMemo(() => ({
     ecosystemState: state,
+    setSignalIdentity,
     archiveEntry,
     discoverDrift,
     enterRoom,
@@ -465,6 +475,7 @@ function useEcosystemStore() {
     visitPage,
   }), [
     state,
+    setSignalIdentity,
     archiveEntry,
     discoverDrift,
     enterRoom,
