@@ -71,6 +71,29 @@ const RoomsScreenComponent = lazy(() => import('./components/RoomsScreen'))
 const UnsentRoom = lazy(() => import('./components/UnsentRoom'))
 const SignalChainsScreen = lazy(() => import('./components/SignalChainsScreen'))
 
+/**
+ * rollupActivity — collapses consecutive activity entries that share the
+ * exact same text into a single row carrying a repeat count and the most
+ * recent timestamp. Purely presentational; does not mutate or drop data.
+ * Turns the "wall of returns" (the same line repeated N times) into one
+ * clean line like "anonymous returned" with a "x5" badge.
+ */
+type RolledActivity = ReturnType<typeof humanizeActivity>[number] & { count: number }
+function rollupActivity(items: ReturnType<typeof humanizeActivity>): RolledActivity[] {
+  const out: RolledActivity[] = []
+  for (const item of items) {
+    const prev = out[out.length - 1]
+    if (prev && prev.text === item.text) {
+      prev.count += 1
+      // keep the most recent timestamp for the rolled-up line
+      if (item.createdAt > prev.createdAt) prev.createdAt = item.createdAt
+    } else {
+      out.push({ ...item, count: 1 })
+    }
+  }
+  return out
+}
+
 function ScreenLoading() {
   return (
     <div className="screen eco-screen-loading" aria-label="tuning frequency" aria-busy="true">
@@ -104,6 +127,7 @@ import './unsent-room.css'
 import './rooms.css'
 import './living-pages.css'
 import './cinematic.css'
+import './components/soul-pod-polish.css'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAudioManager, AudioDebugPanel } from './audio-system'
 import type { AmbientLayerKey, SampleAudioKey } from './audio-system'
@@ -4237,10 +4261,13 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
             <span>RECENT ACTIVITY</span>
             <small>{eco.recentInteractions.length} actions</small>
           </div>
-          {humanizeActivity(eco.recentInteractions, 8).map(activity => (
+          {rollupActivity(humanizeActivity(eco.recentInteractions, 8)).map(activity => (
             <div key={activity.id} className="hub-activity-row glass">
               <span className="hub-activity-type" aria-hidden="true">·</span>
               <span className="hub-activity-label">{activity.text}</span>
+              {activity.count > 1 && (
+                <span className="hub-activity-count" aria-label={`repeated ${activity.count} times`}>{`x${activity.count}`}</span>
+              )}
               <span className="hub-activity-time">{lpTimeAgo(activity.createdAt)}</span>
             </div>
           ))}
