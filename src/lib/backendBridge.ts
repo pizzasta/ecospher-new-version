@@ -6,7 +6,7 @@
 // metadata); real audio recordings mirror into storage + audio_files.
 
 import { isSupabaseConfigured } from './supabase-env'
-import { deleteAudio, getAudioPlaybackUrl, listAudioLibrary, logActivity, uploadAudio } from './library'
+import { deleteAudio, getAudioPlaybackUrl, listAudioLibrary, logActivity, publishSignal, uploadAudio } from './library'
 import { getOptionalSupabaseClient } from './supabase'
 import type { ActivityEventType, AudioFileRow } from './library'
 
@@ -73,6 +73,26 @@ export type RemoteSignal = {
   caption: string
   mood: string
   createdAt: number
+}
+
+/**
+ * Publish a feed post to the backend so other users see it. Returns the real
+ * signal id (use it as the card id so reactions reference the right row), or
+ * null when offline/unconfigured/screened-out.
+ */
+export async function publishSignalToFeed(content: string, mood: string, anonymous: boolean): Promise<string | null> {
+  if (!isSupabaseConfigured) return null
+  try { return await publishSignal(content, mood, anonymous) } catch { return null }
+}
+
+/**
+ * Record a reaction to a public signal. Inserts a voice_reaction activity for
+ * the signal, which the DB trigger turns into a 'new_reaction' notification for
+ * that signal's author. No-op offline; only call for real backend signals.
+ */
+export function mirrorReaction(signalId: string, label: string) {
+  if (!isSupabaseConfigured) return
+  void logActivity('voice_reaction', { signal_id: signalId }, { label }).catch(() => { /* offline — local trace already recorded */ })
 }
 
 /** Public signals from the live backend (empty when offline/unconfigured). */

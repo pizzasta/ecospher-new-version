@@ -7,7 +7,7 @@ import type { ExportScene } from './lib/storyExport'
 import { playSample } from './lib/sampleAudio'
 import { speakSignal, speechSupported, estimateSpeechMs } from './lib/speech'
 import { listenerCount, livedInLines } from './lib/livedIn'
-import { fetchPublicSignals, mirrorActivity, mirrorSignalFade } from './lib/backendBridge'
+import { fetchPublicSignals, mirrorActivity, mirrorSignalFade, mirrorRecordingUpload, publishSignalToFeed, mirrorReaction } from './lib/backendBridge'
 import { moderatePublicSignalText } from './lib/signalModeration'
 import { GHOST_ARCHIVE } from './lib/ghostArchive'
 import { hzForHandle } from './lib/hzSignature'
@@ -62,6 +62,7 @@ type FeedSignal = {
   expiresIn?: number
   mine?: boolean
   audioId?: string
+  remote?: boolean
 }
 
 // ─── Local feed posts (what you upload to the feed) ─────────────────────────
@@ -413,6 +414,8 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
   const tapWordReact = (word: string) => {
     setReactCounts(prev => ({ ...prev, [word]: (prev[word] ?? 0) + 1 }))
     reactToSignal(signal.id, `reacted "${word}"`)
+    // on real backend signals this notifies the author (DB trigger)
+    if (signal.remote) mirrorReaction(signal.id, word)
   }
 
   // fully automated report flow: instant hide + AI screening verdict, no human review
@@ -882,18 +885,27 @@ function FeedComposer({ onPost }: { onPost: (s: FeedSignal) => void }) {
       if (words < 3 || words > 40) { setError('keep it between 3 and 40 words'); return }
       if (moderatePublicSignalText(body).status === 'flagged') { setError('that one stays unsent — it didn’t pass screening'); return }
     }
-    const id = crypto.randomUUID?.() ?? `post-${Date.now()}`
+    const anon = anonymousMode()
+    const mood = moodFromText(body)
     const durMs = draftBlob ? Math.max(1000, recMs) : 0
+    // publish to the backend (when configured) so others see it; the real
+    // signal id becomes the card id so reactions notify the author
+    let id: string = crypto.randomUUID?.() ?? `post-${Date.now()}`
+    let remote = false
+    if (body) {
+      const remoteId = await publishSignalToFeed(body, mood, anon)
+      if (remoteId) { id = remoteId; remote = true }
+    }
     if (draftBlob) {
       await saveRecordingLocally({ id, label: body.slice(0, 40) || 'your signal', durationMs: durMs, emotionalTag: 'signal', createdAt: Date.now(), blob: draftBlob }).catch(() => { /* stays in-session if store fails */ })
+      mirrorRecordingUpload(draftBlob, body.slice(0, 40) || 'your signal', durMs)
     }
-    const anon = anonymousMode()
     const signal: FeedSignal = {
       id,
       handle: anon ? 'you · anonymous' : publicHandle(),
       timeAgo: 'just now',
       content: body || '(a voice signal, no words)',
-      mood: moodFromText(body),
+      mood,
       resonance: 70,
       anonymous: anon,
       duration: draftBlob ? `0:${String(Math.min(30, Math.round(durMs / 1000))).padStart(2, '0')}` : `0:${String(10 + (words % 30)).padStart(2, '0')}`,
@@ -903,6 +915,7 @@ function FeedComposer({ onPost }: { onPost: (s: FeedSignal) => void }) {
       waveformSeed: Math.floor(Math.random() * 9000) + 100,
       mine: true,
       audioId: draftBlob ? id : undefined,
+      remote,
     }
     onPost(signal)
     setText(''); clearDraft(); setError(null); setOpen(false)
@@ -986,6 +999,7 @@ export default function FeedScreen() {
         status: 'live',
         emotionalBand: 'live-network',
         waveformSeed: (r.createdAt % 997) + i,
+        remote: true,
       }))
       setSignals(prev => {
         const known = new Set(prev.map(p => p.id))
