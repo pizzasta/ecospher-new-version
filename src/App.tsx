@@ -58,6 +58,7 @@ import { useEcoPref } from './hooks/useEcoPrefs'
 import { useLivePresence } from './hooks/useLivePresence'
 import { daysSinceLastSeen } from './lib/whileYouWereGone'
 import { leaveTrace } from './lib/pageTrace'
+import { GHOST_ARCHIVE } from './lib/ghostArchive'
 import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 import { enablePushNotifications } from './lib/pushNotifications'
 import { SCREEN_PATHS, screenForPath } from './lib/routes'
@@ -2283,6 +2284,17 @@ function RelicsScreen() {
     unlockEcosystemRelic(heroRelic.id, heroRelic.name)
   }
 
+  // a ghost in the archive: one curated stranger's signal surfaces each night,
+  // so the shelf is haunted, not just full of your own tapes
+  const ghost = useMemo(() => GHOST_ARCHIVE[dayOfYear() % GHOST_ARCHIVE.length], [])
+  const [ghostHeard, setGhostHeard] = useState(false)
+  const playGhost = () => {
+    const kind: SampleKind = ghost.mood === 'static' ? 'static' : ghost.mood === 'bloom' ? 'tone' : ghost.mood === 'drift' ? 'voice' : 'whisper'
+    void playSampleBuffer(kind, ghost.waveformSeed, 5200, 0.28)
+    setGhostHeard(true)
+    leaveTrace(`a ghost relic surfaced tonight · ${ghost.anonymous ? 'an unnamed signal' : ghost.handle}`, 'relics')
+  }
+
   // live listener count on tonight's relic — it climbs while you watch
   const [heroListeners, setHeroListeners] = useState(() => 40 + (dayOfYear() * 7) % 60)
   useEffect(() => {
@@ -2434,6 +2446,21 @@ function RelicsScreen() {
       </div>
       <DriftedTextRelics />
       <FeaturedNotes />
+
+      {/* a ghost in the archive — a stranger's signal the network kept */}
+      <button type="button" className={`ghost-relic ghost-relic--${ghost.mood}${ghostHeard ? ' heard' : ''}`} onClick={playGhost}>
+        <span className="ghost-relic-kicker"><i aria-hidden="true">◌</i> A GHOST IN THE ARCHIVE · {ghost.timeAgo}</span>
+        <p className="ghost-relic-line">"{ghost.content}"</p>
+        <span className="ghost-relic-foot">
+          <span className="ghost-relic-wave" aria-hidden="true">
+            {Array.from({ length: 13 }, (_, b) => (
+              <i key={b} style={{ height: `${20 + ((ghost.waveformSeed * (b + 3) * 7) % 70)}%` }} />
+            ))}
+          </span>
+          <span className="ghost-relic-meta">{ghost.anonymous ? '⬡ anonymous' : `◈ ${ghost.handle}`} · {ghost.duration}{ghostHeard ? ' · heard' : ''}</span>
+        </span>
+      </button>
+
       <AmbientLine lines={useMemo(() => [...RELIC_EVENTS, ...livedInLines('relics', 3)], [])} />
       {shelfNote && <div className="lp-drift-ping" key={shelfNote}>{shelfNote}</div>}
 
@@ -2572,7 +2599,7 @@ function RelicsScreen() {
                     {relicShards[selected.id] ?? 'hidden shard · it has noticed you noticing it.'}
                   </p>
                 ) : (
-                  <p className="lp-frag lp-shard-locked" style={{ '--d': `${(relicFragments[selected.id]?.length ?? 1) * 0.55 + 0.3}s` } as CSSProperties}>
+                  <p className={`lp-frag lp-shard-locked${shardRemaining <= 2 ? ' lp-shard-locked--close' : ''}`} style={{ '--d': `${(relicFragments[selected.id]?.length ?? 1) * 0.55 + 0.3}s` } as CSSProperties}>
                     a hidden shard resists · {shardRemaining} more {shardRemaining === 1 ? 'interaction' : 'interactions'}
                   </p>
                 )}
@@ -2677,6 +2704,7 @@ function RelicsScreen() {
                       <input
                         type="text"
                         maxLength={60}
+                        aria-label="leave a note on this relic"
                         placeholder="leave a note on the case…"
                         value={noteDraft}
                         onChange={e => setNoteDraft(e.target.value)}
@@ -2725,9 +2753,8 @@ function GlitchQuote({ text, recovery, flickerTick }: { text: string; recovery: 
         const stable = recovery >= threshold
         const flick = !stable && ((i * 13 + flickerTick * 7) % 5 === 0)
         return (
-          <span key={i} className={stable ? 'zq-stable' : 'zq-glitch'}>
+          <span key={i} className={stable ? 'zq-stable' : flick ? 'zq-glitch zq-flick' : 'zq-glitch'}>
             {stable ? ch : GLITCH_CHARS[(i + flickerTick) % GLITCH_CHARS.length]}
-            {flick ? '' : ''}
           </span>
         )
       })}

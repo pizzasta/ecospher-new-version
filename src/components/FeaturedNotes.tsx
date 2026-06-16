@@ -15,7 +15,9 @@ export default function FeaturedNotes() {
 
   useEffect(() => {
     if (!noteSyncEnabled) return
-    void fetchTopNotes(3).then(rows => setNotes(rows.map(r => ({ id: r.id, text: r.text, color: r.color }))))
+    void fetchTopNotes(3)
+      .then(rows => setNotes(rows.map(r => ({ id: r.id, text: r.text, color: r.color }))))
+      .catch(() => { /* keep whatever's showing; the relics page never errors out */ })
   }, [])
 
   if (notes.length === 0) return null
@@ -27,7 +29,7 @@ export default function FeaturedNotes() {
           <div key={n.id} className="featured-note" style={{ '--note': n.color, '--i': i } as CSSProperties}>
             <span className="featured-note-mark" aria-hidden="true">◌</span>
             {n.text}
-            <Resonate noteId={n.id} onResonate={noteSyncEnabled ? () => { void reactToNote(n.id) } : undefined} />
+            <Resonate noteId={n.id} onResonate={noteSyncEnabled ? () => { void reactToNote(n.id).catch(() => { /* a dropped resonance is no big deal */ }) } : undefined} />
           </div>
         ))}
       </div>

@@ -1373,6 +1373,10 @@
   animation: zqStabilize 0.5s ease both;
 }
 
+/* characters still fighting to resolve flicker a little harder */
+.zq-flick { animation: zqFlick 0.18s steps(2) infinite; }
+@keyframes zqFlick { 0%, 100% { opacity: 0.7; } 50% { opacity: 0.25; } }
+
 @keyframes zqStabilize {
   from { opacity: 0.2; filter: blur(2px); }
   to { opacity: 1; filter: blur(0); }
@@ -1467,6 +1471,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .zq-stable,
+  .zq-flick,
   .zone-hold-btn.holding,
   .zone-critical.urgent,
   .zones-atmosphere span,

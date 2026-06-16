@@ -18,3 +18,5 @@
 .drifted-relic-body { min-width: 0; }
 .drifted-relic-body strong { display: block; font-size: 13.5px; color: #ece6f6; font-weight: 600; line-height: 1.4; }
 .drifted-relic-body em { display: block; font-style: normal; font-size: 10px; color: rgba(190, 180, 215, 0.55); margin-top: 2px; }
+.drifted-relics--empty { border-style: dashed; border-color: rgba(150, 130, 200, 0.12); }
+.drifted-relics-empty { margin: 0; font-size: 12px; font-style: italic; color: rgba(190, 180, 215, 0.5); line-height: 1.5; }
