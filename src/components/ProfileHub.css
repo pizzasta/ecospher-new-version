@@ -1509,3 +1509,54 @@ body[data-eco-page='pod'] .screen {
     transition: none;
   }
 }
+
+/* ============================================================
+   SOUL POD action triggers tactile pass (additive, reversible)
+   Append-only. Delete this block to fully revert.
+   Fix 3: bring paper/card skeuomorphic depth down to the flat
+   action buttons (Capsule Vault stats + tuning/profile links) so
+   they match the tangible top half of the hub.
+   ============================================================ */
+
+/* Capsule Vault stats: layered card depth + soft hover lift */
+.ph-vault-stat {
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.28);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.ph-vault-stat:not(.ph-vault-stat--static):hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 5px 14px rgba(0, 0, 0, 0.38);
+}
+
+/* Tuning + profile links: passive paper pills that lift on hover */
+.ph-settings-links button {
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 1px 4px rgba(0, 0, 0, 0.26);
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.ph-settings-links button:hover {
+    transform: translateY(-1px);
+    color: rgba(232, 238, 255, 0.95);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 11px rgba(0, 0, 0, 0.34);
+}
+
+.ph-settings-links button:active {
+    transform: translateY(0);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ph-vault-stat,
+    .ph-vault-stat:not(.ph-vault-stat--static):hover,
+    .ph-settings-links button,
+    .ph-settings-links button:hover,
+    .ph-settings-links button:active {
+          transition: none;
+          transform: none;
+    }
+}
