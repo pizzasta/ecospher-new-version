@@ -1,0 +1,134 @@
+/* ============================================================
+   soul-pod-polish.css
+   Additive visual polish for the Soul Pod screen.
+   Layers ON TOP of living-pages.css - does not remove or
+   replace any existing rules. Loaded after living-pages.css.
+
+   Covers four refinements:
+     1. Visual hierarchy & breathing room for log/data blocks
+     2. Clearer affordance for interactive elements vs. stats
+     3. Roll-up styling for de-duplicated activity ("xN" badge)
+     4. Safe text wrapping / edge-overflow guards
+   ============================================================ */
+
+/* ---- 1. Breathing room + subtle dividers for log entries ---- */
+.hub-activity {
+  padding: 2px 2px 4px;
+}
+
+.hub-activity-row {
+  position: relative;
+  border-radius: 10px;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* faint divider between consecutive entries so they stop
+   reading as one solid terminal wall */
+.hub-activity-row + .hub-activity-row {
+  margin-top: 4px;
+}
+
+.hub-activity-row + .hub-activity-row::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(160, 175, 215, 0.12) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+/* gentle zebra so adjacent rows separate visually */
+.hub-activity-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.018);
+}
+
+/* slightly stronger weight on the label, dimmer timestamp,
+   so the eye reads label first, time second */
+.hub-activity-label {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.hub-activity-time {
+  opacity: 0.78;
+  font-variant-numeric: tabular-nums;
+}
+
+/* archive / library heads get a touch more room to breathe */
+.lp-library {
+  gap: 10px;
+}
+
+.lp-archive-item + .lp-archive-item {
+  margin-top: 2px;
+}
+
+/* ---- 2. Discoverability: interactive vs. passive ---- */
+/* any real button inside the pod surfaces gets a consistent,
+   discoverable hover affordance (glow + lift) so it reads as
+   clickable, distinct from passive status text */
+.hub-activity button,
+.lp-library button {
+  transition: border-color 0.2s ease, color 0.2s ease,
+    box-shadow 0.25s ease, transform 0.15s ease;
+}
+
+.hub-activity button:hover,
+.lp-library button:hover {
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.hub-activity button:focus-visible,
+.lp-library button:focus-visible {
+  outline: 2px solid rgba(0, 212, 255, 0.55);
+  outline-offset: 2px;
+}
+
+/* ---- 3. Roll-up badge for de-duplicated activity ---- */
+/* when consecutive identical entries collapse into one,
+   a small count badge communicates the repetition cleanly
+   instead of a vertical wall of duplicate rows */
+.hub-activity-count {
+  flex-shrink: 0;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.22);
+  color: rgba(120, 225, 250, 0.92);
+  white-space: nowrap;
+}
+
+/* ---- 4. Text wrapping / edge-overflow guards ---- */
+/* keep the single-line ellipsis design, but make sure the
+   row never lets content kiss the container edge and that
+   non-truncating contexts wrap instead of overflowing */
+.hub-activity-row {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+.hub-activity-label {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.lp-library-body {
+  padding-right: 4px;
+}
+
+/* the signal-to-self / quiet-trace stream lines can be long
+   and user-generated - let them wrap safely within padding */
+.lp-library-body strong {
+  overflow-wrap: anywhere;
+}
