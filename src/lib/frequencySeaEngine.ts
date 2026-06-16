@@ -30,7 +30,7 @@
                                       if (this.isRunning) return
                                           const AudioContextClass =
                                                 (window as unknown as { webkitAudioContext?: typeof AudioContext })
-                                                        .webkitAudioContext ?? AudioContext
+                                                        .webkitAudioContext ?? (window as unknown as { AudioContext?: typeof AudioContext }).AudioContext
                                                             if (!AudioContextClass) return
 
                                                                 this.ctx = new AudioContextClass()
