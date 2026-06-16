@@ -17,6 +17,10 @@ import { RETURN_TAGS, addReturn, listReturns, removeReturn } from './lib/returnQ
 import { DECAY_LABELS, decayLevel, decayText, heatFor, preserveSignal, presenceLine, whyFoundYou } from './lib/signalLife'
 import FamiliarFrequency from './components/FamiliarFrequency'
 import { recordCrossing } from './lib/familiarFrequency'
+import { wordReactionsFor } from './lib/wordReactions'
+import { createVoiceRecorder, micErrorReason } from './lib/audioBudget'
+import { saveRecordingLocally, listLocalRecordings } from './lib/localAudioStore'
+import { publicHandle, anonymousMode } from './lib/anonymity'
 
 const hiddenKey = 'ecosphere:hiddenSignals'
 function loadHidden(): string[] {
@@ -56,6 +60,33 @@ type FeedSignal = {
   waveformSeed: number
   typewriterEffect?: boolean
   expiresIn?: number
+  mine?: boolean
+  audioId?: string
+}
+
+// ─── Local feed posts (what you upload to the feed) ─────────────────────────
+const myPostsKey = 'ecosphere:myFeedPosts'
+function loadMyPosts(): FeedSignal[] {
+  try { return JSON.parse(window.localStorage.getItem(myPostsKey) ?? '[]') } catch { return [] }
+}
+function storeMyPost(sig: FeedSignal) {
+  try {
+    const next = [sig, ...loadMyPosts().filter(p => p.id !== sig.id)].slice(0, 50)
+    window.localStorage.setItem(myPostsKey, JSON.stringify(next))
+  } catch { /* session only */ }
+}
+// voice posts keep their audio in IndexedDB; fetch the blob on demand to play
+async function postBlob(audioId: string): Promise<Blob | null> {
+  try { return (await listLocalRecordings()).find(r => r.id === audioId)?.blob ?? null } catch { return null }
+}
+// derive a mood from what was written, so a post lands in the right band
+function moodFromText(text: string): Mood {
+  const t = text.toLowerCase()
+  if (/\b(miss|gone|lost|alone|empty|ex|goodbye|cry)\b/.test(t)) return 'lost'
+  if (/\b(thank|grateful|better|love|soft|warm|proud|nice)\b/.test(t)) return 'bloom'
+  if (/\b(static|noise|radio|signal|glitch|broken)\b/.test(t)) return 'static'
+  if (/\b(night|3am|2am|sleep|awake|dark|moon|insomnia)\b/.test(t)) return 'nocturne'
+  return 'drift'
 }
 
 type EcosystemEvent = {
@@ -376,6 +407,14 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
   const mountedRef = useRef(true)
   useEffect(() => () => { mountedRef.current = false }, [])
 
+  // auto word-reactions: short responses that change with what was posted
+  const wordReacts = useMemo(() => wordReactionsFor(signal.content, signal.mood), [signal.content, signal.mood])
+  const [reactCounts, setReactCounts] = useState<Record<string, number>>({})
+  const tapWordReact = (word: string) => {
+    setReactCounts(prev => ({ ...prev, [word]: (prev[word] ?? 0) + 1 }))
+    reactToSignal(signal.id, `reacted "${word}"`)
+  }
+
   // fully automated report flow: instant hide + AI screening verdict, no human review
   const submitReport = (reason: string) => {
     setReporting(false)
@@ -401,6 +440,14 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
     const meta = { id: signal.id, label: signal.handle, source: 'signals' as const }
     // a deliberate replay is a real crossing — recurring strangers become familiar
     if (!signal.anonymous) recordCrossing(signal.handle, signal.id, signal.mood, signal.content)
+    // your own voice posts play their real recording
+    if (signal.audioId) {
+      void postBlob(signal.audioId).then(blob => {
+        if (blob) globalAudio.playBlob(blob, meta)
+        else if (speechSupported()) { globalAudio.playSimulated(meta, estimateSpeechMs(signal.content) + 4000); speakSignal(signal.content, signal.waveformSeed, { onEnd: () => globalAudio.stop() }) }
+      }).catch(() => { /* recording unavailable — stay quiet */ })
+      return
+    }
     // speakable signals are read aloud in a real voice; static/corrupted stay textured
     const speakable = signal.status !== 'corrupted' && signal.mood !== 'static'
     if (speakable && speechSupported()) {
@@ -416,7 +463,7 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
   const colors = MOOD_COLORS[signal.mood]
   const waveform = generateWaveform(signal.waveformSeed)
   // signal life: decay (until preserved) + replay heat + a human reason
-  const [decay, setDecay] = useState(() => (signal.status === 'corrupted' ? 0 : decayLevel(signal.id)))
+  const [decay, setDecay] = useState(() => (signal.status === 'corrupted' || signal.mine ? 0 : decayLevel(signal.id)))
   const heat = useMemo(() => heatFor(signal.id), [signal.id])
   const lifeLine = useMemo(() => (index % 3 === 0 ? whyFoundYou(signal.id) : index % 3 === 1 ? presenceLine(signal.id) : null), [signal.id, index])
   const decayedContent = useMemo(() => decayText(signal.content, decay, signal.id), [signal.content, decay, signal.id])
@@ -527,6 +574,23 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
           )}
           {decay >= 3 && <span className="decay-static" aria-hidden="true" />}
         </div>
+
+        {/* auto word-reactions — tuned to what this signal says */}
+        {!isCorrupted && (
+          <div className="card-word-reactions" role="group" aria-label="quick reactions">
+            {wordReacts.map(word => (
+              <button
+                key={word}
+                type="button"
+                className={`word-react${reactCounts[word] ? ' word-react--on' : ''}`}
+                style={{ '--btn-color': colors.primary } as React.CSSProperties}
+                onClick={e => { e.stopPropagation(); tapWordReact(word) }}
+              >
+                {word}{reactCounts[word] ? ` · ${reactCounts[word]}` : ''}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* signal life: heat, decay, and the reason it found you */}
         {(heat.line || decay > 0 || lifeLine) && (
@@ -752,6 +816,134 @@ function FeedHeader() {
     </div>
   )
 }
+// ─── Composer: release your own signal into the feed (text + optional voice) ──
+function FeedComposer({ onPost }: { onPost: (s: FeedSignal) => void }) {
+  const [open, setOpen] = useState(false)
+  const [text, setText] = useState('')
+  const [recording, setRecording] = useState(false)
+  const [recMs, setRecMs] = useState(0)
+  const [draftBlob, setDraftBlob] = useState<Blob | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const recRef = useRef<MediaRecorder | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const startedRef = useRef(0)
+  const timerRef = useRef<number | null>(null)
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0
+
+  const stopRec = useCallback(() => {
+    if (timerRef.current) { window.clearInterval(timerRef.current); timerRef.current = null }
+    try { if (recRef.current && recRef.current.state !== 'inactive') recRef.current.stop() } catch { /* already stopped */ }
+    setRecording(false)
+  }, [])
+
+  useEffect(() => () => {
+    if (timerRef.current) window.clearInterval(timerRef.current)
+    try { if (recRef.current && recRef.current.state !== 'inactive') recRef.current.stop() } catch { /* no-op */ }
+    streamRef.current?.getTracks().forEach(t => t.stop())
+  }, [])
+
+  const startRec = async () => {
+    setError(null)
+    if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) { setError('this browser can’t record'); return }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      const rec = createVoiceRecorder(stream)
+      recRef.current = rec
+      chunksRef.current = []
+      rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
+      rec.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: rec.mimeType || 'audio/webm' })
+        streamRef.current?.getTracks().forEach(t => t.stop())
+        streamRef.current = null
+        if (blob.size > 0) setDraftBlob(blob)
+      }
+      rec.start()
+      startedRef.current = Date.now()
+      setRecMs(0); setRecording(true)
+      timerRef.current = window.setInterval(() => {
+        const ms = Date.now() - startedRef.current
+        setRecMs(ms)
+        if (ms >= 30000) stopRec()
+      }, 200)
+    } catch (err) {
+      const reason = micErrorReason(err)
+      setError(reason === 'permission' ? 'microphone permission was declined' : reason === 'device' ? 'no microphone answered' : 'the mic wouldn’t open')
+    }
+  }
+
+  const clearDraft = () => { setDraftBlob(null); setRecMs(0) }
+
+  const post = async () => {
+    const body = text.trim().replace(/\s+/g, ' ')
+    if (!body && !draftBlob) { setError('say something, or record a moment'); return }
+    if (body) {
+      if (words < 3 || words > 40) { setError('keep it between 3 and 40 words'); return }
+      if (moderatePublicSignalText(body).status === 'flagged') { setError('that one stays unsent — it didn’t pass screening'); return }
+    }
+    const id = crypto.randomUUID?.() ?? `post-${Date.now()}`
+    const durMs = draftBlob ? Math.max(1000, recMs) : 0
+    if (draftBlob) {
+      await saveRecordingLocally({ id, label: body.slice(0, 40) || 'your signal', durationMs: durMs, emotionalTag: 'signal', createdAt: Date.now(), blob: draftBlob }).catch(() => { /* stays in-session if store fails */ })
+    }
+    const anon = anonymousMode()
+    const signal: FeedSignal = {
+      id,
+      handle: anon ? 'you · anonymous' : publicHandle(),
+      timeAgo: 'just now',
+      content: body || '(a voice signal, no words)',
+      mood: moodFromText(body),
+      resonance: 70,
+      anonymous: anon,
+      duration: draftBlob ? `0:${String(Math.min(30, Math.round(durMs / 1000))).padStart(2, '0')}` : `0:${String(10 + (words % 30)).padStart(2, '0')}`,
+      type: draftBlob ? 'voice_note' : 'drifting_thought',
+      status: 'live',
+      emotionalBand: 'yours',
+      waveformSeed: Math.floor(Math.random() * 9000) + 100,
+      mine: true,
+      audioId: draftBlob ? id : undefined,
+    }
+    onPost(signal)
+    setText(''); clearDraft(); setError(null); setOpen(false)
+  }
+
+  if (!open) {
+    return (
+      <button type="button" className="feed-compose-open" onClick={() => setOpen(true)}>
+        ✎ release a signal into the feed
+      </button>
+    )
+  }
+  return (
+    <div className="feed-composer">
+      <textarea
+        className="feed-composer-input"
+        placeholder="say the thing you'd only say at this hour…"
+        maxLength={240}
+        value={text}
+        onChange={e => setText(e.target.value)}
+        aria-label="write your signal"
+      />
+      <div className="feed-composer-row">
+        <span className="feed-composer-count">{words ? `${words} words` : 'words optional'}</span>
+        {!draftBlob ? (
+          <button type="button" className={`feed-composer-rec${recording ? ' on' : ''}`} onClick={() => (recording ? stopRec() : void startRec())}>
+            {recording ? `■ stop · ${(recMs / 1000).toFixed(0)}s` : '● add voice'}
+          </button>
+        ) : (
+          <button type="button" className="feed-composer-rec on" onClick={clearDraft}>✕ voice attached · {(recMs / 1000).toFixed(0)}s</button>
+        )}
+      </div>
+      {error && <span className="feed-composer-error" role="alert">{error}</span>}
+      <div className="feed-composer-actions">
+        <button type="button" className="feed-composer-cancel" onClick={() => { setText(''); clearDraft(); setError(null); if (recording) stopRec(); setOpen(false) }}>drift off</button>
+        <button type="button" className="feed-composer-post" onClick={() => void post()}>release ∿</button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main FeedScreen ──────────────────────────────────────────────────────────
 export default function FeedScreen() {
   const { ecosystemState } = useEcosystemState()
@@ -763,10 +955,15 @@ export default function FeedScreen() {
   const [ambientEnabled, setAmbientEnabled] = useState(false)
   const eventIndexRef = useRef(0)
 
+  const handlePost = useCallback((sig: FeedSignal) => {
+    setSignals(prev => [sig, ...prev.filter(p => p.id !== sig.id)])
+    storeMyPost(sig)
+  }, [])
+
   // Stagger signal entry + arm decay timers on unfaded ephemerals
   useEffect(() => {
     const hidden = new Set([...loadHidden(), ...loadFaded()])
-    setSignals([...FEED_SIGNALS, ...GHOST_FEED.slice(0, GHOST_PAGE_SIZE)].filter(sig => !hidden.has(sig.id)))
+    setSignals([...loadMyPosts(), ...FEED_SIGNALS, ...GHOST_FEED.slice(0, GHOST_PAGE_SIZE)].filter(sig => !hidden.has(sig.id)))
     setExpiries(Object.fromEntries(
       FEED_SIGNALS.filter(sig => sig.expiresIn != null).map(sig => [sig.id, Date.now() + (sig.expiresIn ?? 60) * 1000]),
     ))
@@ -963,6 +1160,9 @@ export default function FeedScreen() {
           </button>
           <span className="feed-signal-count">{signals.length} signals active</span>
         </div>
+
+        {/* compose: release your own signal into the feed */}
+        <FeedComposer onPost={handlePost} />
 
         {/* Signal cards */}
         <div className="feed-cards">
