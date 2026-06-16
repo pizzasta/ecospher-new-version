@@ -144,3 +144,54 @@
     animation: none;
   }
 }
+
+/* ============================================================
+   FREQUENCY SEA tuner dial styling (additive, reversible)
+   Append-only. Delete this block to fully revert.
+   Refinement 3: style the pressure range input as a vintage radio
+   slider with a thin neon-pink dial marker. Scoped to this page so
+   no other range inputs in the app are affected.
+   ============================================================ */
+
+.frequency-sea-controls input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(103, 232, 249, 0.35), rgba(255, 255, 255, 0.08));
+    cursor: ew-resize;
+}
+
+.frequency-sea-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 3px;
+    height: 18px;
+    border-radius: 1px;
+    background: #ec4899;
+    box-shadow: 0 0 8px rgba(236, 72, 153, 0.8);
+    cursor: ew-resize;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.frequency-sea-controls input[type="range"]:hover::-webkit-slider-thumb,
+.frequency-sea-controls input[type="range"]:focus-visible::-webkit-slider-thumb {
+    background: #ff6fb3;
+    box-shadow: 0 0 12px rgba(236, 72, 153, 0.95);
+}
+
+.frequency-sea-controls input[type="range"]::-moz-range-thumb {
+    width: 3px;
+    height: 18px;
+    border: none;
+    border-radius: 1px;
+    background: #ec4899;
+    box-shadow: 0 0 8px rgba(236, 72, 153, 0.8);
+    cursor: ew-resize;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .frequency-sea-controls input[type="range"]::-webkit-slider-thumb {
+          transition: none;
+    }
+}
