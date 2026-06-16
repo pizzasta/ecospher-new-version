@@ -167,13 +167,13 @@ export async function recordReplay(signalId: string, sourcePage: string) {
  * signal id (so the local card and its reactions reference the real row), or
  * null when offline/unconfigured/blocked.
  */
-export async function publishSignal(content: string, mood: string, anonymous: boolean): Promise<string | null> {
+export async function publishSignal(content: string, mood: string, anonymous: boolean, audioFileId?: string | null): Promise<string | null> {
   const ctx = await requireUser()
   if (!ctx) return null
   const title = content.trim().slice(0, 80) || 'a signal'
   const { data, error } = await ctx.db
     .from('signals')
-    .insert({ creator_id: ctx.userId, type: 'voice_note', title, caption: content, mood, visibility: 'public', is_anonymous: anonymous })
+    .insert({ creator_id: ctx.userId, type: 'voice_note', title, caption: content, mood, visibility: 'public', is_anonymous: anonymous, audio_file_id: audioFileId ?? null })
     .select('id')
     .maybeSingle()
   if (error || !data) return null

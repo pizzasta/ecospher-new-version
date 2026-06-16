@@ -7,7 +7,7 @@ import type { ExportScene } from './lib/storyExport'
 import { playSample } from './lib/sampleAudio'
 import { speakSignal, speechSupported, estimateSpeechMs } from './lib/speech'
 import { listenerCount, livedInLines } from './lib/livedIn'
-import { fetchPublicSignals, mirrorActivity, mirrorSignalFade, mirrorRecordingUpload, publishSignalToFeed, mirrorReaction } from './lib/backendBridge'
+import { fetchPublicSignals, mirrorActivity, mirrorSignalFade, publishSignalToFeed, publishVoiceSignalToFeed, mirrorReaction } from './lib/backendBridge'
 import { moderatePublicSignalText } from './lib/signalModeration'
 import { GHOST_ARCHIVE } from './lib/ghostArchive'
 import { hzForHandle } from './lib/hzSignature'
@@ -62,6 +62,7 @@ type FeedSignal = {
   expiresIn?: number
   mine?: boolean
   audioId?: string
+  audioUrl?: string
   remote?: boolean
 }
 
@@ -447,10 +448,13 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
     if (signal.audioId) {
       void postBlob(signal.audioId).then(blob => {
         if (blob) globalAudio.playBlob(blob, meta)
+        else if (signal.audioUrl) globalAudio.playUrl(signal.audioUrl, meta)
         else if (speechSupported()) { globalAudio.playSimulated(meta, estimateSpeechMs(signal.content) + 4000); speakSignal(signal.content, signal.waveformSeed, { onEnd: () => globalAudio.stop() }) }
       }).catch(() => { /* recording unavailable — stay quiet */ })
       return
     }
+    // others' voice posts play the moderated public clip
+    if (signal.audioUrl) { globalAudio.playUrl(signal.audioUrl, meta); return }
     // speakable signals are read aloud in a real voice; static/corrupted stay textured
     const speakable = signal.status !== 'corrupted' && signal.mood !== 'static'
     if (speakable && speechSupported()) {
@@ -892,13 +896,15 @@ function FeedComposer({ onPost }: { onPost: (s: FeedSignal) => void }) {
     // signal id becomes the card id so reactions notify the author
     let id: string = crypto.randomUUID?.() ?? `post-${Date.now()}`
     let remote = false
-    if (body) {
+    if (draftBlob) {
+      // voice post: upload + publish + run the clip through moderate-audio
+      const res = await publishVoiceSignalToFeed(draftBlob, body, mood, anon, Math.round(durMs / 1000))
+      if (res.id) { id = res.id; remote = true }
+      // keep a local copy (under the final id) for the author's own instant playback
+      await saveRecordingLocally({ id, label: body.slice(0, 40) || 'your signal', durationMs: durMs, emotionalTag: 'signal', createdAt: Date.now(), blob: draftBlob }).catch(() => { /* stays in-session if store fails */ })
+    } else if (body) {
       const remoteId = await publishSignalToFeed(body, mood, anon)
       if (remoteId) { id = remoteId; remote = true }
-    }
-    if (draftBlob) {
-      await saveRecordingLocally({ id, label: body.slice(0, 40) || 'your signal', durationMs: durMs, emotionalTag: 'signal', createdAt: Date.now(), blob: draftBlob }).catch(() => { /* stays in-session if store fails */ })
-      mirrorRecordingUpload(draftBlob, body.slice(0, 40) || 'your signal', durMs)
     }
     const signal: FeedSignal = {
       id,
@@ -1000,6 +1006,7 @@ export default function FeedScreen() {
         emotionalBand: 'live-network',
         waveformSeed: (r.createdAt % 997) + i,
         remote: true,
+        audioUrl: r.audioUrl,
       }))
       setSignals(prev => {
         const known = new Set(prev.map(p => p.id))
