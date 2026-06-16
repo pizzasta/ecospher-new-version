@@ -637,9 +637,10 @@ html, body, #root {
   flex-shrink: 0;
   transition: background 0.2s, color 0.2s, box-shadow 0.25s;
   /* inactive tabs recede but remain readable — decorative was invisible on mobile */
-  color: var(--text-dim);
+  /* lifted ~18% brighter so inactive routes stay scannable in low light */
+  color: rgba(178, 192, 222, 0.78);
 }
-.nav-item .nav-glyph { opacity: 0.82; transition: opacity 0.2s, text-shadow 0.2s; }
+.nav-item .nav-glyph { opacity: 0.95; transition: opacity 0.2s, text-shadow 0.2s; }
 .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-muted); }
 .nav-item:hover .nav-glyph { opacity: 0.95; }
 .nav-item.active {
