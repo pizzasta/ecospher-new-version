@@ -1,0 +1,110 @@
+/* ============================================================
+   rooms-polish.css
+   Additive layout & interaction polish for the Rooms screen.
+   Layered ON TOP of src/rooms.css — no existing rules removed.
+   Targets: .rooms-eco-grid, .rooms-section-label, .eco-card-listeners,
+            .eco-card-speakers, .eco-room-dock
+   ============================================================ */
+
+/* ---- 1. Card layout density: let cards breathe (roomier grid) ---- */
+.rooms-eco .rooms-eco-grid {
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 1.5rem 1.4rem;
+}
+@media (min-width: 1100px) {
+  .rooms-eco .rooms-eco-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.6rem 1.5rem;
+  }
+}
+@media (min-width: 1600px) {
+  .rooms-eco .rooms-eco-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.rooms-eco .rooms-eco-grid .room-card.eco-room-card {
+  padding: 1.15rem 1.25rem 1.1rem;
+}
+
+/* ---- 2. Differentiate the two zones (active vs dead) ---- */
+.rooms-eco .rooms-section-label {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(150, 215, 255, 0.14);
+}
+.rooms-eco .rooms-section-label::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(150, 215, 255, 0.85);
+  box-shadow: 0 0 8px rgba(150, 215, 255, 0.55);
+  flex: 0 0 auto;
+  transform: translateY(-1px);
+}
+.rooms-eco .rooms-section-label::after {
+  content: "live · join to listen in";
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+  text-transform: none;
+  color: rgba(150, 215, 255, 0.5);
+}
+.rooms-eco .rooms-section-label.rooms-section-label--dead {
+  color: rgba(255, 170, 150, 0.72);
+  border-bottom-color: rgba(255, 170, 150, 0.14);
+}
+.rooms-eco .rooms-section-label.rooms-section-label--dead::before {
+  background: rgba(255, 170, 150, 0.7);
+  box-shadow: 0 0 7px rgba(255, 170, 150, 0.4);
+  animation: rooms-dead-flicker 3.2s ease-in-out infinite;
+}
+.rooms-eco .rooms-section-label.rooms-section-label--dead::after {
+  content: "dormant · reopen to revive";
+  color: rgba(255, 170, 150, 0.5);
+}
+@keyframes rooms-dead-flicker {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.9; }
+}
+
+/* ---- 3. Active-count contrast: make human activity scannable ---- */
+.rooms-eco .eco-card-listeners {
+  color: rgba(232, 222, 252, 0.86);
+  font-weight: 600;
+}
+.rooms-eco .eco-card-listeners .eco-live-dot {
+  box-shadow: 0 0 7px rgba(120, 235, 180, 0.7);
+}
+.rooms-eco .eco-card-speakers {
+  color: rgba(214, 224, 248, 0.82);
+  font-weight: 500;
+}
+
+/* ---- 4. In-room expression dock: more prominent, anchored prompt ---- */
+.rooms-eco .eco-room-dock {
+  position: sticky;
+  bottom: 0.4rem;
+  z-index: 4;
+  border: 1px solid rgba(150, 215, 255, 0.16);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(16, 18, 30, 0.0), rgba(14, 16, 28, 0.55));
+  backdrop-filter: blur(6px);
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.25);
+  padding-top: 0.55rem;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.rooms-eco .eco-room-dock:focus-within {
+  border-color: rgba(150, 215, 255, 0.34);
+  box-shadow: 0 -8px 26px rgba(60, 130, 200, 0.22);
+}
+
+/* ---- Accessibility: respect reduced-motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .rooms-eco .rooms-section-label.rooms-section-label--dead::before {
+    animation: none;
+  }
+}
