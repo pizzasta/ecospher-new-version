@@ -3998,7 +3998,7 @@ function PodAudioLibrary() {
             >
               ⬡
             </button>
-            <button type="button" aria-label="delete recording" onClick={() => { setRecordings(prev => prev.filter(r => r.id !== rec.id)); void deleteLocalRecording(rec.id) }}>✕</button>
+            <button type="button" aria-label="delete recording" onClick={() => { setRecordings(prev => prev.filter(r => r.id !== rec.id)); void deleteLocalRecording(rec.id).catch(() => setRecordings(prev => prev.some(r => r.id === rec.id) ? prev : [rec, ...prev].sort((a, b) => b.createdAt - a.createdAt))) }}>✕</button>
           </div>
         </div>
       ))}
@@ -4034,7 +4034,7 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
 
   const [podHz, setPodHz] = useState<HzProfile | null>(null)
   useEffect(() => {
-    void getHzProfile(eco.userSignalIdentity ?? 'unclaimed').then(setPodHz)
+    void getHzProfile(eco.userSignalIdentity ?? 'unclaimed').then(setPodHz).catch(() => { /* keep fallback hz color */ })
   }, [eco.userSignalIdentity])
 
   const podEnergy = Math.min(1, (eco.resonanceLevel + podPulses * 2 + eco.streak.count * 4) / 130)
@@ -4161,9 +4161,6 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
               {loading ? 'transmitting…' : authMode === 'login' ? 'Enter Pod' : 'Create Signal'}
             </button>
           </form>
-          {!supabase && (
-            <div className="pod-auth-hint">⚡ Supabase not yet configured — add env vars to enable auth</div>
-          )}
         </div>
       </div>
     )
