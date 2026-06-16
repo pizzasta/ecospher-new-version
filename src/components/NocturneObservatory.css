@@ -80,13 +80,15 @@
 /* live readings grid */
 .nocturne-indicators {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
-  gap: 9px;
-  padding-top: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  column-gap: 16px;
+  row-gap: 16px;
+  margin-top: 4px;
+  padding-top: 16px;
   border-top: 1px solid rgba(140, 160, 210, 0.12);
 }
 .nocturne-ind { display: flex; flex-direction: column; gap: 1px; }
-.nocturne-ind-value { font-size: 17px; font-weight: 800; color: #cfe6ff; font-variant-numeric: tabular-nums; }
+.nocturne-ind-value { font-size: 18px; font-weight: 800; color: #aee3ff; font-variant-numeric: tabular-nums; text-shadow: 0 0 14px rgba(120, 200, 255, 0.28); }
 .nocturne-ind-label { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(160, 200, 240, 0.7); }
 .nocturne-ind-sub { font-size: 9.5px; color: rgba(170, 185, 215, 0.45); }
 
