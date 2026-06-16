@@ -38,6 +38,7 @@ import ProfileHub from './components/ProfileHub'
 import NotificationBell from './components/NotificationBell'
 import FirstTour from './components/FirstTour'
 import AgeGate, { ageConfirmed } from './components/AgeGate'
+import TuningIn from './components/TuningIn'
 import HelpBot from './components/HelpBot'
 import PodPresence from './components/PodPresence'
 import SignalSearch from './components/SignalSearch'
@@ -55,6 +56,7 @@ import { LOCALES, LOCALE_NAMES } from './lib/i18n'
 import { useRecordingSession } from './hooks/useRecordingSession'
 import { useEcoPref } from './hooks/useEcoPrefs'
 import { useLivePresence } from './hooks/useLivePresence'
+import { daysSinceLastSeen } from './lib/whileYouWereGone'
 import { leaveTrace } from './lib/pageTrace'
 import { readLastVoiceAt, silenceLine, silentDays } from './lib/weightOfSilence'
 import { enablePushNotifications } from './lib/pushNotifications'
@@ -1094,9 +1096,17 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
     void playSample(homeAudio, { id: `daily-${dailySignal.id}`, label: `daily signal · ${dailySignal.handle}`, source: 'home' }, 'voice', dayOfYear() * 31, 6000)
     tuneInDaily(dailySignal.handle)
   }
-  const [tick, setTick] = useState(0)
   const [deepListen, setDeepListen] = useState(false)
-  useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 3000); return () => clearInterval(t) }, [])
+  const livePresence = useLivePresence()
+  // honest "live threads": real carriers online when present, otherwise a calm
+  // local figure drawn from real activity — never an ever-climbing fake counter
+  const liveThreads = livePresence.total > 0
+    ? livePresence.total
+    : 38 + (dayOfYear() % 60) + ecosystemState.recentInteractions.length
+  const nightRecap = useMemo(
+    () => ({ todayKey: localDateString(), daysAway: daysSinceLastSeen(), cameBack: [], ritualTraces: readRitualTraces() }),
+    [],
+  )
   const liveActivity = humanizeActivity(ecosystemState.recentInteractions, 5).map(a => a.text)
   const activityLines = useMemo(
     () => {
@@ -1121,15 +1131,15 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
 
       <div className="stat-row">
         <div className="stat-card glass">
-          <div className="stat-value pink">{useCountUp(Math.round(ecosystemState.resonanceLevel)) + (tick % 2)}<span className="stat-unit">%</span></div>
+          <div className="stat-value pink">{useCountUp(Math.round(ecosystemState.resonanceLevel))}<span className="stat-unit">%</span></div>
           <div className="stat-label">resonance</div>
         </div>
         <div className="stat-card glass">
-          <div className="stat-value cyan">{(1000 + useCountUp(248) + tick * 3).toLocaleString()}</div>
-          <div className="stat-label">live threads</div>
+          <div className="stat-value cyan">{useCountUp(liveThreads).toLocaleString()}</div>
+          <div className="stat-label">{livePresence.total > 0 ? 'carriers online' : 'live threads'}</div>
         </div>
         <div className="stat-card glass">
-          <div className="stat-value violet">+{Math.max(1, Math.round(ecosystemState.driftActivity / 4))}</div>
+          <div className="stat-value violet">{Math.max(0, Math.round(ecosystemState.driftActivity / 4)) > 0 ? '+' : ''}{Math.max(0, Math.round(ecosystemState.driftActivity / 4))}</div>
           <div className="stat-label">drift cycles</div>
         </div>
       </div>
@@ -1138,7 +1148,7 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
 
       <TonightsFrequency />
 
-      <NightRecapPanel returnRitual={{ todayKey: localDateString(), daysAway: 0, cameBack: [], ritualTraces: readRitualTraces() }} />
+      <NightRecapPanel returnRitual={nightRecap} />
       <SignalRitualCard onAct={() => performSignalRitual('observatory')} ritual={activeRitual} />
 
       <div className={`obs-daily glass${tunedToday ? ' obs-daily--tuned' : ''}`}>
@@ -4919,6 +4929,15 @@ export default function App() {
   // 18+ gate: one-time, remembered on the device, shown before anything else
   const [ageOk, setAgeOk] = useState(ageConfirmed)
 
+  // a brief one-time "tuning in" beat after the age gate, before the tour
+  const [tunedIn, setTunedIn] = useState(() => {
+    try { return window.localStorage.getItem('ecosphere:tunedIn') === 'yes' } catch { return true }
+  })
+  const finishTuningIn = () => {
+    try { window.localStorage.setItem('ecosphere:tunedIn', 'yes') } catch { /* session only */ }
+    setTunedIn(true)
+  }
+
   // first-visit tour: one pass through what each page is for
   const [tourOpen, setTourOpen] = useState(() => {
     try { return window.localStorage.getItem('ecosphere:tourDone') !== 'yes' } catch { return false }
@@ -5027,6 +5046,9 @@ export default function App() {
 
   // nothing renders — no audio, no screens — until 18+ is confirmed
   if (!ageOk) return <AgeGate onConfirm={() => setAgeOk(true)} />
+
+  // then a short, skippable "tuning in" beat the first time through
+  if (!tunedIn) return <TuningIn onDone={finishTuningIn} />
 
   const performSignalRitual = (surface: RitualSurface) => {
     recordSignalRitualTrace(activeRitual, surface)
