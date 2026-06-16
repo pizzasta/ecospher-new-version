@@ -38,7 +38,7 @@
 
 .carrier-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) 92px 52px auto;
+  grid-template-columns: minmax(0, 1.4fr) 92px auto auto;
   align-items: center;
   gap: 10px;
   padding: 9px 11px;
@@ -100,8 +100,13 @@
 
 .carrier-streak {
   font-size: 11px;
-  color: rgba(240, 244, 255, 0.8);
+  color: rgba(240, 244, 255, 0.82);
   white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(150, 170, 215, 0.08);
+  border: 1px solid rgba(150, 170, 215, 0.1);
+  justify-self: start;
 }
 
 .carrier-actions {
@@ -110,13 +115,13 @@
 }
 
 .carrier-actions button {
-  padding: 6px 10px;
+  padding: 8px 13px;
   font-size: 10px;
   letter-spacing: 0.08em;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(220, 228, 250, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(150, 170, 215, 0.09);
+  color: rgba(224, 232, 252, 0.86);
   cursor: pointer;
   white-space: nowrap;
   transition: border-color 0.3s ease, background 0.3s ease, color 0.3s ease;
