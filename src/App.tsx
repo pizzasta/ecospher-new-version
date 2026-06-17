@@ -43,6 +43,7 @@ import TuningIn from './components/TuningIn'
 import HelpBot from './components/HelpBot'
 import PodPresence from './components/PodPresence'
 import SignalSearch from './components/SignalSearch'
+import CarrierProfile from './components/CarrierProfile'
 import QuickCreate from './components/QuickCreate'
 import ListenerTraces from './components/ListenerTraces'
 import { humanizeActivity } from './lib/listeningIdentity'
@@ -5173,6 +5174,7 @@ export default function App() {
 
       <NotificationBell />
       <SignalSearch onNavigate={page => navigate(page as Screen)} />
+      <CarrierProfile />
       <QuickCreate onNavigate={page => navigate(page as Screen)} />
       {authBusy && (
         <div className="auth-veil" role="status">

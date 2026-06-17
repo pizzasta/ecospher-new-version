@@ -520,7 +520,17 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
         <div className="card-header">
           <div className="card-handle-row">
             <div className="card-handle" style={{ color: isCorrupted ? '#ff3366' : colors.primary }}>
-              {signal.anonymous ? '⬡' : '◈'} {signal.handle}{' '}
+              {signal.anonymous ? '⬡' : '◈'}{' '}
+              {signal.anonymous ? signal.handle : (
+                <button
+                  type="button"
+                  className="card-handle-link"
+                  title="open this carrier"
+                  onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('ecosphere:viewCarrier', { detail: { handle: signal.handle, line: signal.content, seed: signal.waveformSeed } })) }}
+                >
+                  {signal.handle}
+                </button>
+              )}{' '}
               <HzBadge compact {...hzForHandle(signal.handle)} />
             </div>
             <div className="card-status" style={{ color: colors.primary, opacity: 0.7 }}>
