@@ -62,6 +62,24 @@ describe('healLocalStorage', () => {
     expect(layers[0].id).toBe('x')
   })
 
+  it('preserves bare scalar flags during a sweep, only dropping corrupt JSON', () => {
+    // legitimate non-JSON flags written by the app (read with plain getItem)
+    window.localStorage.setItem('ecosphere:tourDone', 'yes')
+    window.localStorage.setItem('ecosphere:ageConfirmed', 'yes')
+    window.localStorage.setItem('ecosphere:tonightDone', '2026-06-17')
+    window.localStorage.setItem('ecosphere:selfPasscode', '-1284001234') // String(hash)
+    // genuinely corrupt structured data that would poison a render
+    window.localStorage.setItem('ecosphere:badObject', '{"truncated":')
+    window.localStorage.setItem('ecosphere:badArray', '[1,2,')
+    healLocalStorage()
+    expect(window.localStorage.getItem('ecosphere:tourDone')).toBe('yes')
+    expect(window.localStorage.getItem('ecosphere:ageConfirmed')).toBe('yes')
+    expect(window.localStorage.getItem('ecosphere:tonightDone')).toBe('2026-06-17')
+    expect(window.localStorage.getItem('ecosphere:selfPasscode')).toBe('-1284001234')
+    expect(window.localStorage.getItem('ecosphere:badObject')).toBeNull()
+    expect(window.localStorage.getItem('ecosphere:badArray')).toBeNull()
+  })
+
   it('rearmStorageHeal makes the heal run again after the version was stamped', () => {
     // simulate a returning user the one-time heal already ran for...
     window.localStorage.setItem(SCHEMA_KEY, String(STORAGE_SCHEMA_VERSION))
