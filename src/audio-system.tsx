@@ -211,7 +211,7 @@ function getBrowserSupport(): AudioDebugState['browserSupport'] {
     audioContext: Boolean(window.AudioContext || (window as BrowserAudioWindow).webkitAudioContext),
     htmlAudio: typeof Audio !== 'undefined',
     mediaRecorder: typeof MediaRecorder !== 'undefined',
-    microphone: Boolean(navigator.mediaDevices?.getUserMedia),
+    microphone: Boolean(navigator.mediaDevices && 'getUserMedia' in navigator.mediaDevices),
   }
 }
 
