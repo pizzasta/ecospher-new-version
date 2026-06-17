@@ -38,7 +38,6 @@ import { quietFor } from './lib/dormantRooms'
 import type { DormantRoom } from './lib/dormantRooms'
 import DeepListen from './components/DeepListen'
 import ProfileHub from './components/ProfileHub'
-import ControlDeck from './components/ControlDeck'
 import NotificationBell from './components/NotificationBell'
 import FirstTour from './components/FirstTour'
 import AgeGate, { ageConfirmed } from './components/AgeGate'
@@ -5226,7 +5225,7 @@ export default function App() {
     frequencies: <FrequenciesScreen />,
     anomalies: <AnomaliesScreen />,
     pod: <SoulPodScreen user={user} onSignOut={handleSignOut} onNavigate={navigate} mode="profile" />,
-    dashboard: <ControlDeck onNavigate={navigate} />,
+    dashboard: <SoulPodScreen user={user} onSignOut={handleSignOut} onNavigate={navigate} mode="dashboard" />,
     transmit: <Transmissions />,
     settings: <SettingsScreen />,
   }
