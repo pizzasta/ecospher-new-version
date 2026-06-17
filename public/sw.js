@@ -2,9 +2,12 @@
 // Navigation: network-first with cached shell fallback. Hashed assets:
 // cache-first (immutable). Cross-origin (fonts, supabase) untouched.
 
-// bump this on deploys that must reach already-installed clients — the new SW
-// activates, deletes the old cache, and claims open tabs/PWAs immediately.
-const CACHE = 'ecosphere-cache-v2'
+// the cache name is derived from the ?v=<build id> the app registers this
+// worker with, so every deploy is a new script URL + a new cache. the new SW
+// installs, `activate` deletes every older cache, and it claims open tabs/PWAs
+// immediately — already-installed clients always get the fresh build.
+const VERSION = new URL(self.location.href).searchParams.get('v') || 'v2'
+const CACHE = `ecosphere-${VERSION}`
 const SHELL = ['/', '/favicon.svg']
 
 self.addEventListener('install', (event) => {
