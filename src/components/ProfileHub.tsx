@@ -8,6 +8,8 @@ import type { StoredRecording } from '../lib/localAudioStore'
 import { getListenCounts, getProfile, syncProfile } from '../lib'
 import { isSupabaseConfigured } from '../lib/supabase-env'
 import { moderatePublicSignalText } from '../lib/signalModeration'
+import { readStatus, writeStatus, readFeatured, writeFeatured } from '../lib/profileExtras'
+import type { FeaturedSignal } from '../lib/profileExtras'
 import { getHzProfile, getLocalHzProfile } from '../lib/hzSignature'
 import { useEcoPref } from '../hooks/useEcoPrefs'
 import { readAvatar, saveAvatar, sigilGlyph } from '../lib/avatar'
@@ -75,7 +77,7 @@ const VOICE_PROMPTS = [
 ]
 
 // which cards live on the public Profile vs the private Dashboard
-const PROFILE_TILES = ['identity', 'wall']
+const PROFILE_TILES = ['identity', 'featured', 'wall']
 const DASHBOARD_TILES = ['tonightAction', 'prompts', 'echoes', 'tonight', 'history', 'shelf', 'vault', 'reach', 'tuning']
 
 export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavigate?: (screen: string) => void; variant?: 'profile' | 'dashboard' }) {
@@ -103,6 +105,35 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
     }
     setSignalIdentity(clean)
     setEditingName(false); setNameError(null)
+  }
+  // status line — a short "now broadcasting…" you set
+  const [status, setStatus] = useState(() => readStatus())
+  const [editingStatus, setEditingStatus] = useState(false)
+  const [statusDraft, setStatusDraft] = useState('')
+  const [statusError, setStatusError] = useState<string | null>(null)
+  const commitStatus = () => {
+    const clean = statusDraft.trim().replace(/\s+/g, ' ').slice(0, 80)
+    if (clean && moderatePublicSignalText(clean).status === 'flagged') { setStatusError('that one can’t broadcast'); return }
+    writeStatus(clean); setStatus(clean); setEditingStatus(false); setStatusError(null)
+  }
+  // featured signal — one recording pinned as your frequency anthem
+  const [featured, setFeatured] = useState<FeaturedSignal | null>(() => readFeatured())
+  const [featuredPicker, setFeaturedPicker] = useState(false)
+  const [featuredOptions, setFeaturedOptions] = useState<StoredRecording[]>([])
+  const openFeaturedPicker = () => {
+    setFeaturedPicker(true)
+    void listLocalRecordings().then(rows => setFeaturedOptions(rows.sort((a, b) => b.createdAt - a.createdAt))).catch(() => { /* none stored */ })
+  }
+  const pinFeatured = (rec: StoredRecording) => {
+    const next = { id: rec.id, label: rec.label, durationMs: rec.durationMs }
+    writeFeatured(next); setFeatured(next); setFeaturedPicker(false)
+  }
+  const clearFeatured = () => { writeFeatured(null); setFeatured(null) }
+  const playFeatured = () => {
+    if (!featured) return
+    void listLocalRecordings()
+      .then(rows => { const r = rows.find(x => x.id === featured.id); if (r) globalAudio.playBlob(r.blob, { id: r.id, label: r.label, source: 'pod' }) })
+      .catch(() => { /* recording unavailable */ })
   }
   // avatar sigil: a chosen mark instead of a photo — there are no photos here
   const [avatar, setAvatar] = useState(() => readAvatar())
@@ -527,6 +558,38 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
           </ul>
         </div>
     ),
+    featured: (
+        <div className="ph-card glass ph-featured">
+          <div className="ph-card-head">
+            <span className="ph-card-kicker">FREQUENCY ANTHEM</span>
+            {featured && <button type="button" className="ph-featured-clear" onClick={clearFeatured}>unpin</button>}
+          </div>
+          {featured ? (
+            <div className="ph-featured-now">
+              <button type="button" className="ph-featured-play" aria-label="play your frequency anthem" onClick={playFeatured}>▶</button>
+              <div className="ph-featured-meta">
+                <strong>{featured.label}</strong>
+                <em>{Math.max(1, Math.round(featured.durationMs / 1000))}s · plays first when someone tunes in</em>
+              </div>
+            </div>
+          ) : featuredPicker ? (
+            <div className="ph-featured-picker">
+              {featuredOptions.length === 0 ? (
+                <p className="ph-empty">no recordings yet — leave one in the Dashboard, then pin it here.</p>
+              ) : featuredOptions.map(rec => (
+                <button key={rec.id} type="button" className="ph-featured-option" onClick={() => pinFeatured(rec)}>
+                  <span>{rec.label}</span>
+                  <em>{Math.max(1, Math.round(rec.durationMs / 1000))}s</em>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <button type="button" className="ph-featured-add" onClick={openFeaturedPicker}>
+              ◈ pin a signal as your frequency anthem
+            </button>
+          )}
+        </div>
+    ),
     wall: returns.length > 0 && (
           <div className="ph-card glass">
             <div className="ph-card-head">
@@ -726,7 +789,7 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
 
   // pinterest-board layout: tile order is yours, saved per device
   const [boardOrder, setBoardOrder] = useState<string[]>(() => {
-    const defaults = ['identity', 'tonightAction', 'prompts', 'echoes', 'tonight', 'history', 'wall', 'shelf', 'vault', 'reach', 'tuning']
+    const defaults = ['identity', 'featured', 'tonightAction', 'prompts', 'echoes', 'tonight', 'history', 'wall', 'shelf', 'vault', 'reach', 'tuning']
     try {
       const stored = JSON.parse(window.localStorage.getItem('ecosphere:hubBoard') ?? '[]') as string[]
       const valid = stored.filter(id => defaults.includes(id))
@@ -890,6 +953,31 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
                 </div>
                 {nameError && <div className="ph-readout-error"><dd role="alert">{nameError}</dd></div>}
                 <div><dt>sigil</dt><dd>{avatar === 'hz' ? `${hzProfile.hz.toFixed(0)}hz` : sigilGlyph(avatar)}</dd></div>
+                <div className="ph-readout-status">
+                  <dt>broadcasting</dt>
+                  <dd>
+                    {editingStatus ? (
+                      <span className="ph-name-edit">
+                        <input
+                          type="text"
+                          autoFocus
+                          maxLength={80}
+                          value={statusDraft}
+                          aria-label="set your status"
+                          placeholder="now broadcasting…"
+                          onChange={e => { setStatusDraft(e.target.value); setStatusError(null) }}
+                          onKeyDown={e => { if (e.key === 'Enter') commitStatus(); if (e.key === 'Escape') { setEditingStatus(false); setStatusError(null) } }}
+                        />
+                        <button type="button" className="ph-name-save" onClick={commitStatus}>set</button>
+                      </span>
+                    ) : (
+                      <button type="button" className="ph-name-current" title="set your status" onClick={() => { setStatusDraft(status); setEditingStatus(true) }}>
+                        {status || 'set a status'} <span aria-hidden="true">✎</span>
+                      </button>
+                    )}
+                  </dd>
+                </div>
+                {statusError && <div className="ph-readout-error"><dd role="alert">{statusError}</dd></div>}
               </dl>
             </div>
             <div className="ph-readout-group ph-readout-group--sensed">
