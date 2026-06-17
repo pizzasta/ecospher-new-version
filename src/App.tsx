@@ -2811,9 +2811,13 @@ function createActiveSignalRitual(date = new Date()): ActiveSignalRitual {
   const todayKey = getRitualNightKey(date)
   const seed = getDateSeed(todayKey)
   const ritual = signalRituals[seed % signalRituals.length]
-  if (window.localStorage.getItem(signalRitualDayStorageKey) !== todayKey) {
-    window.localStorage.setItem(signalRitualDayStorageKey, todayKey)
-  }
+  // runs in a render-time initializer; never let a throwing localStorage
+  // (in-app/embedded webviews, private mode) crash the screen.
+  try {
+    if (window.localStorage.getItem(signalRitualDayStorageKey) !== todayKey) {
+      window.localStorage.setItem(signalRitualDayStorageKey, todayKey)
+    }
+  } catch { /* storage unavailable — ritual still renders */ }
   return {
     ...ritual,
     endsLabel: 'fades by morning',

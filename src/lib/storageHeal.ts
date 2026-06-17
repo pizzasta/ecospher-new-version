@@ -80,7 +80,12 @@ function healSettings(): void {
   }
 }
 
-/** Drop any ecosphere: key whose value is no longer valid JSON. */
+/** Drop any ecosphere: key whose value was *meant* to be JSON (an object,
+ *  array, or quoted string) but no longer parses — those corrupt structured
+ *  blobs are what poison a render. Bare scalar flags written as raw strings
+ *  (e.g. 'yes', a passcode hash, a date key like '2026-06-17') are legitimate
+ *  non-JSON values their readers fetch with getItem, not JSON.parse, so they
+ *  are left untouched — sweeping them would silently wipe age/tour/sound/etc. */
 function sweepUnparseable(): void {
   let keys: string[] = []
   try { keys = Object.keys(window.localStorage) } catch { return }
@@ -88,6 +93,7 @@ function sweepUnparseable(): void {
     if (!key.startsWith('ecosphere:') || key === SCHEMA_KEY) continue
     const raw = read(key)
     if (raw == null) continue
+    if (!/^[[{"]/.test(raw.trimStart())) continue // bare scalar flag, not corruption
     try { JSON.parse(raw) } catch { drop(key) }
   }
 }
@@ -115,4 +121,14 @@ export function healLocalStorage(): void {
   ensureKind('ecosphere:seaLines', 'array')
 
   try { window.localStorage.setItem(SCHEMA_KEY, String(STORAGE_SCHEMA_VERSION)) } catch { /* ignore */ }
+}
+
+/**
+ * Force healLocalStorage to run again on the next boot by clearing the schema
+ * stamp. Safe and non-destructive — the heal only repairs or drops malformed
+ * data. Crash recovery calls this so a plain reload can re-sanitize persisted
+ * state that the one-time heal had already fast-pathed past.
+ */
+export function rearmStorageHeal(): void {
+  try { window.localStorage.removeItem(SCHEMA_KEY) } catch { /* ignore */ }
 }

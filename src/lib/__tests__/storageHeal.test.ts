@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
-import { healLocalStorage, STORAGE_SCHEMA_VERSION } from '../storageHeal'
+import { healLocalStorage, rearmStorageHeal, STORAGE_SCHEMA_VERSION } from '../storageHeal'
 
 const SCHEMA_KEY = 'ecosphere:schemaVersion'
 const STATE_KEY = 'ecosphere:EcosystemState'
@@ -60,6 +60,37 @@ describe('healLocalStorage', () => {
     const layers = JSON.parse(window.localStorage.getItem('ecosphere:chainLayers')!)
     expect(layers).toHaveLength(1)
     expect(layers[0].id).toBe('x')
+  })
+
+  it('preserves bare scalar flags during a sweep, only dropping corrupt JSON', () => {
+    // legitimate non-JSON flags written by the app (read with plain getItem)
+    window.localStorage.setItem('ecosphere:tourDone', 'yes')
+    window.localStorage.setItem('ecosphere:ageConfirmed', 'yes')
+    window.localStorage.setItem('ecosphere:tonightDone', '2026-06-17')
+    window.localStorage.setItem('ecosphere:selfPasscode', '-1284001234') // String(hash)
+    // genuinely corrupt structured data that would poison a render
+    window.localStorage.setItem('ecosphere:badObject', '{"truncated":')
+    window.localStorage.setItem('ecosphere:badArray', '[1,2,')
+    healLocalStorage()
+    expect(window.localStorage.getItem('ecosphere:tourDone')).toBe('yes')
+    expect(window.localStorage.getItem('ecosphere:ageConfirmed')).toBe('yes')
+    expect(window.localStorage.getItem('ecosphere:tonightDone')).toBe('2026-06-17')
+    expect(window.localStorage.getItem('ecosphere:selfPasscode')).toBe('-1284001234')
+    expect(window.localStorage.getItem('ecosphere:badObject')).toBeNull()
+    expect(window.localStorage.getItem('ecosphere:badArray')).toBeNull()
+  })
+
+  it('rearmStorageHeal makes the heal run again after the version was stamped', () => {
+    // simulate a returning user the one-time heal already ran for...
+    window.localStorage.setItem(SCHEMA_KEY, String(STORAGE_SCHEMA_VERSION))
+    window.localStorage.setItem('ecosphere:garbage', '{not valid json')
+    healLocalStorage() // fast-paths: leaves the poison untouched
+    expect(window.localStorage.getItem('ecosphere:garbage')).toBe('{not valid json')
+    // ...re-arming lets the next boot's heal re-sanitize and clear it
+    rearmStorageHeal()
+    healLocalStorage()
+    expect(window.localStorage.getItem('ecosphere:garbage')).toBeNull()
+    expect(window.localStorage.getItem(SCHEMA_KEY)).toBe(String(STORAGE_SCHEMA_VERSION))
   })
 
   it('strips a non-string language from settings but keeps the rest', () => {
