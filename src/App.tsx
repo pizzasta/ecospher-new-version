@@ -120,7 +120,8 @@ const SCREEN_TITLES: Record<Screen, string> = {
   unsent: 'Unsent Room',
   capsules: 'Capsules',
   relics: 'Relics',
-  pod: 'Soul Pod',
+  pod: 'Profile',
+  dashboard: 'Dashboard',
   zones: 'Dead Zones',
   frequencies: 'Frequency Sea',
   anomalies: 'Anomalies',
@@ -140,7 +141,7 @@ import { useAudioManager, AudioDebugPanel } from './audio-system'
 import type { AmbientLayerKey, SampleAudioKey } from './audio-system'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'unsent' | 'capsules' | 'relics' | 'pod' | 'zones' | 'frequencies' | 'anomalies' | 'settings' | 'chains'
+type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'unsent' | 'capsules' | 'relics' | 'pod' | 'dashboard' | 'zones' | 'frequencies' | 'anomalies' | 'settings' | 'chains'
 type Mood = 'nocturne' | 'bloom' | 'drift' | 'static' | 'lost'
 
 type SignalThread = {
@@ -592,7 +593,8 @@ const navItems: { id: Screen; label: string; glyph: string }[] = [
   { id: 'capsules', label: 'Capsules', glyph: '⬡' },
   { id: 'relics', label: 'Relics', glyph: '◈' },
   { id: 'zones', label: 'Dead Zones', glyph: '✕' },
-  { id: 'pod', label: 'Soul Pod', glyph: '♡' },
+  { id: 'pod', label: 'Profile', glyph: '◈' },
+  { id: 'dashboard', label: 'Dashboard', glyph: '▦' },
   { id: 'settings', label: 'Settings', glyph: '⊙' },
 ]
 
@@ -4056,7 +4058,7 @@ const POD_EVENTS = [
   'your room from last night is active again',
 ] as const
 
-function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string; id: string } | null; onSignOut: () => void; onNavigate?: (s: Screen) => void }) {
+function SoulPodScreen({ user, onSignOut, onNavigate, mode = 'profile' }: { user: { email?: string; id: string } | null; onSignOut: () => void; onNavigate?: (s: Screen) => void; mode?: 'profile' | 'dashboard' }) {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -4116,7 +4118,7 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
 
   // without a configured backend the pod runs in local mode — never a dead end.
   // with a backend you can still drift in locally without an account.
-  if (!user && supabase && !podLocalMode) {
+  if (mode === 'profile' && !user && supabase && !podLocalMode) {
     return (
       <div className="screen">
         <div className="screen-header">
@@ -4210,18 +4212,29 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
 
   return (
     <div className="screen">
-      <PodPresence
-        energy={podEnergy}
-        stage={podStage}
-        rippling={rippling}
-        streak={eco.streak.count}
-        identity={eco.userSignalIdentity}
-        hzColor={podHz?.color}
-        onTouch={touchPod}
-      />
-      <ProfileHub onNavigate={screen => onNavigate?.(screen as Screen)} />
-      <PostRelics view="hub" />
-      <StickyNotes />
+      {mode === 'dashboard' && (
+        <div className="screen-header">
+          <div className="screen-kicker">YOUR PRIVATE BAND</div>
+          <h2 className="screen-title">Dashboard</h2>
+          <p className="screen-sub">your saved voices, recaps, and the signals only you hear</p>
+        </div>
+      )}
+      {mode === 'profile' && (
+        <PodPresence
+          energy={podEnergy}
+          stage={podStage}
+          rippling={rippling}
+          streak={eco.streak.count}
+          identity={eco.userSignalIdentity}
+          hzColor={podHz?.color}
+          onTouch={touchPod}
+        />
+      )}
+      <ProfileHub variant={mode} onNavigate={screen => onNavigate?.(screen as Screen)} />
+      {mode === 'profile' && <PostRelics view="relics" />}
+      {mode === 'dashboard' && <PostRelics view="hub" />}
+      {mode === 'dashboard' && <StickyNotes />}
+      {mode === 'profile' && (
       <div className="hub-actions">
         {[
           { label: '◉ record signal', page: 'unsent' as Screen },
@@ -4234,6 +4247,8 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
           </button>
         ))}
       </div>
+      )}
+      {mode === 'dashboard' && (
       <div className="lp-pod-stats">
         {[
           { label: 'resonance', value: `${Math.round(eco.resonanceLevel)}%` },
@@ -4249,7 +4264,8 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
           </div>
         ))}
       </div>
-      {eco.library.length > 0 && (
+      )}
+      {mode === 'dashboard' && eco.library.length > 0 && (
         <div className="lp-library">
           <div className="lp-library-head">
             <span>SAVED LIBRARY</span>
@@ -4289,7 +4305,7 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
           ))}
         </div>
       )}
-      {eco.archiveHistory.length > 0 && (
+      {mode === 'dashboard' && eco.archiveHistory.length > 0 && (
         <div className="lp-library lp-archive">
           <div className="lp-library-head">
             <span>ARCHIVE HISTORY</span>
@@ -4306,9 +4322,9 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
           ))}
         </div>
       )}
-      <PodAudioLibrary />
+      {mode === 'dashboard' && <PodAudioLibrary />}
 
-      {eco.recentInteractions.length > 0 && (
+      {mode === 'dashboard' && eco.recentInteractions.length > 0 && (
         <div className="lp-library hub-activity">
           <div className="lp-library-head">
             <span>RECENT ACTIVITY</span>
@@ -4327,7 +4343,8 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
         </div>
       )}
       <LiveTail page="pod" onNavigate={onNavigate} />
-      <SignalToSelf accent={podHz?.color ?? '#66ccff'} />
+      {mode === 'dashboard' && <SignalToSelf accent={podHz?.color ?? '#66ccff'} />}
+      {mode === 'profile' && (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: '12px', marginBottom: '4px' }}>
         <div>
           <div style={{ fontSize: '10px', color: 'rgba(180,190,220,0.45)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '2px' }}>
@@ -4347,6 +4364,7 @@ function SoulPodScreen({ user, onSignOut, onNavigate }: { user: { email?: string
           <span style={{ fontSize: '10px', color: 'rgba(180,190,220,0.4)', letterSpacing: '0.08em' }}>stored on this device</span>
         )}
       </div>
+      )}
       <AmbientLine lines={POD_EVENTS} />
     </div>
   )
@@ -5138,7 +5156,8 @@ export default function App() {
     zones: <DeadZonesScreen />,
     frequencies: <FrequenciesScreen />,
     anomalies: <AnomaliesScreen />,
-    pod: <SoulPodScreen user={user} onSignOut={handleSignOut} onNavigate={navigate} />,
+    pod: <SoulPodScreen user={user} onSignOut={handleSignOut} onNavigate={navigate} mode="profile" />,
+    dashboard: <SoulPodScreen user={user} onSignOut={handleSignOut} onNavigate={navigate} mode="dashboard" />,
     settings: <SettingsScreen />,
   }
 
