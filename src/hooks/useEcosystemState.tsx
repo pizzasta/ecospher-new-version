@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { mirrorActivity } from '../lib/backendBridge'
+import { validEntries } from '../lib/shapeGuards'
 
 export type EcosystemPage =
   | 'home'
@@ -155,21 +156,6 @@ function addUnique(list: string[], value: string, max = 40) {
 
 function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : []
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
-
-/** Keep only array items that are objects carrying the required string-typed
- *  keys. Persisted entries from older builds can be malformed (missing `label`,
- *  wrong shape) and would otherwise throw on first render — e.g. humanizeActivity
- *  calling `it.label.replace(...)`. Dropping bad entries fails safe. */
-function validEntries<T>(value: unknown, requiredStringKeys: string[]): T[] {
-  if (!Array.isArray(value)) return []
-  return value.filter(
-    (v): v is T => isRecord(v) && requiredStringKeys.every((k) => typeof v[k] === 'string'),
-  )
 }
 
 function readStoredState(): EcosystemState {

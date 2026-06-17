@@ -24,7 +24,10 @@ function day(now: number): number { return Math.floor(now / 86400000) }
 /** Your cast lines that travelled far enough to become relics (top 2). */
 export function driftedTextRelics(now = Date.now()): DriftedRelic[] {
   let lines: string[] = []
-  try { lines = JSON.parse(window.localStorage.getItem(SEA_LINES_KEY) ?? '[]') } catch { lines = [] }
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SEA_LINES_KEY) ?? '[]')
+    lines = Array.isArray(parsed) ? parsed.filter((t): t is string => typeof t === 'string') : []
+  } catch { lines = [] }
   return lines
     .map(text => {
       const seed = hash(text) + day(now)

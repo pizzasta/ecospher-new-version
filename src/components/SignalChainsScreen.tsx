@@ -8,6 +8,7 @@ import AudioRecorder from './AudioRecorder'
 import { useEcoPref } from '../hooks/useEcoPrefs'
 import { sendLive } from '../lib/liveBus'
 import type { LiveEvent } from '../lib/liveBus'
+import { validEntries } from '../lib/shapeGuards'
 import '../chains.css'
 
 // ═══════════════════════════════════════════════════════════════
@@ -153,7 +154,7 @@ export default function SignalChainsScreen() {
 
   // your real layers, stored on-device
   const [myLayers, setMyLayers] = useState<MyLayer[]>(() => {
-    try { return JSON.parse(window.localStorage.getItem('ecosphere:chainLayers') ?? '[]') } catch { return [] }
+    try { return validEntries<MyLayer>(JSON.parse(window.localStorage.getItem('ecosphere:chainLayers') ?? '[]'), ['id']) } catch { return [] }
   })
   const [myBlobs, setMyBlobs] = useState<Record<string, Blob>>({})
   useEffect(() => {
