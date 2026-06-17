@@ -16,12 +16,24 @@ export async function clearStaleBuild(): Promise<void> {
   } catch { /* best effort — caller reloads regardless */ }
 }
 
-/** Full reset for an unrecoverable render crash: clears the service worker,
- *  caches, localStorage and the audio IndexedDB, then hard-reloads into a clean
- *  app. Destructive — only offered as the stubborn-case escape hatch. */
+/** Full reset for an unrecoverable render crash: clears localStorage and the
+ *  audio IndexedDB (the data that can poison a render), best-effort drops the
+ *  service worker + caches, then hard-reloads into a clean app. Destructive —
+ *  only offered as the stubborn-case escape hatch.
+ *
+ *  Order matters: we clear the poisoning *data* first and synchronously, because
+ *  a hung service-worker unregister must never block the reload (that bug made
+ *  the recovery button appear dead). The SW/cache clear is raced against a short
+ *  timeout so the reload always happens. */
 export async function recoverFromCrash(): Promise<void> {
-  await clearStaleBuild()
   try { window.localStorage.clear() } catch { /* storage unavailable */ }
   try { indexedDB.deleteDatabase('ecosphere-audio') } catch { /* unavailable */ }
+  // best effort — never let a stuck service worker block the reload
+  try {
+    await Promise.race([
+      clearStaleBuild(),
+      new Promise<void>((resolve) => { window.setTimeout(resolve, 1500) }),
+    ])
+  } catch { /* reload regardless */ }
   window.location.reload()
 }
