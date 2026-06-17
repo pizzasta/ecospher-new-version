@@ -75,6 +75,7 @@ const FeedScreen = lazy(() => import('./FeedScreen'))
 const RoomsScreenComponent = lazy(() => import('./components/RoomsScreen'))
 const UnsentRoom = lazy(() => import('./components/UnsentRoom'))
 const SignalChainsScreen = lazy(() => import('./components/SignalChainsScreen'))
+const Transmissions = lazy(() => import('./components/Transmissions'))
 
 /**
  * rollupActivity — collapses consecutive activity entries that share the
@@ -123,6 +124,7 @@ const SCREEN_TITLES: Record<Screen, string> = {
   relics: 'Relics',
   pod: 'Profile',
   dashboard: 'Dashboard',
+  transmit: 'Transmissions',
   zones: 'Dead Zones',
   frequencies: 'Frequency Sea',
   anomalies: 'Anomalies',
@@ -142,7 +144,7 @@ import { useAudioManager, AudioDebugPanel } from './audio-system'
 import type { AmbientLayerKey, SampleAudioKey } from './audio-system'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'unsent' | 'capsules' | 'relics' | 'pod' | 'dashboard' | 'zones' | 'frequencies' | 'anomalies' | 'settings' | 'chains'
+type Screen = 'home' | 'signals' | 'drift' | 'rooms' | 'unsent' | 'capsules' | 'relics' | 'pod' | 'dashboard' | 'zones' | 'frequencies' | 'anomalies' | 'settings' | 'chains' | 'transmit'
 type Mood = 'nocturne' | 'bloom' | 'drift' | 'static' | 'lost'
 
 type SignalThread = {
@@ -596,6 +598,7 @@ const navItems: { id: Screen; label: string; glyph: string }[] = [
   { id: 'zones', label: 'Dead Zones', glyph: '✕' },
   { id: 'pod', label: 'Profile', glyph: '◈' },
   { id: 'dashboard', label: 'Dashboard', glyph: '▦' },
+  { id: 'transmit', label: 'Transmit', glyph: '⌁' },
   { id: 'settings', label: 'Settings', glyph: '⊙' },
 ]
 
@@ -5159,6 +5162,7 @@ export default function App() {
     anomalies: <AnomaliesScreen />,
     pod: <SoulPodScreen user={user} onSignOut={handleSignOut} onNavigate={navigate} mode="profile" />,
     dashboard: <SoulPodScreen user={user} onSignOut={handleSignOut} onNavigate={navigate} mode="dashboard" />,
+    transmit: <Transmissions />,
     settings: <SettingsScreen />,
   }
 
