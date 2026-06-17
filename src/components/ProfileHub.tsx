@@ -74,7 +74,12 @@ const VOICE_PROMPTS = [
   'when did you last feel completely unhurried?',
 ]
 
-export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: string) => void }) {
+// which cards live on the public Profile vs the private Dashboard
+const PROFILE_TILES = ['identity', 'wall']
+const DASHBOARD_TILES = ['tonightAction', 'prompts', 'echoes', 'tonight', 'history', 'shelf', 'vault', 'reach', 'tuning']
+
+export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavigate?: (screen: string) => void; variant?: 'profile' | 'dashboard' }) {
+  const allowedTiles = variant === 'profile' ? PROFILE_TILES : DASHBOARD_TILES
   const { ecosystemState, setSignalIdentity } = useEcosystemState()
   const globalAudio = useGlobalAudio()
   const privateProfile = useEcoPref('privateProfile', false)
@@ -805,7 +810,8 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
         </div>
       )}
 
-      {/* centerpiece: the identity ring — your frequency, breathing */}
+      {/* centerpiece: the identity ring — your frequency, breathing (public profile) */}
+      {variant === 'profile' && (
       <div className={`ph-centerpiece${settling ? ' ph-centerpiece--settling' : ''}`}>
         <div className={`ph-ring${ecosystemState.activeAudio ? ' ph-ring--live' : ''}`} style={{ '--ring-color': hzProfile.color } as CSSProperties} aria-hidden="true">
           <div className="ph-ring-bars">
@@ -899,6 +905,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
           </div>
         </div>
       </div>
+      )}
 
       <div className="ph-board-bar">
         <button type="button" className={`ph-arrange-toggle${arranging ? ' on' : ''}`} onClick={() => setArranging(a => !a)}>
@@ -906,7 +913,7 @@ export default function ProfileHub({ onNavigate }: { onNavigate?: (screen: strin
         </button>
       </div>
       <div className={`ph-board${arranging ? ' ph-board--arranging' : ''}`}>
-        {boardOrder.map(tileId => {
+        {boardOrder.filter(id => allowedTiles.includes(id)).map(tileId => {
           const tile = tiles[tileId]
           if (!tile) return null
           return (

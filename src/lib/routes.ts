@@ -4,7 +4,7 @@
 
 export type ScreenRoute =
   | 'home' | 'signals' | 'drift' | 'rooms' | 'unsent' | 'capsules'
-  | 'relics' | 'pod' | 'zones' | 'frequencies' | 'anomalies' | 'settings'
+  | 'relics' | 'pod' | 'dashboard' | 'zones' | 'frequencies' | 'anomalies' | 'settings'
   | 'chains'
 
 export const SCREEN_PATHS: Record<ScreenRoute, string> = {
@@ -16,6 +16,7 @@ export const SCREEN_PATHS: Record<ScreenRoute, string> = {
   capsules: '/capsules',
   relics: '/relics',
   pod: '/pod',
+  dashboard: '/dashboard',
   zones: '/zones',
   frequencies: '/frequencies',
   anomalies: '/anomalies',
