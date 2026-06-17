@@ -116,3 +116,13 @@ export function healLocalStorage(): void {
 
   try { window.localStorage.setItem(SCHEMA_KEY, String(STORAGE_SCHEMA_VERSION)) } catch { /* ignore */ }
 }
+
+/**
+ * Force healLocalStorage to run again on the next boot by clearing the schema
+ * stamp. Safe and non-destructive — the heal only repairs or drops malformed
+ * data. Crash recovery calls this so a plain reload can re-sanitize persisted
+ * state that the one-time heal had already fast-pathed past.
+ */
+export function rearmStorageHeal(): void {
+  try { window.localStorage.removeItem(SCHEMA_KEY) } catch { /* ignore */ }
+}

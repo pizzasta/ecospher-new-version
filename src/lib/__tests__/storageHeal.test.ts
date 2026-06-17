@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
-import { healLocalStorage, STORAGE_SCHEMA_VERSION } from '../storageHeal'
+import { healLocalStorage, rearmStorageHeal, STORAGE_SCHEMA_VERSION } from '../storageHeal'
 
 const SCHEMA_KEY = 'ecosphere:schemaVersion'
 const STATE_KEY = 'ecosphere:EcosystemState'
@@ -60,6 +60,19 @@ describe('healLocalStorage', () => {
     const layers = JSON.parse(window.localStorage.getItem('ecosphere:chainLayers')!)
     expect(layers).toHaveLength(1)
     expect(layers[0].id).toBe('x')
+  })
+
+  it('rearmStorageHeal makes the heal run again after the version was stamped', () => {
+    // simulate a returning user the one-time heal already ran for...
+    window.localStorage.setItem(SCHEMA_KEY, String(STORAGE_SCHEMA_VERSION))
+    window.localStorage.setItem('ecosphere:garbage', '{not valid json')
+    healLocalStorage() // fast-paths: leaves the poison untouched
+    expect(window.localStorage.getItem('ecosphere:garbage')).toBe('{not valid json')
+    // ...re-arming lets the next boot's heal re-sanitize and clear it
+    rearmStorageHeal()
+    healLocalStorage()
+    expect(window.localStorage.getItem('ecosphere:garbage')).toBeNull()
+    expect(window.localStorage.getItem(SCHEMA_KEY)).toBe(String(STORAGE_SCHEMA_VERSION))
   })
 
   it('strips a non-string language from settings but keeps the rest', () => {
