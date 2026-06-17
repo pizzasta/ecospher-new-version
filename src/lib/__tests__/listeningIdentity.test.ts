@@ -93,6 +93,24 @@ describe('humanized activity', () => {
       expect(activity.text).not.toMatch(/^entered /)
     }
   })
+
+  // regression: old persisted interactions could be malformed (missing/non-string
+  // label or type) and threw `it.label.replace` on first render, trapping the
+  // user on the error boundary. humanizeActivity must skip them, never throw.
+  it('survives malformed/old persisted interactions without throwing', () => {
+    const malformed = [
+      { type: 'signal_play', createdAt: iso(0.1) },            // missing label
+      { type: 'room_enter', label: 42, createdAt: iso(0.2) },  // non-string label
+      null,                                                    // not an object
+      'corrupt',                                               // primitive
+      { label: 'no type here', createdAt: iso(0.3) },          // missing type
+      { type: 'page_visit', label: 'entered relics', page: 'relics', createdAt: iso(0.4) },
+    ] as unknown as Parameters<typeof humanizeActivity>[0]
+    const out = humanizeActivity(malformed)
+    // only the one well-formed entry survives
+    expect(out).toHaveLength(1)
+    expect(out[0].text).not.toMatch(/^entered /)
+  })
 })
 
 describe('one thing tonight', () => {

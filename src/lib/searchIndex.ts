@@ -66,6 +66,8 @@ export function buildSearchIndex(): SearchEntry[] {
     E('dz2', '"anyway. goodnight." — recovered', 'said to an empty room', 'zones', 'whisper', 1022, ['dead zone', 'abandoned', 'ending', 'replayed endings', 'goodnight', 'heavy']),
     // unsent
     E('un1', 'the unsent room', 'say the thing you never sent', 'unsent', 'voice', 1111, ['unsent', 'confession', 'unfinished', 'almost sent', 'heavy', 'unfinished conversations']),
+    // anomalies
+    E('an1', 'signal anomalies', 'irregularities in the emotional spectrum', 'anomalies', 'static', 1511, ['anomaly', 'anomalies', 'glitch', 'rare', 'irregular', 'spectrum', 'strange', 'spike']),
     // observatory + settings (reachable even in minimal nav)
     E('obs1', 'the observatory', 'tonight\'s daily signal and the live band', 'home', 'tone', 1311, ['observatory', 'home', 'daily', 'tonight', 'start']),
     E('set1', 'settings', 'tune your presence — night protocol, lurker mode, display', 'settings', 'static', 1411, ['settings', 'preferences', 'night', 'lurker', 'language', 'display', 'sign out']),

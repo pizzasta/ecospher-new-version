@@ -201,6 +201,9 @@ export function humanizeActivity(interactions: IdentityInteraction[], limit = 8)
   let i = 0
   while (i < interactions.length && out.length < limit) {
     const it = interactions[i]
+    // defend against malformed/old persisted entries: every branch below reads
+    // it.label / it.type as strings, so skip anything that isn't shaped right
+    if (!it || typeof it.label !== 'string' || typeof it.type !== 'string') { i += 1; continue }
     // group consecutive plays of the same thing
     if (it.type === 'signal_play') {
       let run = 1
