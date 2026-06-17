@@ -7,6 +7,7 @@ import { localDateString, useEcosystemState } from './hooks/useEcosystemState'
 import { deleteLocalRecording, deleteReactionAudio, listLocalRecordings, listReactionAudio, saveReactionAudio, saveRecordingLocally } from './lib/localAudioStore'
 import { downloadBlob, exportFilename, renderStoryImage } from './lib/storyExport'
 import { clearStaleBuild } from './lib/recovery'
+import { probeConnectivity } from './lib/connectivity'
 import { playChainBlend, playSample, playSampleBuffer, stopChainPlayback, stopPreviewBuffer } from './lib/sampleAudio'
 import type { SampleKind } from './lib/sampleAudio'
 import { speakSignal, speechSupported, cancelSpeech } from './lib/speech'
@@ -5023,8 +5024,11 @@ export default function App() {
     setTourOpen(false)
   }
 
-  // offline mode: register the cache worker once; banner while disconnected
-  const [offline, setOffline] = useState(() => !navigator.onLine)
+  // offline mode: register the cache worker once; banner only after a
+  // *confirmed* failure to reach the backend. start optimistic (false) so the
+  // first paint never flashes "disconnected" while navigator.onLine settles —
+  // the probe below corrects it within a tick if we really are offline.
+  const [offline, setOffline] = useState(false)
   useEffect(() => {
     if (import.meta.env.PROD && 'serviceWorker' in navigator) {
       // when a freshly-deployed worker takes control of an already-open tab,
@@ -5044,13 +5048,52 @@ export default function App() {
         .then((reg) => { void reg.update() })
         .catch(() => { /* cache is a bonus, not a requirement */ })
     }
-    const onOnline = () => setOffline(false)
-    const onOffline = () => setOffline(true)
+
+    // connectivity, the robust way: navigator.onLine produces both false
+    // positives (banner on while actually online) and false negatives (no
+    // banner on a dead captive-portal wifi). confirm with a real probe before
+    // flipping the banner, and re-check on a timer so it can never get stuck.
+    let cancelled = false
+    // generation token: only the newest evaluation may commit its result.
+    // probes overlap (poll + events) and a 4s-timeout probe can resolve *after*
+    // a newer one — without this guard a stale result would flip the banner back
+    // until the next poll. bumping `runId` invalidates every in-flight probe.
+    let runId = 0
+
+    const evaluate = async () => {
+      const myRun = ++runId
+      // fast path: the OS says we're definitely offline — trust that direction.
+      if (navigator.onLine === false) {
+        if (!cancelled) setOffline(true)
+        return
+      }
+      const reachable = await probeConnectivity()
+      // drop the result if a newer probe or an `offline` event superseded us.
+      if (cancelled || myRun !== runId) return
+      setOffline(!reachable)
+    }
+
+    // react to browser events, but always *confirm* with a real probe before
+    // clearing the banner. a disconnection (`offline`) is authoritative enough
+    // to show immediately without waiting on a probe round-trip.
+    const onOnline = () => { void evaluate() }
+    const onOffline = () => {
+      runId++ // invalidate any in-flight probe so it can't re-hide the banner
+      if (!cancelled) setOffline(true)
+    }
     window.addEventListener('online', onOnline)
     window.addEventListener('offline', onOffline)
+
+    // initial check + self-healing poll (covers stuck/missed `online` events,
+    // a known mobile/PWA quirk that otherwise leaves the banner stuck on).
+    void evaluate()
+    const pollId = window.setInterval(() => { void evaluate() }, 30_000)
+
     return () => {
+      cancelled = true
       window.removeEventListener('online', onOnline)
       window.removeEventListener('offline', onOffline)
+      window.clearInterval(pollId)
     }
   }, [])
 
