@@ -189,6 +189,14 @@ const ambientLayerDefinitions: Record<Exclude<AmbientLayerKey, 'silent'>, Ambien
 
 const AudioContextValue = createContext<AudioManager | null>(null)
 
+/** Read the persisted sound-enabled flag without ever throwing. Embedded
+ *  webviews (e.g. in-app browsers) and private mode can make localStorage
+ *  access throw rather than return null — and this runs in a render-time state
+ *  initializer, so an unguarded read would crash the whole app on first paint. */
+function readSoundEnabled(): boolean {
+  try { return window.localStorage.getItem('ecosphere:sound-enabled') === 'true' } catch { return false }
+}
+
 function getBrowserSupport(): AudioDebugState['browserSupport'] {
   if (typeof window === 'undefined') {
     return {
@@ -223,7 +231,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const sourceNodesRef = useRef<AudioScheduledSourceNode[]>([])
   const [debug, setDebug] = useState<AudioDebugState>(() => ({
     unlocked: false,
-    soundEnabled: window.localStorage.getItem('ecosphere:sound-enabled') === 'true',
+    soundEnabled: readSoundEnabled(),
     currentSource: null,
     lastAttempt: null,
     lastError: null,
