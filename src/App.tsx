@@ -6,6 +6,7 @@ import { deleteAccountData, getOptionalSupabaseClient, isSupabaseConfigured, syn
 import { localDateString, useEcosystemState } from './hooks/useEcosystemState'
 import { deleteLocalRecording, deleteReactionAudio, listLocalRecordings, listReactionAudio, saveReactionAudio, saveRecordingLocally } from './lib/localAudioStore'
 import { downloadBlob, exportFilename, renderStoryImage } from './lib/storyExport'
+import { clearStaleBuild } from './lib/recovery'
 import { playChainBlend, playSample, playSampleBuffer, stopChainPlayback, stopPreviewBuffer } from './lib/sampleAudio'
 import type { SampleKind } from './lib/sampleAudio'
 import { speakSignal, speechSupported, cancelSpeech } from './lib/speech'
@@ -4869,16 +4870,7 @@ export function SettingsScreen() {
           onClick={async () => {
             // escape hatch for a client stuck on a stale cached build: drop the
             // service worker + caches, then hard-reload into the latest deploy.
-            try {
-              if ('serviceWorker' in navigator) {
-                const regs = await navigator.serviceWorker.getRegistrations()
-                await Promise.all(regs.map(r => r.unregister()))
-              }
-              if ('caches' in window) {
-                const keys = await caches.keys()
-                await Promise.all(keys.map(k => caches.delete(k)))
-              }
-            } catch { /* best effort — reload regardless */ }
+            await clearStaleBuild()
             window.location.reload()
           }}
         >

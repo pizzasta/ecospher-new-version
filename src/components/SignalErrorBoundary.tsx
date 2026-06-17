@@ -1,17 +1,20 @@
 import { Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
+import { recoverFromCrash } from '../lib/recovery'
 
 type Props = { children: ReactNode }
-type State = { hasError: boolean }
+type State = { hasError: boolean; confirmReset: boolean }
 
 /**
  * Last-resort boundary: if anything throws during render, show a themed
- * recovery screen instead of a blank page.
+ * recovery screen instead of a blank page. A bare reload can loop forever on a
+ * deterministic crash (e.g. malformed persisted state), so we also offer a
+ * "reset & recover" escape hatch that clears local state before reloading.
  */
 export default class SignalErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false }
+  state: State = { hasError: false, confirmReset: false }
 
-  static getDerivedStateFromError(): State {
+  static getDerivedStateFromError(): Partial<State> {
     return { hasError: true }
   }
 
@@ -19,10 +22,21 @@ export default class SignalErrorBoundary extends Component<Props, State> {
     console.error('[ecosphere] signal interrupted:', error, info.componentStack)
   }
 
+  private handleReset = () => {
+    if (!this.state.confirmReset) {
+      this.setState({ confirmReset: true })
+      return
+    }
+    // clears service worker, caches, localStorage + audio db, then reloads
+    void recoverFromCrash()
+  }
+
   render() {
     if (!this.state.hasError) {
       return this.props.children
     }
+
+    const { confirmReset } = this.state
 
     return (
       <main
@@ -44,7 +58,7 @@ export default class SignalErrorBoundary extends Component<Props, State> {
           SIGNAL INTERRUPTED
         </div>
         <h1 style={{ fontSize: '26px', fontWeight: 900, margin: 0 }}>the frequency dropped for a moment</h1>
-        <p style={{ color: 'rgba(180, 190, 220, 0.6)', fontSize: '13px', margin: 0 }}>
+        <p style={{ color: 'rgba(180, 190, 220, 0.6)', fontSize: '13px', margin: 0, maxWidth: '340px' }}>
           nothing was lost. re-tune to rejoin the ecosystem.
         </p>
         <button
@@ -65,6 +79,23 @@ export default class SignalErrorBoundary extends Component<Props, State> {
           type="button"
         >
           re-tune signal
+        </button>
+        <button
+          onClick={this.handleReset}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: confirmReset ? '#ff9bb4' : 'rgba(150, 160, 190, 0.55)',
+            cursor: 'pointer',
+            fontSize: '11px',
+            letterSpacing: '0.06em',
+            marginTop: '2px',
+            padding: '6px 12px',
+            textDecoration: 'underline',
+          }}
+          type="button"
+        >
+          {confirmReset ? 'tap again to clear this device & start fresh' : 'still stuck? reset & recover'}
         </button>
       </main>
     )

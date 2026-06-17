@@ -157,6 +157,21 @@ function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : []
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+/** Keep only array items that are objects carrying the required string-typed
+ *  keys. Persisted entries from older builds can be malformed (missing `label`,
+ *  wrong shape) and would otherwise throw on first render — e.g. humanizeActivity
+ *  calling `it.label.replace(...)`. Dropping bad entries fails safe. */
+function validEntries<T>(value: unknown, requiredStringKeys: string[]): T[] {
+  if (!Array.isArray(value)) return []
+  return value.filter(
+    (v): v is T => isRecord(v) && requiredStringKeys.every((k) => typeof v[k] === 'string'),
+  )
+}
+
 function readStoredState(): EcosystemState {
   if (typeof window === 'undefined') {
     return defaultEcosystemState
@@ -195,10 +210,12 @@ function readStoredState(): EcosystemState {
       openedCapsules: stringArray(parsed.openedCapsules),
       driftDiscoveries: stringArray(parsed.driftDiscoveries),
       savedRooms: stringArray(parsed.savedRooms),
-      library: Array.isArray(parsed.library) ? parsed.library.slice(0, 60) : [],
-      archiveHistory: Array.isArray(parsed.archiveHistory) ? parsed.archiveHistory.slice(0, maxHistoryEntries) : [],
-      listeningHistory: Array.isArray(parsed.listeningHistory) ? parsed.listeningHistory.slice(0, maxHistoryEntries) : [],
-      recentInteractions: Array.isArray(parsed.recentInteractions) ? parsed.recentInteractions.slice(0, maxRecentInteractions) : [],
+      library: validEntries<LibraryEntry>(parsed.library, ['id', 'itemType', 'label', 'savedAt'])
+        .slice(0, 60)
+        .map((e) => ({ ...e, favorite: Boolean(e.favorite) })),
+      archiveHistory: validEntries<ArchiveEntry>(parsed.archiveHistory, ['id', 'itemType', 'label', 'archivedAt']).slice(0, maxHistoryEntries),
+      listeningHistory: validEntries<ListeningEntry>(parsed.listeningHistory, ['id', 'label', 'playedAt']).slice(0, maxHistoryEntries),
+      recentInteractions: validEntries<EcosystemInteraction>(parsed.recentInteractions, ['id', 'type', 'label', 'createdAt']).slice(0, maxRecentInteractions),
     }
   } catch {
     try {
