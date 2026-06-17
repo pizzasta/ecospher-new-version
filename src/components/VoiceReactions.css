@@ -418,3 +418,15 @@
 @media (prefers-reduced-motion: reduce) {
   .vr-imprint.pop { animation: none; }
 }
+
+/* tappable reactor handle → opens that carrier */
+.vr-handle-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-bottom: 1px dotted currentColor;
+}
+.vr-handle-link:hover { opacity: 0.8; }

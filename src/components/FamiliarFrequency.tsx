@@ -81,9 +81,9 @@ function FamiliarCard({ familiar: f, index, onPreviewSignal }: FamiliarCardProps
   const lastSignalId = f.signalIds[0]
 
   const handleClick = () => {
-    if (onPreviewSignal && lastSignalId) {
-      onPreviewSignal(lastSignalId, f.handle)
-    }
+    if (onPreviewSignal && lastSignalId) onPreviewSignal(lastSignalId, f.handle)
+    // a recurring stranger is exactly who you'd want to check out — open them
+    window.dispatchEvent(new CustomEvent('ecosphere:viewCarrier', { detail: { handle: f.handle, line: f.lastContent } }))
   }
 
   const classNames = [
@@ -99,15 +99,15 @@ function FamiliarCard({ familiar: f, index, onPreviewSignal }: FamiliarCardProps
       className={classNames}
       style={style}
       onClick={handleClick}
-      role={onPreviewSignal ? 'button' : undefined}
-      tabIndex={onPreviewSignal ? 0 : undefined}
+      role="button"
+      tabIndex={0}
       onKeyDown={(e) => {
-        if (onPreviewSignal && (e.key === 'Enter' || e.key === ' ')) {
+        if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           handleClick()
         }
       }}
-      aria-label={`${f.handle} — ${stageLabel(f.stage)}`}
+      aria-label={`open ${f.handle} — ${stageLabel(f.stage)}`}
     >
       {quiet && <span className="ff-card__quiet-badge">quiet</span>}
 

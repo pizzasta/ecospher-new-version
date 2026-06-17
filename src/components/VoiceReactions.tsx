@@ -8,6 +8,7 @@ import { anonymousMode } from '../lib/anonymity'
 import { sendLive } from '../lib/liveBus'
 import { playImprintSound, renderSampleAudio } from '../lib/sampleAudio'
 import type { ImprintKind } from '../lib/sampleAudio'
+import { isOpenableHandle } from '../lib/carrierProfile'
 import './VoiceReactions.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -609,7 +610,18 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
         const filterNote = active.filter && active.filter !== 'none' ? ` · ${FILTER_LABELS[active.filter]}` : ''
         return (
           <div className="vr-transcript" key={playingId}>
-            <span className="vr-transcript-handle">{active.handle}</span>
+            {isOpenableHandle(active.handle) ? (
+              <button
+                type="button"
+                className="vr-transcript-handle vr-handle-link"
+                title="open this carrier"
+                onClick={() => window.dispatchEvent(new CustomEvent('ecosphere:viewCarrier', { detail: { handle: active.handle, line: active.caption, seed: active.waveformSeed } }))}
+              >
+                {active.handle}
+              </button>
+            ) : (
+              <span className="vr-transcript-handle">{active.handle}</span>
+            )}
             {active.caption ?? `(your voice reaction${filterNote})`}
           </div>
         )
