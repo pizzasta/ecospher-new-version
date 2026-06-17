@@ -1,6 +1,6 @@
 import { Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
-import { recoverFromCrash } from '../lib/recovery'
+import { clearStaleBuild, recoverFromCrash } from '../lib/recovery'
 
 type Props = { children: ReactNode }
 type State = { hasError: boolean; confirmReset: boolean }
@@ -62,7 +62,7 @@ export default class SignalErrorBoundary extends Component<Props, State> {
           nothing was lost. re-tune to rejoin the ecosystem.
         </p>
         <button
-          onClick={() => window.location.reload()}
+                onClick={() => { void clearStaleBuild().finally(() => window.location.reload()) }}
           style={{
             background: 'rgba(255, 45, 120, 0.16)',
             border: '1px solid rgba(255, 45, 120, 0.45)',
