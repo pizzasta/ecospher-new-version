@@ -69,8 +69,10 @@ export function buildSearchIndex(): SearchEntry[] {
     // observatory + settings (reachable even in minimal nav)
     E('obs1', 'the observatory', 'tonight\'s daily signal and the live band', 'home', 'tone', 1311, ['observatory', 'home', 'daily', 'tonight', 'start']),
     E('set1', 'settings', 'tune your presence — night protocol, lurker mode, display', 'settings', 'static', 1411, ['settings', 'preferences', 'night', 'lurker', 'language', 'display', 'sign out']),
-    // hub
-    E('pod1', 'your hub', 'how you listen, not who you say you are', 'pod', 'tone', 1211, ['hub', 'profile', 'identity', 'you', 'pod']),
+    // profile + dashboard + transmit (reachable from search even in minimal nav)
+    E('pod1', 'your profile', 'how you listen, not who you say you are', 'pod', 'tone', 1211, ['hub', 'profile', 'identity', 'you', 'pod', 'anthem', 'signal name']),
+    E('dash1', 'your dashboard', 'your private band — saved voices, recap, signal to self', 'dashboard', 'static', 1212, ['dashboard', 'private', 'saved', 'recap', 'listening history', 'signal to self', 'you']),
+    E('tx1', 'transmissions', 'speak into a frequency — no inbox, an echo finds you', 'transmit', 'voice', 1213, ['transmit', 'message', 'messaging', 'dm', 'frequency', 'echo', 'send', 'whisper']),
   ]
 }
 

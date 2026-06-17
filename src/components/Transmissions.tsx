@@ -83,8 +83,11 @@ export default function Transmissions() {
     if (body && moderatePublicSignalText(body).status === 'flagged') { setError('that one can’t go out on the band'); return }
     let voiceId: string | undefined
     if (draftBlob) {
-      voiceId = crypto.randomUUID?.() ?? `tx-voice-${Date.now()}`
-      await saveRecordingLocally({ id: voiceId, label: 'a transmission', durationMs: Math.max(1000, recMs), emotionalTag: 'signal', createdAt: Date.now(), blob: draftBlob }).catch(() => { voiceId = undefined })
+      const id = crypto.randomUUID?.() ?? `tx-voice-${Date.now()}`
+      // saveRecordingLocally resolves false (not reject) when IndexedDB is
+      // unavailable — only attach the voice if it actually persisted
+      const ok = await saveRecordingLocally({ id, label: 'a transmission', durationMs: Math.max(1000, recMs), emotionalTag: 'signal', createdAt: Date.now(), blob: draftBlob }).catch(() => false)
+      if (ok) voiceId = id
     }
     sendTransmission(band, body || '(a wordless transmission)', voiceId)
     setText(''); setDraftBlob(null); setRecMs(0); setError(null)
