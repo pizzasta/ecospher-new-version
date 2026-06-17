@@ -5054,22 +5054,33 @@ export default function App() {
     // banner on a dead captive-portal wifi). confirm with a real probe before
     // flipping the banner, and re-check on a timer so it can never get stuck.
     let cancelled = false
+    // generation token: only the newest evaluation may commit its result.
+    // probes overlap (poll + events) and a 4s-timeout probe can resolve *after*
+    // a newer one — without this guard a stale result would flip the banner back
+    // until the next poll. bumping `runId` invalidates every in-flight probe.
+    let runId = 0
 
     const evaluate = async () => {
+      const myRun = ++runId
       // fast path: the OS says we're definitely offline — trust that direction.
       if (navigator.onLine === false) {
         if (!cancelled) setOffline(true)
         return
       }
       const reachable = await probeConnectivity()
-      if (!cancelled) setOffline(!reachable)
+      // drop the result if a newer probe or an `offline` event superseded us.
+      if (cancelled || myRun !== runId) return
+      setOffline(!reachable)
     }
 
     // react to browser events, but always *confirm* with a real probe before
     // clearing the banner. a disconnection (`offline`) is authoritative enough
     // to show immediately without waiting on a probe round-trip.
     const onOnline = () => { void evaluate() }
-    const onOffline = () => { if (!cancelled) setOffline(true) }
+    const onOffline = () => {
+      runId++ // invalidate any in-flight probe so it can't re-hide the banner
+      if (!cancelled) setOffline(true)
+    }
     window.addEventListener('online', onOnline)
     window.addEventListener('offline', onOffline)
 
