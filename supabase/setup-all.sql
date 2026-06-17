@@ -1162,3 +1162,40 @@ drop trigger if exists trg_public_note_rate_limit on public.public_notes;
 create trigger trg_public_note_rate_limit
   before insert on public.public_notes
   for each row execute function public.enforce_public_text_rate_limit();
+
+-- ═══ 202606140022_transmissions.sql ═══
+create table if not exists public.transmissions (
+  id uuid primary key default gen_random_uuid(),
+  band text not null,
+  text text not null default '' check (char_length(text) <= 200),
+  audio_file_id uuid references public.audio_files(id) on delete set null,
+  reply_to uuid references public.transmissions(id) on delete cascade,
+  author uuid,
+  created_at timestamptz not null default now()
+);
+alter table public.transmissions enable row level security;
+drop policy if exists "transmissions are readable" on public.transmissions;
+create policy "transmissions are readable" on public.transmissions for select using (true);
+drop policy if exists "anyone signed in can transmit" on public.transmissions;
+create policy "anyone signed in can transmit"
+  on public.transmissions for insert to authenticated
+  with check (char_length(text) <= 200);
+revoke select (author) on public.transmissions from anon, authenticated;
+create index if not exists transmissions_open_idx on public.transmissions (band, created_at desc) where reply_to is null;
+create index if not exists transmissions_reply_idx on public.transmissions (reply_to, created_at desc);
+create index if not exists transmissions_author_idx on public.transmissions (author, created_at desc);
+drop trigger if exists trg_guard_transmission on public.transmissions;
+create trigger trg_guard_transmission
+  before insert or update of text on public.transmissions
+  for each row execute function public.guard_public_text();
+drop trigger if exists trg_transmission_rate_limit on public.transmissions;
+create trigger trg_transmission_rate_limit
+  before insert on public.transmissions
+  for each row execute function public.enforce_public_text_rate_limit();
+do $$
+begin
+  alter publication supabase_realtime add table public.transmissions;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end $$;

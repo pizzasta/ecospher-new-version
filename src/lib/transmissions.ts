@@ -18,7 +18,7 @@ export const BANDS: Band[] = [
   { id: 'aching', label: 'aching', mood: 'lost', line: 'missing someone, or something' },
 ]
 
-export type Reply = { handle: string; text: string; seed: number; mood: string }
+export type Reply = { handle?: string; text: string; seed: number; mood?: string; audioUrl?: string; anonymous?: boolean }
 export type Transmission = {
   id: string
   bandId: string
@@ -28,6 +28,7 @@ export type Transmission = {
   replyAt: number
   reply?: Reply
   heard?: boolean
+  backendId?: string
 }
 
 const KEY = 'ecosphere:transmissions'
@@ -70,11 +71,12 @@ export function sendTransmission(bandId: string, text: string, voiceId?: string)
   return t
 }
 
-/** All transmissions, materializing any reply whose drift delay has elapsed. */
+/** All transmissions. Backend-backed ones wait for a real echo; purely-local
+ *  ones materialize the deterministic sim echo once their drift delay elapses. */
 export function listTransmissions(now = Date.now()): Transmission[] {
   let changed = false
   const list = read().map(t => {
-    if (!t.reply && now >= t.replyAt) { changed = true; return { ...t, reply: matchReply(t) } }
+    if (!t.reply && !t.backendId && now >= t.replyAt) { changed = true; return { ...t, reply: matchReply(t) } }
     return t
   })
   if (changed) write(list)
@@ -83,6 +85,26 @@ export function listTransmissions(now = Date.now()): Transmission[] {
 
 export function markHeard(id: string): void {
   write(read().map(t => (t.id === id ? { ...t, heard: true } : t)))
+}
+
+/** Link a local transmission to its backend row (so real echoes can attach). */
+export function setBackendId(id: string, backendId: string): void {
+  write(read().map(t => (t.id === id ? { ...t, backendId } : t)))
+}
+
+/** Attach a (real) echo to whichever transmission owns this backend id. */
+export function attachEcho(backendId: string, reply: Reply): void {
+  write(read().map(t => (t.backendId === backendId && !t.reply ? { ...t, reply } : t)))
+}
+
+/** Backend ids of your transmissions still waiting on an echo. */
+export function pendingBackendIds(): string[] {
+  return read().filter(t => t.backendId && !t.reply).map(t => t.backendId!) as string[]
+}
+
+/** All backend ids you've sent (to exclude your own from "incoming"). */
+export function myBackendIds(): string[] {
+  return read().filter(t => t.backendId).map(t => t.backendId!) as string[]
 }
 
 /** Seconds until a transmission's reply drifts in (0 once due). */

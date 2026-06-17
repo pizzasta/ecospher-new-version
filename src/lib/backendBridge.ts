@@ -8,6 +8,7 @@
 import { isSupabaseConfigured } from './supabase-env'
 import { deleteAudio, getAudioPlaybackUrl, listAudioLibrary, logActivity, publishSignal, uploadAudio } from './library'
 import { getOptionalSupabaseClient } from './supabase'
+import { ensureBackendSession } from './session'
 import type { ActivityEventType, AudioFileRow } from './library'
 
 export function mirrorActivity(type: ActivityEventType, label: string, metadata: Record<string, unknown> = {}) {
@@ -221,4 +222,105 @@ export function mirrorSignalFade(signalId: string) {
       { onConflict: 'user_id,signal_id' },
     )
   })().catch(() => { /* local fade already applied */ })
+}
+
+// ─── Transmissions (no-addressing messaging; routed by band) ────────────────
+
+export type TransmissionRow = { id: string; band: string; text: string; audioUrl?: string; replyTo: string | null; createdAt: number }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function mapTransmissionRows(rows: any[]): Promise<TransmissionRow[]> {
+  return Promise.all(rows.map(async (r) => {
+    let audioUrl: string | undefined
+    const audio = r.audio_files as { bucket?: string; path?: string; is_public?: boolean } | null
+    if (audio?.is_public && audio.bucket && audio.path) {
+      const url = await getAudioPlaybackUrl({ bucket: audio.bucket, path: audio.path }).catch(() => null)
+      if (url) audioUrl = url
+    }
+    return { id: r.id as string, band: r.band as string, text: (r.text as string) ?? '', audioUrl, replyTo: (r.reply_to as string | null) ?? null, createdAt: new Date(r.created_at as string).getTime() }
+  }))
+}
+
+async function insertTransmission(band: string, text: string, replyTo: string | null, blob: Blob | null, durationSeconds: number): Promise<string | null> {
+  if (!isSupabaseConfigured) return null
+  const client = getOptionalSupabaseClient()
+  const userId = await ensureBackendSession()
+  if (!client || !userId) return null
+  let audioFileId: string | null = null
+  if (blob) {
+    const row = await uploadAudio(blob, { title: 'a transmission', durationSeconds, kind: 'signal' })
+    if (row) {
+      audioFileId = row.id
+      // promote to public only if it passes moderate-audio (fire-and-forget)
+      void screenAudio(row.id, row.bucket, row.path, row.mime_type ?? blob.type)
+    }
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (client as any)
+    .from('transmissions')
+    .insert({ band, text: text.slice(0, 200), audio_file_id: audioFileId, reply_to: replyTo })
+    .select('id')
+    .maybeSingle()
+  if (error || !data) return null
+  return (data as { id: string }).id
+}
+
+/** Send a root transmission into a band. Returns the row id (or null). */
+export function sendBackendTransmission(band: string, text: string, blob?: Blob | null, durationSeconds = 0): Promise<string | null> {
+  return insertTransmission(band, text, null, blob ?? null, durationSeconds)
+}
+/** Echo back to an open transmission (a reply pointing at it). */
+export function echoBackendTransmission(replyTo: string, band: string, text: string, blob?: Blob | null, durationSeconds = 0): Promise<string | null> {
+  return insertTransmission(band, text, replyTo, blob ?? null, durationSeconds)
+}
+
+/** Open transmissions (not yet echoed) on the given bands — what's drifting toward you. */
+export async function fetchOpenTransmissions(bands: string[], limit = 20): Promise<TransmissionRow[]> {
+  if (!isSupabaseConfigured || bands.length === 0) return []
+  const client = getOptionalSupabaseClient()
+  if (!client) return []
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (client as any)
+      .from('transmissions')
+      .select('id, band, text, reply_to, created_at, audio_files(bucket, path, is_public)')
+      .is('reply_to', null)
+      .in('band', bands)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (error || !data) return []
+    return await mapTransmissionRows(data)
+  } catch { return [] }
+}
+
+/** Echoes to your transmissions (replies pointing at the given ids). */
+export async function fetchEchoes(ids: string[]): Promise<TransmissionRow[]> {
+  if (!isSupabaseConfigured || ids.length === 0) return []
+  const client = getOptionalSupabaseClient()
+  if (!client) return []
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (client as any)
+      .from('transmissions')
+      .select('id, band, text, reply_to, created_at, audio_files(bucket, path, is_public)')
+      .in('reply_to', ids)
+      .order('created_at', { ascending: true })
+    if (error || !data) return []
+    return await mapTransmissionRows(data)
+  } catch { return [] }
+}
+
+/** Live: any new transmission insert (echoes + new open). Returns unsubscribe. */
+export function subscribeTransmissions(onInsert: (row: TransmissionRow) => void): () => void {
+  if (!isSupabaseConfigured) return () => {}
+  const client = getOptionalSupabaseClient()
+  if (!client) return () => {}
+  const channel = client
+    .channel('transmissions_live')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transmissions' }, (payload) => {
+      const r = payload.new as { id: string; band: string; text: string; reply_to: string | null; created_at: string }
+      onInsert({ id: r.id, band: r.band, text: r.text ?? '', replyTo: r.reply_to ?? null, createdAt: r.created_at ? new Date(r.created_at).getTime() : Date.now() })
+    })
+    .subscribe()
+  return () => { void client.removeChannel(channel) }
 }
