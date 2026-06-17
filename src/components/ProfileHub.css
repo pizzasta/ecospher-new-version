@@ -1618,3 +1618,37 @@ body[data-eco-page='pod'] .screen {
           transform: none;
     }
 }
+
+/* ── frequency anthem (featured signal) ─────────────────────────── */
+.ph-featured-now { display: flex; align-items: center; gap: 12px; }
+.ph-featured-play {
+  flex-shrink: 0;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--ring-color, #66ccff) 50%, transparent);
+  background: color-mix(in srgb, var(--ring-color, #66ccff) 16%, rgba(8, 12, 24, 0.6));
+  color: #fff; font-size: 14px; cursor: pointer;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.ph-featured-play:hover { box-shadow: 0 0 22px color-mix(in srgb, var(--ring-color, #66ccff) 40%, transparent); }
+.ph-featured-meta { min-width: 0; }
+.ph-featured-meta strong { display: block; font-size: 13.5px; color: #ece6f6; font-weight: 600; }
+.ph-featured-meta em { display: block; font-style: normal; font-size: 10.5px; color: rgba(190, 180, 215, 0.55); margin-top: 2px; }
+.ph-featured-clear { background: none; border: none; color: rgba(190, 180, 215, 0.5); font-size: 10.5px; cursor: pointer; }
+.ph-featured-clear:hover { color: #fff; }
+.ph-featured-add {
+  width: 100%; padding: 11px 14px; border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--ring-color, #66ccff) 40%, rgba(150,168,205,0.3));
+  background: transparent; color: color-mix(in srgb, var(--ring-color, #66ccff) 60%, #cdd7ef);
+  font-size: 12.5px; cursor: pointer;
+}
+.ph-featured-add:hover { background: color-mix(in srgb, var(--ring-color, #66ccff) 8%, transparent); }
+.ph-featured-picker { display: flex; flex-direction: column; gap: 6px; }
+.ph-featured-option {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 12px; border-radius: 10px;
+  border: 1px solid rgba(150, 170, 215, 0.16); background: rgba(14, 18, 32, 0.5);
+  color: #e7eefc; font-size: 12px; cursor: pointer; text-align: left;
+}
+.ph-featured-option:hover { border-color: color-mix(in srgb, var(--ring-color, #66ccff) 45%, transparent); }
+.ph-featured-option em { font-style: normal; font-size: 10px; color: rgba(190, 180, 215, 0.55); flex-shrink: 0; }
