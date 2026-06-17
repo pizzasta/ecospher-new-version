@@ -6,6 +6,7 @@
 import type { SampleKind } from './sampleAudio'
 import { currentDrop } from './frequencyDrops'
 import { readLastVoiceAt, silentDays } from './weightOfSilence'
+import { isRecord } from './shapeGuards'
 
 export type SearchEntry = {
   id: string
@@ -108,16 +109,17 @@ export function discoverySuggestions(now = Date.now()): DiscoveryRow[] {
 
   // you may return to this: the relic you handled most
   try {
-    const activity = JSON.parse(window.localStorage.getItem('ecosphere:relicActivity') ?? '{}') as Record<string, { replays?: number }>
-    const top = Object.entries(activity).sort((a, b) => (b[1].replays ?? 0) - (a[1].replays ?? 0))[0]
-    const entry = top && (top[1].replays ?? 0) > 0 ? by(top[0]) : null
+    const activity = JSON.parse(window.localStorage.getItem('ecosphere:relicActivity') ?? '{}') as Record<string, unknown>
+    const replaysOf = (v: unknown): number => (isRecord(v) && typeof v.replays === 'number' ? v.replays : 0)
+    const top = Object.entries(activity).sort((a, b) => replaysOf(b[1]) - replaysOf(a[1]))[0]
+    const entry = top && replaysOf(top[1]) > 0 ? by(top[0]) : null
     if (entry) rows.push({ ...entry, reason: 'you may return to this' })
   } catch { /* fresh device */ }
 
   // your chain is growing
   try {
-    const layers = JSON.parse(window.localStorage.getItem('ecosphere:chainLayers') ?? '[]') as unknown[]
-    if (layers.length > 0) {
+    const layers = JSON.parse(window.localStorage.getItem('ecosphere:chainLayers') ?? '[]') as unknown
+    if (Array.isArray(layers) && layers.length > 0) {
       const entry = by('ch2')
       if (entry) rows.push({ ...entry, reason: 'a chain with your voice in it is still growing' })
     }

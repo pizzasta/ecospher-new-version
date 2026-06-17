@@ -20,6 +20,11 @@ import { AudioProvider } from './audio-system'
 import { GlobalAudioProvider } from './hooks/useGlobalAudio'
 import { EcosystemProvider } from './hooks/useEcosystemState'
 import SignalErrorBoundary from './components/SignalErrorBoundary'
+import { healLocalStorage } from './lib/storageHeal'
+
+// Repair outdated-shape persisted data before anything reads it (one-time per
+// schema version). Must never block boot — a clean catch keeps the app loading.
+try { healLocalStorage() } catch { /* heal is best-effort */ }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
