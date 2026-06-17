@@ -4,16 +4,11 @@ import react from '@vitejs/plugin-react'
 // a short, human-readable build stamp so a running client can be matched to a
 // deploy — surfaced small in Settings to diagnose stale-cache complaints.
 const BUILD_STAMP = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC'
-// a unique-per-build id used to version the service worker: each deploy gets a
-// fresh /sw.js?v=<id> URL + cache name, so already-installed clients always see
-// an update, purge the old cache, and reload once into the new bundle.
-const BUILD_ID = Date.now().toString(36)
 
 export default defineConfig({
   plugins: [react()],
   define: {
     __BUILD_STAMP__: JSON.stringify(BUILD_STAMP),
-    __SW_VERSION__: JSON.stringify(BUILD_ID),
   },
   // NEXT_PUBLIC_ covers the Vercel × Supabase Native Integration's variable
   // names; both prefixes are public-by-convention values only

@@ -596,7 +596,6 @@ const navItems: { id: Screen; label: string; glyph: string }[] = [
   { id: 'capsules', label: 'Capsules', glyph: '⬡' },
   { id: 'relics', label: 'Relics', glyph: '◈' },
   { id: 'zones', label: 'Dead Zones', glyph: '✕' },
-  { id: 'anomalies', label: 'Anomalies', glyph: '◬' },
   { id: 'pod', label: 'Profile', glyph: '◈' },
   { id: 'dashboard', label: 'Dashboard', glyph: '▦' },
   { id: 'transmit', label: 'Transmit', glyph: '⌁' },
@@ -4503,13 +4502,13 @@ type EcoPrefs = {
   language: string
   /** 'auto' | 'mobile' | 'desktop' — like a browser's "request desktop site" */
   viewMode: string
-  /** true = every tab in the nav (default); false = the core destinations + search */
+  /** false = the five core destinations + search; true = every tab */
   fullNav: boolean
   signalVolume: number
   driftSensitivity: number
 }
 
-const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, privateProfile: false, language: 'auto', viewMode: 'auto', fullNav: true, signalVolume: 72, driftSensitivity: 60 }
+const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, privateProfile: false, language: 'auto', viewMode: 'auto', fullNav: false, signalVolume: 72, driftSensitivity: 60 }
 
 function normalizeIdentity(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
@@ -4863,27 +4862,6 @@ export function SettingsScreen() {
       <div className="settings-footer">
         <div className="settings-version">ecosphere v2.0 · signal observatory</div>
         <div className="settings-build">build {__BUILD_STAMP__}</div>
-        <button
-          type="button"
-          className="settings-refresh"
-          onClick={async () => {
-            // escape hatch for a client stuck on a stale cached build: drop the
-            // service worker + caches, then hard-reload into the latest deploy.
-            try {
-              if ('serviceWorker' in navigator) {
-                const regs = await navigator.serviceWorker.getRegistrations()
-                await Promise.all(regs.map(r => r.unregister()))
-              }
-              if ('caches' in window) {
-                const keys = await caches.keys()
-                await Promise.all(keys.map(k => caches.delete(k)))
-              }
-            } catch { /* best effort — reload regardless */ }
-            window.location.reload()
-          }}
-        >
-          force latest version
-        </button>
       </div>
     </div>
   )
@@ -4929,7 +4907,7 @@ const CORE_NAV: Screen[] = ['home', 'signals', 'frequencies', 'rooms', 'relics',
 function Nav({ active, onNav }: { active: Screen; onNav: (s: Screen) => void }) {
   const { recordingActive } = useRecordingSession()
   const { tr } = useLocale()
-  const fullNav = useEcoPref('fullNav', true)
+  const fullNav = useEcoPref('fullNav', false)
   const items = fullNav ? navItems : navItems.filter(item => CORE_NAV.includes(item.id))
   return (
     <nav className={`bottom-nav glass-nav${recordingActive ? ' nav--recording' : ''}${fullNav ? '' : ' bottom-nav--minimal'}`}>
@@ -5045,10 +5023,7 @@ export default function App() {
         reloaded = true
         window.location.reload()
       })
-      // version the worker URL per build: a new ?v= forces the browser to fetch
-      // + install a fresh SW every deploy, so the controllerchange reload above
-      // actually fires for returning visitors instead of serving a stale cache.
-      navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(__SW_VERSION__)}`)
+      navigator.serviceWorker.register('/sw.js')
         .then((reg) => { void reg.update() })
         .catch(() => { /* cache is a bonus, not a requirement */ })
     }
