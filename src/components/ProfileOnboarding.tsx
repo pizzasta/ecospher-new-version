@@ -76,21 +76,16 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
     setOracle(`tuned to ${cast.hz} Hz · ${cast.flavor}`)
   }
 
-const finish = async () => {
-  saveAvatar(sigil)
-  saveMood(mood)
-  const settings: GradientSettings = {
-    ...DEFAULT_GRADIENT, locked: true, colorStart: palette.start, colorEnd: palette.end, style, speed: 60,
+  const finish = () => {
+    saveAvatar(sigil)
+    saveMood(mood)
+    const settings: GradientSettings = {
+      ...DEFAULT_GRADIENT, locked: true, colorStart: palette.start, colorEnd: palette.end, style, speed: 60,
+    }
+    void saveGradientSettings(settings)
+    markProfileOnboarded()
+    onDone()
   }
-  // persist the chosen background; if validation rejects it (e.g. a bad color),
-  // fall back to saving the style alone so the background still applies.
-  const err = await saveGradientSettings(settings)
-  if (err) {
-    await saveGradientSettings({ ...DEFAULT_GRADIENT, style })
-  }
-  markProfileOnboarded()
-  onDone()
-}
 
   const skip = () => { markProfileOnboarded(); onDone() }
 
