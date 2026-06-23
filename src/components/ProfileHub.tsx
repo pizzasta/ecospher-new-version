@@ -163,7 +163,7 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
 
   useEffect(() => {
     void getHzProfile(username).then(setHzProfile).catch(() => { /* keep local hz fallback */ })
-    void loadGradientSettings().then(loaded => setGradient(prev => (prev.locked && !loaded.locked) ? prev : loaded)).catch(() => { /* keep current gradient */ })
+    void loadGradientSettings().then(setGradient).catch(() => { /* keep current gradient */ })
   }, [username])
 
   const [gradientStart, gradientEnd] = resolveGradientColors(gradient, hzProfile.hz)
