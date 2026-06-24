@@ -12,8 +12,8 @@ const BUILD_ID = Date.now().toString(36)
 export default defineConfig({
   plugins: [react()],
   define: {
-    __BUILD_STAMP__: JSON.stringify(BUILD_STAMP),
-    __SW_VERSION__: JSON.stringify(BUILD_ID),
+    'import.meta.env.VITE_BUILD_STAMP': JSON.stringify(BUILD_STAMP),
+    'import.meta.env.VITE_SW_VERSION': JSON.stringify(BUILD_ID),
   },
   // NEXT_PUBLIC_ covers the Vercel × Supabase Native Integration's variable
   // names; both prefixes are public-by-convention values only
