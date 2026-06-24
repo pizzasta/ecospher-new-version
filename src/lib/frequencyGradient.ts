@@ -155,6 +155,11 @@ export async function loadGradientSettings(): Promise<GradientSettings> {
             speed: typeof remote.speed === 'number' ? remote.speed : 60,
             style: GRADIENT_STYLES.some(s => s.value === remote.style) ? remote.style as GradientStyle : 'gradient',
           }
+          // don't let a default/unlocked remote result clobber a background
+          // the user explicitly chose (locked) — keep the local choice and
+          // leave localStorage untouched so it also survives a reload.
+          const local = readGradientSettings()
+          if (local.locked && !settings.locked) return local
           try { window.localStorage.setItem(GRADIENT_KEY, JSON.stringify(settings)) } catch { /* session only */ }
           return settings
         }
