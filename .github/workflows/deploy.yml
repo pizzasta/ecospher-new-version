@@ -34,6 +34,14 @@ jobs:
       - name: Build project
         run: npm run build
 
+      - name: Verify build-time defines were substituted
+        run: |
+          if grep -rlE '__SW_VERSION__|__BUILD_STAMP__' dist/; then
+            echo "::error::Found unsubstituted build-time placeholder (__SW_VERSION__/__BUILD_STAMP__) in the production bundle. The Vite/Rolldown define substitution is not being applied — see issue #136."
+            exit 1
+          fi
+          echo "OK: no unsubstituted build-time placeholders found in dist/"
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
