@@ -4868,7 +4868,7 @@ export function SettingsScreen() {
 
       <div className="settings-footer">
         <div className="settings-version">ecosphere v2.0 · signal observatory</div>
-        <div className="settings-build">build {__BUILD_STAMP__}</div>
+        <div className="settings-build">build {typeof __BUILD_STAMP__ !== 'undefined' ? __BUILD_STAMP__ : 'dev'}</div>
         <button
           type="button"
           className="settings-refresh"
@@ -5048,7 +5048,7 @@ export default function App() {
       // version the worker URL per build: a new ?v= forces the browser to fetch
       // + install a fresh SW every deploy, so the controllerchange reload above
       // actually fires for returning visitors instead of serving a stale cache.
-      navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(__SW_VERSION__)}`)
+      navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(typeof __SW_VERSION__ !== 'undefined' ? __SW_VERSION__ : 'dev')}`)
         .then((reg) => { void reg.update() })
         .catch(() => { /* cache is a bonus, not a requirement */ })
     }
