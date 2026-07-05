@@ -22,6 +22,7 @@ import type { StoredReaction } from './lib/localAudioStore'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
 import EcosphereAmbience from './components/EcosphereAmbience'
 import ActiveCarriers from './components/ActiveCarriers'
+import Echolocation from './components/Echolocation'
 import AudioRecorder from './components/AudioRecorder'
 import AudioPlayer from './components/AudioPlayer'
 import FrequencyRecap from './components/FrequencyRecap'
@@ -1219,6 +1220,8 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
       <HomeVoiceTransmit />
 
       <ActiveCarriers onViewMap={() => onNavigate?.('frequencies')} />
+
+      <Echolocation />
 
       <button type="button" className="deep-listen-entry" onClick={() => setDeepListen(true)}>
         ◉ deep listen — no visuals, only audio
