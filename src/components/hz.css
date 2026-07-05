@@ -200,9 +200,11 @@
 
 /* ── frequency gradient modal ── */
 .fg-preview {
-  height: 64px;
+  position: relative;
+  height: 88px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
 }
 
 .fg-row {

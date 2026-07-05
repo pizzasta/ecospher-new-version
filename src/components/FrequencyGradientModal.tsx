@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
-import { GRADIENT_SPEEDS, GRADIENT_STYLES, PROFILE_PALETTES, gradientColorsForHz, resolveGradientColors, saveGradientSettings } from '../lib/frequencyGradient'
+import { GRADIENT_SPEEDS, GRADIENT_STYLES, PROFILE_PALETTES, SCENE_STYLES, gradientColorsForHz, resolveGradientColors, saveGradientSettings } from '../lib/frequencyGradient'
 import type { GradientSettings } from '../lib/frequencyGradient'
+import type { SceneDesign } from './ProfileScene'
+import ProfileScene from './ProfileScene'
+import ColorWave from './ColorWave'
 import './hz.css'
 
 type FrequencyGradientModalProps = {
@@ -40,11 +43,19 @@ export default function FrequencyGradientModal({ settings, hz, onChange, onClose
           <button type="button" onClick={onClose}>close</button>
         </div>
 
+        {/* live preview of the actual design — what you pick is what you see */}
         <div
           className="fg-preview"
           aria-hidden="true"
-          style={{ background: `linear-gradient(${previewAngle}deg, ${previewStart}, ${previewEnd})` } as CSSProperties}
-        />
+          style={(draft.style === 'gradient'
+            ? { background: `linear-gradient(${previewAngle}deg, ${previewStart}, ${previewEnd})` }
+            : { background: '#06080f' }) as CSSProperties}
+        >
+          {draft.style === 'wave' && <ColorWave variant="local" colors={[previewStart, previewEnd, previewEnd]} />}
+          {SCENE_STYLES.includes(draft.style) && (
+            <ProfileScene design={draft.style as SceneDesign} colors={[previewStart, previewEnd, previewEnd]} />
+          )}
+        </div>
 
         <div className="hz-field">
           <span>design</span>
