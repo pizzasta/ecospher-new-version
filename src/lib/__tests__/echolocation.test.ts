@@ -4,8 +4,10 @@ import {
   harmonicMatch, castPing, nightKey, PURITY_WINDOW_CENTS,
   markCast, castCooldownRemaining, CAST_COOLDOWN_MS,
   lockHarmony, listHarmonies, isLocked, audibleHz,
+  inboundPing, answerPing, hasAnsweredTonight,
 } from '../echolocation'
 import type { EchoReturn } from '../echolocation'
+import { chimeForHandle, readChime, saveChime, CHIME_STYLES } from '../signatureChime'
 
 const ret = (over: Partial<EchoReturn> = {}): EchoReturn => ({
   handle: 'rainonthecarport', hz: 120, color: '#66ccff', interval: 'a perfect fifth apart',
@@ -121,5 +123,58 @@ describe('audibleHz', () => {
   it('lifts the 20-200 signature band into a clearly audible register', () => {
     expect(audibleHz(20)).toBeGreaterThanOrEqual(80)
     expect(audibleHz(200)).toBeLessThanOrEqual(800)
+  })
+})
+
+describe('inbound pings + answering', () => {
+  const findInboundNight = (hz: number): { now: number; ping: EchoReturn } => {
+    // inbound is seeded per night; walk nights until one has a caster
+    const base = Date.now()
+    for (let d = 0; d < 30; d++) {
+      const now = base + d * 86_400_000
+      const ping = inboundPing(hz, now)
+      if (ping) return { now, ping }
+    }
+    throw new Error('no inbound ping found in 30 nights — seeding is broken')
+  }
+
+  it('is deterministic per night and harmonises with you', () => {
+    const { now, ping } = findInboundNight(96.5)
+    expect(inboundPing(96.5, now)?.handle).toBe(ping.handle)
+    expect(harmonicMatch(96.5, ping.hz)).not.toBeNull()
+  })
+
+  it('answering binds mutually and closes the night', () => {
+    const { now, ping } = findInboundNight(96.5)
+    expect(hasAnsweredTonight(now)).toBe(false)
+    answerPing(ping, now)
+    expect(hasAnsweredTonight(now)).toBe(true)
+    expect(inboundPing(96.5, now)).toBeNull() // one answer a night
+    const kept = listHarmonies().find(h => h.handle === ping.handle)
+    expect(kept?.mutual).toBe(true)
+  })
+
+  it('answering upgrades an existing one-way lock to mutual', () => {
+    lockHarmony(ret())
+    expect(listHarmonies()[0].mutual).toBeUndefined()
+    answerPing(ret())
+    expect(listHarmonies()[0].mutual).toBe(true)
+    expect(listHarmonies()).toHaveLength(1)
+  })
+})
+
+describe('signature chime', () => {
+  it('persists a valid choice and rejects junk', () => {
+    expect(readChime()).toBe('pure')
+    saveChime('deep')
+    expect(readChime()).toBe('deep')
+    window.localStorage.setItem('ecosphere:signatureChime', 'kazoo')
+    expect(readChime()).toBe('pure')
+  })
+
+  it('gives every carrier a stable chime from the palette', () => {
+    const a = chimeForHandle('rainonthecarport')
+    expect(a).toBe(chimeForHandle('rainonthecarport'))
+    expect(CHIME_STYLES.some(c => c.value === a)).toBe(true)
   })
 })

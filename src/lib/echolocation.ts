@@ -150,16 +150,18 @@ export type LockedHarmony = {
   hz: number
   color: string
   lockedAt: number
+  /** true when the pair found each other — an answered ping, not a one-way lock */
+  mutual?: boolean
 }
 
-type Store = { lastCastAt: number; harmonies: LockedHarmony[] }
+type Store = { lastCastAt: number; harmonies: LockedHarmony[]; answeredNight?: string }
 
 function read(): Store {
   try {
     const raw = window.localStorage.getItem(KEY)
     if (!raw) return { lastCastAt: 0, harmonies: [] }
     const parsed = JSON.parse(raw) as Partial<Store>
-    return { lastCastAt: parsed.lastCastAt ?? 0, harmonies: parsed.harmonies ?? [] }
+    return { lastCastAt: parsed.lastCastAt ?? 0, harmonies: parsed.harmonies ?? [], answeredNight: parsed.answeredNight }
   } catch {
     return { lastCastAt: 0, harmonies: [] }
   }
@@ -191,15 +193,67 @@ export function isLocked(handle: string): boolean {
  * your paths crossed — find each other enough nights and the ecosystem
  * starts recognising them for you.
  */
-export function lockHarmony(ret: EchoReturn, now = Date.now()): void {
+export function lockHarmony(ret: EchoReturn, now = Date.now(), mutual = false): void {
   const store = read()
-  if (store.harmonies.some(h => h.handle === ret.handle)) return
+  const existing = store.harmonies.find(h => h.handle === ret.handle)
+  if (existing) {
+    // an answered ping upgrades a one-way lock into a mutual bind
+    if (mutual && !existing.mutual) {
+      existing.mutual = true
+      write(store)
+    }
+    return
+  }
   store.harmonies = [
-    { handle: ret.handle, interval: ret.interval, purity: ret.purity, hz: ret.hz, color: ret.color, lockedAt: now },
+    { handle: ret.handle, interval: ret.interval, purity: ret.purity, hz: ret.hz, color: ret.color, lockedAt: now, mutual: mutual || undefined },
     ...store.harmonies,
   ]
   write(store)
   try { recordCrossing(ret.handle, `echo-${nightKey(now)}`, ret.mood, ret.line.slice(0, 80)) } catch { /* recognition is best-effort */ }
+}
+
+// ─── inbound pings: being found ──────────────────────────────────────────────
+// Discovery runs both directions. Some nights a carrier you harmonise with
+// casts first — their ping reaches you, and echoing back binds you both.
+// One inbound a night at most, answerable once: scarcity keeps it meaningful.
+
+/**
+ * Tonight's inbound ping, if any carrier who harmonises with you cast one.
+ * Deterministic per (night, hz); null on quiet nights or once answered.
+ */
+export function inboundPing(myHz: number, now = Date.now(), pool: GhostSignal[] = GHOST_ARCHIVE): EchoReturn | null {
+  if (read().answeredNight === nightKey(now)) return null
+  const rand = seededRand((hashString(nightKey(now)) ^ 0x51ec0) + Math.round(myHz * 10))
+  // some nights, nobody casts toward you
+  if (rand() < 0.25) return null
+  const candidates: EchoReturn[] = []
+  for (const g of pool) {
+    if (rand() < 0.5) continue
+    const theirs = hzForHandle(g.handle)
+    const match = harmonicMatch(myHz, theirs.hz)
+    if (!match) continue
+    candidates.push({
+      handle: g.handle, hz: theirs.hz, color: theirs.color,
+      interval: match.interval, purity: match.purity, centsOff: match.centsOff,
+      mood: g.mood, line: g.content, seed: g.waveformSeed,
+    })
+  }
+  if (candidates.length === 0) return null
+  // prefer someone you haven't already bound
+  const kept = read().harmonies
+  const fresh = candidates.filter(c => !kept.some(h => h.handle === c.handle))
+  const list = fresh.length > 0 ? fresh : candidates
+  return list[Math.floor(rand() * list.length) % list.length]
+}
+
+/** Echo back: answer tonight's inbound ping and bind each other, mutually. */
+export function answerPing(ret: EchoReturn, now = Date.now()): void {
+  lockHarmony(ret, now, true)
+  write({ ...read(), answeredNight: nightKey(now) })
+}
+
+export function hasAnsweredTonight(now = Date.now()): boolean {
+  return read().answeredNight === nightKey(now)
 }
 
 // ─── the sound of it ──────────────────────────────────────────────────────────

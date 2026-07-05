@@ -215,7 +215,64 @@
 @keyframes psMeshSpin { to { transform: rotateX(64deg) rotateZ(360deg); } }
 @keyframes psMeshPulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
 
+/* ─── nebula: slow star clouds ────────────────────────────── */
+.ph-scene--nebula { background: radial-gradient(130% 110% at 50% 30%, #070b1c 0%, #03050d 75%); overflow: hidden; }
+.ps-nebula-cloud {
+  position: absolute;
+  width: 70%; height: 70%;
+  border-radius: 50%;
+  filter: blur(55px);
+  opacity: 0.32;
+  animation: psNebulaDrift 26s ease-in-out infinite alternate;
+}
+.ps-nebula-cloud--a { left: -12%; top: -8%; background: var(--ps-c1); }
+.ps-nebula-cloud--b { right: -15%; top: 22%; background: var(--ps-c2); animation-duration: 34s; animation-delay: -9s; }
+.ps-nebula-cloud--c { left: 24%; bottom: -22%; background: var(--ps-c3); animation-duration: 30s; animation-delay: -18s; opacity: 0.22; }
+@keyframes psNebulaDrift {
+  from { transform: translate3d(-4%, -2%, 0) scale(1); }
+  to { transform: translate3d(5%, 4%, 0) scale(1.15); }
+}
+.ps-nebula-mote {
+  position: absolute;
+  width: 2px; height: 2px;
+  border-radius: 50%;
+  background: #eaf2ff;
+  opacity: 0.5;
+  animation: psNebulaTwinkle 6s ease-in-out infinite;
+}
+@keyframes psNebulaTwinkle { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.8; } }
+
+/* ─── pulse rings: the signature, breathing ───────────────── */
+.ph-scene--pulse { background: radial-gradient(120% 100% at 50% 55%, #08101e 0%, #03050c 70%); overflow: hidden; }
+.ps-pulse-ring {
+  position: absolute;
+  left: 50%; top: 55%;
+  width: 60px; height: 60px;
+  margin: -30px 0 0 -30px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--ps-c1) 75%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--ps-c2) 35%, transparent);
+  animation: psPulseGrow 8s ease-out infinite;
+}
+@keyframes psPulseGrow {
+  0% { transform: scale(0.25); opacity: 0.85; border-color: var(--ps-c2); }
+  100% { transform: scale(9); opacity: 0; }
+}
+.ps-pulse-core {
+  position: absolute;
+  left: 50%; top: 55%;
+  width: 14px; height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--ps-c2);
+  box-shadow: 0 0 22px var(--ps-c1), 0 0 60px color-mix(in srgb, var(--ps-c1) 45%, transparent);
+  animation: psPulseCore 4s ease-in-out infinite;
+}
+@keyframes psPulseCore { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.35); } }
+
 @media (prefers-reduced-motion: reduce) {
-  .ps-aurora, .ps-aurora-stars i, .ps-raindrop, .ps-mesh-plane, .ps-mesh-plane i { animation: none; }
+  .ps-aurora, .ps-aurora-stars i, .ps-raindrop, .ps-mesh-plane, .ps-mesh-plane i,
+  .ps-nebula-cloud, .ps-nebula-mote, .ps-pulse-ring, .ps-pulse-core { animation: none; }
   .ps-mesh-plane { transform: rotateX(64deg); }
+  .ps-pulse-ring { transform: scale(3); opacity: 0.25; }
 }

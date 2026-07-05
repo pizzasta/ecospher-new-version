@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import {
   castPing, castCooldownRemaining, markCast, lockHarmony, listHarmonies,
-  playPingTone, playHarmony,
+  inboundPing, answerPing, playPingTone,
 } from '../lib/echolocation'
 import type { EchoReturn, LockedHarmony } from '../lib/echolocation'
+import { chimeForHandle, playSignatureChime, readChime } from '../lib/signatureChime'
 import { getHzProfile, getLocalHzProfile } from '../lib/hzSignature'
 import type { HzProfile } from '../lib/hzSignature'
 import { isTuned, toggleTune } from '../lib/carrierFollow'
@@ -36,6 +37,8 @@ export default function Echolocation() {
   const [locked, setLocked] = useState<string[]>(() => listHarmonies().map(h => h.handle))
   const [tunedTick, setTunedTick] = useState(0)
   const [harmonies, setHarmonies] = useState<LockedHarmony[]>(() => listHarmonies())
+  const [inbound, setInbound] = useState<EchoReturn | null>(null)
+  const [answered, setAnswered] = useState(false)
   const timersRef = useRef<number[]>([])
 
   useEffect(() => {
@@ -46,6 +49,11 @@ export default function Echolocation() {
   const teaser = useMemo(() => {
     const out = castPing(me.hz)
     return out.length > 0 ? out[0].interval : null
+  }, [me.hz])
+
+  // being found: some nights, a harmonising carrier casts toward you first
+  useEffect(() => {
+    setInbound(inboundPing(me.hz))
   }, [me.hz])
 
   useEffect(() => {
@@ -69,13 +77,14 @@ export default function Echolocation() {
     markCast()
     setPhase('casting')
     setReturns([])
-    playPingTone(me.hz, 0, 1.8, 0.24)
+    // your ping goes out in your own chime — the voice you picked for your signature
+    if (!playSignatureChime(me.hz, readChime(), 0, 1.8)) playPingTone(me.hz, 0, 1.8, 0.24)
     const found = castPing(me.hz)
     setPending(found.length)
     found.forEach((ret, i) => {
       const delay = 1700 + i * 1900 + Math.random() * 600
       timersRef.current.push(window.setTimeout(() => {
-        playPingTone(ret.hz, 0, 1.2, 0.12)
+        playSignatureChime(ret.hz, chimeForHandle(ret.handle), 0, 1.2, 0.55)
         setReturns(prev => [...prev, ret])
         setPending(p => p - 1)
       }, delay))
@@ -87,12 +96,29 @@ export default function Echolocation() {
   }
 
   const hear = (ret: EchoReturn) => {
-    const played = playHarmony(me.hz, ret.hz)
-    if (!played) void playSampleBuffer('tone', ret.seed, 2600, 0.2)
+    // your chime, theirs, then the two together — the harmony heard, not explained
+    const mine = readChime()
+    const theirs = chimeForHandle(ret.handle)
+    const a = playSignatureChime(me.hz, mine, 0, 1.1, 0.85)
+    playSignatureChime(ret.hz, theirs, 0.7, 1.1, 0.85)
+    playSignatureChime(me.hz, mine, 1.7, 2.2, 0.65)
+    playSignatureChime(ret.hz, theirs, 1.7, 2.2, 0.65)
+    if (!a) void playSampleBuffer('tone', ret.seed, 2600, 0.2)
     if (speechSupported()) {
       // the chord first, then the voice behind it
       timersRef.current.push(window.setTimeout(() => speakSignal(ret.line, ret.seed), 2600))
     }
+  }
+
+  const echoBack = () => {
+    if (!inbound) return
+    answerPing(inbound)
+    setAnswered(true)
+    setLocked(prev => [...prev, inbound.handle])
+    setHarmonies(listHarmonies())
+    // their ping again, then your answer riding after it
+    playSignatureChime(inbound.hz, chimeForHandle(inbound.handle), 0, 1.2, 0.8)
+    playSignatureChime(me.hz, readChime(), 0.9, 1.6)
   }
 
   const lock = (ret: EchoReturn) => {
@@ -120,6 +146,24 @@ export default function Echolocation() {
           <p className="echoloc-teaser"><i aria-hidden="true" />someone {teaser} from you is drifting tonight</p>
         )}
       </header>
+
+      {inbound && !answered && (
+        <div className="echoloc-inbound" style={{ '--ret-color': inbound.color } as CSSProperties}>
+          <p className="echoloc-inbound-line">
+            <i aria-hidden="true" />
+            <button type="button" className="echoloc-handle" onClick={() => openCarrier(inbound)}>{inbound.handle}</button>
+            {' '}cast a ping tonight — you harmonise, {inbound.interval}.
+          </p>
+          <button type="button" className="echoloc-inbound-answer" onClick={echoBack}>
+            ∿ echo back — bind each other
+          </button>
+        </div>
+      )}
+      {inbound && answered && (
+        <p className="echoloc-inbound-done" role="status">
+          ◈ you and {inbound.handle} found each other — bound to your constellation
+        </p>
+      )}
 
       <div className={`echoloc-field echoloc-field--${phase}`}>
         <button
@@ -181,18 +225,18 @@ export default function Echolocation() {
 
       {harmonies.length > 0 && (
         <footer className="echoloc-kept">
-          <span className="echoloc-kept-label">your harmonies</span>
+          <span className="echoloc-kept-label">your constellation</span>
           <div className="echoloc-kept-row">
             {harmonies.map(h => (
               <button
                 key={h.handle}
                 type="button"
-                className="echoloc-kept-chip"
+                className={`echoloc-kept-chip${h.mutual ? ' echoloc-kept-chip--mutual' : ''}`}
                 style={{ '--ret-color': h.color } as CSSProperties}
-                title={`${h.interval} · locked ${new Date(h.lockedAt).toLocaleDateString()}`}
+                title={`${h.interval}${h.mutual ? ' · you answered each other' : ''} · ${new Date(h.lockedAt).toLocaleDateString()}`}
                 onClick={() => window.dispatchEvent(new CustomEvent('ecosphere:viewCarrier', { detail: { handle: h.handle } }))}
               >
-                <i aria-hidden="true" />{h.handle}
+                <i aria-hidden="true" />{h.mutual ? '✦ ' : ''}{h.handle}
                 {familiarFor(h.handle) && <em> · {familiarFor(h.handle)}</em>}
               </button>
             ))}
