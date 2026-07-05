@@ -193,7 +193,8 @@ html, body, #root {
 .home-screen { gap: 20px; }
 .home-kicker {
   font-size: 10px; font-weight: 800; letter-spacing: 0.22em;
-  color: var(--cyan); text-transform: uppercase; padding-top: 8px;
+  color: var(--cyan); text-transform: uppercase;
+  padding-top: 48px; /* clears the fixed presence chip, like .screen-header */
 }
 .home-title {
   font-size: clamp(36px, 10vw, 64px);
