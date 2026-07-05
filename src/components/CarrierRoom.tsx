@@ -7,6 +7,7 @@ import {
 import type { Participant, FlowMode } from '../lib/carrierRoom'
 import { readAvatar, sigilGlyph } from '../lib/avatar'
 import { playSampleBuffer, stopPreviewBuffer } from '../lib/sampleAudio'
+import { speakSignal, speechSupported, cancelSpeech } from '../lib/speech'
 import { joinCarrierRoom, liveRoomsEnabled } from '../lib/carrierRoomLive'
 import type { CarrierRoomSession, LivePeer } from '../lib/carrierRoomLive'
 import { resolveSignalState, SIGNAL_GLYPH } from '../lib/signalState'
@@ -198,13 +199,19 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
     if (!rrMine && rrMineRef.current) { rrMineRef.current = false; setYouMuted(true) }
   }, [rrMine, mode])
 
-  // a soft murmur each time the carrier changes — the room never sits dead
+  // each time the carrier changes the room speaks — a real voice saying a
+  // half-thought when the device can talk (same rule as the sea), a soft
+  // murmur otherwise. your own turns stay silent-but-live: the mic is you.
   useEffect(() => {
     const key = hushed ? 'hush' : mode === 'listen-only' ? 'listen' : (primary?.isYou ? 'you' : (primary?.sigil ?? '') + simIdx)
     if (key !== lastKeyRef.current) {
       lastKeyRef.current = key
       if (!hushed && mode !== 'listen-only' && !(primary?.isYou && youMuted)) {
-        void playSampleBuffer(simIdx % 3 === 0 ? 'whisper' : 'voice', simIdx * 313 + 17, 4200, 0.1)
+        if (!primary?.isYou && speechSupported()) {
+          speakSignal(CR_AMBIENT[simIdx % CR_AMBIENT.length], simIdx * 313 + 17)
+        } else {
+          void playSampleBuffer(simIdx % 3 === 0 ? 'whisper' : 'voice', simIdx * 313 + 17, 4200, 0.1)
+        }
       }
     }
   }, [primary?.sigil, primary?.isYou, hushed, mode, youMuted, simIdx])
@@ -220,7 +227,7 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
     return () => document.removeEventListener('visibilitychange', onHidden)
   }, [youState])
 
-  useEffect(() => () => { stopPreviewBuffer() }, [])
+  useEffect(() => () => { stopPreviewBuffer(); cancelSpeech() }, [])
 
   const resetForMode = (next: FlowMode) => {
     setMode(next); setHushed(false); setYouState('listening'); setYouMuted(true)

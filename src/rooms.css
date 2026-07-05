@@ -1381,6 +1381,26 @@
   background: linear-gradient(180deg, rgba(196, 181, 253, 0.7), rgba(0, 212, 255, 0.4));
 }
 
+.temporal-signal-listen {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 5px 12px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: #7af7ff;
+  background: rgba(122, 247, 255, 0.08);
+  border: 1px solid rgba(122, 247, 255, 0.3);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.temporal-signal-listen:hover {
+  background: rgba(122, 247, 255, 0.16);
+  border-color: rgba(122, 247, 255, 0.55);
+}
+
 .temporal-signal-locked {
   font-size: 9px;
   letter-spacing: 0.14em;
