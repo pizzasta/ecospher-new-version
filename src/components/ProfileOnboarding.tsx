@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { AVATAR_SIGILS, saveAvatar, readAvatar, sigilGlyph } from '../lib/avatar'
 import {
@@ -63,6 +63,8 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
   const [paletteId, setPaletteId] = useState(PROFILE_PALETTES[0].id)
   const [style, setStyle] = useState<GradientStyle>('aurora')
   const [mood, setMood] = useState<Mood>(() => readMood())
+  const [saving, setSaving] = useState(false)
+  const panelRef = useRef<HTMLDivElement>(null)
 
   const palette = PROFILE_PALETTES.find(p => p.id === paletteId) ?? PROFILE_PALETTES[0]
   const colors: [string, string, string] = [palette.start, palette.end, accentColor]
@@ -77,22 +79,46 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
   }
 
   const finish = async () => {
+    if (saving) return // never let a slow save be double-submitted
+    setSaving(true)
     saveAvatar(sigil)
     saveMood(mood)
     const settings: GradientSettings = {
       ...DEFAULT_GRADIENT, locked: true, colorStart: palette.start, colorEnd: palette.end, style, speed: 60,
     }
-    // persist the chosen background; if validation rejects it (e.g. a bad color),
-    // fall back to saving the style alone so the background still applies.
-    const err = await saveGradientSettings(settings)
-    if (err) {
-      await saveGradientSettings({ ...DEFAULT_GRADIENT, locked: true, style })
-    }
+    try {
+      // persist the chosen background; if validation rejects it (e.g. a bad color),
+      // fall back to saving the style alone so the background still applies.
+      const err = await saveGradientSettings(settings)
+      if (err) await saveGradientSettings({ ...DEFAULT_GRADIENT, locked: true, style })
+    } catch { /* local save already applied — never trap the user in the modal */ }
     markProfileOnboarded()
     onDone()
   }
 
   const skip = () => { markProfileOnboarded(); onDone() }
+
+  const goNext = () => { if (step < STEPS - 1) setStep(s => s + 1); else void finish() }
+  const goBack = () => setStep(s => Math.max(0, s - 1))
+
+  // keyboard: Escape skips, and each step moves focus inside the panel so
+  // arrow keys work the radio groups and Enter advances — no mouse required
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); skip() } }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    // land focus on the chosen option (or the primary button on the last step)
+    const panel = panelRef.current
+    if (!panel) return
+    const target = panel.querySelector<HTMLElement>('.po-body [aria-checked="true"]')
+      ?? panel.querySelector<HTMLElement>('.po-finish')
+      ?? panel.querySelector<HTMLElement>('.po-next')
+    target?.focus({ preventScroll: true })
+  }, [step])
 
   const preview = (
     <div className="po-preview atmo-grain" style={{ '--po-c1': palette.start, '--po-c2': palette.end } as CSSProperties}>
@@ -132,13 +158,14 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
         ))}
       </div>
 
-      <div className="po-panel atmo-soft-panel atmo-grain">
+      <div className="po-panel atmo-soft-panel atmo-grain" ref={panelRef}>
         <header className="po-head">
           <span className="po-kicker">tuning you in</span>
           <div className="po-dots" aria-hidden="true">
             {Array.from({ length: STEPS }, (_, d) => <i key={d} className={d === step ? 'on' : d < step ? 'done' : ''} />)}
           </div>
-          <button type="button" className="po-skip" onClick={skip}>skip</button>
+          <span className="po-sr-step">step {step + 1} of {STEPS}</span>
+          <button type="button" className="po-skip" onClick={skip}>skip for now</button>
         </header>
 
         {preview}
@@ -248,16 +275,22 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
               <p>your frequency's open now. someone drifting through tonight will feel it.</p>
             </>
           )}
+
+          {step < STEPS - 1 && (
+            <p className="po-reassure">nothing here is permanent — retune any of it any night from your profile.</p>
+          )}
         </div>
 
         <footer className="po-foot">
           {step > 0 ? (
-            <button type="button" className="po-back" onClick={() => setStep(s => Math.max(0, s - 1))}>back</button>
+            <button type="button" className="po-back" onClick={goBack}>back</button>
           ) : <span />}
           {step < STEPS - 1 ? (
-            <button type="button" className="po-next" onClick={() => setStep(s => Math.min(STEPS - 1, s + 1))}>next</button>
+            <button type="button" className="po-next" onClick={goNext}>next</button>
           ) : (
-            <button type="button" className="po-next po-finish" onClick={finish}>drift in</button>
+            <button type="button" className="po-next po-finish" onClick={() => void finish()} disabled={saving}>
+              {saving ? 'tuning you in…' : 'drift in'}
+            </button>
           )}
         </footer>
       </div>
