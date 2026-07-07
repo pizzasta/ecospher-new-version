@@ -1,0 +1,74 @@
+/* Sit with it — presence as the message. */
+
+.sitwith { margin-top: 8px; display: flex; align-items: center; }
+
+.sitwith-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(220, 228, 250, 0.72);
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: border-color 0.25s ease, color 0.25s ease;
+  overflow: hidden;
+}
+
+.sitwith-btn:hover {
+  border-color: color-mix(in srgb, var(--sit-color, #9b5de9) 50%, transparent);
+  color: rgba(235, 240, 255, 0.9);
+}
+
+/* the hold fills the pill like a slow breath */
+.sitwith-ring {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--sit-color, #9b5de9) 26%, transparent) 0%,
+    color-mix(in srgb, var(--sit-color, #9b5de9) 26%, transparent) calc(var(--sit-p, 0) * 100%),
+    transparent calc(var(--sit-p, 0) * 100%));
+  pointer-events: none;
+}
+
+.sitwith-btn--holding {
+  border-color: color-mix(in srgb, var(--sit-color, #9b5de9) 75%, transparent);
+  color: #f0ecff;
+  animation: sitwithBreathe 2.4s ease-in-out;
+}
+
+@keyframes sitwithBreathe {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sit-color, #9b5de9) 0%, transparent); }
+  100% { box-shadow: 0 0 26px 4px color-mix(in srgb, var(--sit-color, #9b5de9) 35%, transparent); }
+}
+
+.sitwith-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  font-style: italic;
+  color: color-mix(in srgb, var(--sit-color, #9b5de9) 70%, #fff 15%);
+}
+
+.sitwith-done i {
+  font-style: normal;
+  animation: sitwithGlow 4s ease-in-out infinite;
+}
+
+@keyframes sitwithGlow {
+  0%, 100% { opacity: 0.5; text-shadow: none; }
+  50% { opacity: 1; text-shadow: 0 0 12px var(--sit-color, #9b5de9); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sitwith-btn--holding, .sitwith-done i { animation: none; }
+}

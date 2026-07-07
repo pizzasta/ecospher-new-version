@@ -22,6 +22,7 @@ import { subscribeToEcosphereActivity } from './lib/backendBridge'
 import type { StoredReaction } from './lib/localAudioStore'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
 import EcosphereAmbience from './components/EcosphereAmbience'
+import PresenceWhisper from './components/PresenceWhisper'
 import ActiveCarriers from './components/ActiveCarriers'
 import Echolocation from './components/Echolocation'
 import AudioRecorder from './components/AudioRecorder'
@@ -5310,6 +5311,7 @@ export default function App() {
       <EcosphereAmbience />
 
       <NotificationBell />
+      <PresenceWhisper />
       <SignalSearch onNavigate={page => navigate(page as Screen)} />
       <CarrierProfile />
       <QuickCreate onNavigate={page => navigate(page as Screen)} />

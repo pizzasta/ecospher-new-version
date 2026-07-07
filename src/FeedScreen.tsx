@@ -13,6 +13,7 @@ import { GHOST_ARCHIVE } from './lib/ghostArchive'
 import { getLocalHzProfile, hzForHandle } from './lib/hzSignature'
 import HzBadge from './components/HzBadge'
 import RelayButton from './components/RelayButton'
+import SitWith from './components/SitWith'
 import ListenerTraces from './components/ListenerTraces'
 import { RETURN_TAGS, addReturn, listReturns, removeReturn } from './lib/returnQueue'
 import { DECAY_LABELS, decayLevel, decayText, heatFor, preserveSignal, presenceLine, whyFoundYou } from './lib/signalLife'
@@ -642,6 +643,9 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
 
         {/* Relay: push it further down the band — your frequency joins the chorus */}
         <RelayButton signalId={signal.id} myHz={myHz} color={colors.primary} />
+
+        {/* Stillness: hold to stay with it — no words, just presence */}
+        <SitWith signalId={signal.id} color={colors.primary} />
 
         {/* listener traces — only on replayed / heavily replayed signals */}
         <ListenerTraces signalId={signal.id} resonance={signal.resonance} replayed={wasReplayed} />
