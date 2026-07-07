@@ -1,3 +1,4 @@
+import { readPref } from '../hooks/useEcoPrefs'
 import { useRef, useState, useEffect, useCallback } from 'react'
 import type { CSSProperties } from 'react'
 import {
@@ -192,7 +193,7 @@ export default function StickyNotes() {
     const noteY = (layout.y / 100) * br.height
     dragStartPos.current = { x: e.clientX - br.left - noteX, y: e.clientY - br.top - noteY }
     setDragging(id)
-    if ('vibrate' in navigator) navigator.vibrate(8)
+    if ('vibrate' in navigator && readPref('vibrate', true)) navigator.vibrate(8)
   }, [editing, layouts])
 
   const onPointerMove = useCallback((e: React.PointerEvent, id: string) => {

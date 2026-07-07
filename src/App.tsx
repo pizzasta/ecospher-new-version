@@ -9,7 +9,7 @@ import { createVoiceRecorder, micErrorReason } from './lib/audioBudget'
 import { downloadBlob, exportFilename, renderStoryImage } from './lib/storyExport'
 import { clearStaleBuild } from './lib/recovery'
 import { probeConnectivity } from './lib/connectivity'
-import { playChainBlend, playSample, playSampleBuffer, stopChainPlayback, stopPreviewBuffer } from './lib/sampleAudio'
+import { getSharedAudioContext, playChainBlend, playSample, playSampleBuffer, stopChainPlayback, stopPreviewBuffer } from './lib/sampleAudio'
 import type { SampleKind } from './lib/sampleAudio'
 import { speakSignal, speechSupported, cancelSpeech } from './lib/speech'
 import { castRateCheck, recordCast } from './lib/castLine'
@@ -4583,9 +4583,15 @@ type EcoPrefs = {
   fullNav: boolean
   signalVolume: number
   driftSensitivity: number
+  /** spoken voices: signals read aloud in a real device voice (murmur when off) */
+  voices: boolean
+  /** presence whispers: the soft passing lines that notice you back */
+  whispers: boolean
+  /** 'cozy' (default) | 'large' — gently scales the whole interface */
+  textSize: string
 }
 
-const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, privateProfile: false, language: 'auto', viewMode: 'auto', fullNav: true, signalVolume: 72, driftSensitivity: 60 }
+const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, privateProfile: false, language: 'auto', viewMode: 'auto', fullNav: true, signalVolume: 72, driftSensitivity: 60, voices: true, whispers: true, textSize: 'cozy' }
 
 function normalizeIdentity(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
@@ -4640,6 +4646,11 @@ export function SettingsScreen() {
       uiSounds: ['interface sounds on', 'interface sounds muted'],
       fullNav: ['every tab visible', 'minimal drift nav — everything else lives in search (⌖ / ⌘K)'],
       privateProfile: ['profile hidden from the band', 'profile visible again'],
+      voices: ['spoken voices on — signals read aloud', 'spoken voices off — everything murmurs instead'],
+      whispers: ['presence whispers on', 'presence whispers off — the band stays quiet about you'],
+    }
+    if ('textSize' in patch) {
+      showNote(patch.textSize === 'large' ? 'larger text — the whole interface breathes up' : 'cozy text restored')
     }
     if ('viewMode' in patch) {
       showNote(patch.viewMode === 'mobile'
@@ -4658,6 +4669,24 @@ export function SettingsScreen() {
       const pair = confirmations[key]
       if (pair) showNote(patch[key] ? pair[0] : pair[1])
     }
+  }
+
+  // a soft blip at the new level — the volume slider should be audible
+  const volumeBlip = (volume: number) => {
+    const ctx = getSharedAudioContext()
+    if (!ctx || ctx.state !== 'running') return
+    const osc = ctx.createOscillator()
+    osc.type = 'sine'
+    osc.frequency.value = 440
+    const gain = ctx.createGain()
+    const level = Math.max(0.001, (volume / 100) * 0.3)
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(level, ctx.currentTime + 0.02)
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start()
+    osc.stop(ctx.currentTime + 0.2)
   }
 
   const showNote = (text: string) => {
@@ -4860,10 +4889,39 @@ export function SettingsScreen() {
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
+            <div className="setting-label">{tr('settings.voices')}</div>
+            <div className="setting-detail">{tr('settings.voices.detail')}</div>
+          </div>
+          <button className={`toggle ${prefs.voices ? 'on' : ''}`} onClick={() => update({ voices: !prefs.voices })} />
+        </div>
+        <div className="setting-row glass">
+          <div className="setting-info">
+            <div className="setting-label">{tr('settings.whispers')}</div>
+            <div className="setting-detail">{tr('settings.whispers.detail')}</div>
+          </div>
+          <button className={`toggle ${prefs.whispers ? 'on' : ''}`} onClick={() => update({ whispers: !prefs.whispers })} />
+        </div>
+        <div className="setting-row glass">
+          <div className="setting-info">
+            <div className="setting-label">{tr('settings.textSize')}</div>
+            <div className="setting-detail">{tr('settings.textSize.detail')}</div>
+          </div>
+          <select
+            className="setting-select"
+            value={prefs.textSize}
+            onChange={e => update({ textSize: e.target.value })}
+            aria-label={tr('settings.textSize')}
+          >
+            <option value="cozy">{tr('settings.textSize.cozy')}</option>
+            <option value="large">{tr('settings.textSize.large')}</option>
+          </select>
+        </div>
+        <div className="setting-row glass">
+          <div className="setting-info">
             <div className="setting-label">{tr('settings.volume')}</div>
             <div className="setting-detail">{prefs.signalVolume}% — {tr('settings.volume.detail')}</div>
           </div>
-          <input type="range" min={0} max={100} value={prefs.signalVolume} onChange={e => update({ signalVolume: +e.target.value })} className="range-input" />
+          <input type="range" min={0} max={100} value={prefs.signalVolume} onChange={e => update({ signalVolume: +e.target.value })} onPointerUp={() => volumeBlip(prefs.signalVolume)} className="range-input" />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">

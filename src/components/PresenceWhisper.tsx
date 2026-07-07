@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { currentWhisper, WHISPER_EVERY_MS, WHISPER_VISIBLE_MS } from '../lib/presenceWhispers'
+import { useEcoPref } from '../hooks/useEcoPrefs'
 import './PresenceWhisper.css'
 
 // A soft line that passes through the bottom of the screen every minute or
@@ -7,6 +8,7 @@ import './PresenceWhisper.css'
 // tap target, no urgency. It surfaces, breathes, and dissolves.
 
 export default function PresenceWhisper() {
+  const enabled = useEcoPref('whispers', true)
   const [line, setLine] = useState<string | null>(null)
   const timersRef = useRef<number[]>([])
 
@@ -25,7 +27,7 @@ export default function PresenceWhisper() {
     }
   }, [])
 
-  if (!line) return null
+  if (!enabled || !line) return null
   return (
     <div className="pwhisper" role="status" aria-live="polite" key={line}>
       <i aria-hidden="true" />

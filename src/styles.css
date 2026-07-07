@@ -10352,3 +10352,6 @@ body[data-eco-view='mobile'] .helpbot-panel { width: min(440px, 96vw); }
     transition: opacity 0.2s ease;
   }
 }
+
+/* text size setting: 'large' gently scales the whole interface */
+body[data-eco-text='large'] #root { zoom: 1.14; }

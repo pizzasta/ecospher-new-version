@@ -5,8 +5,14 @@
 // It's a short sample, not a full reading.
 
 export function speechSupported(): boolean {
-  return typeof window !== 'undefined'
-    && typeof window.speechSynthesis !== 'undefined'
+  if (typeof window === 'undefined') return false
+  // the Settings 'spoken voices' switch gates every surface that reads aloud;
+  // when off, every caller falls back to the wordless murmur automatically
+  try {
+    const raw = window.localStorage.getItem('ecosphere:settings')
+    if (raw && JSON.parse(raw)?.voices === false) return false
+  } catch { /* default: voices on */ }
+  return typeof window.speechSynthesis !== 'undefined'
     && typeof window.SpeechSynthesisUtterance !== 'undefined'
 }
 
