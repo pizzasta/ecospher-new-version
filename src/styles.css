@@ -10355,3 +10355,10 @@ body[data-eco-view='mobile'] .helpbot-panel { width: min(440px, 96vw); }
 
 /* text size setting: 'large' gently scales the whole interface */
 body[data-eco-text='large'] #root { zoom: 1.14; }
+
+/* ─── Desktop layout guards ─────────────────────────────────────────────────
+   pages stay a readable column instead of stretching across ultrawide
+   monitors; the settings list narrows further — it's a form, not a feed */
+.screen { width: 100%; max-width: 1180px; margin-inline: auto; }
+.settings-screen { max-width: 800px; }
+.tx-screen { max-width: 880px; }

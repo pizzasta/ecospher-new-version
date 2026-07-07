@@ -4758,7 +4758,7 @@ export function SettingsScreen() {
   }
 
   return (
-    <div className="screen">
+    <div className="screen settings-screen">
       <div className="screen-header">
         <div className="screen-kicker">ECOSPHERE</div>
         <h2 className="screen-title">{tr('settings.title')}</h2>
