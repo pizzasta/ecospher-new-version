@@ -32,6 +32,7 @@ import TonightsFrequency from './components/TonightsFrequency'
 import CarrierRoom from './components/CarrierRoom'
 import DormantFrequencies from './components/DormantFrequencies'
 import DriftedTextRelics from './components/DriftedTextRelics'
+import DeepArchive from './components/DeepArchive'
 import PostRelics from './components/PostRelics'
 import FeaturedNotes from './components/FeaturedNotes'
 import StickyNotes from './components/StickyNotes'
@@ -2458,6 +2459,7 @@ function RelicsScreen() {
         <h2 className="screen-title">Relics</h2>
         <p className="screen-sub">relics are voice moments the network refused to forget.</p>
       </div>
+      <DeepArchive />
       <DriftedTextRelics />
       <PostRelics view="relics" />
       <FeaturedNotes />
