@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react'
 import { deleteAccountData, getOptionalSupabaseClient, isSupabaseConfigured, syncProfile, updateProfileFlags } from './lib'
 import { localDateString, useEcosystemState } from './hooks/useEcosystemState'
 import { deleteLocalRecording, deleteReactionAudio, listLocalRecordings, listReactionAudio, saveReactionAudio, saveRecordingLocally } from './lib/localAudioStore'
+import { createVoiceRecorder, micErrorReason } from './lib/audioBudget'
 import { downloadBlob, exportFilename, renderStoryImage } from './lib/storyExport'
 import { clearStaleBuild } from './lib/recovery'
 import { probeConnectivity } from './lib/connectivity'
@@ -3309,6 +3310,9 @@ const SEA_FRAGMENTS: Record<SeaSource, string[]> = {
   ],
 }
 
+/** a thrown voice records for at most this long before the water takes it */
+const SEA_VOICE_MAX_MS = 8000
+
 function makeBuoy(id: number, night: boolean): SeaBuoy {
   const sources: SeaSource[] = ['unsent', 'reaction', 'deadzone', 'feed', 'room']
   const source = sources[id % sources.length]
@@ -3403,6 +3407,16 @@ function FrequenciesScreen() {
     const mine = loadSeaLines().map((text, i) => makeTypedBuoy(900 + i, text))
     return [...mine, ...base]
   })
+  // throw-your-voice: recorder state + the blobs behind your drifting voices
+  const [throwing, setThrowing] = useState<'idle' | 'recording'>('idle')
+  const seaAudio = useGlobalAudio()
+  const seaRecRef = useRef<MediaRecorder | null>(null)
+  const seaRecTimerRef = useRef<number | undefined>(undefined)
+  const seaBlobsRef = useRef<Map<number, Blob>>(new Map())
+  useEffect(() => () => {
+    window.clearTimeout(seaRecTimerRef.current)
+    try { seaRecRef.current?.stream.getTracks().forEach(t => t.stop()) } catch { /* already released */ }
+  }, [])
   // your cast lines carry your sigil color; others drift in their own tones
   const [myColor, setMyColor] = useState('#ffd166')
   useEffect(() => {
@@ -3508,7 +3522,11 @@ function FrequenciesScreen() {
   // your own cast lines actually read themselves aloud as you pass.
   const driftNear = (b: SeaBuoy) => {
     setNearId(b.id)
-    if (b.mine && speechSupported()) {
+    const thrown = seaBlobsRef.current.get(b.id)
+    if (thrown) {
+      // a voice you threw in — the water gives back the actual recording
+      void seaAudio.playBlob(thrown, { id: `sea-voice-${b.id}`, label: 'your voice in the sea', source: 'frequencies' })
+    } else if (b.mine && speechSupported()) {
       speakSignal(b.fragment, b.seed)
     } else {
       void playSampleBuffer(b.kind, b.seed, 7000, 0.3)
@@ -3519,6 +3537,7 @@ function FrequenciesScreen() {
     setNearId(null)
     stopPreviewBuffer()
     cancelSpeech()
+    if (seaAudio.current?.id.startsWith('sea-voice-')) seaAudio.stop()
   }
 
   const saveEcho = (b: SeaBuoy) => {
@@ -3537,9 +3556,52 @@ function FrequenciesScreen() {
     say('the water got deeper. different voices down here.')
   }
 
-  const throwVoice = () => {
-    reactToSignal('frequency-sea', 'released a signal into the sea')
-    say('your voice sank into the water — someone may drift through it')
+  // throw your voice: a real recording (max 8s) that becomes one of the
+  // drifting buoys — swim back near it and the water plays you back.
+  const throwVoice = async () => {
+    if (throwing === 'recording') {
+      if (seaRecRef.current?.state === 'recording') seaRecRef.current.stop()
+      return
+    }
+    const md = typeof navigator !== 'undefined' ? navigator.mediaDevices : undefined
+    if (!md?.getUserMedia) { say("the water couldn't hear you — this browser has no microphone"); return }
+    try {
+      const stream = await md.getUserMedia({ audio: true })
+      const rec = createVoiceRecorder(stream)
+      const chunks: BlobPart[] = []
+      const startedAt = Date.now()
+      rec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data) }
+      rec.onstop = () => {
+        stream.getTracks().forEach(t => t.stop())
+        window.clearTimeout(seaRecTimerRef.current)
+        setThrowing('idle')
+        const durationMs = Math.min(Date.now() - startedAt, SEA_VOICE_MAX_MS)
+        if (durationMs < 400 || chunks.length === 0) { say('too quick — hold it under a moment longer'); return }
+        const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' })
+        const id = 800000 + (Date.now() % 100000)
+        seaBlobsRef.current.set(id, blob)
+        void saveRecordingLocally({ id: `sea-voice-${id}`, label: 'a voice thrown into the sea', durationMs, emotionalTag: 'drift', createdAt: Date.now(), blob })
+        const buoy: SeaBuoy = {
+          ...makeBuoy(id, night), id, mine: true, voice: true, cast: false, kind: 'voice', fading: false,
+          fragment: 'your voice, drifting where you threw it',
+          subtitles: ['your own voice, underwater'],
+          status: 'drifting',
+        }
+        setBuoys(prev => [buoy, ...prev].slice(0, 44))
+        reactToSignal('frequency-sea', 'released a signal into the sea')
+        leaveTrace('threw your voice into the sea', 'frequencies')
+        say('your voice sank into the water — drift near it to hear it back')
+      }
+      seaRecRef.current = rec
+      rec.start()
+      setThrowing('recording')
+      say('the water is listening… tap again to let go')
+      seaRecTimerRef.current = window.setTimeout(() => { if (rec.state === 'recording') rec.stop() }, SEA_VOICE_MAX_MS)
+    } catch (err) {
+      say(micErrorReason(err) === 'permission'
+        ? "the water couldn't hear you — the microphone was declined"
+        : "the water couldn't hear you — no microphone answered")
+    }
   }
 
   // cast a typed line into the sea: short, screened, rate-limited gently, then
@@ -3988,7 +4050,9 @@ function FrequenciesScreen() {
           <button type="button" onClick={driftDeeper}>↓ drift deeper</button>
           <button type="button" onClick={chaseSignal}>⌖ chase this signal</button>
           <button type="button" className={muted ? 'sea-muted' : ''} onClick={toggleMute}>{muted ? '◉ unmute the water' : '◌ mute nearby chatter'}</button>
-          <button type="button" onClick={throwVoice}>● throw your voice into the water</button>
+          <button type="button" className={throwing === 'recording' ? 'sea-throwing' : ''} onClick={() => { void throwVoice() }}>
+            {throwing === 'recording' ? '◉ the water is listening… tap to let go' : '● throw your voice into the water'}
+          </button>
           <button type="button" onClick={surface}>↑ surface</button>
         </div>
       </footer>

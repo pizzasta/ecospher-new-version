@@ -14,6 +14,12 @@ export const AVATAR_SIGILS: AvatarSigil[] = [
   { id: 'static', glyph: '▦', label: 'the static' },
   { id: 'loop', glyph: '◌', label: 'the loop' },
   { id: 'gem', glyph: '◈', label: 'the gem' },
+  { id: 'orbit', glyph: '◍', label: 'the orbit' },
+  { id: 'tide', glyph: '≋', label: 'the tide' },
+  { id: 'rift', glyph: '⟁', label: 'the rift' },
+  { id: 'bloom', glyph: '❋', label: 'the bloom' },
+  { id: 'comet', glyph: '☄', label: 'the comet' },
+  { id: 'void', glyph: '⬢', label: 'the void' },
 ]
 
 const AVATAR_KEY = 'ecosphere:avatar'

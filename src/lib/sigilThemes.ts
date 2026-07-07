@@ -12,6 +12,8 @@ export const SIGIL_THEMES: SigilTheme[] = [
   { id: 'echoes', label: 'Echoes', line: 'what keeps coming back', sigilIds: ['loop', 'antenna'] },
   { id: 'wounds', label: 'Wounds', line: 'the tender, honest marks', sigilIds: ['static', 'spark'] },
   { id: 'anchors', label: 'Anchors', line: 'what holds you steady', sigilIds: ['hex', 'gem'] },
+  { id: 'currents', label: 'Currents', line: 'what moves you along', sigilIds: ['tide', 'orbit', 'comet'] },
+  { id: 'edges', label: 'Edges', line: 'where the map runs out', sigilIds: ['rift', 'bloom', 'void'] },
 ]
 
 export function sigilsInTheme(themeId: string): AvatarSigil[] {

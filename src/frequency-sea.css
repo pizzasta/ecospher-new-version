@@ -224,3 +224,20 @@
 @media (prefers-reduced-motion: reduce) {
     .sea-catch-ripple { animation: none; opacity: 0; }
 }
+
+/* throw-your-voice: the dock button while the water is listening */
+.sea-dock-row .sea-throwing {
+  border-color: rgba(255, 45, 120, 0.65);
+  color: #ffd7e6;
+  background: rgba(255, 45, 120, 0.12);
+  animation: seaThrowPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes seaThrowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 45, 120, 0.25); }
+  50% { box-shadow: 0 0 14px 3px rgba(255, 45, 120, 0.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sea-dock-row .sea-throwing { animation: none; }
+}
