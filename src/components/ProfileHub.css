@@ -1711,3 +1711,6 @@ body[data-eco-page='pod'] .screen {
 .ph-constellation-star--mutual {
   box-shadow: 0 0 12px color-mix(in srgb, var(--star-color, #9ae8ff) 25%, transparent);
 }
+
+/* sigils are seals, never emoji — force text presentation everywhere they render */
+.ph-sigil-option, .ph-sigil { font-variant-emoji: text; }

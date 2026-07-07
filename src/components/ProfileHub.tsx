@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useEcosystemState } from '../hooks/useEcosystemState'
+import FrequencySeal from './FrequencySeal'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { playSample } from '../lib/sampleAudio'
 import { deleteLocalRecording, listLocalRecordings } from '../lib/localAudioStore'
@@ -893,14 +894,14 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
             ))}
           </div>
           <div className="ph-ring-center">
-            {avatar === 'hz' ? (
-              <>
-                <strong>{hzProfile.hz.toFixed(1)}</strong>
-                <span>Hz</span>
-              </>
-            ) : (
-              <span className="ph-sigil" style={{ color: hzProfile.color }}>{sigilGlyph(avatar)}</span>
-            )}
+            <FrequencySeal
+              hz={hzProfile.hz}
+              color={hzProfile.color}
+              sigil={avatar}
+              size={82}
+              center={avatar === 'hz' ? 'hz' : 'glyph'}
+              glyph={sigilGlyph(avatar)}
+            />
           </div>
         </div>
         <div className="ph-identity">

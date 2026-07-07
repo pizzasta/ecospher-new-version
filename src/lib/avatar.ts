@@ -18,7 +18,7 @@ export const AVATAR_SIGILS: AvatarSigil[] = [
   { id: 'tide', glyph: '≋', label: 'the tide' },
   { id: 'rift', glyph: '⟁', label: 'the rift' },
   { id: 'bloom', glyph: '❋', label: 'the bloom' },
-  { id: 'comet', glyph: '☄', label: 'the comet' },
+  { id: 'comet', glyph: '☄︎', label: 'the comet' },
   { id: 'void', glyph: '⬢', label: 'the void' },
 ]
 

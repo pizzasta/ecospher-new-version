@@ -1,0 +1,61 @@
+/* FrequencySeal — an instrument reading, not an icon. */
+
+.fseal {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fseal-color, #66ccff);
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--fseal-color, #66ccff) 45%, transparent));
+}
+
+.fseal-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.fseal--spin .fseal-ticks {
+  transform-origin: 50% 50%;
+  animation: fsealTurn 46s linear infinite;
+}
+
+@keyframes fsealTurn {
+  to { transform: rotate(360deg); }
+}
+
+.fseal-center {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.fseal-hz {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  font-size: 0.9em;
+  color: #eef7ff;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--fseal-color, #66ccff) 65%, transparent);
+}
+
+.fseal-unit {
+  font-style: normal;
+  font-size: 0.42em;
+  letter-spacing: 0.3em;
+  margin-top: 2px;
+  color: color-mix(in srgb, var(--fseal-color, #66ccff) 80%, #fff 10%);
+  opacity: 0.8;
+}
+
+.fseal-glyph {
+  font-size: 1.1em;
+  /* force text presentation — a seal never renders an emoji */
+  font-variant-emoji: text;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--fseal-color, #66ccff) 70%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fseal--spin .fseal-ticks { animation: none; }
+}
