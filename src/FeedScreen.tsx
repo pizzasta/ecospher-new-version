@@ -10,8 +10,9 @@ import { listenerCount, livedInLines } from './lib/livedIn'
 import { fetchPublicSignals, mirrorActivity, mirrorSignalFade, publishSignalToFeed, publishVoiceSignalToFeed, mirrorReaction } from './lib/backendBridge'
 import { moderatePublicSignalText } from './lib/signalModeration'
 import { GHOST_ARCHIVE } from './lib/ghostArchive'
-import { hzForHandle } from './lib/hzSignature'
+import { getLocalHzProfile, hzForHandle } from './lib/hzSignature'
 import HzBadge from './components/HzBadge'
+import RelayButton from './components/RelayButton'
 import ListenerTraces from './components/ListenerTraces'
 import { RETURN_TAGS, addReturn, listReturns, removeReturn } from './lib/returnQueue'
 import { DECAY_LABELS, decayLevel, decayText, heatFor, preserveSignal, presenceLine, whyFoundYou } from './lib/signalLife'
@@ -393,6 +394,8 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
 function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, livePulse = false }: { signal: FeedSignal; index: number; decayRemaining: number | null; dissolving: boolean; presenceTick: number; livePulse?: boolean }) {
   const { ecosystemState, saveSignal, unsaveFromLibrary, reactToSignal } = useEcosystemState()
   const globalAudio = useGlobalAudio()
+  // your Hz — what the relay folds into the signal's chorus
+  const myHz = useMemo(() => getLocalHzProfile(ecosystemState.userSignalIdentity ?? 'unclaimed').hz, [ecosystemState.userSignalIdentity])
   const [visible, setVisible] = useState(false)
   const [waveformVisible, setWaveformVisible] = useState(false)
   const [textVisible, setTextVisible] = useState(false)
@@ -636,6 +639,9 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
 
         {/* Voice reactions */}
         <VoiceReactionStack signalId={signal.id} moodColor={colors.primary} />
+
+        {/* Relay: push it further down the band — your frequency joins the chorus */}
+        <RelayButton signalId={signal.id} myHz={myHz} color={colors.primary} />
 
         {/* listener traces — only on replayed / heavily replayed signals */}
         <ListenerTraces signalId={signal.id} resonance={signal.resonance} replayed={wasReplayed} />
