@@ -5,10 +5,11 @@ import type { CSSProperties } from 'react'
 import { deleteAccountData, getOptionalSupabaseClient, isSupabaseConfigured, syncProfile, updateProfileFlags } from './lib'
 import { localDateString, useEcosystemState } from './hooks/useEcosystemState'
 import { deleteLocalRecording, deleteReactionAudio, listLocalRecordings, listReactionAudio, saveReactionAudio, saveRecordingLocally } from './lib/localAudioStore'
+import { createVoiceRecorder, micErrorReason } from './lib/audioBudget'
 import { downloadBlob, exportFilename, renderStoryImage } from './lib/storyExport'
 import { clearStaleBuild } from './lib/recovery'
 import { probeConnectivity } from './lib/connectivity'
-import { playChainBlend, playSample, playSampleBuffer, stopChainPlayback, stopPreviewBuffer } from './lib/sampleAudio'
+import { getSharedAudioContext, playChainBlend, playSample, playSampleBuffer, stopChainPlayback, stopPreviewBuffer } from './lib/sampleAudio'
 import type { SampleKind } from './lib/sampleAudio'
 import { speakSignal, speechSupported, cancelSpeech } from './lib/speech'
 import { castRateCheck, recordCast } from './lib/castLine'
@@ -21,7 +22,9 @@ import { subscribeToEcosphereActivity } from './lib/backendBridge'
 import type { StoredReaction } from './lib/localAudioStore'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
 import EcosphereAmbience from './components/EcosphereAmbience'
+import PresenceWhisper from './components/PresenceWhisper'
 import ActiveCarriers from './components/ActiveCarriers'
+import Echolocation from './components/Echolocation'
 import AudioRecorder from './components/AudioRecorder'
 import AudioPlayer from './components/AudioPlayer'
 import FrequencyRecap from './components/FrequencyRecap'
@@ -30,6 +33,7 @@ import TonightsFrequency from './components/TonightsFrequency'
 import CarrierRoom from './components/CarrierRoom'
 import DormantFrequencies from './components/DormantFrequencies'
 import DriftedTextRelics from './components/DriftedTextRelics'
+import DeepArchive from './components/DeepArchive'
 import PostRelics from './components/PostRelics'
 import FeaturedNotes from './components/FeaturedNotes'
 import StickyNotes from './components/StickyNotes'
@@ -1219,6 +1223,8 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
       <HomeVoiceTransmit />
 
       <ActiveCarriers onViewMap={() => onNavigate?.('frequencies')} />
+
+      <Echolocation />
 
       <button type="button" className="deep-listen-entry" onClick={() => setDeepListen(true)}>
         ◉ deep listen — no visuals, only audio
@@ -2454,6 +2460,7 @@ function RelicsScreen() {
         <h2 className="screen-title">Relics</h2>
         <p className="screen-sub">relics are voice moments the network refused to forget.</p>
       </div>
+      <DeepArchive />
       <DriftedTextRelics />
       <PostRelics view="relics" />
       <FeaturedNotes />
@@ -3306,6 +3313,9 @@ const SEA_FRAGMENTS: Record<SeaSource, string[]> = {
   ],
 }
 
+/** a thrown voice records for at most this long before the water takes it */
+const SEA_VOICE_MAX_MS = 8000
+
 function makeBuoy(id: number, night: boolean): SeaBuoy {
   const sources: SeaSource[] = ['unsent', 'reaction', 'deadzone', 'feed', 'room']
   const source = sources[id % sources.length]
@@ -3400,6 +3410,16 @@ function FrequenciesScreen() {
     const mine = loadSeaLines().map((text, i) => makeTypedBuoy(900 + i, text))
     return [...mine, ...base]
   })
+  // throw-your-voice: recorder state + the blobs behind your drifting voices
+  const [throwing, setThrowing] = useState<'idle' | 'recording'>('idle')
+  const seaAudio = useGlobalAudio()
+  const seaRecRef = useRef<MediaRecorder | null>(null)
+  const seaRecTimerRef = useRef<number | undefined>(undefined)
+  const seaBlobsRef = useRef<Map<number, Blob>>(new Map())
+  useEffect(() => () => {
+    window.clearTimeout(seaRecTimerRef.current)
+    try { seaRecRef.current?.stream.getTracks().forEach(t => t.stop()) } catch { /* already released */ }
+  }, [])
   // your cast lines carry your sigil color; others drift in their own tones
   const [myColor, setMyColor] = useState('#ffd166')
   useEffect(() => {
@@ -3505,7 +3525,11 @@ function FrequenciesScreen() {
   // your own cast lines actually read themselves aloud as you pass.
   const driftNear = (b: SeaBuoy) => {
     setNearId(b.id)
-    if (b.mine && speechSupported()) {
+    const thrown = seaBlobsRef.current.get(b.id)
+    if (thrown) {
+      // a voice you threw in — the water gives back the actual recording
+      void seaAudio.playBlob(thrown, { id: `sea-voice-${b.id}`, label: 'your voice in the sea', source: 'frequencies' })
+    } else if (b.mine && speechSupported()) {
       speakSignal(b.fragment, b.seed)
     } else {
       void playSampleBuffer(b.kind, b.seed, 7000, 0.3)
@@ -3516,6 +3540,7 @@ function FrequenciesScreen() {
     setNearId(null)
     stopPreviewBuffer()
     cancelSpeech()
+    if (seaAudio.current?.id.startsWith('sea-voice-')) seaAudio.stop()
   }
 
   const saveEcho = (b: SeaBuoy) => {
@@ -3534,9 +3559,52 @@ function FrequenciesScreen() {
     say('the water got deeper. different voices down here.')
   }
 
-  const throwVoice = () => {
-    reactToSignal('frequency-sea', 'released a signal into the sea')
-    say('your voice sank into the water — someone may drift through it')
+  // throw your voice: a real recording (max 8s) that becomes one of the
+  // drifting buoys — swim back near it and the water plays you back.
+  const throwVoice = async () => {
+    if (throwing === 'recording') {
+      if (seaRecRef.current?.state === 'recording') seaRecRef.current.stop()
+      return
+    }
+    const md = typeof navigator !== 'undefined' ? navigator.mediaDevices : undefined
+    if (!md?.getUserMedia) { say("the water couldn't hear you — this browser has no microphone"); return }
+    try {
+      const stream = await md.getUserMedia({ audio: true })
+      const rec = createVoiceRecorder(stream)
+      const chunks: BlobPart[] = []
+      const startedAt = Date.now()
+      rec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data) }
+      rec.onstop = () => {
+        stream.getTracks().forEach(t => t.stop())
+        window.clearTimeout(seaRecTimerRef.current)
+        setThrowing('idle')
+        const durationMs = Math.min(Date.now() - startedAt, SEA_VOICE_MAX_MS)
+        if (durationMs < 400 || chunks.length === 0) { say('too quick — hold it under a moment longer'); return }
+        const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' })
+        const id = 800000 + (Date.now() % 100000)
+        seaBlobsRef.current.set(id, blob)
+        void saveRecordingLocally({ id: `sea-voice-${id}`, label: 'a voice thrown into the sea', durationMs, emotionalTag: 'drift', createdAt: Date.now(), blob })
+        const buoy: SeaBuoy = {
+          ...makeBuoy(id, night), id, mine: true, voice: true, cast: false, kind: 'voice', fading: false,
+          fragment: 'your voice, drifting where you threw it',
+          subtitles: ['your own voice, underwater'],
+          status: 'drifting',
+        }
+        setBuoys(prev => [buoy, ...prev].slice(0, 44))
+        reactToSignal('frequency-sea', 'released a signal into the sea')
+        leaveTrace('threw your voice into the sea', 'frequencies')
+        say('your voice sank into the water — drift near it to hear it back')
+      }
+      seaRecRef.current = rec
+      rec.start()
+      setThrowing('recording')
+      say('the water is listening… tap again to let go')
+      seaRecTimerRef.current = window.setTimeout(() => { if (rec.state === 'recording') rec.stop() }, SEA_VOICE_MAX_MS)
+    } catch (err) {
+      say(micErrorReason(err) === 'permission'
+        ? "the water couldn't hear you — the microphone was declined"
+        : "the water couldn't hear you — no microphone answered")
+    }
   }
 
   // cast a typed line into the sea: short, screened, rate-limited gently, then
@@ -3985,7 +4053,9 @@ function FrequenciesScreen() {
           <button type="button" onClick={driftDeeper}>↓ drift deeper</button>
           <button type="button" onClick={chaseSignal}>⌖ chase this signal</button>
           <button type="button" className={muted ? 'sea-muted' : ''} onClick={toggleMute}>{muted ? '◉ unmute the water' : '◌ mute nearby chatter'}</button>
-          <button type="button" onClick={throwVoice}>● throw your voice into the water</button>
+          <button type="button" className={throwing === 'recording' ? 'sea-throwing' : ''} onClick={() => { void throwVoice() }}>
+            {throwing === 'recording' ? '◉ the water is listening… tap to let go' : '● throw your voice into the water'}
+          </button>
           <button type="button" onClick={surface}>↑ surface</button>
         </div>
       </footer>
@@ -4513,9 +4583,15 @@ type EcoPrefs = {
   fullNav: boolean
   signalVolume: number
   driftSensitivity: number
+  /** spoken voices: signals read aloud in a real device voice (murmur when off) */
+  voices: boolean
+  /** presence whispers: the soft passing lines that notice you back */
+  whispers: boolean
+  /** 'cozy' (default) | 'large' — gently scales the whole interface */
+  textSize: string
 }
 
-const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, privateProfile: false, language: 'auto', viewMode: 'auto', fullNav: true, signalVolume: 72, driftSensitivity: 60 }
+const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, privateProfile: false, language: 'auto', viewMode: 'auto', fullNav: true, signalVolume: 72, driftSensitivity: 60, voices: true, whispers: true, textSize: 'cozy' }
 
 function normalizeIdentity(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
@@ -4570,6 +4646,11 @@ export function SettingsScreen() {
       uiSounds: ['interface sounds on', 'interface sounds muted'],
       fullNav: ['every tab visible', 'minimal drift nav — everything else lives in search (⌖ / ⌘K)'],
       privateProfile: ['profile hidden from the band', 'profile visible again'],
+      voices: ['spoken voices on — signals read aloud', 'spoken voices off — everything murmurs instead'],
+      whispers: ['presence whispers on', 'presence whispers off — the band stays quiet about you'],
+    }
+    if ('textSize' in patch) {
+      showNote(patch.textSize === 'large' ? 'larger text — the whole interface breathes up' : 'cozy text restored')
     }
     if ('viewMode' in patch) {
       showNote(patch.viewMode === 'mobile'
@@ -4588,6 +4669,24 @@ export function SettingsScreen() {
       const pair = confirmations[key]
       if (pair) showNote(patch[key] ? pair[0] : pair[1])
     }
+  }
+
+  // a soft blip at the new level — the volume slider should be audible
+  const volumeBlip = (volume: number) => {
+    const ctx = getSharedAudioContext()
+    if (!ctx || ctx.state !== 'running') return
+    const osc = ctx.createOscillator()
+    osc.type = 'sine'
+    osc.frequency.value = 440
+    const gain = ctx.createGain()
+    const level = Math.max(0.001, (volume / 100) * 0.3)
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(level, ctx.currentTime + 0.02)
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start()
+    osc.stop(ctx.currentTime + 0.2)
   }
 
   const showNote = (text: string) => {
@@ -4659,7 +4758,7 @@ export function SettingsScreen() {
   }
 
   return (
-    <div className="screen">
+    <div className="screen settings-screen">
       <div className="screen-header">
         <div className="screen-kicker">ECOSPHERE</div>
         <h2 className="screen-title">{tr('settings.title')}</h2>
@@ -4790,10 +4889,39 @@ export function SettingsScreen() {
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
+            <div className="setting-label">{tr('settings.voices')}</div>
+            <div className="setting-detail">{tr('settings.voices.detail')}</div>
+          </div>
+          <button className={`toggle ${prefs.voices ? 'on' : ''}`} onClick={() => update({ voices: !prefs.voices })} />
+        </div>
+        <div className="setting-row glass">
+          <div className="setting-info">
+            <div className="setting-label">{tr('settings.whispers')}</div>
+            <div className="setting-detail">{tr('settings.whispers.detail')}</div>
+          </div>
+          <button className={`toggle ${prefs.whispers ? 'on' : ''}`} onClick={() => update({ whispers: !prefs.whispers })} />
+        </div>
+        <div className="setting-row glass">
+          <div className="setting-info">
+            <div className="setting-label">{tr('settings.textSize')}</div>
+            <div className="setting-detail">{tr('settings.textSize.detail')}</div>
+          </div>
+          <select
+            className="setting-select"
+            value={prefs.textSize}
+            onChange={e => update({ textSize: e.target.value })}
+            aria-label={tr('settings.textSize')}
+          >
+            <option value="cozy">{tr('settings.textSize.cozy')}</option>
+            <option value="large">{tr('settings.textSize.large')}</option>
+          </select>
+        </div>
+        <div className="setting-row glass">
+          <div className="setting-info">
             <div className="setting-label">{tr('settings.volume')}</div>
             <div className="setting-detail">{prefs.signalVolume}% — {tr('settings.volume.detail')}</div>
           </div>
-          <input type="range" min={0} max={100} value={prefs.signalVolume} onChange={e => update({ signalVolume: +e.target.value })} className="range-input" />
+          <input type="range" min={0} max={100} value={prefs.signalVolume} onChange={e => update({ signalVolume: +e.target.value })} onPointerUp={() => volumeBlip(prefs.signalVolume)} className="range-input" />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
@@ -5241,6 +5369,7 @@ export default function App() {
       <EcosphereAmbience />
 
       <NotificationBell />
+      <PresenceWhisper />
       <SignalSearch onNavigate={page => navigate(page as Screen)} />
       <CarrierProfile />
       <QuickCreate onNavigate={page => navigate(page as Screen)} />

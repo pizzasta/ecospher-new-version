@@ -117,6 +117,34 @@ export default function ProfileScene({ design, colors }: ProfileSceneProps) {
     )
   }
 
+  if (design === 'nebula') {
+    return (
+      <div className="ph-scene ph-scene--nebula" style={vars} aria-hidden="true">
+        <span className="ps-nebula-cloud ps-nebula-cloud--a" />
+        <span className="ps-nebula-cloud ps-nebula-cloud--b" />
+        <span className="ps-nebula-cloud ps-nebula-cloud--c" />
+        {stars.slice(0, 40).map(star => (
+          <i
+            key={star.id}
+            className="ps-nebula-mote"
+            style={{ left: `${star.x}%`, top: `${star.y}%`, animationDuration: `${star.dur}s`, animationDelay: `${star.delay}s` }}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  if (design === 'pulse') {
+    return (
+      <div className="ph-scene ph-scene--pulse" style={vars} aria-hidden="true">
+        {Array.from({ length: 5 }, (_, i) => (
+          <span key={i} className="ps-pulse-ring" style={{ animationDelay: `${-(i * 1.6)}s` }} />
+        ))}
+        <span className="ps-pulse-core" />
+      </div>
+    )
+  }
+
   return (
     <div className="ph-scene ph-scene--stars" style={vars} aria-hidden="true">
       {stars.map(star => (

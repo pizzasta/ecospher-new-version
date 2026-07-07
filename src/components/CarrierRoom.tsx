@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import {
   makeParticipants, simCarrierIndex, carrierTurn, carrierRemaining, ringIndex, roundRobinIsYou,
-  clock, FLOW_MODES, HOLD_MS, YOUR_CAP_MS,
+  priorityOrder, clock, FLOW_MODES, HOLD_MS, YOUR_CAP_MS,
 } from '../lib/carrierRoom'
-import type { Participant, FlowMode } from '../lib/carrierRoom'
+import type { Participant, FlowMode, PriorityEntry } from '../lib/carrierRoom'
 import { readAvatar, sigilGlyph } from '../lib/avatar'
 import { playSampleBuffer, stopPreviewBuffer } from '../lib/sampleAudio'
+import { speakSignal, speechSupported, cancelSpeech } from '../lib/speech'
 import { joinCarrierRoom, liveRoomsEnabled } from '../lib/carrierRoomLive'
 import type { CarrierRoomSession, LivePeer } from '../lib/carrierRoomLive'
 import { resolveSignalState, SIGNAL_GLYPH } from '../lib/signalState'
@@ -57,6 +58,11 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
   const lastKeyRef = useRef('')
   const rrMineRef = useRef(false)
   const sessionRef = useRef<CarrierRoomSession | null>(null)
+  // auto priority: the band's ranking + who has held the carrier, by turn
+  const [autoOrder, setAutoOrder] = useState<PriorityEntry[]>([])
+  const lastHeldRef = useRef<Record<string, number>>({})
+  const firstTurnRef = useRef<number | null>(null)
+  const autoMineRef = useRef(false)
   const streamRef = useRef<MediaStream | null>(null)
   const ctxRef = useRef<AudioContext | null>(null)
   const rafRef = useRef(0)
@@ -94,10 +100,37 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
   const simNow = now + nudge
   const simIdx = simCarrierIndex(simNow, count)
   const simCarrier = participants[simIdx]
+  const turn = carrierTurn(simNow)
+
+  // auto priority: each turn the band lifts whoever has waited longest unheard
+  useEffect(() => {
+    if (mode !== 'auto-priority') {
+      if (autoMineRef.current) { autoMineRef.current = false; setYouMuted(true) }
+      lastHeldRef.current = {}
+      firstTurnRef.current = null
+      setAutoOrder([])
+      return
+    }
+    if (firstTurnRef.current === null) firstTurnRef.current = turn
+    const order = priorityOrder(participants, turn, firstTurnRef.current, lastHeldRef.current, seed, you)
+    const head = order[0]
+    lastHeldRef.current = { ...lastHeldRef.current, [head.id]: turn }
+    setAutoOrder(order)
+    if (head.isYou && !autoMineRef.current) {
+      autoMineRef.current = true
+      setYouMuted(false)
+      flash("the band lifted you — you've waited longest. you're live")
+    }
+    if (!head.isYou && autoMineRef.current) { autoMineRef.current = false; setYouMuted(true) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, turn, count, seed])
 
   // who holds the carrier, by mode
   const rrMine = mode === 'round-robin' && !hushed && roundRobinIsYou(simNow, count)
-  const youAreCarrier = !hushed && mode !== 'listen-only' && (mode === 'round-robin' ? rrMine : youState === 'carrier')
+  const autoMine = mode === 'auto-priority' && !hushed && (autoOrder[0]?.isYou ?? false)
+  const youAreCarrier = !hushed && mode !== 'listen-only' && (
+    mode === 'round-robin' ? rrMine : mode === 'auto-priority' ? autoMine : youState === 'carrier'
+  )
 
   let primary: { sigil: string; color: string; isYou: boolean } | null = null
   let secondary: { sigil: string; color: string } | null = null
@@ -107,6 +140,11 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
       primary = idx === count
         ? { sigil: you.sigil, color: you.color, isYou: true }
         : { sigil: participants[idx].sigil, color: participants[idx].color, isYou: false }
+    } else if (mode === 'auto-priority') {
+      const head = autoOrder[0]
+      primary = head
+        ? { sigil: head.sigil, color: head.color, isYou: head.isYou }
+        : { sigil: simCarrier.sigil, color: simCarrier.color, isYou: false }
     } else if (mode === 'open-drift') {
       primary = { sigil: simCarrier.sigil, color: simCarrier.color, isYou: false }
       if (youState === 'carrier') secondary = { sigil: you.sigil, color: you.color }
@@ -198,13 +236,19 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
     if (!rrMine && rrMineRef.current) { rrMineRef.current = false; setYouMuted(true) }
   }, [rrMine, mode])
 
-  // a soft murmur each time the carrier changes — the room never sits dead
+  // each time the carrier changes the room speaks — a real voice saying a
+  // half-thought when the device can talk (same rule as the sea), a soft
+  // murmur otherwise. your own turns stay silent-but-live: the mic is you.
   useEffect(() => {
     const key = hushed ? 'hush' : mode === 'listen-only' ? 'listen' : (primary?.isYou ? 'you' : (primary?.sigil ?? '') + simIdx)
     if (key !== lastKeyRef.current) {
       lastKeyRef.current = key
       if (!hushed && mode !== 'listen-only' && !(primary?.isYou && youMuted)) {
-        void playSampleBuffer(simIdx % 3 === 0 ? 'whisper' : 'voice', simIdx * 313 + 17, 4200, 0.1)
+        if (!primary?.isYou && speechSupported()) {
+          speakSignal(CR_AMBIENT[simIdx % CR_AMBIENT.length], simIdx * 313 + 17)
+        } else {
+          void playSampleBuffer(simIdx % 3 === 0 ? 'whisper' : 'voice', simIdx * 313 + 17, 4200, 0.1)
+        }
       }
     }
   }, [primary?.sigil, primary?.isYou, hushed, mode, youMuted, simIdx])
@@ -220,7 +264,7 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
     return () => document.removeEventListener('visibilitychange', onHidden)
   }, [youState])
 
-  useEffect(() => () => { stopPreviewBuffer() }, [])
+  useEffect(() => () => { stopPreviewBuffer(); cancelSpeech() }, [])
 
   const resetForMode = (next: FlowMode) => {
     setMode(next); setHushed(false); setYouState('listening'); setYouMuted(true)
@@ -267,9 +311,11 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
   const level = !primary || (primary.isYou && youMuted) ? 0.12
     : primary.isYou && streamRef.current ? Math.max(0.15, micLevel)
     : 0.45 + Math.sin(now / 700) * 0.25
-  const remaining = youAreCarrier && mode !== 'round-robin' ? YOUR_CAP_MS - (now - yourStartRef.current) : carrierRemaining(simNow)
-  const remainPct = youAreCarrier && mode !== 'round-robin' ? Math.max(0, remaining / YOUR_CAP_MS) : remaining / HOLD_MS
+  const slotTimed = mode === 'round-robin' || mode === 'auto-priority'
+  const remaining = youAreCarrier && !slotTimed ? YOUR_CAP_MS - (now - yourStartRef.current) : carrierRemaining(simNow)
+  const remainPct = youAreCarrier && !slotTimed ? Math.max(0, remaining / YOUR_CAP_MS) : remaining / HOLD_MS
   const nextUp = [1, 2, 3].map(k => participants[(simIdx + k) % count])
+  const autoNext = autoOrder.slice(1, 4)
   const listeners = participants.filter((_, i) => i !== simIdx)
 
   const statusLine = hushed
@@ -380,9 +426,20 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
                 )}
               </span>
             )}
-            {nextUp.map((p, i) => (
-              <span key={p.id} className="cr-q-sigil" style={{ color: p.color }} title={`#${i + 1} in line`}>{p.sigil}</span>
-            ))}
+            {mode === 'auto-priority'
+              ? autoNext.map((e, i) => (
+                <span
+                  key={e.id}
+                  className={`cr-q-sigil${e.isYou ? ' cr-q-sigil--you' : ''}`}
+                  style={{ color: e.color }}
+                  title={`#${i + 1} · waited ${e.waited} turn${e.waited === 1 ? '' : 's'} · resonance ${e.resonance}`}
+                >
+                  {e.sigil}{e.isYou && <i>you</i>}
+                </span>
+              ))
+              : nextUp.map((p, i) => (
+                <span key={p.id} className="cr-q-sigil" style={{ color: p.color }} title={`#${i + 1} in line`}>{p.sigil}</span>
+              ))}
           </div>
         </div>
       )}
@@ -412,7 +469,7 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
 
       {/* your controls */}
       <footer className="cr-controls">
-        {mode !== 'round-robin' && mode !== 'listen-only' && youState === 'listening' && (
+        {mode !== 'round-robin' && mode !== 'auto-priority' && mode !== 'listen-only' && youState === 'listening' && (
           <button type="button" className="cr-btn cr-btn--primary" onClick={requestCarrier}>
             {mode === 'open-drift' ? '◌ join the carrier' : '◌ request the carrier'}
           </button>
@@ -433,14 +490,25 @@ export default function CarrierRoom({ frequency, onLeave, seed = 7, keeper = tru
             {youMuted ? '∿ unmute · it’s your turn' : '🔇 self-mute'}
           </button>
         )}
+        {autoMine && (
+          <button type="button" className={`cr-btn cr-btn--mute${youMuted ? ' on' : ''}`} onClick={() => setYouMuted(m => !m)}>
+            {youMuted ? '∿ unmute · the band lifted you' : '🔇 self-mute'}
+          </button>
+        )}
         <button type="button" className="cr-btn cr-btn--react" onClick={() => react('∿')}>∿ resonate</button>
         <button type="button" className="cr-btn cr-btn--react" onClick={() => react('◌')}>◌ stay</button>
         <button type="button" className="cr-btn cr-btn--leave" onClick={onLeave}>↑ leave quietly</button>
       </footer>
 
       {mode === 'round-robin' && !rrMine && <p className="cr-floor-note">round-robin · the carrier comes to everyone in turn. yours is coming.</p>}
+      {mode === 'auto-priority' && !autoMine && (
+        <p className="cr-floor-note">
+          auto priority · the band lifts whoever has waited longest unheard — no requests, no one skipped.
+          {autoOrder.find(e => e.isYou) && ` you've waited ${autoOrder.find(e => e.isYou)!.waited} turn${autoOrder.find(e => e.isYou)!.waited === 1 ? '' : 's'} · your turn is forming.`}
+        </p>
+      )}
       {mode === 'listen-only' && <p className="cr-floor-note">a listening frequency — no live carriers, just signals drifting through.</p>}
-      {mode !== 'round-robin' && mode !== 'listen-only' && youState === 'listening' && (
+      {mode !== 'round-robin' && mode !== 'auto-priority' && mode !== 'listen-only' && youState === 'listening' && (
         <p className="cr-floor-note">you're listening. request the carrier when you want to be heard.</p>
       )}
     </div>

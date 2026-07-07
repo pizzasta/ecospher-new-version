@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useEcosystemState } from '../hooks/useEcosystemState'
+import FrequencySeal from './FrequencySeal'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { playSample } from '../lib/sampleAudio'
 import { deleteLocalRecording, listLocalRecordings } from '../lib/localAudioStore'
@@ -36,6 +37,7 @@ import { recapAvailable } from '../lib/frequencyRecap'
 import { currentDrop } from '../lib/frequencyDrops'
 import { localDayKey } from '../lib/frequencyRecap'
 import { fireMoment, momentIdentitySelect, momentOnboardStep } from '../lib/audioMoments'
+import { listHarmonies } from '../lib/echolocation'
 import './ProfileHub.css'
 
 const FIRST_SEEN_KEY = 'ecosphere:firstSeenAt'
@@ -159,6 +161,8 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
   const [gradientOpen, setGradientOpen] = useState(false)
   const [onboarding, setOnboarding] = useState(shouldAutoOnboard)
   const [moodVars, setMoodVars] = useState(() => moodToVars(readMood()))
+  // carriers bound through echolocation — the profile wears them as stars
+  const [constellation] = useState(() => listHarmonies())
   const gradientAngle = useFrequencyGradient(gradient)
 
   useEffect(() => {
@@ -890,14 +894,14 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
             ))}
           </div>
           <div className="ph-ring-center">
-            {avatar === 'hz' ? (
-              <>
-                <strong>{hzProfile.hz.toFixed(1)}</strong>
-                <span>Hz</span>
-              </>
-            ) : (
-              <span className="ph-sigil" style={{ color: hzProfile.color }}>{sigilGlyph(avatar)}</span>
-            )}
+            <FrequencySeal
+              hz={hzProfile.hz}
+              color={hzProfile.color}
+              sigil={avatar}
+              size={82}
+              center={avatar === 'hz' ? 'hz' : 'glyph'}
+              glyph={sigilGlyph(avatar)}
+            />
           </div>
         </div>
         <div className="ph-identity">
@@ -993,6 +997,28 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
           </div>
         </div>
       </div>
+      )}
+
+      {constellation.length > 0 && (
+        <div className="ph-constellation" aria-label="Your constellation">
+          <span className="ph-constellation-kicker">YOUR CONSTELLATION · found by harmony</span>
+          <div className="ph-constellation-stars">
+            {constellation.map(h => (
+              <button
+                key={h.handle}
+                type="button"
+                className={`ph-constellation-star${h.mutual ? ' ph-constellation-star--mutual' : ''}`}
+                style={{ '--star-color': h.color } as CSSProperties}
+                title={`${h.interval}${h.mutual ? ' · you answered each other' : ''}`}
+                onClick={() => window.dispatchEvent(new CustomEvent('ecosphere:viewCarrier', { detail: { handle: h.handle } }))}
+              >
+                <i aria-hidden="true">{h.mutual ? '✦' : '✧'}</i>
+                {h.handle}
+                <em>{h.interval.replace(' apart', '')}</em>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       <div className="ph-board-bar">

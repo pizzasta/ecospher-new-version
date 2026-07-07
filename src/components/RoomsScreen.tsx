@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { CSSProperties } from 'react'
 import { playSampleBuffer, stopPreviewBuffer } from '../lib/sampleAudio'
+import { speakSignal, speechSupported, cancelSpeech } from '../lib/speech'
 import { temporalWindow } from '../lib/temporalWindow'
 import { futureSignals } from '../lib/futureSignals'
 import GroupConversations from './GroupConversations'
@@ -193,15 +194,21 @@ const ACTIVITY_LABEL: Record<RoomStateName, string> = {
   'static-interference': 'chaotic',
 }
 
-// hover sound preview: shared AudioContext (unlocked by first tap anywhere),
-// quiet, one at a time, mouse only
+// hover sound preview: a real voice from the room when the device can speak
+// (same rule as the sea), otherwise the quiet murmur. one at a time, mouse only
 let hoverPreviewTimer: number | null = null
+let hoverPreviewSpoke = false
 
-function startHoverPreview(seed: number) {
+function startHoverPreview(seed: number, line?: string) {
   stopHoverPreview()
   hoverPreviewTimer = window.setTimeout(() => {
     hoverPreviewTimer = null
-    void playSampleBuffer('voice', seed, 5000, 0.22)
+    if (line && speechSupported()) {
+      hoverPreviewSpoke = true
+      speakSignal(line, seed)
+    } else {
+      void playSampleBuffer('voice', seed, 5000, 0.22)
+    }
   }, 160)
 }
 
@@ -211,6 +218,11 @@ function stopHoverPreview() {
     hoverPreviewTimer = null
   }
   stopPreviewBuffer()
+  // only silence speech we started — group conversations may be talking
+  if (hoverPreviewSpoke) {
+    hoverPreviewSpoke = false
+    cancelSpeech()
+  }
 }
 
 function wobble(seed: number, tick: number, range: number) {
@@ -225,12 +237,13 @@ function RoomCard({ room, index, tick, onEnter }: { room: RoomDef; index: number
   const speakers = Math.max(state === 'dead-silence' ? 0 : 1, room.baseSpeakers + wobble(index + 7, tick, 3) - 1)
   const topic = room.topics[tick % room.topics.length]
   const previewSeed = index * 53 + 19
+  const previewLine = room.signals[tick % room.signals.length].title
 
   return (
     <article
       className={`room-card eco-room-card room-state--${state}`}
       onClick={() => { stopHoverPreview(); onEnter() }}
-      onPointerEnter={e => { if (e.pointerType === 'mouse') startHoverPreview(previewSeed) }}
+      onPointerEnter={e => { if (e.pointerType === 'mouse') startHoverPreview(previewSeed, previewLine) }}
       onPointerLeave={stopHoverPreview}
       style={{ '--room-accent-rgb': room.accentRgb } as CSSProperties}
     >
@@ -473,6 +486,26 @@ const TEMPORAL_WHISPERS = [
 
 function TemporalRoomView({ minutesRemaining, onExit }: { minutesRemaining: number; onExit: () => void }) {
   const signals = useMemo(() => futureSignals(), [])
+  const [hearing, setHearing] = useState<string | null>(null)
+
+  // nothing keeps talking after the window view closes
+  useEffect(() => () => { cancelSpeech(); stopPreviewBuffer() }, [])
+
+  const hear = (signal: { id: string; content: string; waveformSeed: number }) => {
+    if (hearing === signal.id) {
+      cancelSpeech()
+      stopPreviewBuffer()
+      setHearing(null)
+      return
+    }
+    setHearing(signal.id)
+    if (speechSupported()) {
+      speakSignal(signal.content, signal.waveformSeed, { onEnd: () => setHearing(h => (h === signal.id ? null : h)) })
+    } else {
+      void playSampleBuffer('voice', signal.waveformSeed, 6000, 0.3)
+      window.setTimeout(() => setHearing(h => (h === signal.id ? null : h)), 6000)
+    }
+  }
 
   return (
     <div className="rooms-eco rooms-eco--inroom temporal-room">
@@ -494,6 +527,9 @@ function TemporalRoomView({ minutesRemaining, onExit }: { minutesRemaining: numb
                 <span className="temporal-signal-time">{signal.timeLabel}</span>
               </div>
               <p className="temporal-signal-content">{signal.content}</p>
+              <button type="button" className="temporal-signal-listen" onClick={() => hear(signal)}>
+                {hearing === signal.id ? '■ stop' : '▶ hear it first'}
+              </button>
               <div className="temporal-signal-wave" aria-hidden="true">
                 {Array.from({ length: 18 }, (_, i) => (
                   <i key={i} style={{ height: `${22 + ((signal.waveformSeed * (i + 3)) % 58)}%` }} />

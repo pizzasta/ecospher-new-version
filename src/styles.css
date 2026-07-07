@@ -173,7 +173,9 @@ html, body, #root {
 }
 
 /* ─── Screen header ──────────────────────────────────────────────────────────── */
-.screen-header { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; }
+/* top padding clears the fixed presence chip (top 12px + ~29px tall) so page
+   titles never render underneath it; side padding aligns with card margins */
+.screen-header { display: flex; flex-direction: column; gap: 4px; padding: 48px 14px 0; }
 .screen-kicker { font-size: 10px; font-weight: 800; letter-spacing: 0.22em; color: var(--pink); text-transform: uppercase; }
 .screen-title  { font-size: clamp(28px, 8vw, 44px); font-weight: 900; letter-spacing: -0.03em; line-height: 1; color: var(--text-primary); }
 .screen-sub    { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
@@ -191,7 +193,8 @@ html, body, #root {
 .home-screen { gap: 20px; }
 .home-kicker {
   font-size: 10px; font-weight: 800; letter-spacing: 0.22em;
-  color: var(--cyan); text-transform: uppercase; padding-top: 8px;
+  color: var(--cyan); text-transform: uppercase;
+  padding-top: 48px; /* clears the fixed presence chip, like .screen-header */
 }
 .home-title {
   font-size: clamp(36px, 10vw, 64px);
@@ -10349,3 +10352,13 @@ body[data-eco-view='mobile'] .helpbot-panel { width: min(440px, 96vw); }
     transition: opacity 0.2s ease;
   }
 }
+
+/* text size setting: 'large' gently scales the whole interface */
+body[data-eco-text='large'] #root { zoom: 1.14; }
+
+/* ─── Desktop layout guards ─────────────────────────────────────────────────
+   pages stay a readable column instead of stretching across ultrawide
+   monitors; the settings list narrows further — it's a form, not a feed */
+.screen { width: 100%; max-width: 1180px; margin-inline: auto; }
+.settings-screen { max-width: 800px; }
+.tx-screen { max-width: 880px; }

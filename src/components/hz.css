@@ -200,9 +200,11 @@
 
 /* ── frequency gradient modal ── */
 .fg-preview {
-  height: 64px;
+  position: relative;
+  height: 88px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
 }
 
 .fg-row {
@@ -269,3 +271,7 @@
 .fg-palette.active { box-shadow: 0 0 0 2px #00d4ff; }
 
 @media (prefers-reduced-motion: reduce) { .fg-palette { transition: none; } }
+
+/* spectrum variant: seven bars computed from the signature itself —
+   nth-child keeps specificity above the fixed three-bar heights */
+.hz-badge-wave--spectrum b:nth-child(n) { height: var(--bar, 60%); }

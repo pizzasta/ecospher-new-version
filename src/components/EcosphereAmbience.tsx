@@ -210,7 +210,7 @@ export default function EcosphereAmbience() {
 
   // user preferences: night protocol, motion intensity, haptics
   useEffect(() => {
-    const apply = (prefs: { nightMode?: boolean; driftSensitivity?: number; viewMode?: string } | null) => {
+    const apply = (prefs: { nightMode?: boolean; driftSensitivity?: number; viewMode?: string; textSize?: string } | null) => {
       if (!prefs) return
       if (prefs.nightMode) document.body.dataset.ecoNight = 'on'
       else delete document.body.dataset.ecoNight
@@ -221,6 +221,9 @@ export default function EcosphereAmbience() {
       const view = prefs.viewMode
       if (view === 'mobile' || view === 'desktop') document.body.dataset.ecoView = view
       else delete document.body.dataset.ecoView
+      // text size: 'large' gently scales the whole interface up
+      if (prefs.textSize === 'large') document.body.dataset.ecoText = 'large'
+      else delete document.body.dataset.ecoText
       const meta = document.querySelector('meta[name="viewport"]')
       if (meta) {
         meta.setAttribute('content', view === 'desktop' ? 'width=1100' : 'width=device-width, initial-scale=1.0')

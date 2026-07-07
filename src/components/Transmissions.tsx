@@ -6,6 +6,7 @@ import { createVoiceRecorder, micErrorReason } from '../lib/audioBudget'
 import { saveRecordingLocally, listLocalRecordings } from '../lib/localAudioStore'
 import { moderatePublicSignalText } from '../lib/signalModeration'
 import { playSampleBuffer } from '../lib/sampleAudio'
+import { speakSignal, speechSupported, estimateSpeechMs } from '../lib/speech'
 import { useGlobalAudio } from '../hooks/useGlobalAudio'
 import { formatRelativeTime, pushLocalNotification } from '../lib/notifications'
 import { isSupabaseConfigured } from '../lib/supabase-env'
@@ -138,7 +139,13 @@ export default function Transmissions() {
 
   const playReply = (t: Transmission) => {
     if (!t.reply) return
-    if (t.reply.audioUrl) audio.playUrl(t.reply.audioUrl, { id: `echo-${t.id}`, label: 'an echo', source: 'signals' })
+    const meta = { id: `echo-${t.id}`, label: 'an echo', source: 'signals' as const }
+    if (t.reply.audioUrl) audio.playUrl(t.reply.audioUrl, meta)
+    else if (speechSupported()) {
+      // the echo carries words — read them in a real voice, like the sea does
+      audio.playSimulated(meta, estimateSpeechMs(t.reply.text) + 4000)
+      speakSignal(t.reply.text, t.reply.seed, { onEnd: () => audio.stop() })
+    }
     else void playSampleBuffer('voice', t.reply.seed, 5000, 0.3)
     markHeard(t.id); setList(listTransmissions())
   }

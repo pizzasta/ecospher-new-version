@@ -8,10 +8,11 @@ export const HOLD_MS = 24000        // a simulated carrier holds the frequency ~
 export const YOUR_CAP_MS = 90000    // your turn caps at 90s
 export const DEAD_AIR_MS = 10000    // silence this long and the carrier drifts off
 
-export type FlowMode = 'queue' | 'round-robin' | 'keeper-led' | 'open-drift' | 'listen-only'
+export type FlowMode = 'queue' | 'auto-priority' | 'round-robin' | 'keeper-led' | 'open-drift' | 'listen-only'
 
 export const FLOW_MODES: { value: FlowMode; label: string; hint: string }[] = [
   { value: 'queue', label: 'queue', hint: 'request the carrier, take turns in line' },
+  { value: 'auto-priority', label: 'auto priority', hint: 'the band lifts whoever has waited longest unheard' },
   { value: 'round-robin', label: 'round-robin', hint: 'the carrier comes to everyone in turn' },
   { value: 'keeper-led', label: 'keeper-led', hint: 'the keeper hands out the carrier' },
   { value: 'open-drift', label: 'open drift', hint: 'up to two carriers at once' },
@@ -61,4 +62,70 @@ export function carrierRemaining(now: number, holdMs = HOLD_MS): number {
 export function clock(ms: number): string {
   const s = Math.max(0, Math.round(ms / 1000))
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
+// ─── auto priority: the band decides who speaks ───────────────────────────────
+// Nobody requests, nobody is skipped. Every listener carries a visible score:
+// turns waited since they last held the carrier (dominant — waiting always
+// wins eventually, so no one starves) plus a small resonance affinity with
+// the room (seeded per participant — it varies the order and breaks ties).
+// The highest score is lifted onto the carrier automatically.
+
+export interface PriorityEntry {
+  id: string
+  isYou: boolean
+  sigil: string
+  color: string
+  /** whole turns since this listener last held the carrier */
+  waited: number
+  /** 0-9 seeded affinity with this room's frequency */
+  resonance: number
+  score: number
+}
+
+/** Seeded, stable resonance affinity between a listener and a room. */
+export function resonanceFor(id: string, roomSeed: number): number {
+  let h = roomSeed || 7
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 0x7fffffff
+  return h % 10
+}
+
+export const YOU_ID = 'you'
+
+/**
+ * Rank everyone (participants + you) by speaking priority for the given turn.
+ * `lastHeld` maps listener id → the turn they last held the carrier; absent
+ * means never, which counts from the room's first turn so newcomers rise fast.
+ */
+export function priorityOrder(
+  participants: Participant[],
+  turn: number,
+  firstTurn: number,
+  lastHeld: Record<string, number>,
+  roomSeed: number,
+  you: { sigil: string; color: string },
+): PriorityEntry[] {
+  const entries: PriorityEntry[] = [
+    ...participants.map(p => ({ id: p.id, isYou: false, sigil: p.sigil, color: p.color })),
+    { id: YOU_ID, isYou: true, sigil: you.sigil, color: you.color },
+  ].map(base => {
+    const held = lastHeld[base.id]
+    const waited = Math.max(0, turn - (held ?? firstTurn - 1))
+    const resonance = resonanceFor(base.id, roomSeed)
+    return { ...base, waited, resonance, score: waited * 10 + resonance }
+  })
+  // highest score first; stable id tiebreak keeps the order deterministic
+  return entries.sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : 1))
+}
+
+/** The listener the band lifts for this turn. */
+export function priorityCarrier(
+  participants: Participant[],
+  turn: number,
+  firstTurn: number,
+  lastHeld: Record<string, number>,
+  roomSeed: number,
+  you: { sigil: string; color: string },
+): PriorityEntry {
+  return priorityOrder(participants, turn, firstTurn, lastHeld, roomSeed, you)[0]
 }

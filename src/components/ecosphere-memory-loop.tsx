@@ -1,3 +1,4 @@
+import { readPref } from '../hooks/useEcoPrefs'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties, Dispatch, PointerEvent, SetStateAction } from 'react'
 import './drift-notes.css'
@@ -334,7 +335,7 @@ export function DriftNotesBoard({
       offsetY: event.clientY - bounds.top - noteTop,
     }
     setDraggingId(note.id)
-    navigator.vibrate?.(12)
+    if (readPref('vibrate', true)) navigator.vibrate?.(12)
     event.currentTarget.setPointerCapture(event.pointerId)
   }, [])
 
@@ -356,7 +357,7 @@ export function DriftNotesBoard({
       } else if (isPointerInsideElement(event, pinTargetRef.current)) {
         setNoteState(dragState.id, 'anchored')
       }
-      navigator.vibrate?.(8)
+      if (readPref('vibrate', true)) navigator.vibrate?.(8)
     }
     dragRef.current = null
     setDraggingId(null)

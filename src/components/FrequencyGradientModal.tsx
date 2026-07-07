@@ -1,7 +1,12 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
-import { GRADIENT_SPEEDS, GRADIENT_STYLES, PROFILE_PALETTES, gradientColorsForHz, resolveGradientColors, saveGradientSettings } from '../lib/frequencyGradient'
+import { GRADIENT_SPEEDS, GRADIENT_STYLES, PROFILE_PALETTES, SCENE_STYLES, gradientColorsForHz, resolveGradientColors, saveGradientSettings } from '../lib/frequencyGradient'
 import type { GradientSettings } from '../lib/frequencyGradient'
+import { CHIME_STYLES, playSignatureChime, readChime, saveChime } from '../lib/signatureChime'
+import type { ChimeStyle } from '../lib/signatureChime'
+import type { SceneDesign } from './ProfileScene'
+import ProfileScene from './ProfileScene'
+import ColorWave from './ColorWave'
 import './hz.css'
 
 type FrequencyGradientModalProps = {
@@ -14,8 +19,15 @@ type FrequencyGradientModalProps = {
 /** Owner-only background settings: color lock, angle, drift speed. */
 export default function FrequencyGradientModal({ settings, hz, onChange, onClose }: FrequencyGradientModalProps) {
   const [draft, setDraft] = useState<GradientSettings>(settings)
+  const [chime, setChime] = useState<ChimeStyle>(() => readChime())
   const [note, setNote] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  const pickChime = (style: ChimeStyle) => {
+    setChime(style)
+    saveChime(style)
+    playSignatureChime(hz, style) // hear it as you choose it
+  }
 
   const autoColors = gradientColorsForHz(hz)
   const [previewStart, previewEnd] = resolveGradientColors(draft, hz)
@@ -40,11 +52,19 @@ export default function FrequencyGradientModal({ settings, hz, onChange, onClose
           <button type="button" onClick={onClose}>close</button>
         </div>
 
+        {/* live preview of the actual design — what you pick is what you see */}
         <div
           className="fg-preview"
           aria-hidden="true"
-          style={{ background: `linear-gradient(${previewAngle}deg, ${previewStart}, ${previewEnd})` } as CSSProperties}
-        />
+          style={(draft.style === 'gradient'
+            ? { background: `linear-gradient(${previewAngle}deg, ${previewStart}, ${previewEnd})` }
+            : { background: '#06080f' }) as CSSProperties}
+        >
+          {draft.style === 'wave' && <ColorWave variant="local" colors={[previewStart, previewEnd, previewEnd]} />}
+          {SCENE_STYLES.includes(draft.style) && (
+            <ProfileScene design={draft.style as SceneDesign} colors={[previewStart, previewEnd, previewEnd]} />
+          )}
+        </div>
 
         <div className="hz-field">
           <span>design</span>
@@ -77,6 +97,25 @@ export default function FrequencyGradientModal({ settings, hz, onChange, onClose
                 aria-label={p.label}
                 onClick={() => patch({ locked: true, colorStart: p.start, colorEnd: p.end })}
               />
+            ))}
+          </div>
+        </div>
+
+        <div className="hz-field">
+          <span>signature chime — how your frequency sounds when it finds someone</span>
+          <div className="fg-speeds" role="radiogroup" aria-label="Signature chime">
+            {CHIME_STYLES.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={chime === option.value}
+                title={option.hint}
+                className={`fg-speed${chime === option.value ? ' active' : ''}`}
+                onClick={() => pickChime(option.value)}
+              >
+                {option.label}
+              </button>
             ))}
           </div>
         </div>

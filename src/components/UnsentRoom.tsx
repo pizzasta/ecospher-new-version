@@ -6,6 +6,7 @@ import { deleteLocalRecording, listLocalRecordings, saveRecordingLocally } from 
 import { downloadBlob, exportFilename, renderStoryImage } from '../lib/storyExport';
 import { fetchRemoteRecordings, mirrorRecordingDelete, mirrorRecordingUpload, remotePlaybackUrl } from '../lib/backendBridge';
 import { playSample } from '../lib/sampleAudio';
+import { speakSignal, speechSupported, estimateSpeechMs } from '../lib/speech';
 import VoiceReactionStack from './VoiceReactions';
 import EcosphereVRPanel from './EcosphereVRPanel';
 import PassingThoughts from './PassingThoughts';
@@ -571,8 +572,14 @@ const UnsentFeed: React.FC = () => {
                 type="button"
                 className="ur-feed-play"
                 onClick={() => {
+                  const meta = { id: f.id, label: 'an unsent voice', source: 'unsent' as const };
                   if (isPlaying(f.id)) feedAudio.stop();
-                  else void playSample(feedAudio, { id: f.id, label: 'an unsent voice', source: 'unsent' }, 'voice', f.seed, 8000);
+                  else if (speechSupported()) {
+                    // the words are right there — read them in a real voice
+                    feedAudio.playSimulated(meta, estimateSpeechMs(f.text) + 4000);
+                    speakSignal(f.text, f.seed, { onEnd: () => feedAudio.stop() });
+                  }
+                  else void playSample(feedAudio, meta, 'voice', f.seed, 8000);
                 }}
               >
                 {isPlaying(f.id) ? '■ stop' : '▶ hear it'}
