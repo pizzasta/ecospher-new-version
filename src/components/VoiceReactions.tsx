@@ -9,6 +9,9 @@ import { sendLive } from '../lib/liveBus'
 import { playImprintSound, renderSampleAudio } from '../lib/sampleAudio'
 import type { ImprintKind } from '../lib/sampleAudio'
 import { isOpenableHandle } from '../lib/carrierProfile'
+import { startVoiceInput } from '../lib/voiceInput'
+import { mostSaidWords, hasConsensus } from '../lib/voiceWordReactions'
+import type { VoiceSession } from '../lib/voiceInput'
 import './VoiceReactions.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -233,6 +236,9 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
 
   const recorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  // live transcript of the reaction being recorded — feeds the word-reactions
+  const recognitionRef = useRef<VoiceSession | null>(null)
+  const transcriptRef = useRef('')
   const chunksRef = useRef<Blob[]>([])
   const draftRef = useRef<{ blob: Blob; durationMs: number } | null>(null)
   const timersRef = useRef<number[]>([])
@@ -278,6 +284,7 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
     return () => {
       timers.forEach(t => { window.clearTimeout(t); window.clearInterval(t) })
       if (recorderRef.current?.state === 'recording') recorderRef.current.stop()
+      recognitionRef.current?.stop()
       streamRef.current?.getTracks().forEach(t => t.stop())
       if (playbackRef.current) {
         playbackRef.current.pause()
@@ -402,9 +409,19 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
       chunksRef.current = []
       const startedAt = Date.now()
 
+      // transcribe on-device, in parallel, so the reaction's words can join
+      // the crowd's most-said set — best-effort, never blocks recording
+      transcriptRef.current = ''
+      recognitionRef.current = startVoiceInput({
+        onPartial: text => { transcriptRef.current = text },
+        onFinal: text => { transcriptRef.current = text },
+      }, { continuous: true })
+
       recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       recorder.onstop = () => {
         stream.getTracks().forEach(t => t.stop())
+        recognitionRef.current?.stop()
+        recognitionRef.current = null
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
         const durationMs = Math.min(MAX_REACTION_MS, Date.now() - startedAt)
         if (blob.size === 0) {
@@ -439,6 +456,7 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
 
   const discardDraft = () => {
     draftRef.current = null
+    transcriptRef.current = ''
     setPhase('idle')
     setFilter('none')
   }
@@ -481,10 +499,12 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
       timersRef.current.push(window.setTimeout(() => setNotice(null), 5000))
     } else {
       blobCacheRef.current.set(id, draft.blob)
+      const spoken = transcriptRef.current.trim()
       const reaction: VoiceReaction = {
         id,
         kind: 'voice',
-        caption: null,
+        // what you actually said — joins the crowd's most-said words below
+        caption: spoken ? spoken.slice(0, 120) : null,
         handle: anonymous ? 'anonymous' : 'you',
         durationMs: draft.durationMs,
         waveformSeed: Date.now() % 9973,
@@ -499,8 +519,21 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
     }
 
     draftRef.current = null
+    transcriptRef.current = ''
     setPhase('idle')
     setFilter('none')
+  }
+
+  // the words people said most, distilled from every reaction's transcript
+  const saidWords = useMemo(() => mostSaidWords(reactions.map(r => r.caption)), [reactions])
+  const showSaid = hasConsensus(saidWords)
+
+  // tapping a said-word echoes it as your own quick text reaction
+  const echoWord = (word: string) => {
+    reactToSignal(signalId, `echoed "${word}"`)
+    setNotice(`echoed "${word}" · you said it too`)
+    timersRef.current.push(window.setTimeout(() => setNotice(null), 3500))
+    sendLive({ type: 'reaction', id: signalId })
   }
 
   const deleteOwnReaction = (reaction: VoiceReaction) => {
@@ -579,6 +612,25 @@ export default function VoiceReactionStack({ signalId, moodColor }: { signalId: 
           </button>
         )}
       </div>
+
+      {showSaid && (
+        <div className="vr-said" aria-label="what people said most">
+          <span className="vr-said-label">what people are saying</span>
+          <div className="vr-said-words">
+            {saidWords.map(w => (
+              <button
+                key={w.word}
+                type="button"
+                className="vr-said-word"
+                onClick={() => echoWord(w.word)}
+                title={`${w.count} people said “${w.word}” — tap to echo it`}
+              >
+                {w.word}<em>{w.count}</em>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="vr-imprints" aria-label="sound imprints">
         {IMPRINTS.map(im => (

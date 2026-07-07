@@ -430,3 +430,48 @@
   border-bottom: 1px dotted currentColor;
 }
 .vr-handle-link:hover { opacity: 0.8; }
+
+/* ── what people are saying: voice reactions distilled to their words ── */
+.vr-said {
+  margin: 10px 0 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vr-said-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--vr-color, #ff2d78) 60%, rgba(200, 210, 235, 0.7));
+}
+.vr-said-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.vr-said-word {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--vr-color, #ff2d78) 35%, transparent);
+  background: color-mix(in srgb, var(--vr-color, #ff2d78) 8%, rgba(6, 8, 18, 0.6));
+  color: rgba(232, 238, 252, 0.9);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+.vr-said-word:hover {
+  background: color-mix(in srgb, var(--vr-color, #ff2d78) 18%, rgba(6, 8, 18, 0.6));
+  border-color: color-mix(in srgb, var(--vr-color, #ff2d78) 60%, transparent);
+}
+.vr-said-word:active { transform: scale(0.96); }
+.vr-said-word em {
+  font-style: normal;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--vr-color, #ff2d78) 75%, #fff 10%);
+  opacity: 0.85;
+}
