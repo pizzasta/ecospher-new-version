@@ -23,6 +23,7 @@ import type { StoredReaction } from './lib/localAudioStore'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
 import EcosphereAmbience from './components/EcosphereAmbience'
 import PresenceWhisper from './components/PresenceWhisper'
+import TheSimultaneous from './components/TheSimultaneous'
 import ActiveCarriers from './components/ActiveCarriers'
 import Echolocation from './components/Echolocation'
 import AudioRecorder from './components/AudioRecorder'
@@ -4587,11 +4588,13 @@ type EcoPrefs = {
   voices: boolean
   /** presence whispers: the soft passing lines that notice you back */
   whispers: boolean
+  /** the simultaneous: the rare shared moment that pulls the whole band together */
+  moments: boolean
   /** 'cozy' (default) | 'large' — gently scales the whole interface */
   textSize: string
 }
 
-const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, privateProfile: false, language: 'auto', viewMode: 'auto', fullNav: true, signalVolume: 72, driftSensitivity: 60, voices: true, whispers: true, textSize: 'cozy' }
+const defaultPrefs: EcoPrefs = { vibrate: true, anonymous: true, nightMode: false, lurker: false, uiSounds: true, privateProfile: false, language: 'auto', viewMode: 'auto', fullNav: true, signalVolume: 72, driftSensitivity: 60, voices: true, whispers: true, moments: true, textSize: 'cozy' }
 
 function normalizeIdentity(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
@@ -4648,6 +4651,7 @@ export function SettingsScreen() {
       privateProfile: ['profile hidden from the band', 'profile visible again'],
       voices: ['spoken voices on — signals read aloud', 'spoken voices off — everything murmurs instead'],
       whispers: ['presence whispers on', 'presence whispers off — the band stays quiet about you'],
+      moments: ['shared moments on — the band can pull you in', 'shared moments off — you stay on your own path'],
     }
     if ('textSize' in patch) {
       showNote(patch.textSize === 'large' ? 'larger text — the whole interface breathes up' : 'cozy text restored')
@@ -4900,6 +4904,13 @@ export function SettingsScreen() {
             <div className="setting-detail">{tr('settings.whispers.detail')}</div>
           </div>
           <button className={`toggle ${prefs.whispers ? 'on' : ''}`} onClick={() => update({ whispers: !prefs.whispers })} />
+        </div>
+        <div className="setting-row glass">
+          <div className="setting-info">
+            <div className="setting-label">{tr('settings.moments')}</div>
+            <div className="setting-detail">{tr('settings.moments.detail')}</div>
+          </div>
+          <button className={`toggle ${prefs.moments ? 'on' : ''}`} onClick={() => update({ moments: !prefs.moments })} />
         </div>
         <div className="setting-row glass">
           <div className="setting-info">
@@ -5370,6 +5381,7 @@ export default function App() {
 
       <NotificationBell />
       <PresenceWhisper />
+      <TheSimultaneous />
       <SignalSearch onNavigate={page => navigate(page as Screen)} />
       <CarrierProfile />
       <QuickCreate onNavigate={page => navigate(page as Screen)} />
