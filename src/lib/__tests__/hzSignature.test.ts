@@ -1,12 +1,15 @@
-import { describe, expect, it } from 'vitest'
+// @vitest-environment jsdom
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   HZ_MAX,
   HZ_MIN,
   HZ_PRESET_COLORS,
   PHANTOM_HZ,
   computeHzSignature,
+  getLocalHzProfile,
   hzForHandle,
   isPresetColor,
+  seedHzSignature,
   validateHzDisplayName,
 } from '../hzSignature'
 
@@ -62,5 +65,25 @@ describe('hz settings validation', () => {
     for (const preset of HZ_PRESET_COLORS) expect(isPresetColor(preset.value)).toBe(true)
     expect(isPresetColor('#bada55')).toBe(false)
     expect(isPresetColor('red')).toBe(false)
+  })
+})
+
+describe('seeding the local signature (onboarding)', () => {
+  beforeEach(() => { window.localStorage.clear() })
+
+  it('persists the previewed hz for a brand-new profile', () => {
+    seedHzSignature(137.2)
+    expect(getLocalHzProfile('anyone').hz).toBe(137.2)
+  })
+
+  it('never overwrites a signature that already exists', () => {
+    seedHzSignature(137.2)
+    seedHzSignature(55.5)
+    expect(getLocalHzProfile('anyone').hz).toBe(137.2)
+  })
+
+  it('clamps into the band and rounds to one decimal', () => {
+    seedHzSignature(999.99)
+    expect(getLocalHzProfile('anyone').hz).toBe(HZ_MAX)
   })
 })

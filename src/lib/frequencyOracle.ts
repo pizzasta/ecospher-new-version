@@ -29,10 +29,12 @@ export function frequencyFlavor(hzNum: number): string {
 
 /** Cast a whole identity from one seed. */
 export function castFrequency(seed: number = Date.now()): FrequencyCast {
+  // divide instead of >>: timestamp seeds overflow signed 32-bit, and a
+  // negative shift result would index the option lists with a negative modulo
   const s = Math.abs(Math.floor(seed))
   const sigil = AVATAR_SIGILS[s % AVATAR_SIGILS.length].id
-  const paletteId = PROFILE_PALETTES[(s >> 2) % PROFILE_PALETTES.length].id
-  const style = SCENE_STYLES[(s >> 4) % SCENE_STYLES.length]
+  const paletteId = PROFILE_PALETTES[Math.floor(s / 4) % PROFILE_PALETTES.length].id
+  const style = SCENE_STYLES[Math.floor(s / 16) % SCENE_STYLES.length]
   const hzNum = 40 + (s % 1600) / 10
   const hz = hzNum.toFixed(1)
   const mood: Mood = {}
