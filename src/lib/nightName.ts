@@ -15,10 +15,12 @@ export const NIGHT_THINGS = [
 
 /** Cast a night name from a seed. Pure — same seed, same name. */
 export function castNightName(seed: number = Date.now()): string {
+  // divide instead of >>: timestamp seeds overflow signed 32-bit, and a
+  // negative shift result would index the word lists with a negative modulo
   const s = Math.abs(Math.floor(seed))
   const thing = NIGHT_THINGS[s % NIGHT_THINGS.length]
-  const mode = (s >> 3) % 3
-  if (mode === 0) return `${NIGHT_TONES[(s >> 5) % NIGHT_TONES.length]} ${thing}`
+  const mode = Math.floor(s / 8) % 3
+  if (mode === 0) return `${NIGHT_TONES[Math.floor(s / 32) % NIGHT_TONES.length]} ${thing}`
   if (mode === 1) return `${thing} ${(s % 89) + 11}` // a carrier number, e.g. "vesper 47"
   return thing
 }

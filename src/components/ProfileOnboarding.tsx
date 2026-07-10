@@ -12,7 +12,7 @@ import { castNightName } from '../lib/nightName'
 import { CHIME_STYLES, playSignatureChime, readChime, saveChime } from '../lib/signatureChime'
 import type { ChimeStyle } from '../lib/signatureChime'
 import {
-  HZ_DEFAULT_COLOR, HZ_NAME_MAX, getLocalHzProfile, isPresetColor, updateHzSettings, validateHzDisplayName,
+  HZ_DEFAULT_COLOR, HZ_NAME_MAX, getLocalHzProfile, isPresetColor, seedHzSignature, updateHzSettings, validateHzDisplayName,
 } from '../lib/hzSignature'
 import { readStatus, writeStatus } from '../lib/profileExtras'
 import { moderatePublicSignalText } from '../lib/signalModeration'
@@ -165,6 +165,9 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
     } catch { /* local save already applied — never trap the user in the modal */ }
     if (cleanName) {
       try {
+        // keep the Hz you previewed: without a seeded signature, saving the
+        // name would drop a brand-new user to the 20.0 Hz floor
+        seedHzSignature(previewHz)
         const current = getLocalHzProfile(cleanName)
         await updateHzSettings(cleanName, isPresetColor(current.color) ? current.color : HZ_DEFAULT_COLOR)
       } catch { /* name stays local-only tonight */ }

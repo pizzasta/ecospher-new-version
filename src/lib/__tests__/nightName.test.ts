@@ -20,4 +20,15 @@ describe('castNightName', () => {
       expect(validateHzDisplayName(name)).toBeNull()
     }
   })
+
+  it('stays valid for timestamp-scale seeds that overflow signed 32-bit', () => {
+    // Date.now() values above 2^31 (mod 2^32) used to shift negative and
+    // index the tone list with a negative modulo → "undefined nocturne"
+    const base = 415 * 2 ** 32 + 3_000_000_000 // ToInt32(base) < 0
+    for (let i = 0; i < 200; i++) {
+      const name = castNightName(base + i * 7_919)
+      expect(name).not.toContain('undefined')
+      expect(validateHzDisplayName(name)).toBeNull()
+    }
+  })
 })
