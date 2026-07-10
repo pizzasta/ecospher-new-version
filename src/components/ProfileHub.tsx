@@ -24,6 +24,7 @@ import HzBadge from './HzBadge'
 import HzSettingsModal from './HzSettingsModal'
 import FrequencyGradientModal from './FrequencyGradientModal'
 import ProfileOnboarding, { shouldAutoOnboard } from './ProfileOnboarding'
+import PresenceRoom from './PresenceRoom'
 import { readMood, moodToVars } from '../lib/profileMood'
 import { loadGradientSettings, readGradientSettings, resolveGradientColors } from '../lib/frequencyGradient'
 import type { GradientSettings } from '../lib/frequencyGradient'
@@ -79,7 +80,7 @@ const VOICE_PROMPTS = [
 ]
 
 // which cards live on the public Profile vs the private Dashboard
-const PROFILE_TILES = ['identity', 'featured', 'wall']
+const PROFILE_TILES = ['identity', 'presence', 'featured', 'wall']
 const DASHBOARD_TILES = ['tonightAction', 'prompts', 'echoes', 'tonight', 'history', 'shelf', 'vault', 'reach', 'tuning']
 
 export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavigate?: (screen: string) => void; variant?: 'profile' | 'dashboard' }) {
@@ -562,6 +563,7 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
           </ul>
         </div>
     ),
+    presence: <PresenceRoom accent={hzProfile.color} />,
     featured: (
         <div className="ph-card glass ph-featured">
           <div className="ph-card-head">
@@ -793,7 +795,7 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
 
   // pinterest-board layout: tile order is yours, saved per device
   const [boardOrder, setBoardOrder] = useState<string[]>(() => {
-    const defaults = ['identity', 'featured', 'tonightAction', 'prompts', 'echoes', 'tonight', 'history', 'wall', 'shelf', 'vault', 'reach', 'tuning']
+    const defaults = ['identity', 'presence', 'featured', 'tonightAction', 'prompts', 'echoes', 'tonight', 'history', 'wall', 'shelf', 'vault', 'reach', 'tuning']
     try {
       const stored = JSON.parse(window.localStorage.getItem('ecosphere:hubBoard') ?? '[]') as string[]
       const valid = stored.filter(id => defaults.includes(id))
