@@ -824,6 +824,9 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
             setGradient(readGradientSettings())
             setAvatar(readAvatar())
             setMoodVars(moodToVars(readMood()))
+            // onboarding can also leave a first transmission + a night name
+            setStatus(readStatus())
+            setHzProfile(getLocalHzProfile(username))
             setOnboarding(false)
           }}
         />
