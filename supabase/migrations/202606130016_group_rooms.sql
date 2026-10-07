@@ -1,6 +1,6 @@
 -- Group rooms: real anonymous voices dropped into a topic, heard by anyone in
 -- that group. Unlike private signal audio (owner-only storage), these clips are
--- deliberately shared, so they live in a PUBLIC bucket — readable by everyone,
+-- shared after screening, so they live in a PRIVATE bucket and playback uses signed URLs,
 -- but still only insertable/deletable inside the uploader's own folder so no
 -- one can write or remove on someone else's behalf.
 --
@@ -11,13 +11,23 @@
 -- storage bucket + its policies.
 
 insert into storage.buckets (id, name, public)
-  values ('group-audio', 'group-audio', true)
-  on conflict (id) do nothing;
+  values ('group-audio', 'group-audio', false)
+  on conflict (id) do update set public = excluded.public;
 
 drop policy if exists "group audio is publicly readable" on storage.objects;
-create policy "group audio is publicly readable"
-  on storage.objects for select
-  using (bucket_id = 'group-audio');
+drop policy if exists "users read screened group audio" on storage.objects;
+create policy "users read screened group audio"
+  on storage.objects for select to authenticated
+  using (
+    bucket_id = 'group-audio'
+    and exists (
+      select 1 from public.audio_files a
+      where a.bucket = bucket_id
+        and a.path = name
+        and a.is_public = true
+        and a.ai_moderation_status = 'passed'
+    )
+  );
 
 drop policy if exists "users upload group audio in their own folder" on storage.objects;
 create policy "users upload group audio in their own folder"
