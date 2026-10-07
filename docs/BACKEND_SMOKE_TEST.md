@@ -16,10 +16,11 @@ paths before relying on them.
       **202606130017**). Re-running is safe (idempotent).
 - [ ] Auth providers: **Anonymous sign-ins** ON; **Manual linking** ON (for the
       anon→Google upgrade); **Google** configured per `docs/GOOGLE_AUTH.md`.
-- [ ] Buckets exist: `signal-audio` (private), `capsule-audio`, `profile-cores`,
-      and `group-audio` (public, migration 0016).
+- [ ] Buckets exist: `signal-audio`, `capsule-audio`, `profile-cores`,
+      and `group-audio`; all are private.
 - [ ] For group voice: `moderate-audio` deployed with `OPENAI_API_KEY` or
       `DEEPGRAM_API_KEY` (see `docs/GROUP_ROOMS.md`).
+- [ ] `delete-account` Edge Function deployed for full account erasure.
 
 Use two browsers (or a normal + incognito window) so you can act as **two
 anonymous users** — call them A and B.
@@ -65,7 +66,7 @@ anonymous users** — call them A and B.
 - [ ] Button shows **screening…**; on success the clip appears in the list.
 - [ ] SQL: that `audio_files` row has `room_id = 'g_<topic>'`,
       `ai_moderation_status = 'passed'`, `is_public = true`.
-- [ ] As B, open the same group — B **hears A's clip** (public bucket URL).
+- [ ] As B, open the same group — B **hears A's clip** through a short-lived signed URL.
 - [ ] **Negative test:** as A, drop a clip that says a blocked phrase (e.g. a
       slur or "add me on snapchat"). Result: **rejected** ("didn't pass the
       room's voice screen"); SQL shows `ai_moderation_status = 'flagged'`,
@@ -94,6 +95,7 @@ anonymous users** — call them A and B.
 - [ ] SQL: A's rows are gone from `audio_files`, `signals`, `profiles`,
       `saved_signals`, etc.; storage folders under A's id are empty across all
       buckets.
+- [ ] SQL: A's row is gone from `auth.users`.
 - [ ] Settings → **clear local data** wipes the device; reload returns to the
       18+ gate.
 
