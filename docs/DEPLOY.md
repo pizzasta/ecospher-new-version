@@ -28,10 +28,13 @@ role, including anon.)
 - **`group-audio` must stay private.** Shared room clips upload privately; `moderate-audio` promotes only the database row after screening, and listeners receive short-lived signed URLs.
 - Do not enable public bucket access for shared voice. Re-run the latest migrations if this bucket was previously public.
 
-## 4. Edge functions (needed for audio moderation, etc.)
-`supabase functions deploy` (all) or at minimum **`moderate-audio`** for
-public-voice screening. Others: `semantic-search`, `nightly-recap`, `send-push`,
-`signal-decay`, `replay-heat`, `phantom-drift`, etc.
+## 4. Edge functions (required for public voice + full deletion)
+`supabase functions deploy` (all), or at minimum deploy:
+- **`moderate-audio`** for public-voice screening.
+- **`delete-account`** so Erase Cloud Data removes the Supabase auth identity after RLS cleanup succeeds.
+
+Others: `semantic-search`, `nightly-recap`, `send-push`, `signal-decay`,
+`replay-heat`, `phantom-drift`, etc.
 
 ## 5. Vercel environment variables
 Vercel → project → **Settings → Environment Variables** (all environments), then
@@ -57,6 +60,7 @@ also accepted automatically — if you use it, no manual vars are needed.
 - Try posting flagged text → it should be rejected (server guardian), confirming
   step 1 applied.
 - Recordings upload to Storage; `activity_events` rows appear.
+- On a disposable test account, Erase Cloud Data removes owned rows/storage and the matching `auth.users` row.
 
 Without steps 1–5 the app still works end-to-end on localStorage/IndexedDB — the
 backend simply stays dark.
