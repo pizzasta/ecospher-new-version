@@ -61,15 +61,13 @@ CSP (self-only scripts, Supabase connect, blob media, Google Fonts),
 
 ## Account deletion
 Settings → **Erase Cloud Data** calls `deleteAccountData()`: removes every
-storage object across all buckets, deletes all owned rows (dependents first,
-profile last), then signs out. Every step is RLS-scoped, so it can only ever
-touch the caller's own data. The bare `auth.users` row remains (deleting it
-requires the service-role key — do it from the dashboard or an Edge Function
-if full erasure is required). "Clear Local Data" wipes this device.
+storage object across all buckets and deletes owned rows under RLS. Only after
+that succeeds does the authenticated `delete-account` Edge Function remove the
+caller's Supabase `auth.users` identity with the service role; the function
+derives the user from the bearer token and never accepts a target user id from
+the client. "Clear Local Data" wipes this device.
 
 ## Known gaps / next steps
-- Server-side rate limiting + moderation (Edge Function) — current
-  moderation and rate limits run client-side.
 - Per-user reaction de-duplication needs a backend reactions table with a
   unique constraint (reactions are currently local-first).
 - Sentry (or similar) for security-event logging in production.
@@ -101,6 +99,6 @@ Layered precautions, enforced at every level the app controls:
 - **Data minimalism**: no birthdates collected, no contact graphs, audio
   private by default.
 
-Known limits: self-attestation cannot verify age, and audio content is not
-transcribed/screened (an Edge Function with a speech-to-text + moderation
-pass is the upgrade path if the app grows).
+Known limits: self-attestation cannot verify age. Shared room audio is
+transcribed and screened by the `moderate-audio` Edge Function before its
+database row can be promoted for other listeners.

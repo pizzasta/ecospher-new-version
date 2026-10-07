@@ -572,9 +572,10 @@ export async function listArchive() {
 
 /**
  * Erase everything this user owns from the backend: storage objects across
- * all buckets, then every owned row (dependents first), then the profile,
- * then the session. Each step is RLS-scoped so it can only ever touch the
- * caller's own data. Returns false if any step failed (safe to retry).
+ * all buckets, then every owned row (dependents first), then the profile, then
+ * the Supabase auth user through the authenticated delete-account Edge
+ * Function. The auth user is only removed after all RLS-scoped cleanup
+ * succeeds, so a partial wipe remains safe to retry.
  */
 export async function deleteAccountData(): Promise<boolean> {
   const ctx = await requireUser()
@@ -616,10 +617,21 @@ export async function deleteAccountData(): Promise<boolean> {
   const { error: profileError } = await ctx.db.from('profiles').delete().eq('id', ctx.userId)
   if (profileError) ok = false
 
+  // Only remove the auth identity after all app-owned data is gone. If cleanup
+  // was partial, keep the account alive so the user can safely retry.
+  if (ok) {
+    try {
+      const { data, error } = await ctx.db.functions.invoke<{ deleted?: boolean }>('delete-account', { body: {} })
+      if (error || data?.deleted !== true) ok = false
+    } catch {
+      ok = false
+    }
+  }
+
   try {
     await ctx.db.auth.signOut()
   } catch {
-    /* session may already be gone */
+    /* deleting the auth user can invalidate the session immediately */
   }
 
   return ok
