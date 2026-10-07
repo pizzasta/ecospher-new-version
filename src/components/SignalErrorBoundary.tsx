@@ -3,6 +3,7 @@ import type { ErrorInfo, ReactNode } from 'react'
 import { clearStaleBuild, recoverFromCrash } from '../lib/recovery'
 import { rearmStorageHeal } from '../lib/storageHeal'
 import { CRASH_LOOP_THRESHOLD, clearCrashLog, isCrashLooping, recordCrash } from '../lib/crashLoop'
+import { reportProductionError } from '../lib/errorMonitoring'
 
 type Props = { children: ReactNode }
 type State = { hasError: boolean; confirmReset: boolean; looping: boolean }
@@ -46,6 +47,7 @@ export default class SignalErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[ecosphere] signal interrupted:', error, info.componentStack)
+    reportProductionError(error, 'react')
     // never let a pending "healthy boot" timer wipe the crash we just recorded.
     if (this.healthyTimer) { window.clearTimeout(this.healthyTimer); this.healthyTimer = undefined }
     const count = recordCrash()
