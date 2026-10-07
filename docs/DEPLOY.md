@@ -47,6 +47,7 @@ VITE_SUPABASE_CAPSULE_AUDIO_BUCKET=capsule-audio
 VITE_SUPABASE_PROFILE_CORES_BUCKET=profile-cores
 VITE_SUPABASE_GROUP_AUDIO_BUCKET=group-audio
 VITE_VAPID_PUBLIC_KEY=<web-push public key>   # only for push notifications
+VITE_ERROR_REPORT_ENDPOINT=<https endpoint>   # optional privacy-minimal crash reporting
 ```
 The Vercel × Supabase native integration's `NEXT_PUBLIC_SUPABASE_*` names are
 also accepted automatically — if you use it, no manual vars are needed.
@@ -57,6 +58,7 @@ also accepted automatically — if you use it, no manual vars are needed.
 - Try posting flagged text → it should be rejected (server guardian), confirming
   step 1 applied.
 - Recordings upload to Storage; `activity_events` rows appear.
+- If `VITE_ERROR_REPORT_ENDPOINT` is configured, trigger a disposable test error and confirm a report arrives with only source/name/fingerprint/build/online/timestamp.
 
 Without steps 1–5 the app still works end-to-end on localStorage/IndexedDB — the
 backend simply stays dark.
