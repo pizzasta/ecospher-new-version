@@ -21,6 +21,9 @@ import { GlobalAudioProvider } from './hooks/useGlobalAudio'
 import { EcosystemProvider } from './hooks/useEcosystemState'
 import SignalErrorBoundary from './components/SignalErrorBoundary'
 import { healLocalStorage } from './lib/storageHeal'
+import { installGlobalErrorMonitoring } from './lib/errorMonitoring'
+
+installGlobalErrorMonitoring()
 
 // Repair outdated-shape persisted data before anything reads it (one-time per
 // schema version). Must never block boot — a clean catch keeps the app loading.
