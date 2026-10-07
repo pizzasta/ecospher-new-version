@@ -25,9 +25,8 @@ role, including anon.)
 ## 3. Storage buckets
 `setup-all.sql` creates them, but verify in **Storage**: `signal-audio`,
 `capsule-audio`, `profile-cores`, `group-audio`.
-- For **public voice posts** to play for other users, the **`signal-audio`**
-  bucket needs public read for promoted clips (same pattern as `group-audio`).
-  `moderate-audio` only flips a clip public after it passes screening.
+- **`group-audio` must stay private.** Shared room clips upload privately; `moderate-audio` promotes only the database row after screening, and listeners receive short-lived signed URLs.
+- Do not enable public bucket access for shared voice. Re-run the latest migrations if this bucket was previously public.
 
 ## 4. Edge functions (needed for audio moderation, etc.)
 `supabase functions deploy` (all) or at minimum **`moderate-audio`** for

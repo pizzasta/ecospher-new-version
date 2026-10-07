@@ -82,12 +82,38 @@ function svc(): { url: string; key: string } | null {
 }
 
 async function fetchObject(bucket: string, path: string): Promise<Uint8Array | null> {
-  // group-audio is a public bucket — fetch the object bytes directly
   const ctx = svc()
   if (!ctx) return null
-  const res = await fetch(`${ctx.url}/storage/v1/object/public/${bucket}/${path}`)
+  const res = await fetch(`${ctx.url}/storage/v1/object/authenticated/${bucket}/${path}`, {
+    headers: { apikey: ctx.key, authorization: `Bearer ${ctx.key}` },
+  })
   if (!res.ok) return null
   return new Uint8Array(await res.arrayBuffer())
+}
+
+async function authenticatedUserId(req: Request): Promise<string | null> {
+  const ctx = svc()
+  const authorization = req.headers.get('authorization')
+  if (!ctx || !authorization?.startsWith('Bearer ')) return null
+  const res = await fetch(`${ctx.url}/auth/v1/user`, {
+    headers: { apikey: ctx.key, authorization },
+  })
+  if (!res.ok) return null
+  const user = await res.json()
+  return typeof user?.id === 'string' ? user.id : null
+}
+
+async function ownedAudioRow(audioId: string, userId: string): Promise<{ bucket: string; path: string } | null> {
+  const ctx = svc()
+  if (!ctx) return null
+  const res = await fetch(
+    `${ctx.url}/rest/v1/audio_files?id=eq.${encodeURIComponent(audioId)}&owner_id=eq.${encodeURIComponent(userId)}&select=bucket,path`,
+    { headers: { apikey: ctx.key, authorization: `Bearer ${ctx.key}` } },
+  )
+  if (!res.ok) return null
+  const rows = await res.json()
+  const row = Array.isArray(rows) ? rows[0] : null
+  return row && typeof row.bucket === 'string' && typeof row.path === 'string' ? row : null
 }
 
 async function deleteObject(bucket: string, path: string): Promise<void> {
@@ -123,6 +149,14 @@ Deno.serve(async (req: Request) => {
     const { audioId, bucket, path, mime } = await req.json()
     if (!audioId || !bucket || !path) {
       return new Response(JSON.stringify({ error: 'missing audioId/bucket/path' }), { status: 400 })
+    }
+
+    const userId = await authenticatedUserId(req)
+    if (!userId) return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
+
+    const owned = await ownedAudioRow(audioId, userId)
+    if (!owned || owned.bucket !== bucket || owned.path !== path || bucket !== 'group-audio') {
+      return new Response(JSON.stringify({ error: 'audio clip not owned by caller' }), { status: 403 })
     }
 
     const bytes = await fetchObject(bucket, path)

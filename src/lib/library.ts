@@ -336,10 +336,9 @@ export async function deleteAudio(audio: Pick<AudioFileRow, 'id' | 'bucket' | 'p
 }
 
 // ─── Group rooms: shared anonymous voices on a topic ──────────────────────────
-// Group clips are ordinary public audio_files rows pointing at the PUBLIC
-// group-audio bucket (so anyone in the group can play them without a per-user
-// signed URL), tagged room_id = 'g_<topic>'. The title carries the screened
-// one-line caption that rides with every drop.
+// Group clips use a private storage bucket. Only rows promoted to is_public
+// after server-side audio screening are listed, and playback uses short-lived
+// signed URLs. The title carries the screened one-line caption.
 
 export type GroupVoiceRow = { id: string; bucket: string; path: string; line: string; createdAt: number }
 
@@ -412,11 +411,11 @@ export async function listGroupVoices(topicId: string, limit = 12): Promise<Grou
   }))
 }
 
-export function getGroupVoicePublicUrl(bucket: string, path: string): string | null {
+export async function getGroupVoicePlaybackUrl(bucket: string, path: string): Promise<string | null> {
   const db = client()
   if (!db) return null
-  const { data } = db.storage.from(bucket).getPublicUrl(path)
-  return data?.publicUrl ?? null
+  const { data, error } = await db.storage.from(bucket).createSignedUrl(path, 300)
+  return error ? null : data.signedUrl
 }
 
 export async function deleteGroupVoice(audio: Pick<AudioFileRow, 'id' | 'bucket' | 'path'>) {

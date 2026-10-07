@@ -1,6 +1,6 @@
 // Real human group rooms: anonymous strangers dropping short voice clips into a
 // topic, heard by anyone in that group. Built on the existing audio pipeline
-// (public group-audio bucket + public audio_files rows). Everything here is
+// (private group-audio storage + screened public audio_files rows). Everything here is
 // config-guarded — with no backend it returns empty / refuses cleanly, and the
 // simulated group conversations carry on untouched.
 //
@@ -12,7 +12,7 @@
 import { isSupabaseConfigured } from './supabase-env'
 import { getOptionalSupabaseClient } from './supabase'
 import { moderatePublicSignalText } from './signalModeration'
-import { uploadGroupVoice, listGroupVoices, getGroupVoicePublicUrl, deleteGroupVoice } from './library'
+import { uploadGroupVoice, listGroupVoices, getGroupVoicePlaybackUrl, deleteGroupVoice } from './library'
 
 export const groupRoomsEnabled = isSupabaseConfigured
 
@@ -37,7 +37,7 @@ export async function fetchGroupVoices(topicId: string, limit = 12): Promise<Gro
   const rows = await listGroupVoices(topicId, limit)
   const voices: GroupVoice[] = []
   for (const r of rows) {
-    const url = getGroupVoicePublicUrl(r.bucket, r.path)
+    const url = await getGroupVoicePlaybackUrl(r.bucket, r.path)
     if (url) voices.push({ id: r.id, line: r.line, url, createdAt: r.createdAt, bucket: r.bucket, path: r.path })
   }
   return voices
