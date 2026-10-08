@@ -14,7 +14,7 @@ export interface Frequency { id: string; label: string; hz: string; line: string
 
 // the stations rotate by day; each line doubles as a gentle recording prompt
 export const FREQUENCIES: Frequency[] = [
-  { id: 'still-awake', label: 'still awake', hz: '88.1', line: "for everyone who couldn't put the night down" },
+  { id: 'still-awake', label: 'still awake', hz: '88.1', line: "tonight's channel for everyone still awake" },
   { id: 'almost-said', label: 'the thing you almost said', hz: '92.7', line: 'leave it here instead' },
   { id: 'miss-at-3', label: 'who you miss at 3am', hz: '103.5', line: 'say their initial, nothing more' },
   { id: 'stuck-song', label: 'the song stuck in you', hz: '96.3', line: 'hum eight seconds of it' },

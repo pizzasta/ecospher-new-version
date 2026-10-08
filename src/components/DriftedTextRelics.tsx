@@ -10,7 +10,7 @@ export default function DriftedTextRelics() {
     return (
       <div className="drifted-relics drifted-relics--empty">
         <span className="drifted-relics-kicker">DRIFTED TEXT · kept by the current</span>
-        <p className="drifted-relics-empty">no lines have travelled far enough yet — cast one into the sea and let the current carry it.</p>
+        <p className="drifted-relics-empty">nothing has traveled far enough yet — send a line into the stream and let it run.</p>
       </div>
     )
   }

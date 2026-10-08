@@ -58,7 +58,7 @@ export default function TonightsFrequency() {
           <AudioRecorder
             kind="signal"
             context={`frequency · ${tonight.label}`}
-            prompt="ten seconds, one take. leave it on the frequency."
+            prompt="ten seconds. one take. transmit it."
             minSeconds={3}
             maxSeconds={10}
             onComplete={({ uploadId }) => { recordContribution(uploadId); setContributed(true) }}

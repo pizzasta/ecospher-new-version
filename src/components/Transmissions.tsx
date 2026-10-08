@@ -212,7 +212,7 @@ export default function Transmissions() {
 
       <div className="tx-outbox">
         {list.length === 0 ? (
-          <p className="tx-empty">nothing transmitted yet. choose a band and speak into it — someone out there is on the same frequency.</p>
+          <p className="tx-empty">nothing transmitted yet. pick a band and broadcast — someone out there is locked to the same frequency.</p>
         ) : list.map(t => {
           const b = BANDS.find(x => x.id === t.bandId)
           const due = replyDueIn(t, now)

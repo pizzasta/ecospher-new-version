@@ -139,11 +139,11 @@ export function bandIndicators(now = Date.now(), opts: { carriers?: number; stor
   const heat = opts.stormy ? 'storming' : a >= 0.66 ? 'high' : a >= 0.33 ? 'building' : 'low'
 
   return [
-    { id: 'carriers', label: 'carriers adrift', value: String(carriers), sub: 'here in the dark right now' },
-    { id: 'pressure', label: 'band pressure', value: `${Math.round(40 + a * 55)}%`, sub: 'how full it’s getting' },
-    { id: 'peak', label: 'deepest hour', value: deep ? 'now' : `${minutesToPeak(now)}m`, sub: deep ? 'you’re in it' : 'till the band crests' },
-    { id: 'current', label: 'drift current', value: ['east', 'north', 'outward', 'west'][seed % 4], sub: 'the way it’s drifting' },
-    { id: 'heat', label: 'replay heat', value: heat, sub: 'echoes catching echoes' },
-    { id: 'fade', label: 'fade rate', value: ['slow', 'steady', 'quick'][seed % 3], sub: 'before it all dissolves' },
+    { id: 'carriers', label: 'carriers adrift', value: String(carriers), sub: 'out in the dark tonight' },
+    { id: 'pressure', label: 'band pressure', value: `${Math.round(40 + a * 55)}%`, sub: 'night mood gauge' },
+    { id: 'peak', label: 'deepest hour', value: deep ? 'now' : `${minutesToPeak(now)}m`, sub: deep ? 'you’re in it' : 'countdown to 3am' },
+    { id: 'current', label: 'drift current', value: ['east', 'north', 'outward', 'west'][seed % 4], sub: "tonight's drift" },
+    { id: 'heat', label: 'replay heat', value: heat, sub: 'replays triggering replays' },
+    { id: 'fade', label: 'fade rate', value: ['slow', 'steady', 'quick'][seed % 3], sub: 'how fast tonight fades' },
   ]
 }

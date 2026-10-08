@@ -273,8 +273,8 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
         <div className="po-body">
           {step === SIGIL_STEP && (
             <>
-              <h2>the mark people will know you by</h2>
-              <p>no photos, ever. just a shape that feels like you.</p>
+              <h2>your sigil</h2>
+              <p>no photos, ever. pick the mark the grid sees.</p>
               <div className="po-sigils" role="radiogroup" aria-label="Sigil">
                 {AVATAR_SIGILS.map(s => (
                   <button
@@ -295,8 +295,8 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
 
           {step === NAME_STEP && (
             <>
-              <h2>what the night calls you</h2>
-              <p>not your name — the one the band knows. leave it blank and stay a number.</p>
+              <h2>your call sign</h2>
+              <p>not your real name — the one the network knows. leave it blank and stay a number.</p>
               <input
                 type="text"
                 className="po-input"
@@ -317,8 +317,8 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
 
           {step === PALETTE_STEP && (
             <>
-              <h2>the color you give off</h2>
-              <p>the mood your whole page gives off. change it any night.</p>
+              <h2>your signal color</h2>
+              <p>sets the color of your whole node. change it any night.</p>
               <div className="po-palettes" role="radiogroup" aria-label="Color palette">
                 {PROFILE_PALETTES.map(p => (
                   <button
@@ -339,8 +339,8 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
 
           {step === STYLE_STEP && (
             <>
-              <h2>where you drift</h2>
-              <p>the world behind you when someone tunes in.</p>
+              <h2>your backdrop</h2>
+              <p>what people see behind you when they lock on.</p>
               <div className="po-styles" role="radiogroup" aria-label="Background style">
                 {GRADIENT_STYLES.map(s => (
                   <button
@@ -360,8 +360,8 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
 
           {step === MOOD_STEP && (
             <>
-              <h2>how your signal feels</h2>
-              <p>the feeling you leave on, even when you're quiet.</p>
+              <h2>your signal mode</h2>
+              <p>the vibe your node gives off, even when you're quiet.</p>
               <div className="po-moods">
                 {MOOD_FIELDS.filter(f => ONBOARD_MOOD_FIELDS.includes(f.id)).map(field => (
                   <div key={field.id} className="po-mood-field">
@@ -388,7 +388,7 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
 
           {step === CHIME_STEP && (
             <>
-              <h2>how you sound when you answer</h2>
+              <h2>your answer tone</h2>
               <p>
                 every signature has a voice. yours sits near {previewHz.toFixed(1)} Hz tonight —
                 tap one to hear it, if your sound is on.
@@ -408,13 +408,13 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
                   </button>
                 ))}
               </div>
-              {chimeHeard && <p className="po-field-note">that’s what the band hears when your signature travels.</p>}
+              {chimeHeard && <p className="po-field-note">that's what the grid hears when your signature goes out.</p>}
             </>
           )}
 
           {step === LINE_STEP && (
             <>
-              <h2>leave one line on the band</h2>
+              <h2>transmit your first line</h2>
               <p>{linePrompt}. it broadcasts from your page until you change it. or leave the air open.</p>
               <input
                 type="text"
@@ -432,7 +432,7 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
 
           {step === STEPS - 1 && (
             <>
-              <h2>you're on the band now</h2>
+              <h2>you're on the grid</h2>
               <div className="po-signal-card" style={{ '--po-c2': palette.end } as CSSProperties}>
                 <span className="po-card-sigil">{sigilGlyph(sigil) || 'hz'}</span>
                 <span className="po-card-name">{cleanName || 'unclaimed frequency'}</span>
@@ -447,7 +447,7 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
           )}
 
           {step < STEPS - 1 && (
-            <p className="po-reassure">nothing here is permanent — retune any of it any night from your profile.</p>
+            <p className="po-reassure">nothing here is permanent — reconfigure any of it from your node.</p>
           )}
         </div>
 

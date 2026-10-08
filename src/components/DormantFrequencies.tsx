@@ -11,7 +11,7 @@ export default function DormantFrequencies({ onReopen }: { onReopen: (room: Dorm
     <section className="dormant-freqs" aria-label="Dormant frequencies">
       <div className="dormant-head">
         <span className="dormant-kicker">DORMANT FREQUENCIES</span>
-        <small>rooms that went quiet. reopen one — you come back as the first carrier, muted.</small>
+        <small>channels that went quiet. reopen one — you rejoin as the first carrier, muted.</small>
       </div>
       <div className="dormant-list">
         {rooms.map(r => (

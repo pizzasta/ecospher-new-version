@@ -91,7 +91,7 @@ export default function FrequencyRecap() {
             <span className="freq-recap-dot" aria-hidden="true" />
             <span className="freq-recap-title">{script.greeting}</span>
           </div>
-          <p className="freq-recap-sub">a short mix of where you drifted · {script.date}</p>
+          <p className="freq-recap-sub">a 30-second cut of where you went · {script.date}</p>
           <div className="freq-recap-actions">
             <button type="button" className="freq-recap-play" onClick={playRecap}>◉ play recap</button>
             <button type="button" className="freq-recap-skip" onClick={dismiss}>not tonight</button>

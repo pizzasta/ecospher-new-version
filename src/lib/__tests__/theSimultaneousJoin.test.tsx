@@ -16,7 +16,7 @@ describe('joining a shared moment', () => {
 
   it('stays open after the next invitation poll', () => {
     const { container, getByText } = render(<TheSimultaneous />)
-    fireEvent.click(getByText(/join the moment/i))
+    fireEvent.click(getByText(/sync in/i))
     expect(container.querySelector('.simul--inside')).not.toBeNull()
     // the invitation poll runs every 15s; joining must not get it to close the view
     act(() => { vi.advanceTimersByTime(16_000) })
