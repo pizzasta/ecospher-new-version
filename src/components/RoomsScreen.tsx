@@ -362,9 +362,9 @@ export default function RoomsScreen() {
       <RoomAtmosphere accent="#9b5de5" density="sparse" className="rooms-eco-atmosphere" />
       <div className="rooms-eco-shell">
         <header className="rooms-eco-header">
-          <span className="rooms-eco-kicker">live voice rooms</span>
-          <h1 className="rooms-eco-title">rooms</h1>
-          <p className="rooms-eco-sub">anonymous frequencies — live ones to drop into, dead ones to recover. listen, talk, leave whenever.</p>
+          <span className="rooms-eco-kicker">live voice channels</span>
+          <h1 className="rooms-eco-title">channels</h1>
+          <p className="rooms-eco-sub">anonymous live channels — jump into one that's live, revive one that went dark. listen, talk, drop out whenever.</p>
         </header>
 
         {pulling ? (
@@ -407,7 +407,7 @@ export default function RoomsScreen() {
 
         <RoomsDirectory onEnter={handleEnter} />
 
-        <div className="rooms-section-label rooms-section-label--dead">DEAD ZONES · abandoned &amp; recoverable</div>
+        <div className="rooms-section-label rooms-section-label--dead">DARK ZONES · offline &amp; recoverable</div>
         <DormantFrequencies onReopen={setReopened} />
         </>
         )}
@@ -460,8 +460,8 @@ function RoomsDirectory({ onEnter }: { onEnter: (room: RoomDef) => void }) {
       {visible.length === 0 ? (
         <div className="rooms-empty" role="status">
           <span className="rooms-empty-glyph" aria-hidden="true">◌</span>
-          <p>the band is quiet on this frequency tonight.</p>
-          <small>drift to another, or reopen a dead zone below.</small>
+          <p>no traffic on this frequency tonight.</p>
+          <small>switch frequencies, or bring a dark zone back online below.</small>
         </div>
       ) : (
         <div className="rooms-eco-grid">

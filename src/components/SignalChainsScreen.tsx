@@ -287,10 +287,10 @@ export default function SignalChainsScreen() {
       </div>
 
       <div className="screen-header">
-        <div className="screen-kicker">SIGNAL CHAINS</div>
-        <h2 className="screen-title">Chains</h2>
+        <div className="screen-kicker">RELAY CHAINS</div>
+        <h2 className="screen-title">Relays</h2>
         <p className="screen-sub">
-          strangers building one sound together. somebody starts with ten seconds; nineteen more can pile on before it seals. nothing gets cleaned up — the mess is the point.
+          strangers building one sound together. someone drops ten seconds; nineteen more can stack on before it locks. nothing gets cleaned up — the noise is the point.
         </p>
       </div>
 

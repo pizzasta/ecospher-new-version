@@ -104,7 +104,7 @@ type ListenSlice = { label: string; value: number; color: string }
 const LISTEN_SEED: ListenSlice[] = [
   { label: 'Deep Talks', value: 42, color: 'var(--eco-violet)' },
   { label: 'Ambient Rooms', value: 33, color: 'var(--eco-cyan)' },
-  { label: 'Dead Zones', value: 25, color: 'var(--eco-magenta)' },
+  { label: 'Dark Zones', value: 25, color: 'var(--eco-magenta)' },
 ]
 
 function heatColor(v: number): string {
@@ -163,7 +163,7 @@ export default function ControlDeck({ onNavigate }: ControlDeckProps) {
     setScan('scanning for fading frequencies…')
     window.setTimeout(() => {
       const fading = feed.filter((f) => f.kind === 'fade').length
-      setScan(fading > 0 ? fading + ' fading signal nearby — open Dead Zones' : 'no fading frequencies in range')
+      setScan(fading > 0 ? fading + ' fading signal nearby — open Dark Zones' : 'no fading frequencies in range')
     }, 1100)
   }
 

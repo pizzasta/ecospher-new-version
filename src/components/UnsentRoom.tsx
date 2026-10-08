@@ -383,7 +383,7 @@ const ExportOverlay: React.FC<{
           <div className="ur-export-preview-content">
             <div className="ur-export-branding">
               <span className="ur-export-logo">ECOSPHERE</span>
-              <span className="ur-export-subtitle">unsent room</span>
+              <span className="ur-export-subtitle">dead drop</span>
             </div>
             <WaveformPreview data={signal.waveformData} height={72} />
             <div className="ur-export-signal-info">
@@ -986,7 +986,7 @@ export const UnsentRoom: React.FC = () => {
       handle: exportTarget.signalId.toLowerCase(),
       caption: 'messages that never found a destination.',
       duration: formatDuration(exportTarget.duration),
-      typeLabel: `unsent room · ${exportTarget.emotionalTag.replace('-', ' ')}`,
+      typeLabel: `dead drop · ${exportTarget.emotionalTag.replace('-', ' ')}`,
       accentColor: '#ff1493',
       waveformSeed: Math.round((exportTarget.waveformData[0] ?? 0.5) * 9973),
     });
@@ -1034,9 +1034,9 @@ export const UnsentRoom: React.FC = () => {
       <header className="ur-header">
         <div className="ur-header-copy">
           <p className="ur-header-eyebrow">ECOSPHERE / PRIVATE CHANNEL</p>
-          <h1 className="ur-title">UNSENT ROOM</h1>
-          <p className="ur-subtitle">"messages that never found a destination."</p>
-          <p className="ur-ambient-text">some signals were never meant to arrive.</p>
+          <h1 className="ur-title">DEAD DROP</h1>
+          <p className="ur-subtitle">"messages that never reached their destination."</p>
+          <p className="ur-ambient-text">leave it here. no names. no replies required.</p>
         </div>
         <div className="ur-header-controls">
           <button

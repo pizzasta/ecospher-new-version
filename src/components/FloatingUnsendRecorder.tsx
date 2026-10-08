@@ -222,7 +222,7 @@ export default function FloatingUnsendRecorder() {
                 x
               </button>
 
-              <p className="unsend-recorder-kicker">UNSENT ROOM // LOCAL ONLY</p>
+              <p className="unsend-recorder-kicker">DEAD DROP // LOCAL ONLY</p>
               <h2>Record what never arrived.</h2>
               <p className="unsend-recorder-copy">Hold the signal between 5 and 15 seconds. Nothing leaves this device.</p>
 

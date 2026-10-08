@@ -10362,3 +10362,12 @@ body[data-eco-text='large'] #root { zoom: 1.14; }
 .screen { width: 100%; max-width: 1180px; margin-inline: auto; }
 .settings-screen { max-width: 800px; }
 .tx-screen { max-width: 880px; }
+
+/* The small-screen `.bottom-nav button span { width: 6px }` rule was meant
+   for status dots, but it also squeezed the tab labels to 6px so the words
+   spilled into the next tab. Let labels and glyphs size to their text. */
+.bottom-nav .nav-item .nav-label,
+.bottom-nav .nav-item .nav-glyph {
+  height: auto;
+  width: auto;
+}

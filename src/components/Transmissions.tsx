@@ -168,8 +168,8 @@ export default function Transmissions() {
     <div className="screen tx-screen">
       <div className="screen-header">
         <div className="screen-kicker">TRANSMISSIONS</div>
-        <h2 className="screen-title">speak into a frequency</h2>
-        <p className="screen-sub">no names, no inbox — your words drift out and a carrier on the same wave echoes back.</p>
+        <h2 className="screen-title">broadcast on a frequency</h2>
+        <p className="screen-sub">no names, no inbox — your words go out on the wave and a carrier on the same band answers back.</p>
       </div>
 
       <div className="tx-compose">
