@@ -45,7 +45,7 @@ export async function enablePushNotifications(): Promise<string> {
     // screen. Fall back to the same versioned URL only if nothing is registered.
     const registration =
       (await navigator.serviceWorker.getRegistration()) ??
-      (await navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(__SW_VERSION__)}`))
+      (await navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(import.meta.env.VITE_SW_VERSION ?? 'dev')}`))
     await navigator.serviceWorker.ready
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
