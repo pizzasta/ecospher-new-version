@@ -664,8 +664,12 @@ type PublicTables = {
       content_reports: {
         Row: {
           id: string
-          reporter_id: string
-          signal_id: string
+          reporter_id: string | null
+          signal_id: string | null
+          reported_signal_id: string
+          author_id: string | null
+          signal_title: string | null
+          signal_caption: string | null
           reason: ContentReportReason
           auto_flags: string[]
           status: 'open' | 'actioned' | 'dismissed'

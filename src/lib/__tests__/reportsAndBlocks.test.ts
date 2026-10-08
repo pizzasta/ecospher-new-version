@@ -1,5 +1,6 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { blockSignalAuthor, fileContentReport, unblockAllAuthors } from '../backendBridge'
+import { BLOCK_HIDDEN_KEY, blockSignalAuthor, fileContentReport, filterVisibleSignalIds, loadBlockHidden, storeBlockHidden, unblockAllAuthors } from '../backendBridge'
 import { CONTENT_REPORT_REASONS } from '../database.types'
 
 describe('reports and blocks without a backend', () => {
@@ -16,5 +17,23 @@ describe('reports and blocks without a backend', () => {
     await expect(blockSignalAuthor('00000000-0000-4000-8000-000000000000')).resolves.toBe(false)
     await expect(blockSignalAuthor('not-a-uuid')).resolves.toBe(false)
     await expect(unblockAllAuthors()).resolves.toBe(false)
+  })
+
+  it('does not guess which signals are still visible without a backend', async () => {
+    await expect(filterVisibleSignalIds(['00000000-0000-4000-8000-000000000000'])).resolves.toBeNull()
+  })
+})
+
+describe('block-hidden signals are tracked separately', () => {
+  it('round-trips ids and ignores junk in storage', () => {
+    window.localStorage.removeItem(BLOCK_HIDDEN_KEY)
+    expect(loadBlockHidden()).toEqual([])
+    storeBlockHidden(['a', 'b'])
+    expect(loadBlockHidden()).toEqual(['a', 'b'])
+    window.localStorage.setItem(BLOCK_HIDDEN_KEY, JSON.stringify(['ok', 3, null]))
+    expect(loadBlockHidden()).toEqual(['ok'])
+    window.localStorage.setItem(BLOCK_HIDDEN_KEY, '{not json')
+    expect(loadBlockHidden()).toEqual([])
+    window.localStorage.removeItem(BLOCK_HIDDEN_KEY)
   })
 })

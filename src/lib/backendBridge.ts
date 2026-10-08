@@ -37,6 +37,43 @@ export async function fileContentReport(signalId: string, reason: ContentReportR
   }
 }
 
+/** Local list of signals hidden because their author was blocked; cleared by unblockAllAuthors. */
+export const BLOCK_HIDDEN_KEY = 'ecosphere:blockHiddenSignals'
+
+export function loadBlockHidden(): string[] {
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(BLOCK_HIDDEN_KEY) ?? '[]')
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+export function storeBlockHidden(ids: string[]) {
+  try { window.localStorage.setItem(BLOCK_HIDDEN_KEY, JSON.stringify(ids.slice(0, 200))) } catch { /* session only */ }
+}
+
+/** Fired after a successful block so the feed can drop that author's other cards. */
+export const AUTHOR_BLOCKED_EVENT = 'ecosphere:author-blocked'
+
+/**
+ * Of the given backend signal ids, return the ones this user can still see
+ * (RLS hides blocked authors). Null when the check couldn't run.
+ */
+export async function filterVisibleSignalIds(ids: string[]): Promise<Set<string> | null> {
+  const uuids = ids.filter(id => UUID_RE.test(id))
+  if (!isSupabaseConfigured || uuids.length === 0) return null
+  const client = getOptionalSupabaseClient()
+  if (!client) return null
+  try {
+    const { data, error } = await client.from('signals').select('id').in('id', uuids)
+    if (error || !data) return null
+    return new Set((data as { id: string }[]).map(row => row.id))
+  } catch {
+    return null
+  }
+}
+
 /** Block the (never-revealed) author of a backend signal: the server hides all of their signals from you. */
 export async function blockSignalAuthor(signalId: string): Promise<boolean> {
   if (!isSupabaseConfigured || !UUID_RE.test(signalId)) return false
@@ -59,7 +96,9 @@ export async function unblockAllAuthors(): Promise<boolean> {
   try {
     if (!(await ensureBackendSession())) return false
     const { error } = await client.rpc('unblock_all')
-    return !error
+    if (error) return false
+    try { window.localStorage.removeItem(BLOCK_HIDDEN_KEY) } catch { /* nothing stored */ }
+    return true
   } catch {
     return false
   }

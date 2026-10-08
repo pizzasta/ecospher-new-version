@@ -3,7 +3,9 @@
 -- content_reports: any signed-in (incl. anonymous) user can file a report.
 --   Nobody can read, change or delete reports from the client — review them
 --   in the Supabase dashboard (Table Editor → content_reports) or with the
---   service role. One report per user per signal.
+--   service role. One report per user per signal. A trigger snapshots the
+--   reported signal's text and author when the report is filed, so deleting
+--   the signal or the account (on either side) never removes a pending report.
 --
 -- user_blocks: "block this voice" hides every public signal from that author
 --   for the blocker. The author's id never reaches the client: the block is
@@ -12,14 +14,50 @@
 
 create table if not exists public.content_reports (
   id uuid primary key default gen_random_uuid(),
-  reporter_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
-  signal_id uuid not null references public.signals(id) on delete cascade,
+  reporter_id uuid default auth.uid() references public.profiles(id) on delete set null,
+  signal_id uuid references public.signals(id) on delete set null,
+  reported_signal_id uuid not null,           -- original id, kept after the signal is deleted
+  author_id uuid,                             -- snapshot (no FK) so it survives account deletion
+  signal_title text,
+  signal_caption text,
   reason text not null check (reason in ('harassment', 'spam', 'unsafe content', 'sexual content', 'child safety', 'other')),
   auto_flags text[] not null default '{}',
   status text not null default 'open' check (status in ('open', 'actioned', 'dismissed')),
   created_at timestamptz not null default now(),
-  unique (reporter_id, signal_id)
+  unique (reporter_id, reported_signal_id)
 );
+
+create or replace function public.snapshot_reported_signal()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_creator uuid;
+  v_title text;
+  v_caption text;
+begin
+  new.reporter_id := auth.uid();
+  new.status := 'open';
+  new.reported_signal_id := new.signal_id;
+  select creator_id, title, caption into v_creator, v_title, v_caption
+  from public.signals
+  where id = new.signal_id and visibility = 'public';
+  if not found then
+    raise exception 'only public signals can be reported';
+  end if;
+  new.author_id := v_creator;
+  new.signal_title := v_title;
+  new.signal_caption := v_caption;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_snapshot_reported_signal on public.content_reports;
+create trigger trg_snapshot_reported_signal
+  before insert on public.content_reports
+  for each row execute function public.snapshot_reported_signal();
 
 create index if not exists content_reports_open_idx on public.content_reports(status, created_at desc);
 

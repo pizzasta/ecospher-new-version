@@ -34,7 +34,7 @@ gaps and the wording to keep marketing + app-store listings safe.
 - ~~Set governing law in Terms~~ — set to California.
 - Confirm jurisdictions you'll serve (EU/UK adds GDPR/UK-GDPR duties; the current draft assumes U.S.-only).
 - Fill Apple App Privacy + Google Data Safety to match the answers below.
-- Keep `setup-all.sql` deletion behavior in sync with the policy text.
+- Keep `setup-all.sql` deletion behavior in sync with the policy text (reported-content snapshots in `content_reports` intentionally survive account deletion).
 
 ## Launch risks (ranked)
 
@@ -56,7 +56,7 @@ gaps and the wording to keep marketing + app-store listings safe.
 | Contacts | No | — | — | — |
 | Usage data (page views, via Vercel Analytics) | Yes | No | No | Analytics |
 | Diagnostics (page-load performance, via Speed Insights) | Yes | No | No | App functionality / analytics |
-| Content reports (signal id + reason) | Yes | Anonymous id only | No | App functionality (moderation) |
+| Content reports (reason + snapshot of the reported text and its author's anonymous id) | Yes | Anonymous id only | No | App functionality (moderation) |
 | Advertising data | No | — | — | — |
 
 - **Data sold/shared:** No. **Third-party SDKs:** Vercel Analytics + Speed Insights (hosting provider, aggregated, not used for tracking). None for ads.
