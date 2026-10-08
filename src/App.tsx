@@ -1148,7 +1148,7 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
       <div className="stat-row">
         <div className="stat-card glass">
           <div className="stat-value cyan">{useCountUp(liveThreads).toLocaleString()}</div>
-          <div className="stat-label">transmitting now</div>
+          <div className="stat-label">signals adrift</div>
         </div>
         <div className="stat-card glass">
           <div className="stat-value pink">{useCountUp(streak)}</div>

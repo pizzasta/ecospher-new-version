@@ -139,11 +139,11 @@ export function bandIndicators(now = Date.now(), opts: { carriers?: number; stor
   const heat = opts.stormy ? 'storming' : a >= 0.66 ? 'high' : a >= 0.33 ? 'building' : 'low'
 
   return [
-    { id: 'carriers', label: 'carriers online', value: String(carriers), sub: 'connected after dark' },
-    { id: 'pressure', label: 'band pressure', value: `${Math.round(40 + a * 55)}%`, sub: 'network load' },
-    { id: 'peak', label: 'peak hour', value: deep ? 'now' : `${minutesToPeak(now)}m`, sub: deep ? 'you’re in it' : 'until peak traffic' },
-    { id: 'current', label: 'traffic flow', value: ['east', 'north', 'outward', 'west'][seed % 4], sub: 'traffic direction' },
+    { id: 'carriers', label: 'carriers adrift', value: String(carriers), sub: 'out in the dark tonight' },
+    { id: 'pressure', label: 'band pressure', value: `${Math.round(40 + a * 55)}%`, sub: 'night mood gauge' },
+    { id: 'peak', label: 'deepest hour', value: deep ? 'now' : `${minutesToPeak(now)}m`, sub: deep ? 'you’re in it' : 'countdown to 3am' },
+    { id: 'current', label: 'drift current', value: ['east', 'north', 'outward', 'west'][seed % 4], sub: "tonight's drift" },
     { id: 'heat', label: 'replay heat', value: heat, sub: 'replays triggering replays' },
-    { id: 'fade', label: 'decay rate', value: ['slow', 'steady', 'quick'][seed % 3], sub: 'until signals expire' },
+    { id: 'fade', label: 'fade rate', value: ['slow', 'steady', 'quick'][seed % 3], sub: 'how fast tonight fades' },
   ]
 }
