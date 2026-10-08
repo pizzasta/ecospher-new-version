@@ -161,6 +161,8 @@ export function subscribeToNotifications(onNew: (notification: EcoNotification) 
             const row = payload.new as { id: string; type: NotificationType; metadata?: { label?: unknown } | null; created_at?: string }
             const label = typeof row.metadata?.label === 'string' ? row.metadata.label : TYPE_TEXT[row.type]
             onNew({ id: row.id, type: row.type, text: label, read: false, createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(), remote: true })
+            // let other surfaces (the presence room) react without opening a second channel
+            window.dispatchEvent(new CustomEvent('ecosphere:remote-notification', { detail: { id: row.id, type: row.type } }))
           })
           .subscribe()
         teardownRemote = () => { void client.removeChannel(channel) }

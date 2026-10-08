@@ -32,9 +32,13 @@ function hashString(s: string): number {
   return h
 }
 
-/** The hour bucket that owns a moment, e.g. "2026-7-8-3". */
+/**
+ * The hour bucket that owns a moment, e.g. "2026-7-8-3". Built from UTC
+ * fields so every client, in every time zone (including half-hour offsets),
+ * lands on the same bucket, prompt, tone and start instant.
+ */
 function hourKey(d: Date): string {
-  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}-${d.getHours()}`
+  return `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}-${d.getUTCHours()}`
 }
 
 /**
@@ -88,7 +92,7 @@ export function currentMoment(now = Date.now()): Moment | null {
   const d = new Date(now)
   if (!hourHostsMoment(d)) return null
   const start = new Date(d)
-  start.setMinutes(momentMinute(d), 0, 0)
+  start.setUTCMinutes(momentMinute(d), 0, 0)
   const startMs = start.getTime()
   if (now >= startMs && now < startMs + MOMENT_DURATION_MS) {
     return buildMoment(d, startMs)

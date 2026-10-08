@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import {
-  shouldSurface, currentMoment, secondsLeft, othersInMoment,
+  shouldSurface, secondsLeft, othersInMoment,
   joinMoment, dismissMoment, MOMENT_DURATION_MS,
 } from '../lib/simultaneous'
 import type { Moment } from '../lib/simultaneous'
@@ -23,6 +23,10 @@ export default function TheSimultaneous() {
   const [others, setOthers] = useState(0)
   const toneRef = useRef<{ osc: OscillatorNode; gain: GainNode; ctx: AudioContext } | null>(null)
   const pollRef = useRef<number | undefined>(undefined)
+  // the poll below runs on an interval, so it reads the live moment through a
+  // ref; a captured `moment` would stay null and wipe a joined moment
+  const momentRef = useRef<Moment | null>(null)
+  momentRef.current = moment
   const tickRef = useRef<number | undefined>(undefined)
 
   const stopTone = () => {
@@ -40,11 +44,10 @@ export default function TheSimultaneous() {
   // poll for an open moment (cheap; only builds one a few times a night)
   useEffect(() => {
     if (!enabled) return undefined
-    const check = () => { if (!moment) setMoment(shouldSurface()) }
+    const check = () => { if (!momentRef.current) setMoment(shouldSurface()) }
     check()
     pollRef.current = window.setInterval(check, 15_000)
     return () => window.clearInterval(pollRef.current)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled])
 
   // while a moment is on screen, keep the countdown + presence live, and

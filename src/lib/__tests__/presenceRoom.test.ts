@@ -83,3 +83,18 @@ describe('ambient + captions', () => {
     expect(presenceLine(past, '30m ago')).toContain('30m ago')
   })
 })
+
+describe('backend visitors reach the presence room', () => {
+  it('builds presences from notification rows, de-duplicated, freshest first', async () => {
+    const { presencesFrom } = await import('../presence')
+    const now = Date.now()
+    const rows = [
+      { id: 'r1', type: 'new_listener', createdAt: now - 60_000 },
+      { id: 'r1', type: 'new_listener', createdAt: now - 60_000 },
+      { id: 'r2', type: 'new_reaction', createdAt: now - 5_000 },
+      { id: 'r3', type: 'new_listener', createdAt: now - 1000 * 60 * 60 * 24 * 30 },
+    ]
+    const list = presencesFrom(rows, now)
+    expect(list.map(p => p.id)).toEqual(['r2', 'r1'])
+  })
+})

@@ -41,6 +41,23 @@ describe('mostSaidWords — the crowd in their own words', () => {
     expect(a.findIndex(w => w.word === 'apple')).toBeLessThan(a.findIndex(w => w.word === 'zebra'))
   })
 
+  it('keeps accented words whole', () => {
+    const words = mostSaidWords(['yo también', 'también aquí', 'même chose', 'même'])
+    expect(words.map(w => w.word)).toEqual(expect.arrayContaining(['también', 'même']))
+    expect(words.find(w => w.word === 'también')?.count).toBe(2)
+    expect(words.some(w => w.word === 'tambi' || w.word === 'n')).toBe(false)
+  })
+
+  it('splits and counts Japanese, which has no spaces', () => {
+    const words = mostSaidWords(['眠れない夜', '今夜も眠れない'])
+    expect(words.length).toBeGreaterThan(0)
+    expect(words[0].count).toBe(2)
+  })
+
+  it('ignores bare numbers', () => {
+    expect(mostSaidWords(['40 40 40', '40'])).toEqual([])
+  })
+
   it('respects the limit', () => {
     expect(mostSaidWords(['alpha bravo charlie delta echo foxtrot'], 3)).toHaveLength(3)
   })

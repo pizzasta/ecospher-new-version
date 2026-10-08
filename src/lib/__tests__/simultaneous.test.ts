@@ -35,17 +35,29 @@ describe('the moment schedule', () => {
     expect(min).toBeGreaterThanOrEqual(2)
     expect(min).toBeLessThanOrEqual(56)
     // exactly on the minute → open; a minute before → closed
-    const openAt = new Date(host); openAt.setMinutes(min, 5, 0)
-    const before = new Date(host); before.setMinutes(min - 2, 0, 0)
+    const openAt = new Date(host); openAt.setUTCMinutes(min, 5, 0)
+    const before = new Date(host); before.setUTCMinutes(min - 2, 0, 0)
     expect(currentMoment(openAt.getTime())).not.toBeNull()
     expect(currentMoment(before.getTime())).toBeNull()
   })
 
   it('closes after the shared window elapses', () => {
     const host = firstHostingHour()
-    const start = new Date(host); start.setMinutes(momentMinute(host), 0, 0)
+    const start = new Date(host); start.setUTCMinutes(momentMinute(host), 0, 0)
     expect(currentMoment(start.getTime() + 1000)).not.toBeNull()
     expect(currentMoment(start.getTime() + MOMENT_DURATION_MS + 1000)).toBeNull()
+  })
+})
+
+describe('every time zone gets the same moment', () => {
+  it('opens at one UTC instant, whatever the local offset', () => {
+    const host = firstHostingHour()
+    const start = new Date(host); start.setUTCMinutes(momentMinute(host), 0, 0)
+    const m = currentMoment(start.getTime() + 1000)
+    expect(m).not.toBeNull()
+    // the start is pinned to a UTC minute, so a +5:30 or -7:00 client agrees
+    expect(m!.endsAt - MOMENT_DURATION_MS).toBe(start.getTime())
+    expect(new Date(m!.endsAt - MOMENT_DURATION_MS).getUTCMinutes()).toBe(momentMinute(host))
   })
 })
 

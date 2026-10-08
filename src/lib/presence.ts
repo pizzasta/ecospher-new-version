@@ -12,6 +12,8 @@
 
 // mirrors the start-tint of each mood in profileMood.ts, so a visitor's
 // "feeling" here reads in the same palette their own page gives off
+import { listNotifications } from './notifications'
+
 const FEELINGS: Array<{ key: string; color: string }> = [
   { key: 'tender', color: '#b9889b' },
   { key: 'restless', color: '#a87f93' },
@@ -121,17 +123,44 @@ function readLocalEvents(): LocalNote[] {
   }
 }
 
-/**
- * The souls drifting through your frequency right now — real passes-through in
- * the last {@link WINDOW_MS}, freshest first, capped for a calm room.
- */
-export function readPresences(now: number = Date.now()): Presence[] {
-  return readLocalEvents()
+/** Presences from any list of notification-shaped events, freshest first. */
+export function presencesFrom(notes: LocalNote[], now: number = Date.now()): Presence[] {
+  const seen = new Set<string>()
+  return notes
     .filter((n): n is LocalNote & { createdAt: number } =>
       typeof n.createdAt === 'number' && VISITOR_TYPES.has(String(n.type)) && now - n.createdAt < WINDOW_MS)
+    .filter(n => {
+      const id = String(n.id ?? n.createdAt)
+      if (seen.has(id)) return false
+      seen.add(id)
+      return true
+    })
     .map(n => presenceFromEvent(String(n.id ?? n.createdAt), String(n.type), n.createdAt, now))
     .sort((a, b) => a.ageMs - b.ageMs)
     .slice(0, MAX_PRESENCES)
+}
+
+/**
+ * The souls drifting through your frequency right now — real passes-through in
+ * the last {@link WINDOW_MS}, freshest first, capped for a calm room. Reads
+ * this device only; {@link loadPresences} adds the backend's visitors.
+ */
+export function readPresences(now: number = Date.now()): Presence[] {
+  return presencesFrom(readLocalEvents(), now)
+}
+
+/**
+ * Local and backend visitors together. On a configured backend, real
+ * new_listener / new_reaction events are notification rows that never touch
+ * the local store, so the room has to read them from the server too.
+ */
+export async function loadPresences(now: number = Date.now()): Promise<Presence[]> {
+  try {
+    const notes = await listNotifications(50)
+    return presencesFrom([...notes, ...readLocalEvents()], now)
+  } catch {
+    return readPresences(now)
+  }
 }
 
 /**

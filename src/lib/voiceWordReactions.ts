@@ -22,16 +22,28 @@ const STOPWORDS = new Set([
 
 export interface WordReaction { word: string; count: number }
 
+// Intl.Segmenter splits words in every language the app supports — including
+// Japanese, which has no spaces. Typed locally because tsconfig targets ES2020.
+type WordSegment = { segment: string; isWordLike?: boolean }
+type WordSegmenter = { segment(input: string): Iterable<WordSegment> }
+const SegmenterCtor = (Intl as unknown as {
+  Segmenter?: new (locale?: string, options?: { granularity: 'word' }) => WordSegmenter
+}).Segmenter
+const WORDS: WordSegmenter | null = SegmenterCtor ? new SegmenterCtor(undefined, { granularity: 'word' }) : null
+
 /** Strip stage directions in (parentheses) — "(laughing)", "(static)" — and
- *  reduce a caption to lowercase spoken tokens. */
+ *  reduce a caption to lowercase spoken tokens, keeping accented letters and
+ *  non-Latin scripts intact. */
 function tokens(caption: string): string[] {
-  return caption
+  const text = caption
     .replace(/\([^)]*\)/g, ' ')          // drop parenthetical stage directions
     .toLowerCase()
-    .replace(/[^a-z’' ]+/g, ' ')     // keep letters + apostrophes
-    .split(/\s+/)
-    .map(w => w.replace(/^'+|'+$/g, ''))  // trim stray quotes
-    .filter(w => w.length >= 2 && !STOPWORDS.has(w))
+  const words = WORDS
+    ? [...WORDS.segment(text)].filter(s => s.isWordLike).map(s => s.segment)
+    : text.replace(/[^\p{L}\p{M}’' ]+/gu, ' ').split(/\s+/)  // any letter + apostrophes
+  return words
+    .map(w => w.replace(/^['’]+|['’]+$/g, ''))  // trim stray quotes
+    .filter(w => w.length >= 2 && /\p{L}/u.test(w) && !STOPWORDS.has(w))  // words, not bare numbers
 }
 
 /**

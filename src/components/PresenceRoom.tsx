@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { readPresences, ambientPresences, roomMood, presenceLine } from '../lib/presence'
+import { readPresences, loadPresences, ambientPresences, roomMood, presenceLine } from '../lib/presence'
 import type { Presence } from '../lib/presence'
 import { formatRelativeTime } from '../lib/notifications'
 import './PresenceRoom.css'
@@ -22,9 +22,17 @@ export default function PresenceRoom({ accent = '#b9889b' }: { accent?: string }
   const [selected, setSelected] = useState<string | null>(null)
   const roomRef = useRef<HTMLDivElement>(null)
 
-  const refresh = () => { setNow(Date.now()); setReal(readPresences()) }
+  const mountedRef = useRef(true)
+  // local visitors paint instantly; backend visitors follow once fetched
+  const refresh = () => {
+    setNow(Date.now())
+    setReal(readPresences())
+    void loadPresences().then(list => { if (mountedRef.current) setReal(list) })
+  }
 
   useEffect(() => {
+    mountedRef.current = true
+    refresh()
     // keep the room breathing: re-read on an interval, when someone interacts
     // (a new pass-through lands in the store, then fires this event), and
     // whenever the tab returns to the foreground
@@ -32,10 +40,13 @@ export default function PresenceRoom({ accent = '#b9889b' }: { accent?: string }
     const onNote = () => refresh()
     const onVisible = () => { if (document.visibilityState === 'visible') refresh() }
     window.addEventListener('ecosphere:notification', onNote)
+    window.addEventListener('ecosphere:remote-notification', onNote)
     document.addEventListener('visibilitychange', onVisible)
     return () => {
+      mountedRef.current = false
       window.clearInterval(tick)
       window.removeEventListener('ecosphere:notification', onNote)
+      window.removeEventListener('ecosphere:remote-notification', onNote)
       document.removeEventListener('visibilitychange', onVisible)
     }
   }, [])
