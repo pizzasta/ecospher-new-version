@@ -1,0 +1,192 @@
+/* ═══════════════════════════════════════════════════════════════════
+   PRESENCE ROOM — souls drifting through your frequency
+   A dark frequency-space; each visitor an anonymous, emotion-colored
+   orb. Live ones pulse and glow; past ones fade to afterglow. No names,
+   no counts — a room you open at 3am to watch.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.presence-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.presence-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-left: auto;
+  background: var(--presence-accent, #b9889b);
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--presence-accent, #b9889b) 90%, transparent),
+    0 0 20px color-mix(in srgb, var(--presence-accent, #b9889b) 50%, transparent);
+  animation: presenceLiveDot 2.2s ease-in-out infinite;
+}
+@keyframes presenceLiveDot {
+  0%, 100% { opacity: 0.5; transform: scale(0.85); }
+  50%       { opacity: 1;   transform: scale(1.15); }
+}
+
+/* ── The room ────────────────────────────────────────────────────── */
+.presence-room {
+  position: relative;
+  height: clamp(190px, 34vw, 260px);
+  margin: 6px 0 12px;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: default;
+  background:
+    radial-gradient(120% 90% at 50% 12%, rgba(20, 18, 40, 0.5), transparent 60%),
+    radial-gradient(80% 70% at 50% 120%, color-mix(in srgb, var(--presence-accent, #b9889b) 14%, transparent), transparent 70%),
+    linear-gradient(180deg, #05050e 0%, #04040c 60%, #030309 100%);
+  border: 1px solid color-mix(in srgb, var(--presence-accent, #b9889b) 20%, rgba(255,255,255,0.05));
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* a faint horizon so souls feel like they're drifting in a space */
+.presence-floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 44%;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--presence-accent, #b9889b) 8%, transparent));
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000);
+  mask-image: linear-gradient(180deg, transparent, #000);
+  pointer-events: none;
+}
+
+/* ── An orb: one soul ────────────────────────────────────────────── */
+.presence-orb {
+  position: absolute;
+  left: var(--orb-x, 50%);
+  top: var(--orb-y, 50%);
+  width: var(--orb-size, 36px);
+  height: var(--orb-size, 36px);
+  margin: calc(var(--orb-size, 36px) / -2) 0 0 calc(var(--orb-size, 36px) / -2);
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  animation: presenceDrift var(--orb-dur, 30s) ease-in-out infinite alternate;
+  animation-delay: var(--orb-delay, 0s);
+  transition: transform 0.35s ease;
+}
+.presence-orb:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--orb-color, #b9889b) 80%, #fff);
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+.presence-orb.is-selected { transform: scale(1.12); z-index: 5; }
+
+.presence-orb-core {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 34%,
+      color-mix(in srgb, var(--orb-color, #b9889b) 92%, #fff) 0%,
+      var(--orb-color, #b9889b) 42%,
+      color-mix(in srgb, var(--orb-color, #b9889b) 40%, transparent) 100%);
+}
+
+/* live: here now — bright, breathing, a strong halo */
+.presence-orb--live { z-index: 4; }
+.presence-orb--live .presence-orb-core {
+  box-shadow:
+    0 0 18px color-mix(in srgb, var(--orb-color) 90%, transparent),
+    0 0 42px color-mix(in srgb, var(--orb-color) 60%, transparent),
+    0 0 80px color-mix(in srgb, var(--orb-color) 30%, transparent);
+  animation: presencePulse 3s ease-in-out infinite;
+}
+
+/* recent: still glowing, softer */
+.presence-orb--recent .presence-orb-core {
+  opacity: 0.82;
+  box-shadow:
+    0 0 12px color-mix(in srgb, var(--orb-color) 60%, transparent),
+    0 0 30px color-mix(in srgb, var(--orb-color) 28%, transparent);
+}
+
+/* fading: an afterglow — dim, quiet, almost grain */
+.presence-orb--fading .presence-orb-core {
+  opacity: 0.45;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--orb-color) 32%, transparent);
+}
+.presence-orb--ambient { pointer-events: auto; }
+.presence-orb--ambient .presence-orb-core {
+  opacity: 0.24;
+  filter: blur(0.5px);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--orb-color) 24%, transparent);
+}
+
+.presence-orb-glyph {
+  position: absolute;
+  font-size: calc(var(--orb-size, 36px) * 0.42);
+  color: #fff;
+  opacity: 0.85;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--orb-color) 80%, transparent);
+  pointer-events: none;
+}
+
+@keyframes presenceDrift {
+  from { transform: translate(calc(var(--orb-dx, 12px) * -1), calc(var(--orb-dy, 8px) * -1)); }
+  to   { transform: translate(var(--orb-dx, 12px), var(--orb-dy, 8px)); }
+}
+@keyframes presencePulse {
+  0%, 100% { transform: scale(0.92); }
+  50%       { transform: scale(1.08); }
+}
+
+/* ── The whisper ─────────────────────────────────────────────────── */
+.presence-whisper {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  max-width: 88%;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #eef1fa;
+  background: rgba(6, 6, 16, 0.72);
+  border: 1px solid color-mix(in srgb, var(--orb-color, #b9889b) 45%, transparent);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--orb-color, #b9889b) 26%, transparent);
+  backdrop-filter: blur(8px);
+  animation: presenceWhisperIn 0.4s ease both;
+  pointer-events: none;
+  z-index: 6;
+}
+@keyframes presenceWhisperIn {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ── Captions ────────────────────────────────────────────────────── */
+.presence-caption {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--presence-accent, #b9889b) 55%, rgba(224, 228, 242, 0.82));
+  text-shadow: 0 0 14px color-mix(in srgb, var(--presence-accent, #b9889b) 26%, transparent);
+}
+.presence-hint { margin-top: 0; }
+
+/* ── Reduced motion ──────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .presence-orb,
+  .presence-orb--live .presence-orb-core,
+  .presence-live-dot { animation: none; }
+  .presence-orb { transition: none; }
+  .presence-whisper { animation: none; }
+}

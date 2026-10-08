@@ -67,6 +67,19 @@ function writeLocalHz(profile: HzProfile) {
   try { window.dispatchEvent(new CustomEvent('ecosphere:hz', { detail: profile })) } catch { /* non-browser */ }
 }
 
+/**
+ * Seed the local signature once — onboarding previews an Hz derived from the
+ * chosen name, and this makes that the Hz the hub shows afterwards instead of
+ * the 20.0 floor. Never overwrites a signature that already exists; the next
+ * recalc from real activity replaces it either way.
+ */
+export function seedHzSignature(hz: number): void {
+  const previous = readLocalHz()
+  if (typeof previous.hz === 'number') return
+  const clamped = Math.round(Math.min(HZ_MAX, Math.max(HZ_MIN, hz)) * 10) / 10
+  writeLocalHz({ hz: clamped, displayName: previous.displayName ?? null, color: previous.color ?? HZ_DEFAULT_COLOR })
+}
+
 /** Synchronous local profile — instant render; backend refresh follows. */
 export function getLocalHzProfile(identity: string): HzProfile {
   const local = readLocalHz()

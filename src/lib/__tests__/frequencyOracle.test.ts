@@ -29,6 +29,17 @@ describe('frequency oracle (let the frequency choose)', () => {
   it('gives flavor across the band', () => {
     expect(frequencyFlavor(50)).not.toBe(frequencyFlavor(180))
   })
+
+  it('survives timestamp-scale seeds that overflow signed 32-bit', () => {
+    // Date.now() values above 2^31 (mod 2^32) used to shift negative and
+    // index the option lists out of range, crashing the oracle button
+    const base = 415 * 2 ** 32 + 3_000_000_000 // ToInt32(base) < 0
+    for (let i = 0; i < 64; i++) {
+      const cast = castFrequency(base + i * 12_345)
+      expect(PROFILE_PALETTES.some(p => p.id === cast.paletteId)).toBe(true)
+      expect(SCENE_STYLES).toContain(cast.style)
+    }
+  })
 })
 
 describe('note sync (backend reactions, guarded)', () => {
