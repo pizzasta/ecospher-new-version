@@ -10,10 +10,59 @@ import { deleteAudio, getAudioPlaybackUrl, listAudioLibrary, logActivity, publis
 import { getOptionalSupabaseClient } from './supabase'
 import { ensureBackendSession } from './session'
 import type { ActivityEventType, AudioFileRow } from './library'
+import type { ContentReportReason } from './database.types'
 
 export function mirrorActivity(type: ActivityEventType, label: string, metadata: Record<string, unknown> = {}) {
   if (!isSupabaseConfigured) return
   void logActivity(type, {}, { label, ...metadata }).catch(() => { /* offline — local state is the source of truth */ })
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * File a report for a public backend signal so it reaches a reviewer
+ * (Supabase → content_reports). Resolves true when the report was stored.
+ * Duplicate reports from the same user count as stored.
+ */
+export async function fileContentReport(signalId: string, reason: ContentReportReason, autoFlags: string[] = []): Promise<boolean> {
+  if (!isSupabaseConfigured || !UUID_RE.test(signalId)) return false
+  const client = getOptionalSupabaseClient()
+  if (!client) return false
+  try {
+    if (!(await ensureBackendSession())) return false
+    const { error } = await client.from('content_reports').insert({ signal_id: signalId, reason, auto_flags: autoFlags })
+    return !error || error.code === '23505'
+  } catch {
+    return false
+  }
+}
+
+/** Block the (never-revealed) author of a backend signal: the server hides all of their signals from you. */
+export async function blockSignalAuthor(signalId: string): Promise<boolean> {
+  if (!isSupabaseConfigured || !UUID_RE.test(signalId)) return false
+  const client = getOptionalSupabaseClient()
+  if (!client) return false
+  try {
+    if (!(await ensureBackendSession())) return false
+    const { error } = await client.rpc('block_signal_author', { p_signal_id: signalId })
+    return !error
+  } catch {
+    return false
+  }
+}
+
+/** Remove every block this account has made. */
+export async function unblockAllAuthors(): Promise<boolean> {
+  if (!isSupabaseConfigured) return false
+  const client = getOptionalSupabaseClient()
+  if (!client) return false
+  try {
+    if (!(await ensureBackendSession())) return false
+    const { error } = await client.rpc('unblock_all')
+    return !error
+  } catch {
+    return false
+  }
 }
 
 export type RemoteRecording = {

@@ -7,7 +7,9 @@ import type { ExportScene } from './lib/storyExport'
 import { playSample } from './lib/sampleAudio'
 import { speakSignal, speechSupported, estimateSpeechMs } from './lib/speech'
 import { listenerCount, livedInLines } from './lib/livedIn'
-import { fetchPublicSignals, mirrorActivity, mirrorSignalFade, publishSignalToFeed, publishVoiceSignalToFeed, mirrorReaction } from './lib/backendBridge'
+import { blockSignalAuthor, fetchPublicSignals, fileContentReport, mirrorActivity, mirrorSignalFade, publishSignalToFeed, publishVoiceSignalToFeed, mirrorReaction } from './lib/backendBridge'
+import { CONTENT_REPORT_REASONS } from './lib/database.types'
+import type { ContentReportReason } from './lib/database.types'
 import { moderatePublicSignalText } from './lib/signalModeration'
 import { GHOST_ARCHIVE } from './lib/ghostArchive'
 import { getLocalHzProfile, hzForHandle } from './lib/hzSignature'
@@ -425,17 +427,47 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
     if (signal.remote) mirrorReaction(signal.id, word)
   }
 
-  // fully automated report flow: instant hide + AI screening verdict, no human review
-  const submitReport = (reason: string) => {
+  // report flow: hide it for you right away, then file the report so it
+  // reaches a reviewer (content_reports). The note says only what happened.
+  const hideThisCard = (note: string, holdMs = 2600) => {
     setReporting(false)
     if (playing) globalAudio.stop()
-    const verdict = moderatePublicSignalText(signal.content)
     storeHidden([signal.id, ...loadHidden().filter(id => id !== signal.id)])
+    setReportNote(note)
+    window.setTimeout(() => { if (mountedRef.current) setReportNote('__hide__') }, holdMs)
+  }
+
+  const submitReport = (reason: ContentReportReason) => {
+    const verdict = moderatePublicSignalText(signal.content)
     mirrorActivity('signal_reported', `reported: ${reason}`, { signalId: signal.id, autoFlags: verdict.flags, autoFlagged: verdict.status === 'flagged' })
-    setReportNote(verdict.status === 'flagged'
-      ? 'auto-review: content flagged · removed and logged'
-      : 'auto-review complete · hidden from your feed')
-    window.setTimeout(() => { if (mountedRef.current) setReportNote('__hide__') }, 2600)
+    if (!signal.remote) {
+      hideThisCard('report received · hidden from your feed')
+      return
+    }
+    setReporting(false)
+    setReportNote('sending report…')
+    void fileContentReport(signal.id, reason, verdict.flags).then(sent => {
+      if (!mountedRef.current) return
+      hideThisCard(sent
+        ? 'report sent for review · hidden from your feed'
+        : 'hidden from your feed · report not sent (offline) — try again later or email safety@ecosphere.app', sent ? 2600 : 5200)
+    })
+  }
+
+  const blockVoice = () => {
+    mirrorActivity('signal_reported', 'blocked author', { signalId: signal.id })
+    if (!signal.remote) {
+      hideThisCard('voice blocked · hidden from your feed')
+      return
+    }
+    setReporting(false)
+    setReportNote('blocking…')
+    void blockSignalAuthor(signal.id).then(ok => {
+      if (!mountedRef.current) return
+      hideThisCard(ok
+        ? "voice blocked · you won't see their signals again"
+        : 'hidden from your feed · block not saved (offline) — try again later', ok ? 2600 : 5200)
+    })
   }
 
   const wasReplayed = ecosystemState.playedSignals.includes(signal.id)
@@ -730,9 +762,10 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
         )}
         {reporting && (
           <div className="card-report-row" role="group" aria-label="Report reason">
-            {['harassment', 'spam', 'unsafe content', 'sexual content', 'child safety', 'other'].map(reason => (
+            {CONTENT_REPORT_REASONS.map(reason => (
               <button key={reason} type="button" onClick={() => submitReport(reason)}>{reason}</button>
             ))}
+            <button type="button" className="card-report-block" onClick={blockVoice}>⊘ block this voice</button>
           </div>
         )}
         {reportNote && reportNote !== '__hide__' && (
