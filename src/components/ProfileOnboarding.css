@@ -75,6 +75,20 @@
   z-index: 1;
 }
 
+/* your own name drifting with the carriers — brighter, in the mood tint */
+.po-drifters em.po-drift-you {
+  color: color-mix(in srgb, var(--mood-tint) 90%, #fff);
+  font-weight: 700;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--mood-tint) 80%, transparent);
+  animation-name: poDriftYou;
+}
+@keyframes poDriftYou {
+  0%   { transform: translateX(0);     opacity: 0; }
+  10%  { opacity: 0.85; }
+  90%  { opacity: 0.85; }
+  100% { transform: translateX(160vw); opacity: 0; }
+}
+
 /* ── Panel ───────────────────────────────────────────────────────── */
 .po-panel {
   position: relative;
@@ -254,6 +268,45 @@
 @keyframes poWave {
   0%, 100% { transform: scaleY(0.45); opacity: 0.45; }
   50%       { transform: scaleY(1);    opacity: 0.85; }
+}
+
+/* the page assembling itself: name + first line fade in as you give them */
+.po-preview-id {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  pointer-events: none;
+  padding: 0 16px;
+}
+.po-preview-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: lowercase;
+  color: color-mix(in srgb, var(--mood-tint) 55%, #eef1fa);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--mood-tint) 60%, transparent), 0 1px 6px rgba(0,0,0,0.8);
+  animation: poIdIn 0.9s ease both;
+}
+.po-preview-line {
+  font-size: 10.5px;
+  font-style: italic;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(216, 222, 240, 0.68);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+  animation: poIdIn 0.9s ease both;
+}
+@keyframes poIdIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .po-preview-sigil {
@@ -487,6 +540,155 @@
   box-shadow: 0 0 18px color-mix(in srgb, var(--mood-tint) 22%, transparent);
 }
 
+/* ── Text fields (night name + first transmission) ───────────────── */
+.po-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 13px;
+  border: 1px solid color-mix(in srgb, var(--mood-tint) 30%, rgba(150, 160, 200, 0.14));
+  background: rgba(8, 8, 20, 0.65);
+  color: #f2f4fb;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  caret-color: var(--mood-tint);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.po-input::placeholder {
+  color: rgba(180, 190, 215, 0.4);
+  font-style: italic;
+}
+.po-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--mood-tint) 70%, transparent);
+  box-shadow:
+    0 0 22px color-mix(in srgb, var(--mood-tint) 20%, transparent),
+    inset 0 0 12px color-mix(in srgb, var(--mood-tint) 6%, transparent);
+}
+
+.po-static-btn {
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px dashed color-mix(in srgb, var(--mood-tint) 40%, transparent);
+  background: transparent;
+  color: color-mix(in srgb, var(--mood-tint) 75%, #cdd4e8);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: border-color 0.3s ease, background 0.3s ease, color 0.3s ease;
+}
+.po-static-btn:hover {
+  border-color: color-mix(in srgb, var(--mood-tint) 70%, transparent);
+  background: color-mix(in srgb, var(--mood-tint) 10%, transparent);
+  color: #fff;
+}
+
+.po-field-note {
+  margin: 10px 0 0;
+  font-size: 11px;
+  font-style: italic;
+  color: color-mix(in srgb, var(--mood-tint) 60%, rgba(206, 214, 234, 0.7));
+  text-shadow: 0 0 10px color-mix(in srgb, var(--mood-tint) 30%, transparent);
+}
+.po-field-error {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: #f2a8c0;
+  text-shadow: 0 0 10px rgba(236, 72, 153, 0.3);
+}
+
+/* ── Signature chime ─────────────────────────────────────────────── */
+.po-chimes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.po-chime {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 11px 13px;
+  border-radius: 14px;
+  border: 1px solid rgba(150, 160, 200, 0.12);
+  background: rgba(10, 10, 22, 0.6);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.4s ease, background 0.4s ease, box-shadow 0.4s ease;
+}
+.po-chime:hover {
+  border-color: color-mix(in srgb, var(--mood-tint) 40%, transparent);
+}
+.po-chime.active {
+  border-color: color-mix(in srgb, var(--mood-tint) 80%, transparent);
+  background: color-mix(in srgb, var(--mood-tint) 12%, rgba(8,8,20,0.7));
+  box-shadow:
+    0 0 22px color-mix(in srgb, var(--mood-tint) 24%, transparent),
+    inset 0 0 14px color-mix(in srgb, var(--mood-tint) 8%, transparent);
+}
+.po-chime-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(226, 231, 246, 0.92);
+  letter-spacing: 0.04em;
+}
+.po-chime.active .po-chime-name { color: #fff; }
+.po-chime-hint {
+  font-size: 10.5px;
+  font-style: italic;
+  color: rgba(190, 198, 222, 0.55);
+  line-height: 1.4;
+}
+
+/* ── Final signal card — the page you just built, as one object ──── */
+.po-signal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 16px;
+  padding: 18px 16px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--mood-tint) 35%, rgba(255,255,255,0.06));
+  background:
+    radial-gradient(120% 90% at 50% 0%,
+      color-mix(in srgb, var(--mood-tint) 12%, transparent), transparent 60%),
+    rgba(8, 7, 18, 0.6);
+  box-shadow:
+    0 0 34px color-mix(in srgb, var(--mood-tint) 14%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--mood-tint) 20%, rgba(255,255,255,0.08));
+}
+.po-card-sigil {
+  font-size: 30px;
+  font-variant-emoji: text;
+  color: color-mix(in srgb, var(--po-c2, var(--mood-tint)) 70%, #fff);
+  text-shadow: 0 0 26px color-mix(in srgb, var(--mood-tint) 70%, transparent);
+}
+.po-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  color: #fff7fb;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--mood-tint) 45%, transparent);
+}
+.po-card-meta {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--mood-tint) 65%, #9aa2bc);
+}
+.po-card-line {
+  margin-top: 6px;
+  font-size: 11.5px;
+  font-style: italic;
+  text-align: center;
+  color: rgba(214, 220, 238, 0.75);
+  max-width: 300px;
+}
+
 /* ── Footer ──────────────────────────────────────────────────────── */
 .po-foot {
   display: flex;
@@ -560,7 +762,8 @@
   .po-panel::after { animation: none; }
   .po-sigil, .po-next, .po-back, .po-palette,
   .po-style, .po-mood-opt, .po-dots i,
-  .po-oracle-btn { transition: none; }
+  .po-oracle-btn, .po-chime, .po-input, .po-static-btn { transition: none; }
+  .po-preview-name, .po-preview-line { animation: none; }
 }
 
 /* ── Mobile ──────────────────────────────────────────────────────── */
@@ -575,6 +778,9 @@
     border-radius: 14px;
   }
   .po-palettes {
+    grid-template-columns: 1fr;
+  }
+  .po-chimes {
     grid-template-columns: 1fr;
   }
   .po-next {

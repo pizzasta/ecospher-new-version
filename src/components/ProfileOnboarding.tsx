@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { AVATAR_SIGILS, saveAvatar, readAvatar, sigilGlyph } from '../lib/avatar'
 import {
@@ -8,14 +8,27 @@ import type { GradientStyle, GradientSettings } from '../lib/frequencyGradient'
 import { MOOD_FIELDS, ONBOARD_MOOD_FIELDS, readMood, saveMood, moodToVars } from '../lib/profileMood'
 import type { Mood } from '../lib/profileMood'
 import { castFrequency } from '../lib/frequencyOracle'
+import { castNightName } from '../lib/nightName'
+import { CHIME_STYLES, playSignatureChime, readChime, saveChime } from '../lib/signatureChime'
+import type { ChimeStyle } from '../lib/signatureChime'
+import {
+  HZ_DEFAULT_COLOR, HZ_NAME_MAX, getLocalHzProfile, isPresetColor, seedHzSignature, updateHzSettings, validateHzDisplayName,
+} from '../lib/hzSignature'
+import { readStatus, writeStatus } from '../lib/profileExtras'
+import { moderatePublicSignalText } from '../lib/signalModeration'
 import ProfileScene from './ProfileScene'
 import ColorWave from './ColorWave'
 import './ProfileOnboarding.css'
 
 // First-time profile setup, reframed as tuning into a hidden late-night
-// frequency rather than filling out a form. Drifting carrier names, dim pulses,
-// fog and grain underneath; a live, faded preview; softer, more human copy.
-// Saves the same gradient/avatar/mood the hub reads. Remembered on-device.
+// frequency rather than filling out a form. Think early MySpace — a page
+// that IS you — but rebuilt for this world: instead of a photo, a top-8,
+// and a profile song, you leave a mark, a name the night calls you, a
+// color, a place, a feeling, a timbre, and one line of transmission.
+// No points, no streaks, no rewards — the pull is that the page you're
+// shaping is alive in the preview the whole time, and stays open,
+// broadcasting you, after you leave. Saves the same gradient/avatar/mood/
+// chime/status the hub reads. Remembered on-device.
 
 const ONBOARD_KEY = 'ecosphere:profileOnboarded'
 
@@ -55,14 +68,37 @@ const DRIFTERS = [
   'drift channel', 'nocturne_7', 'anon 02:09', 'a quiet listener',
 ]
 
-const STEPS = 5
+// prompts for the one line you leave on the band — rotated per visit
+const LINE_PROMPTS = [
+  'what you’d say into the static at 3am',
+  'the sentence you keep replaying',
+  'something you never sent',
+  'what tonight actually feels like',
+  'a line for whoever finds this',
+]
+
+// step order: mark → name → color → place → feeling → timbre → line → open
+const SIGIL_STEP = 0
+const NAME_STEP = 1
+const PALETTE_STEP = 2
+const STYLE_STEP = 3
+const MOOD_STEP = 4
+const CHIME_STEP = 5
+const LINE_STEP = 6
+const STEPS = 8
 
 export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: { onDone: () => void; accentColor?: string }) {
   const [step, setStep] = useState(0)
   const [sigil, setSigil] = useState(() => readAvatar())
+  const [name, setName] = useState(() => getLocalHzProfile('someone awake').displayName ?? '')
+  const [nameError, setNameError] = useState<string | null>(null)
   const [paletteId, setPaletteId] = useState(PROFILE_PALETTES[0].id)
   const [style, setStyle] = useState<GradientStyle>('aurora')
   const [mood, setMood] = useState<Mood>(() => readMood())
+  const [chime, setChime] = useState<ChimeStyle>(() => readChime())
+  const [chimeHeard, setChimeHeard] = useState(false)
+  const [line, setLine] = useState(() => readStatus())
+  const [lineError, setLineError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -71,6 +107,11 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
   const moodVars = moodToVars(mood)
   const [oracle, setOracle] = useState<string | null>(null)
 
+  // the name you type shapes the frequency you preview: until real activity
+  // sets a signature, your handle seeds where on the band you sit tonight
+  const previewHz = useMemo(() => getLocalHzProfile(name.trim() || 'someone awake').hz, [name])
+  const [linePrompt] = useState(() => LINE_PROMPTS[Math.floor(Date.now() / 60000) % LINE_PROMPTS.length])
+
   // let the band tune you — one tap casts sigil, colors, space, and mood
   const letFrequencyChoose = () => {
     const cast = castFrequency(Date.now())
@@ -78,11 +119,41 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
     setOracle(`tuned to ${cast.hz} Hz · ${cast.flavor}`)
   }
 
+  // the name is yours alone — the oracle never sets it, but the static can offer one
+  const letStaticName = () => {
+    setName(castNightName(Date.now()))
+    setNameError(null)
+  }
+
+  const auditionChime = (value: ChimeStyle) => {
+    setChime(value)
+    if (playSignatureChime(previewHz, value, 0, 1.3)) setChimeHeard(true)
+  }
+
+  const cleanName = name.trim().replace(/\s+/g, ' ')
+  const cleanLine = line.trim().replace(/\s+/g, ' ').slice(0, 80)
+
+  // both text steps are optional, but what you do leave must be able to broadcast
+  const validateStep = (at: number): boolean => {
+    if (at === NAME_STEP && cleanName) {
+      const err = validateHzDisplayName(cleanName)
+      if (err) { setNameError(err); return false }
+      if (moderatePublicSignalText(cleanName).status === 'flagged') { setNameError('that name can’t go on the band'); return false }
+    }
+    if (at === LINE_STEP && cleanLine && moderatePublicSignalText(cleanLine).status === 'flagged') {
+      setLineError('that one can’t broadcast'); return false
+    }
+    return true
+  }
+
   const finish = async () => {
     if (saving) return // never let a slow save be double-submitted
+    if (!validateStep(NAME_STEP) || !validateStep(LINE_STEP)) return
     setSaving(true)
     saveAvatar(sigil)
     saveMood(mood)
+    saveChime(chime)
+    writeStatus(cleanLine)
     const settings: GradientSettings = {
       ...DEFAULT_GRADIENT, locked: true, colorStart: palette.start, colorEnd: palette.end, style, speed: 60,
     }
@@ -92,13 +163,25 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
       const err = await saveGradientSettings(settings)
       if (err) await saveGradientSettings({ ...DEFAULT_GRADIENT, locked: true, style })
     } catch { /* local save already applied — never trap the user in the modal */ }
+    if (cleanName) {
+      try {
+        // keep the Hz you previewed: without a seeded signature, saving the
+        // name would drop a brand-new user to the 20.0 Hz floor
+        seedHzSignature(previewHz)
+        const current = getLocalHzProfile(cleanName)
+        await updateHzSettings(cleanName, isPresetColor(current.color) ? current.color : HZ_DEFAULT_COLOR)
+      } catch { /* name stays local-only tonight */ }
+    }
     markProfileOnboarded()
     onDone()
   }
 
   const skip = () => { markProfileOnboarded(); onDone() }
 
-  const goNext = () => { if (step < STEPS - 1) setStep(s => s + 1); else void finish() }
+  const goNext = () => {
+    if (!validateStep(step)) return
+    if (step < STEPS - 1) setStep(s => s + 1); else void finish()
+  }
   const goBack = () => setStep(s => Math.max(0, s - 1))
 
   // keyboard: Escape skips, and each step moves focus inside the panel so
@@ -111,14 +194,17 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
   }, [])
 
   useEffect(() => {
-    // land focus on the chosen option (or the primary button on the last step)
+    // land focus on the text field, the chosen option, or the primary button
     const panel = panelRef.current
     if (!panel) return
-    const target = panel.querySelector<HTMLElement>('.po-body [aria-checked="true"]')
+    const target = panel.querySelector<HTMLElement>('.po-body .po-input')
+      ?? panel.querySelector<HTMLElement>('.po-body [aria-checked="true"]')
       ?? panel.querySelector<HTMLElement>('.po-finish')
       ?? panel.querySelector<HTMLElement>('.po-next')
     target?.focus({ preventScroll: true })
   }, [step])
+
+  const chimeLabel = CHIME_STYLES.find(c => c.value === chime)?.label ?? 'pure'
 
   const preview = (
     <div className="po-preview atmo-grain" style={{ '--po-c1': palette.start, '--po-c2': palette.end } as CSSProperties}>
@@ -138,6 +224,11 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
         ))}
       </div>
       <span className="po-preview-sigil atmo-breathe" style={{ color: palette.end }}>{sigilGlyph(sigil) || 'hz'}</span>
+      {/* the page assembling itself under your hands: name and line appear as you give them */}
+      <div className="po-preview-id" aria-hidden="true">
+        {cleanName && <span className="po-preview-name">{cleanName} · {previewHz.toFixed(1)} Hz</span>}
+        {cleanLine && <span className="po-preview-line">“{cleanLine}”</span>}
+      </div>
     </div>
   )
 
@@ -156,6 +247,10 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
             {name}
           </em>
         ))}
+        {/* the moment you take a name, it joins the band — drifting with everyone else */}
+        {cleanName && (
+          <em className="po-drift-you" style={{ top: '48%', animationDuration: '30s' }}>{cleanName} · you</em>
+        )}
       </div>
 
       <div className="po-panel atmo-soft-panel atmo-grain" ref={panelRef}>
@@ -176,7 +271,7 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
         </div>
 
         <div className="po-body">
-          {step === 0 && (
+          {step === SIGIL_STEP && (
             <>
               <h2>the mark people will know you by</h2>
               <p>no photos, ever. just a shape that feels like you.</p>
@@ -198,7 +293,29 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
             </>
           )}
 
-          {step === 1 && (
+          {step === NAME_STEP && (
+            <>
+              <h2>what the night calls you</h2>
+              <p>not your name — the one the band knows. leave it blank and stay a number.</p>
+              <input
+                type="text"
+                className="po-input"
+                value={name}
+                maxLength={HZ_NAME_MAX}
+                placeholder="e.g. quiet nocturne"
+                aria-label="Night name"
+                onChange={e => { setName(e.target.value); setNameError(null) }}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); goNext() } }}
+              />
+              {nameError && <p className="po-field-error" role="alert">{nameError}</p>}
+              <button type="button" className="po-static-btn" onClick={letStaticName}>⌁ let the static name you</button>
+              {cleanName && (
+                <p className="po-field-note">your name seeds your frequency — “{cleanName}” hums near {previewHz.toFixed(1)} Hz</p>
+              )}
+            </>
+          )}
+
+          {step === PALETTE_STEP && (
             <>
               <h2>the color you give off</h2>
               <p>the mood your whole page gives off. change it any night.</p>
@@ -220,7 +337,7 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
             </>
           )}
 
-          {step === 2 && (
+          {step === STYLE_STEP && (
             <>
               <h2>where you drift</h2>
               <p>the world behind you when someone tunes in.</p>
@@ -241,7 +358,7 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
             </>
           )}
 
-          {step === 3 && (
+          {step === MOOD_STEP && (
             <>
               <h2>how your signal feels</h2>
               <p>the feeling you leave on, even when you're quiet.</p>
@@ -269,10 +386,63 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
             </>
           )}
 
-          {step === 4 && (
+          {step === CHIME_STEP && (
+            <>
+              <h2>how you sound when you answer</h2>
+              <p>
+                every signature has a voice. yours sits near {previewHz.toFixed(1)} Hz tonight —
+                tap one to hear it, if your sound is on.
+              </p>
+              <div className="po-chimes" role="radiogroup" aria-label="Signature chime">
+                {CHIME_STYLES.map(c => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={chime === c.value}
+                    className={`po-chime${chime === c.value ? ' active' : ''}`}
+                    onClick={() => auditionChime(c.value)}
+                  >
+                    <span className="po-chime-name">{c.label}</span>
+                    <span className="po-chime-hint">{c.hint}</span>
+                  </button>
+                ))}
+              </div>
+              {chimeHeard && <p className="po-field-note">that’s what the band hears when your signature travels.</p>}
+            </>
+          )}
+
+          {step === LINE_STEP && (
+            <>
+              <h2>leave one line on the band</h2>
+              <p>{linePrompt}. it broadcasts from your page until you change it. or leave the air open.</p>
+              <input
+                type="text"
+                className="po-input"
+                value={line}
+                maxLength={80}
+                placeholder="…"
+                aria-label="Your first transmission"
+                onChange={e => { setLine(e.target.value); setLineError(null) }}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); goNext() } }}
+              />
+              {lineError && <p className="po-field-error" role="alert">{lineError}</p>}
+            </>
+          )}
+
+          {step === STEPS - 1 && (
             <>
               <h2>you're on the band now</h2>
-              <p>your frequency's open now. someone drifting through tonight will feel it.</p>
+              <div className="po-signal-card" style={{ '--po-c2': palette.end } as CSSProperties}>
+                <span className="po-card-sigil">{sigilGlyph(sigil) || 'hz'}</span>
+                <span className="po-card-name">{cleanName || 'unclaimed frequency'}</span>
+                <span className="po-card-meta">{previewHz.toFixed(1)} Hz · {chimeLabel} chime · {mood.mood ?? 'tender'}</span>
+                {cleanLine && <span className="po-card-line">“{cleanLine}”</span>}
+              </div>
+              <p>
+                your frequency stays open while you're gone. someone drifting through
+                tonight will feel it — and the band sounds different after midnight.
+              </p>
             </>
           )}
 
