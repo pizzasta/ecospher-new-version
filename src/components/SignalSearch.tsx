@@ -15,8 +15,8 @@ import './SignalSearch.css'
 const FEELING_CHIPS = ['quiet', 'heavy', 'comforting', 'chaotic', 'unresolved', 'insomnia', 'abandoned', 'replayed heavily']
 
 const PAGE_LABEL: Record<string, string> = {
-  relics: 'relics', rooms: 'rooms', capsules: 'capsules', chains: 'chains',
-  frequencies: 'the sea', drift: 'radar', zones: 'dead zones', unsent: 'unsent', pod: 'your hub',
+  relics: 'artifacts', rooms: 'channels', capsules: 'time locks', chains: 'relays',
+  frequencies: 'the stream', drift: 'radar', zones: 'dark zones', unsent: 'dead drop', pod: 'my node',
 }
 
 const KIND_GLYPH: Record<string, string> = {

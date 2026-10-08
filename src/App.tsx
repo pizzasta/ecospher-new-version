@@ -121,21 +121,21 @@ function ScreenLoading() {
 }
 
 const SCREEN_TITLES: Record<Screen, string> = {
-  home: 'Signal Observatory',
-  signals: 'Signal Feed',
-  drift: 'Drift Field',
-  rooms: 'Rooms',
-  unsent: 'Unsent Room',
-  capsules: 'Capsules',
-  relics: 'Relics',
-  pod: 'Profile',
-  dashboard: 'Dashboard',
+  home: 'Signal Command',
+  signals: 'Live Feed',
+  drift: 'Signal Radar',
+  rooms: 'Voice Channels',
+  unsent: 'Dead Drop',
+  capsules: 'Time Locks',
+  relics: 'Artifacts',
+  pod: 'My Node',
+  dashboard: 'Control Deck',
   transmit: 'Transmissions',
-  zones: 'Dead Zones',
-  frequencies: 'Frequency Sea',
-  anomalies: 'Anomalies',
-  settings: 'Settings',
-  chains: 'Signal Chains',
+  zones: 'Dark Zones',
+  frequencies: 'The Stream',
+  anomalies: 'Glitches',
+  settings: 'System',
+  chains: 'Relay Chains',
 }
 import './unsent-room.css'
 import './rooms.css'
@@ -592,21 +592,21 @@ const relics: Relic[] = [
 ]
 
 const navItems: { id: Screen; label: string; glyph: string }[] = [
-  { id: 'home', label: 'Observatory', glyph: '◉' },
-  { id: 'signals', label: 'Signals', glyph: '∿' },
-  { id: 'drift', label: 'Drift', glyph: '◌' },
-  { id: 'rooms', label: 'Rooms', glyph: '▣' },
-  { id: 'unsent', label: 'Unsent', glyph: '◎' },
-  { id: 'chains', label: 'Chains', glyph: '∞' },
-  { id: 'frequencies', label: 'Frequencies', glyph: '≋' },
-  { id: 'capsules', label: 'Capsules', glyph: '⬡' },
-  { id: 'relics', label: 'Relics', glyph: '◈' },
-  { id: 'zones', label: 'Dead Zones', glyph: '✕' },
-  { id: 'anomalies', label: 'Anomalies', glyph: '◬' },
-  { id: 'pod', label: 'Profile', glyph: '◈' },
-  { id: 'dashboard', label: 'Dashboard', glyph: '▦' },
+  { id: 'home', label: 'Command', glyph: '◉' },
+  { id: 'signals', label: 'Feed', glyph: '∿' },
+  { id: 'drift', label: 'Radar', glyph: '◌' },
+  { id: 'rooms', label: 'Channels', glyph: '▣' },
+  { id: 'unsent', label: 'Dead Drop', glyph: '◎' },
+  { id: 'chains', label: 'Relays', glyph: '∞' },
+  { id: 'frequencies', label: 'The Stream', glyph: '≋' },
+  { id: 'capsules', label: 'Time Locks', glyph: '⬡' },
+  { id: 'relics', label: 'Artifacts', glyph: '◈' },
+  { id: 'zones', label: 'Dark Zones', glyph: '✕' },
+  { id: 'anomalies', label: 'Glitches', glyph: '◬' },
+  { id: 'pod', label: 'My Node', glyph: '◈' },
+  { id: 'dashboard', label: 'Control Deck', glyph: '▦' },
   { id: 'transmit', label: 'Transmit', glyph: '⌁' },
-  { id: 'settings', label: 'Settings', glyph: '⊙' },
+  { id: 'settings', label: 'System', glyph: '⊙' },
 ]
 
 // ─── Particle ─────────────────────────────────────────────────────────────────
@@ -1136,18 +1136,18 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
     <div className="screen home-screen" style={{ '--eco-glow': (ecosystemState.resonanceLevel / 100).toFixed(3) } as CSSProperties}>
       <div className="obs-grid" aria-hidden="true" />
       <div className="obs-sweep" aria-hidden="true" />
-      <div className="home-kicker">ECOSPHERE · LIVE</div>
+      <div className="home-kicker">ECOSPHERE // NIGHT NETWORK</div>
       <h1 className="home-title">
         <span className="title-glow-pink">Signal</span>{' '}
-        <span className="title-glow-cyan">Observatory</span>
+        <span className="title-glow-cyan">Command</span>
       </h1>
-      <p className="home-sub">anonymous voices · live replays · the late-night network</p>
+      <p className="home-sub">anonymous voices · live after dark · zero faces</p>
       <AmbientLine lines={activityLines} interval={7000} />
 
       <div className="stat-row">
         <div className="stat-card glass">
           <div className="stat-value cyan">{useCountUp(liveThreads).toLocaleString()}</div>
-          <div className="stat-label">drifting now</div>
+          <div className="stat-label">transmitting now</div>
         </div>
         <div className="stat-card glass">
           <div className="stat-value pink">{useCountUp(streak)}</div>
@@ -1155,7 +1155,7 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
         </div>
         <div className="stat-card glass">
           <div className="stat-value violet">{useCountUp(ecosystemState.savedSignals.length)}</div>
-          <div className="stat-label">echoes kept</div>
+          <div className="stat-label">intercepts saved</div>
         </div>
       </div>
 
@@ -1183,7 +1183,7 @@ function HomeScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
           </button>
         </div>
         {streak >= 2 && !tunedToday && (
-          <div className="obs-daily-warning">tune in today to keep your {streak}-night streak alive</div>
+          <div className="obs-daily-warning">transmit today or your {streak}-night streak goes dark</div>
         )}
       </div>
 
@@ -1591,9 +1591,9 @@ function DriftScreen() {
   return (
     <div className="screen drift-radar-screen">
       <div className="screen-header drift-radar-header">
-        <div className="screen-kicker">DRIFT RADAR</div>
-        <h2 className="screen-title">Frequency Finder</h2>
-        <p className="screen-sub">hold the water and move. you're scanning live human moments from far away — you can overhear anything, and enter nothing.</p>
+        <div className="screen-kicker">SIGNAL RADAR</div>
+        <h2 className="screen-title">Frequency Scanner</h2>
+        <p className="screen-sub">hold and drag to sweep. you're scanning live voices from across the grid — intercept anything, enter nothing.</p>
       </div>
 
       <div
@@ -1890,9 +1890,9 @@ function CapsulesScreen() {
         ))}
       </div>
       <div className="screen-header">
-        <div className="screen-kicker">VOICE CAPSULES</div>
-        <h2 className="screen-title">Capsules</h2>
-        <p className="screen-sub">nothing here opens on demand. capsules run on their own clocks — come back when one is ready.</p>
+        <div className="screen-kicker">TIME LOCKS</div>
+        <h2 className="screen-title">Time Locks</h2>
+        <p className="screen-sub">nothing opens on command. every lock runs its own countdown — come back when it cracks.</p>
       </div>
       <AmbientLine lines={useMemo(() => [...CAPSULE_EVENTS, ...livedInLines('capsules', 2)], [])} />
 
@@ -2456,9 +2456,9 @@ function RelicsScreen() {
         ))}
       </div>
       <div className="screen-header">
-        <div className="screen-kicker">SIGNAL RELICS</div>
-        <h2 className="screen-title">Relics</h2>
-        <p className="screen-sub">relics are voice moments the network refused to forget.</p>
+        <div className="screen-kicker">RECOVERED ARTIFACTS</div>
+        <h2 className="screen-title">Artifacts</h2>
+        <p className="screen-sub">voice moments the network refused to delete.</p>
       </div>
       <DeepArchive />
       <DriftedTextRelics />
@@ -3130,9 +3130,9 @@ function DeadZonesScreen() {
   return (
     <div className="screen">
       <div className="screen-header">
-        <div className="screen-kicker">DEAD ZONES</div>
-        <h2 className="screen-title">Abandoned Rooms</h2>
-        <p className="screen-sub">rooms that went quiet. listen in, recover what's left, bring them back.</p>
+        <div className="screen-kicker">DARK ZONES</div>
+        <h2 className="screen-title">Offline Channels</h2>
+        <p className="screen-sub">channels that went dark. tap in, recover what's left, bring them back online.</p>
       </div>
 
       <DormantFrequencies onReopen={setReopened} />
@@ -3843,9 +3843,9 @@ function FrequenciesScreen() {
       </div>
 
       <header className="sea-header">
-        <span className="sea-kicker">FREQUENCY SEA</span>
-        <h1 className="sea-zone">live emotional audio drifting nearby</h1>
-        <p className="sea-purpose">move through distant voices without entering them. you don't join anything out here — you overhear it, pass through it, let it go.</p>
+        <span className="sea-kicker">THE STREAM</span>
+        <h1 className="sea-zone">live voices streaming past</h1>
+        <p className="sea-purpose">move through voices without joining them. nothing to enter out here — intercept it, pass through it, let it go.</p>
         <p className="sea-status" key={tideIdx} role="status">
           <i aria-hidden="true" />
           {seaCarriers > 1 && tideIdx % 2 === 1
@@ -4203,9 +4203,9 @@ function SoulPodScreen({ user, onSignOut, onNavigate, mode = 'profile' }: { user
     return (
       <div className="screen">
         <div className="screen-header">
-          <div className="screen-kicker">SOUL POD</div>
-          <h2 className="screen-title">Enter Your Pod</h2>
-          <p className="screen-sub">sign in to sync across devices — or drift in and tend it right here</p>
+          <div className="screen-kicker">MY NODE</div>
+          <h2 className="screen-title">Activate Your Node</h2>
+          <p className="screen-sub">sign in to sync across devices — or run it locally on this one</p>
         </div>
         <button type="button" className="pod-skip-auth" onClick={() => setPodLocalMode(true)}>
           ◌ drift in without an account
@@ -4295,9 +4295,9 @@ function SoulPodScreen({ user, onSignOut, onNavigate, mode = 'profile' }: { user
     <div className="screen">
       {mode === 'dashboard' && (
         <div className="screen-header">
-          <div className="screen-kicker">YOUR PRIVATE BAND</div>
-          <h2 className="screen-title">Dashboard</h2>
-          <p className="screen-sub">your saved voices, recaps, and the signals only you hear</p>
+          <div className="screen-kicker">PRIVATE CHANNEL</div>
+          <h2 className="screen-title">Control Deck</h2>
+          <p className="screen-sub">your saved voices, recaps and the signals only you receive</p>
         </div>
       )}
       {mode === 'profile' && (
@@ -4523,9 +4523,9 @@ function AnomaliesScreen() {
   return (
     <div className="screen">
       <div className="screen-header">
-        <div className="screen-kicker">SIGNAL ANOMALIES</div>
-        <h2 className="screen-title">Anomalies</h2>
-        <p className="screen-sub">irregularities in the emotional spectrum</p>
+        <div className="screen-kicker">GLITCH SCANNER</div>
+        <h2 className="screen-title">Glitches</h2>
+        <p className="screen-sub">irregular activity detected on the grid</p>
       </div>
       <AmbientLine lines={useMemo(() => [...ANOMALY_EVENTS, ...livedInLines('anomalies', 2)], [])} />
       <div className="anomaly-list">
@@ -4760,7 +4760,7 @@ export function SettingsScreen() {
   return (
     <div className="screen settings-screen">
       <div className="screen-header">
-        <div className="screen-kicker">ECOSPHERE</div>
+        <div className="screen-kicker">ECOSPHERE // SYSTEM</div>
         <h2 className="screen-title">{tr('settings.title')}</h2>
         <p className="screen-sub">{tr('settings.subtitle')}</p>
       </div>

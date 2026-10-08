@@ -35,18 +35,18 @@ beforeAll(() => {
 
 // [route, text that only that screen renders]
 const ROUTES: Array<[string, RegExp]> = [
-  ['/', /tune into tonight|observatory|daily signal/i],
-  ['/drift', /hold the water and move/i],
+  ['/', /tune into tonight|signal command|daily signal/i],
+  ['/drift', /frequency scanner|hold and drag to sweep/i],
   ['/relics', /LIVE ECHOES/i],
-  ['/chains', /strangers building one sound|the mess is the point/i],
+  ['/chains', /strangers building one sound|the noise is the point/i],
   ['/capsules', /rare frequency|unmarked capsule/i],
-  ['/frequencies', /drifting nearby|frequency finder/i],
+  ['/frequencies', /live voices streaming past|drifting nearby/i],
   ['/pod', /your signal identity|signal ·/i],
-  ['/zones', /dead zones/i],
-  ['/settings', /tune your presence/i],
+  ['/zones', /dark zones|offline channels/i],
+  ['/settings', /configure your presence/i],
   ['/signals', /live emotional radio|resonating|signal feed/i],
-  ['/rooms', /anonymous group calls|live voice rooms/i],
-  ['/unsent', /unsent/i],
+  ['/rooms', /anonymous group calls|live voice channels/i],
+  ['/unsent', /dead drop/i],
 ]
 
 describe('screen smoke: every route mounts without throwing', () => {
@@ -92,6 +92,6 @@ describe('screen smoke: every route mounts without throwing', () => {
       expect(container.textContent ?? '').toMatch(/18 or older/i)
     }, { timeout: 4000 })
     // the gated screen content must not be present yet
-    expect(container.textContent ?? '').not.toMatch(/daily signal|observatory/i)
+    expect(container.textContent ?? '').not.toMatch(/daily signal|signal command/i)
   })
 })

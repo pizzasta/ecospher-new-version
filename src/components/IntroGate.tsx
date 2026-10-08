@@ -647,6 +647,18 @@ const navLabelToPage: Record<string, EcosystemPage> = {
   signals: 'signals',
   'soul pod': 'pod',
   unsent: 'unsent',
+  command: 'home',
+  feed: 'signals',
+  radar: 'drift',
+  channels: 'rooms',
+  'dead drop': 'unsent',
+  'time locks': 'capsules',
+  artifacts: 'relics',
+  'dark zones': 'zones',
+  'the stream': 'frequencies',
+  glitches: 'anomalies',
+  'my node': 'pod',
+  system: 'settings',
 }
 
 function readElementText(element: Element | null) {

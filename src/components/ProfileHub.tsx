@@ -472,7 +472,7 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
             )}
             {tonightAction === 'silence' && (
               <button type="button" className="ph-tonight-btn" onClick={() => { markTonightDone(); onNavigate?.('unsent') }}>
-                ● break the silence — leave ten seconds in the unsent room
+                ● go live — drop ten seconds in the dead drop
               </button>
             )}
             {tonightAction === 'return' && (
@@ -631,7 +631,7 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
             </div>
             {recoveredFragments > 0 && (
               <p className="ph-shelf-line">
-                {recoveredFragments} fragment{recoveredFragments === 1 ? '' : 's'} recovered from dead zones
+                {recoveredFragments} fragment{recoveredFragments === 1 ? '' : 's'} recovered from dark zones
               </p>
             )}
             {ecosystemState.savedSignals.length > 0 && (
@@ -673,7 +673,7 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
               <span>tuned to</span>
             </div>
           </div>
-          <p className="ph-hint">tune to carriers from the observatory's active carriers panel.</p>
+          <p className="ph-hint">lock onto carriers from the active carriers panel in signal command.</p>
         </div>
     ),
     prompts: (

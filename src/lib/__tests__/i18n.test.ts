@@ -23,7 +23,7 @@ describe('i18n dictionaries', () => {
   })
 
   it('falls back to english for unknown keys instead of crashing', () => {
-    expect(t('nav.rooms', 'de')).toBe('räume')
+    expect(t('nav.rooms', 'de')).toBe('kanäle')
     expect(t('nonexistent.key', 'fr')).toBe('nonexistent.key')
   })
 })

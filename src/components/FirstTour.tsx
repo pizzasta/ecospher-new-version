@@ -8,33 +8,33 @@ import './FirstTour.css'
 const TOUR_CARDS = [
   {
     glyph: '◉',
-    title: 'the observatory',
-    text: 'the band lives here. a daily signal to tune into, live windows into what others are replaying, carriers drifting in and out. come back nightly — the streak notices.',
+    title: "you're on the grid",
+    text: 'signal command is your base. anonymous voices, live after dark. one daily drop to intercept, carriers coming online and going dark. one transmission a night keeps your streak alive.',
   },
   {
     glyph: '∿',
-    title: 'the unsent room',
-    text: "say the thing you never sent. record it, release it, let strangers leave reactions. there's a new prompt every week that can only be answered here.",
+    title: 'the dead drop',
+    text: 'say what you never sent. record it, release it, let strangers react. a new prompt drops every week — and it can only be answered here.',
   },
   {
     glyph: '◌',
-    title: 'the frequency sea',
-    text: 'nothing to do here — float. things drift past; catch one before it leaves the screen. the sea is busier after midnight.',
+    title: 'the stream',
+    text: 'no mission here. voices stream past — intercept one before it leaves the screen. traffic spikes after midnight.',
   },
   {
     glyph: '◬',
-    title: 'things on clocks',
-    text: 'capsules form and open on their own schedules. rare frequencies appear for 24 hours and never again. relics wear down the more they get handled.',
+    title: 'everything runs on a timer',
+    text: "time locks open on their own countdown. rare frequencies go live for 24 hours, then they're gone for good. artifacts degrade the more they get played.",
   },
   {
     glyph: '◈',
-    title: 'your hub',
-    text: "your page doesn't show who you say you are — it shows how you listen. record a ten-second intro tape, pick your colors, and let the rest build itself from your behavior.",
+    title: 'your node',
+    text: 'no selfies, no bio. your node shows how you listen, not who you claim to be. record a ten-second intro tape, set your colors, and the rest builds itself from your activity.',
   },
   {
     glyph: '⚑',
-    title: 'one more thing',
-    text: 'everything public is screened automatically — harassment, sexual content, and anything involving minors never reaches the band. report anything with one tap. and everything you make can be erased in settings, completely, any time.',
+    title: 'security protocol',
+    text: 'everything public is screened automatically — harassment, sexual content and anything involving minors never hits the grid. report or block anyone in one tap. and everything you make can be wiped from system settings, completely, any time.',
   },
 ] as const
 

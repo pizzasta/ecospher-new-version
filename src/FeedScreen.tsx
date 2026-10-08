@@ -871,10 +871,10 @@ function FeedHeader() {
     <div className="feed-header">
       <div className="feed-header-left">
         <div className={`feed-live-dot ${pulse ? 'feed-live-dot--pulse' : ''}`} />
-        <span className="feed-header-title">signal feed</span>
+        <span className="feed-header-title">live feed</span>
       </div>
       <div className="feed-header-right">
-        <span className="feed-header-sub">emotional ecosystem · live</span>
+        <span className="feed-header-sub">night network · live</span>
       </div>
     </div>
   )
@@ -987,7 +987,7 @@ function FeedComposer({ onPost }: { onPost: (s: FeedSignal) => void }) {
   if (!open) {
     return (
       <button type="button" className="feed-compose-open" onClick={() => setOpen(true)}>
-        ✎ release a signal into the feed
+        ● transmit to the feed
       </button>
     )
   }
