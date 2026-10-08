@@ -551,3 +551,10 @@
   font-size: 18px;
   line-height: 1.1;
 }
+
+.public-release-basics p a {
+  color: #67e8f9;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}

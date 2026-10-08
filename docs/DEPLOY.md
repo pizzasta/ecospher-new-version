@@ -14,6 +14,9 @@ includes every migration through:
 - `enforce_audio_monthly_quota` — 60 MB/user/month server cap on `audio_files`.
 - `enforce_public_text_rate_limit` — 15 posts/hour/author on the anon text tables
   (uses a private `author` column; its SELECT is revoked so anonymity holds).
+- `reports_and_blocks` — `content_reports` (users file reports; only the
+  dashboard/service role can read them) and `user_blocks` (block a signal's
+  author without revealing who they are; blocked authors' signals are hidden by RLS).
 
 Equivalent via CLI: `supabase link --project-ref <ref>` then `supabase db push`.
 
@@ -60,6 +63,11 @@ also accepted automatically — if you use it, no manual vars are needed.
   to others; reacting to someone's post creates a `new_reaction` notification.
 - Try posting flagged text → it should be rejected (server guardian), confirming
   step 1 applied.
+- Report a signal from a second account → a row appears in **Table Editor →
+  `content_reports`**. Check that table regularly and set `status` to
+  `actioned` / `dismissed`; delete the signal (or the account) for real abuse.
+- Block a signal's author → that author's public signals disappear from the
+  blocker's feed; Settings → Blocked voices → unblock all restores them.
 - Recordings upload to Storage; `activity_events` rows appear.
 - If `VITE_ERROR_REPORT_ENDPOINT` is configured, trigger a disposable test error and confirm a report arrives with only source/name/fingerprint/build/online/timestamp.
 - On a disposable test account, Erase Cloud Data removes owned rows/storage and the matching `auth.users` row.

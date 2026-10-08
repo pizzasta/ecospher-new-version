@@ -18,7 +18,7 @@ import { castToSea, fetchSeaLines, subscribeSeaLines, seaSyncEnabled } from './l
 import { frequencySeaEngine } from './lib/frequencySeaEngine'
 import type { SeaLineRow } from './lib/seaSync'
 import { lastExaminedBy, listenerCount, livedInLines } from './lib/livedIn'
-import { subscribeToEcosphereActivity } from './lib/backendBridge'
+import { subscribeToEcosphereActivity, unblockAllAuthors } from './lib/backendBridge'
 import type { StoredReaction } from './lib/localAudioStore'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
 import EcosphereAmbience from './components/EcosphereAmbience'
@@ -4960,6 +4960,24 @@ export function SettingsScreen() {
           </button>
         </div>
 
+        {isSupabaseConfigured && (
+          <div className="setting-row glass">
+            <div className="setting-info">
+              <div className="setting-label">{tr('settings.unblock')}</div>
+              <div className="setting-detail">{tr('settings.unblock.detail')}</div>
+            </div>
+            <button
+              type="button"
+              className="setting-action"
+              onClick={() => {
+                void unblockAllAuthors().then(ok => showNote(tr(ok ? 'settings.unblock.done' : 'settings.unblock.failed')))
+              }}
+            >
+              {tr('settings.unblock.action')}
+            </button>
+          </div>
+        )}
+
         <div className="setting-row glass setting-row--danger">
           <div className="setting-info">
             <div className="setting-label">{tr('settings.replayOnboarding')}</div>
@@ -5016,9 +5034,9 @@ export function SettingsScreen() {
 
 function PublicReleaseBasics() {
   return (
-    <section className="public-release-basics" aria-label="Public release basics">
+    <section className="public-release-basics" aria-label="Safety and support">
       <header>
-        <span>public launch basics</span>
+        <span>safety &amp; support</span>
         <h3>Safety before scale.</h3>
         <p>Quiet spaces still need clear boundaries, private defaults, and a way to reach a human.</p>
       </header>
@@ -5026,22 +5044,22 @@ function PublicReleaseBasics() {
         <article>
           <span>privacy</span>
           <strong>anonymous first</strong>
-          <p>Signals can drift without names. Private archives, local rituals, and saved memories stay personal unless someone deliberately lets them surface.</p>
+          <p>Signals can drift without names. Private archives, local rituals, and saved memories stay personal unless you deliberately let them surface. <a href="/privacy.html">privacy policy</a></p>
         </article>
         <article>
           <span>community safety</span>
-          <strong>no performance layer</strong>
-          <p>No follower counts, leaderboards, or public popularity loops. Reported signals are hidden for review without making the person more visible.</p>
+          <strong>report &amp; block</strong>
+          <p>Use ⚑ report on any signal to hide it and send it for review, or block the voice so you never see their signals again. Reports never reveal who sent them.</p>
         </article>
         <article>
           <span>support</span>
-          <strong>contact before launch</strong>
-          <p>Add the launch support email here before production. Until then, keep the app in release-candidate review.</p>
+          <strong>reach a human</strong>
+          <p>Questions: <a href="mailto:hello@ecosphere.app">hello@ecosphere.app</a> · safety concerns: <a href="mailto:safety@ecosphere.app">safety@ecosphere.app</a> · privacy requests: <a href="mailto:privacy@ecosphere.app">privacy@ecosphere.app</a></p>
         </article>
         <article>
-          <span>reporting</span>
-          <strong>review quietly</strong>
-          <p>Reports should be tested end to end with Supabase enabled before public traffic is invited.</p>
+          <span>in crisis?</span>
+          <strong>not a crisis service</strong>
+          <p>If you or someone else may be in danger, call your local emergency number. In the U.S., call or text 988. Elsewhere: <a href="https://findahelpline.com" target="_blank" rel="noopener noreferrer">findahelpline.com</a>. <a href="/terms.html">terms</a></p>
         </article>
       </div>
     </section>

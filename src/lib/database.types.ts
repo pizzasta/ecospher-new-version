@@ -661,7 +661,35 @@ type PublicTables = {
           updated_at?: string
         }
       }
+      content_reports: {
+        Row: {
+          id: string
+          reporter_id: string | null
+          signal_id: string | null
+          reported_signal_id: string
+          author_id: string | null
+          signal_title: string | null
+          signal_caption: string | null
+          reason: ContentReportReason
+          auto_flags: string[]
+          status: 'open' | 'actioned' | 'dismissed'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          reporter_id?: string
+          signal_id: string
+          reason: ContentReportReason
+          auto_flags?: string[]
+          status?: 'open'
+          created_at?: string
+        }
+        Update: Record<string, never>
+      }
 }
+
+export const CONTENT_REPORT_REASONS = ['harassment', 'spam', 'unsafe content', 'sexual content', 'child safety', 'other'] as const
+export type ContentReportReason = typeof CONTENT_REPORT_REASONS[number]
 
 export type Database = {
   public: {
@@ -670,13 +698,13 @@ export type Database = {
     }
     Views: Record<string, never>
     Functions: {
-      report_signal: {
-        Args: {
-          p_signal_id: string
-          p_reason?: 'harassment' | 'self_harm' | 'sexual_content' | 'violence' | 'spam' | 'privacy' | 'other'
-          p_details?: string | null
-        }
-        Returns: Json
+      block_signal_author: {
+        Args: { p_signal_id: string }
+        Returns: undefined
+      }
+      unblock_all: {
+        Args: Record<string, never>
+        Returns: undefined
       }
     }
     Enums: Record<string, never>

@@ -7,7 +7,9 @@ import type { ExportScene } from './lib/storyExport'
 import { playSample } from './lib/sampleAudio'
 import { speakSignal, speechSupported, estimateSpeechMs } from './lib/speech'
 import { listenerCount, livedInLines } from './lib/livedIn'
-import { fetchPublicSignals, mirrorActivity, mirrorSignalFade, publishSignalToFeed, publishVoiceSignalToFeed, mirrorReaction } from './lib/backendBridge'
+import { AUTHOR_BLOCKED_EVENT, blockSignalAuthor, fetchPublicSignals, fileContentReport, filterVisibleSignalIds, loadBlockHidden, mirrorActivity, storeBlockHidden, mirrorSignalFade, publishSignalToFeed, publishVoiceSignalToFeed, mirrorReaction } from './lib/backendBridge'
+import { CONTENT_REPORT_REASONS } from './lib/database.types'
+import type { ContentReportReason } from './lib/database.types'
 import { moderatePublicSignalText } from './lib/signalModeration'
 import { GHOST_ARCHIVE } from './lib/ghostArchive'
 import { getLocalHzProfile, hzForHandle } from './lib/hzSignature'
@@ -425,17 +427,46 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
     if (signal.remote) mirrorReaction(signal.id, word)
   }
 
-  // fully automated report flow: instant hide + AI screening verdict, no human review
-  const submitReport = (reason: string) => {
+  // report flow: hide it for you right away, then file the report so it
+  // reaches a reviewer (content_reports). The note says only what happened.
+  const hideThisCard = (note: string, holdMs = 2600, blocked = false) => {
     setReporting(false)
     if (playing) globalAudio.stop()
+    if (blocked) storeBlockHidden([signal.id, ...loadBlockHidden().filter(id => id !== signal.id)])
+    else storeHidden([signal.id, ...loadHidden().filter(id => id !== signal.id)])
+    setReportNote(note)
+    window.setTimeout(() => { if (mountedRef.current) setReportNote('__hide__') }, holdMs)
+  }
+
+  const submitReport = (reason: ContentReportReason) => {
     const verdict = moderatePublicSignalText(signal.content)
-    storeHidden([signal.id, ...loadHidden().filter(id => id !== signal.id)])
     mirrorActivity('signal_reported', `reported: ${reason}`, { signalId: signal.id, autoFlags: verdict.flags, autoFlagged: verdict.status === 'flagged' })
-    setReportNote(verdict.status === 'flagged'
-      ? 'auto-review: content flagged · removed and logged'
-      : 'auto-review complete · hidden from your feed')
-    window.setTimeout(() => { if (mountedRef.current) setReportNote('__hide__') }, 2600)
+    if (!signal.remote) {
+      hideThisCard('report received · hidden from your feed')
+      return
+    }
+    setReporting(false)
+    setReportNote('sending report…')
+    void fileContentReport(signal.id, reason, verdict.flags).then(sent => {
+      if (!mountedRef.current) return
+      hideThisCard(sent
+        ? 'report sent for review · hidden from your feed'
+        : 'hidden from your feed · report not sent (offline) — try again later or email safety@ecosphere.app', sent ? 2600 : 5200)
+    })
+  }
+
+  // only backend signals have an account behind them to block
+  const blockVoice = () => {
+    if (!signal.remote) return
+    mirrorActivity('signal_reported', 'blocked author', { signalId: signal.id })
+    setReporting(false)
+    setReportNote('blocking…')
+    void blockSignalAuthor(signal.id).then(ok => {
+      if (ok) window.dispatchEvent(new CustomEvent(AUTHOR_BLOCKED_EVENT))
+      if (!mountedRef.current) return
+      if (ok) hideThisCard("voice blocked · you won't see their signals again", 2600, true)
+      else hideThisCard('hidden from your feed · block not saved (offline) — try again later', 5200)
+    })
   }
 
   const wasReplayed = ecosystemState.playedSignals.includes(signal.id)
@@ -730,9 +761,12 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
         )}
         {reporting && (
           <div className="card-report-row" role="group" aria-label="Report reason">
-            {['harassment', 'spam', 'unsafe content', 'sexual content', 'child safety', 'other'].map(reason => (
+            {CONTENT_REPORT_REASONS.map(reason => (
               <button key={reason} type="button" onClick={() => submitReport(reason)}>{reason}</button>
             ))}
+            {signal.remote && (
+              <button type="button" className="card-report-block" onClick={blockVoice}>⊘ block this voice</button>
+            )}
           </div>
         )}
         {reportNote && reportNote !== '__hide__' && (
@@ -991,6 +1025,8 @@ export default function FeedScreen() {
   const { ecosystemState } = useEcosystemState()
   const [activeEvent, setActiveEvent] = useState<EcosystemEvent | null>(null)
   const [signals, setSignals] = useState<FeedSignal[]>([])
+  const signalsRef = useRef<FeedSignal[]>([])
+  useEffect(() => { signalsRef.current = signals }, [signals])
   const [expiries, setExpiries] = useState<Record<string, number>>({})
   const [dissolving, setDissolving] = useState<string[]>([])
   const [decayNow, setDecayNow] = useState(() => Date.now())
@@ -1004,7 +1040,7 @@ export default function FeedScreen() {
 
   // Stagger signal entry + arm decay timers on unfaded ephemerals
   useEffect(() => {
-    const hidden = new Set([...loadHidden(), ...loadFaded()])
+    const hidden = new Set([...loadHidden(), ...loadFaded(), ...loadBlockHidden()])
     setSignals([...loadMyPosts(), ...FEED_SIGNALS, ...GHOST_FEED.slice(0, GHOST_PAGE_SIZE)].filter(sig => !hidden.has(sig.id)))
     setExpiries(Object.fromEntries(
       FEED_SIGNALS.filter(sig => sig.expiresIn != null).map(sig => [sig.id, Date.now() + (sig.expiresIn ?? 60) * 1000]),
@@ -1033,13 +1069,27 @@ export default function FeedScreen() {
       }))
       setSignals(prev => {
         const known = new Set(prev.map(p => p.id))
-        const hidden = new Set([...loadHidden(), ...loadFaded()])
+        const hidden = new Set([...loadHidden(), ...loadFaded(), ...loadBlockHidden()])
         // automated protection: AI-screen incoming network signals before display
         const safe = mapped.filter(m => !known.has(m.id) && !hidden.has(m.id) && moderatePublicSignalText(m.content).status !== 'flagged')
         return [...safe, ...prev]
       })
     }).catch(() => { /* offline — the seeded + ghost feed is the source of truth */ })
     return () => { cancelled = true }
+  }, [])
+
+  // a block hides every signal by that author server-side (RLS); drop any of
+  // their cards already on screen without waiting for a remount
+  useEffect(() => {
+    const onBlocked = () => {
+      const remoteIds = signalsRef.current.filter(sig => sig.remote).map(sig => sig.id)
+      void filterVisibleSignalIds(remoteIds).then(visible => {
+        if (!visible) return
+        setSignals(prev => prev.filter(sig => !sig.remote || visible.has(sig.id)))
+      })
+    }
+    window.addEventListener(AUTHOR_BLOCKED_EVENT, onBlocked)
+    return () => window.removeEventListener(AUTHOR_BLOCKED_EVENT, onBlocked)
   }, [])
 
   // decay tick: expired signals dissolve unless someone preserved them
@@ -1100,7 +1150,7 @@ export default function FeedScreen() {
     if (ghostCount <= GHOST_PAGE_SIZE) return
     setSignals(prev => {
       const known = new Set(prev.map(p => p.id))
-      const hidden = new Set([...loadHidden(), ...loadFaded()])
+      const hidden = new Set([...loadHidden(), ...loadFaded(), ...loadBlockHidden()])
       const next = GHOST_FEED.slice(0, ghostCount).filter(g => !known.has(g.id) && !hidden.has(g.id))
       return next.length > 0 ? [...prev, ...next] : prev
     })

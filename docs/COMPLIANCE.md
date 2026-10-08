@@ -12,7 +12,7 @@ gaps and the wording to keep marketing + app-store listings safe.
 **Privacy strengths (already true in the product)**
 - Anonymous by design; no name/photo/DOB/phone/location; no user search.
 - Local-first storage; backend rows are RLS-scoped to the owner.
-- No ads, no data sale/sharing, no third-party trackers/analytics SDKs.
+- No ads, no data sale/sharing, no cross-site tracking. The only analytics are Vercel Web Analytics + Speed Insights (cookieless, aggregated, no account ids; visitor hash discarded after 24h) — disclosed in the privacy policy.
 - Voice is content, not biometric — no voiceprints, no voice ID.
 - Real deletion: Settings → Erase Cloud Data + Clear Local Data.
 
@@ -31,10 +31,10 @@ gaps and the wording to keep marketing + app-store listings safe.
 
 **Still on you before launch (operational)**
 - Point `privacy@`, `safety@`, `hello@ecosphere.app` (or your domain) at real monitored inboxes.
-- Set `[your state]` as governing law in Terms.
+- ~~Set governing law in Terms~~ — set to California.
 - Confirm jurisdictions you'll serve (EU/UK adds GDPR/UK-GDPR duties; the current draft assumes U.S.-only).
 - Fill Apple App Privacy + Google Data Safety to match the answers below.
-- Keep `setup-all.sql` deletion behavior in sync with the policy text.
+- Keep `setup-all.sql` deletion behavior in sync with the policy text (reported-content snapshots in `content_reports` intentionally survive account deletion).
 
 ## Launch risks (ranked)
 
@@ -51,13 +51,17 @@ gaps and the wording to keep marketing + app-store listings safe.
 | User content (signals, reactions) | Yes | No | No | App functionality |
 | Identifiers (anon account id) | Yes | — | No | App functionality / account |
 | Email (only if Google sign-in) | Optional | Account only, never public | No | Account auth |
-| Approx/precise location | No | — | — | — |
+| Coarse location (region from IP, via Vercel Analytics) | Yes, aggregated | No | No | Analytics |
+| Precise location | No | — | — | — |
 | Contacts | No | — | — | — |
-| Usage/analytics, ads data | No | — | — | — |
+| Usage data (page views, via Vercel Analytics) | Yes | No | No | Analytics |
+| Diagnostics (page-load performance, via Speed Insights) | Yes | No | No | App functionality / analytics |
+| Content reports (reason + snapshot of the reported text and its author's anonymous id) | Yes | Anonymous id only | No | App functionality (moderation) |
+| Advertising data | No | — | — | — |
 
-- **Data sold/shared:** No. **Third-party SDKs:** None for ads/analytics.
+- **Data sold/shared:** No. **Third-party SDKs:** Vercel Analytics + Speed Insights (hosting provider, aggregated, not used for tracking). None for ads.
 - **Account deletion method:** in-app (Settings) — required by Apple; link it in the listing.
-- **UGC apps (both stores):** include a content-moderation method, a report/block path, and a published CSAE stance — all present.
+- **UGC apps (both stores):** include a content-moderation method, a report/block path, and a published CSAE stance — all present. Reports land in the `content_reports` table; someone must review them (Supabase → Table Editor → `content_reports`, newest first) — Apple expects reports to be acted on promptly.
 
 ## Safe onboarding language (do / don't)
 
