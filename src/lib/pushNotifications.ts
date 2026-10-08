@@ -37,7 +37,15 @@ export async function enablePushNotifications(): Promise<string> {
   if (permission !== 'granted') return 'denied'
 
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js')
+    // Reuse the worker the app already registered (the versioned /sw.js?v=<build>
+    // from App.tsx). Registering a second, *unversioned* /sw.js here points the
+    // same '/' scope at a different script URL, so the two registrations keep
+    // replacing each other's controller — every load fires `controllerchange`,
+    // which reloads the page, looping the user onto the "frequency dropped"
+    // screen. Fall back to the same versioned URL only if nothing is registered.
+    const registration =
+      (await navigator.serviceWorker.getRegistration()) ??
+      (await navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(__SW_VERSION__)}`))
     await navigator.serviceWorker.ready
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
@@ -63,7 +71,9 @@ export async function enablePushNotifications(): Promise<string> {
 
 export async function disablePushNotifications(): Promise<boolean> {
   try {
-    const registration = await navigator.serviceWorker.getRegistration('/sw.js')
+    // No URL filter: match the single registration at the '/' scope, whatever
+    // versioned ?v= URL it was registered with.
+    const registration = await navigator.serviceWorker.getRegistration()
     const subscription = await registration?.pushManager.getSubscription()
     if (subscription) {
       const client = getOptionalSupabaseClient()
