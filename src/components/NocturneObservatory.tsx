@@ -95,7 +95,7 @@ export default function NocturneObservatory({ onTune }: { onTune?: () => void })
             <circle cx={nowX} cy={nowY} r="3.2" fill="#ff6aa0" className="nocturne-now-dot" />
           </svg>
           <div className="nocturne-wave-axis" aria-hidden="true"><span>dusk</span><span>3am</span><span>dawn</span></div>
-          <span className="nocturne-wave-hint">tap the band → drop into what's loudest</span>
+          <span className="nocturne-wave-hint">tap the band → jump to the hottest channel</span>
         </button>
       ) : (
       <div className="nocturne-wave-shell">

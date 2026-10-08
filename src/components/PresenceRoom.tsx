@@ -117,7 +117,7 @@ export default function PresenceRoom({ accent = '#b9889b' }: { accent?: string }
       </div>
 
       <p className="presence-caption">{caption}</p>
-      <p className="ph-hint presence-hint">no names, no counts — just who your frequency touched. tap a light.</p>
+      <p className="ph-hint presence-hint">no names, no counts — just who your frequency reached. tap a light.</p>
     </div>
   )
 }

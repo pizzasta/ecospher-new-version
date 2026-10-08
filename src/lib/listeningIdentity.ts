@@ -151,7 +151,7 @@ export function tonightLines(input: IdentityInput, now = Date.now()): string[] {
   }
 
   if (lines.length === 0) {
-    lines.push(input.silentDays != null && input.silentDays >= 1 ? 'the band held your frequency while you were gone' : 'nothing resurfaced yet. the night is early')
+    lines.push(input.silentDays != null && input.silentDays >= 1 ? 'the band held your frequency while you were gone' : 'nothing new yet. the night is early.')
   }
 
   return lines.slice(0, 3)

@@ -302,7 +302,7 @@ const deadZoneFragments: DeadZoneFragment[] = [
   {
     id: 'static-note',
     title: 'a note kept dissolving around one word.',
-    body: 'The message is mostly gone. The ache around it is still readable.',
+    body: 'Most of the message is corrupted. The context is still readable.',
     time: '03:04 thinning',
     meta: 'static-filled note',
     tone: 'note',
@@ -333,8 +333,8 @@ const nightRecapTraces: NightRecapTrace[] = [
     id: 'late-replay',
     time: '2:11am',
     title: 'someone replayed your signal after the room went quiet.',
-    body: 'The replay was short. It still left a little warmth behind.',
-    metadata: 'replay residue / soft return',
+    body: 'Short replay. Your signal registered.',
+    metadata: 'replay logged / return visit',
     tone: 'replay',
   },
   {
@@ -349,24 +349,24 @@ const nightRecapTraces: NightRecapTrace[] = [
     id: 'room-stayed',
     time: '3:08am',
     title: '3 people stayed longer than usual.',
-    body: 'No one announced it. The room just held its breath a little longer.',
-    metadata: 'room overlap / quiet presence',
+    body: 'Listen time ran above normal across the channel.',
+    metadata: 'channel overlap / lurkers',
     tone: 'room',
   },
   {
     id: 'notes-drifted',
     time: '3:31am',
     title: 'your notes drifted further tonight.',
-    body: 'One fragment almost became a relic. Another stayed private.',
-    metadata: 'note drift / relic seed',
+    body: 'One fragment came close to artifact status. Another stayed private.',
+    metadata: 'note drift / artifact candidate',
     tone: 'notes',
   },
   {
     id: 'quiet-traffic',
     time: 'before dawn',
     title: 'quiet traffic last night.',
-    body: 'Small returns, soft exits, nothing loud enough to interrupt you.',
-    metadata: 'ambient movement / low signal',
+    body: 'Light reconnects, quick exits, nothing that needed you.',
+    metadata: 'background traffic / low signal',
     tone: 'traffic',
   },
 ]
@@ -488,8 +488,8 @@ const signalRituals: SignalRitual[] = [
   {
     id: 'replay-circle',
     title: 'Replay Circle',
-    body: 'Something that happened is replaying for someone tonight. You might be in it. Or near it.',
-    cta: 'enter the circle',
+    body: 'A moment from tonight is on repeat somewhere on the grid. You might be in it.',
+    cta: 'join the circle',
     trace: 'joined the replay circle',
     recap: 'You were in the loop.',
     tone: 'cyan',
@@ -498,7 +498,7 @@ const signalRituals: SignalRitual[] = [
       observatory: { atmosphere: 'looping signal', copy: 'The observatory is catching replays tonight.', cta: 'tune in', surface: 'observatory' },
       feed: { atmosphere: 'replay feed', copy: 'The feed is circling back. Signals are repeating.', cta: 'watch', surface: 'feed' },
       unsent: { atmosphere: 'replayed words', copy: "Someone is replaying your unsent. They don't know it.", cta: 'feel it', surface: 'unsent' },
-      drift: { atmosphere: 'looping drift', copy: 'The drift has caught in a loop tonight.', cta: 'enter', surface: 'drift' },
+      drift: { atmosphere: 'looping drift', copy: 'The radar is stuck on a loop tonight.', cta: 'enter', surface: 'drift' },
       chambers: { atmosphere: 'echo chamber', copy: 'The chamber is in replay mode. Sit with what returns.', cta: 'listen', surface: 'chambers' },
       relics: { atmosphere: 'relic replay', copy: 'Old relics are resonating again. Something came back.', cta: 'revisit', surface: 'relics' },
     },
@@ -1022,7 +1022,7 @@ function LiveSignalWindows() {
     <div className="lsw-section">
       <div className="section-head lsw-head">
         <span className="section-kicker">live right now</span>
-        <span className="lsw-sub">respond before they drift away</span>
+        <span className="lsw-sub">reply before they go offline</span>
       </div>
       {notice && <div className="lsw-notice" key={notice}>{notice}</div>}
       <div className="lsw-stack">
@@ -1685,20 +1685,20 @@ function DriftScreen() {
             ? 'drifting…'
             : carriersHere > 1
               ? `${carriersHere - 1} real carrier${carriersHere === 2 ? '' : 's'} drifting this water with you · hold and move`
-              : 'hold the water and move · tap a signal to overhear it'}
+              : 'hold and drag to sweep · tap a signal to intercept it'}
         </div>
       </div>
 
       {ping && <div className="lp-drift-ping" key={ping}>{ping}</div>}
 
       <footer className="drift-dock">
-        <button type="button" onClick={driftDeeper}>↓ drift deeper</button>
+        <button type="button" onClick={driftDeeper}>↓ go deeper</button>
         <button type="button" onClick={chaseSignal}>⌖ chase this signal</button>
         <button type="button" onClick={stayNearby}>◌ stay nearby</button>
         <button type="button" className={muted ? 'on' : ''} onClick={() => { setMuted(m => { if (!m) stopChainPlayback(); return !m }) }}>
           {muted ? '◉ unmute the water' : '○ mute nearby chatter'}
         </button>
-        <button type="button" onClick={throwVoice}>● throw your voice into the water</button>
+        <button type="button" onClick={throwVoice}>● broadcast into the stream</button>
         <button type="button" className={quietMode ? 'on' : ''} onClick={() => { setQuietMode(q => { if (!q) stopChainPlayback(); return !q }) }}>
           {quietMode ? '∿ rejoin the noise' : '◌ listen quietly'}
         </button>
@@ -1760,7 +1760,7 @@ const GHOST_CAPSULES = [
 ]
 
 const CAPSULE_EVENTS = [
-  'preservation field stable',
+  'lock integrity: stable',
   'a seal flexed somewhere in storage',
   'one capsule runs warmer than it should',
   'light leak contained in row two',
@@ -1986,7 +1986,7 @@ function CapsulesScreen() {
                     <i style={{ width: `${Math.round(preservation[c.id] ?? 70)}%` }} />
                   </div>
                 )}
-                {phase === 'sealed' && !isForming && <div className="lp-capsule-hint">tap to break the seal</div>}
+                {phase === 'sealed' && !isForming && <div className="lp-capsule-hint">tap to crack the lock</div>}
                 {phase === 'cracking' && <div className="lp-capsule-stage-note">seal cracking…</div>}
                 {phase === 'leaking' && <div className="lp-capsule-stage-note leak">light leaking through…</div>}
                 {phase === 'open' && memory && (
@@ -2032,9 +2032,9 @@ function PersonalCapsules() {
   return (
     <div className="personal-capsules">
       <div className="section-head">
-        <span className="section-kicker">seal your own transmission</span>
+        <span className="section-kicker">lock your own transmission</span>
         <button type="button" className="obs-transmit-toggle" onClick={() => setRecorderOpen(o => !o)}>
-          {recorderOpen ? 'leave it unsaid' : '◎ record a capsule'}
+          {recorderOpen ? 'leave it unsaid' : '◎ record a time lock'}
         </button>
       </div>
       {recorderOpen && (
@@ -2070,7 +2070,7 @@ function PersonalCapsules() {
                   <div className="capsule-meta">
                     yours · {open ? `${Math.round(capsule.durationMs / 1000)}s` : '?:??'} · sealed {new Date(capsule.createdAt).toLocaleDateString()}
                   </div>
-                  {!open && <div className="lp-capsule-hint">tap to break the seal</div>}
+                  {!open && <div className="lp-capsule-hint">tap to crack the lock</div>}
                   {open && (
                     <div className="capsule-memory" onClick={e => e.stopPropagation()}>
                       {blob
@@ -2245,7 +2245,7 @@ const FORMING_RELICS = [
 ]
 
 const RELIC_EVENTS = [
-  'archive pressure steady',
+  'archive load: steady',
   'a relic shifted half a degree on its shelf',
   'replay traces cooling in sector four',
   'deep shelf hum detected',
@@ -2828,7 +2828,7 @@ function createActiveSignalRitual(date = new Date()): ActiveSignalRitual {
   } catch { /* storage unavailable — ritual still renders */ }
   return {
     ...ritual,
-    endsLabel: 'fades by morning',
+    endsLabel: 'wiped by morning',
     todayKey,
     windowLabel: getRitualWindowLabel(date),
   }
@@ -2936,11 +2936,11 @@ function NightRecapPanel({ returnRitual }: { returnRitual: ReturnRitualState }) 
       </div>
       <header>
         <span>night recap</span>
-        <h2>What the night left behind.</h2>
+        <h2>Overnight report.</h2>
         <p>
           {shouldFeelReturned
             ? 'A few traces moved while you were away.'
-            : 'Nothing loud came back. The room still remembered softly.'}
+            : 'Low traffic overnight. Your signals held their ground.'}
         </p>
         <button
           type="button"
@@ -3883,7 +3883,7 @@ function FrequenciesScreen() {
         </div>
         <div className="sea-tuner-readout">
           <strong>{dial.toFixed(1)} Hz</strong>
-          <em>{lockedStation ?? `${foundStations.length}/4 found · the static thins where a station hides — sweep slowly.`}</em>
+          <em>{lockedStation ?? `${foundStations.length}/4 found · the static drops near a hidden station — sweep slowly.`}</em>
         </div>
       </div>
 
@@ -3891,8 +3891,8 @@ function FrequenciesScreen() {
       {castHelp && (
         <div className="sea-cast-help" style={{ '--yours-color': myColor } as CSSProperties} role="note">
           <div className="sea-cast-help-body">
-            <strong>∿ cast a line into the sea</strong>
-            <p>type a few words — they drift off as a signal of your own. cast as many as you like; each floats away in your color while it syncs. others pass through them the way you pass through theirs, and by morning they fade back into static.</p>
+            <strong>∿ send a line into the stream</strong>
+            <p>type a few words — they stream out as a signal of your own. cast as many as you like; each floats away in your color while it syncs. others pass through them the way you pass through theirs, and by morning they fade back into static.</p>
           </div>
           <button type="button" className="sea-cast-help-go" onClick={dismissCastHelp}>got it</button>
         </div>
@@ -4051,11 +4051,11 @@ function FrequenciesScreen() {
       <footer className="sea-controls sea-dock">
         <span className="sea-floor-status">current pulling {['east', 'north', 'out', 'west'][tideIdx % 4]} · {listenerCount('sea', Math.floor(Date.now() / 60000))} others floating tonight</span>
         <div className="sea-dock-row">
-          <button type="button" onClick={driftDeeper}>↓ drift deeper</button>
+          <button type="button" onClick={driftDeeper}>↓ go deeper</button>
           <button type="button" onClick={chaseSignal}>⌖ chase this signal</button>
           <button type="button" className={muted ? 'sea-muted' : ''} onClick={toggleMute}>{muted ? '◉ unmute the water' : '◌ mute nearby chatter'}</button>
           <button type="button" className={throwing === 'recording' ? 'sea-throwing' : ''} onClick={() => { void throwVoice() }}>
-            {throwing === 'recording' ? '◉ the water is listening… tap to let go' : '● throw your voice into the water'}
+            {throwing === 'recording' ? '◉ the water is listening… tap to let go' : '● broadcast into the stream'}
           </button>
           <button type="button" onClick={surface}>↑ surface</button>
         </div>
@@ -4320,9 +4320,9 @@ function SoulPodScreen({ user, onSignOut, onNavigate, mode = 'profile' }: { user
       <div className="hub-actions">
         {[
           { label: '◉ record signal', page: 'unsent' as Screen },
-          { label: '∿ enter live rooms', page: 'rooms' as Screen },
+          { label: '∿ enter live channels', page: 'rooms' as Screen },
           { label: '⌖ scan frequencies', page: 'drift' as Screen },
-          { label: '◌ check dead zones', page: 'zones' as Screen },
+          { label: '◌ check dark zones', page: 'zones' as Screen },
         ].map(a => (
           <button key={a.page} type="button" className="hub-action glass" onClick={() => onNavigate?.(a.page)}>
             {a.label}
@@ -4464,7 +4464,7 @@ const anomalyReadouts: Record<string, string[]> = {
   'Pulse Spike': ['tracing the surge to its origin…', 'origin: a replay played 11 times in a row', 'verdict: not a malfunction. somebody needed that one.'],
   'Unknown Transmission': ['isolating the repeating carrier…', 'pattern matches no registered signal', 'it stops when observed. resuming watch.'],
   'Memory Flicker': ['sampling unstable phases…', 'the flicker syncs with drift activity', 'memories hold better when someone is listening.'],
-  'Dead Zone Movement': ['re-mapping zone boundary…', 'the zone moved toward the observatory', 'it may simply want to be found.'],
+  'Dead Zone Movement': ['re-mapping zone boundary…', 'the zone moved toward signal command', 'it may simply want to be found.'],
   'Echo Loop': ['measuring loop decay…', 'echo amplitude falling 2% per cycle', 'verdict: let it fade on its own terms.'],
   'Resonance Overflow': ['containment cannot hold this much feeling…', 'overflow is harmless. overflow is the point.', 'verdict: keep going.'],
 }
@@ -4478,7 +4478,7 @@ function AnomaliesScreen() {
 
   const baseItems = useMemo(() => [
     { name: 'Pulse Spike', severity: 'critical', detected: 'now', strength: 97, desc: 'A sudden resonance surge fractured the local signal layer.' },
-    { name: 'Unknown Transmission', severity: 'unknown', detected: '3 min ago', strength: 82, desc: 'An unidentified carrier is repeating beneath the observatory floor.' },
+    { name: 'Unknown Transmission', severity: 'unknown', detected: '3 min ago', strength: 82, desc: 'An unidentified carrier is looping under Signal Command.' },
     { name: 'Memory Flicker', severity: 'elevated', detected: '11 min ago', strength: 69, desc: 'Recovered memories are blinking in and out of stable phase.' },
     { name: 'Dead Zone Movement', severity: 'unstable', detected: '26 min ago', strength: 58, desc: 'A dormant zone drifted outside its mapped boundary.' },
     { name: 'Echo Loop', severity: 'low', detected: '44 min ago', strength: 44, desc: 'A repeating echo pattern softened into a low-priority cycle.' },
@@ -5024,7 +5024,7 @@ export function SettingsScreen() {
       {helpOpen && <HelpBot onClose={() => setHelpOpen(false)} />}
 
       <div className="settings-footer">
-        <div className="settings-version">ecosphere v2.0 · signal observatory</div>
+        <div className="settings-version">ecosphere v2.0 · signal command</div>
         <div className="settings-build">build {import.meta.env.VITE_BUILD_STAMP ?? 'dev'}</div>
         <button
           type="button"
@@ -5055,7 +5055,7 @@ function PublicReleaseBasics() {
         <article>
           <span>privacy</span>
           <strong>anonymous first</strong>
-          <p>Signals can drift without names. Private archives, local rituals, and saved memories stay personal unless you deliberately let them surface. <a href="/privacy.html">privacy policy</a></p>
+          <p>Signals travel without names. Private archives, local rituals, and saved memories stay personal unless you deliberately let them surface. <a href="/privacy.html">privacy policy</a></p>
         </article>
         <article>
           <span>community safety</span>

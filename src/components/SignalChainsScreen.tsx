@@ -442,7 +442,7 @@ export default function SignalChainsScreen() {
       {note && <div className="chains-note" role="status">{note}</div>}
 
       <footer className="chains-foot">
-        <p>chains seal on their own clocks. the choir around you is the band's pulse — your layers are real, recorded on this device, and blend into everything you hear.</p>
+        <p>chains lock on their own timers. the choir around you is the network's pulse — your layers are real, recorded on this device, and blend into everything you hear.</p>
       </footer>
     </div>
   )

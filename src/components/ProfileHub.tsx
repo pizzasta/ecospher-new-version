@@ -384,7 +384,7 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
               <button type="button" className="ph-hz-cog" title="background settings" aria-label="background gradient settings" onClick={() => setGradientOpen(true)}>◰</button>
             </span>
           </div>
-          {joined && <p className="ph-joined">on the band since {joined}</p>}
+          {joined && <p className="ph-joined">on the grid since {joined}</p>}
           {hzSettingsOpen && (
             <HzSettingsModal profile={hzProfile} onChange={(p) => { setHzProfile(p); fireMoment('identitySelect', () => momentIdentitySelect(p.hz)) }} onClose={() => setHzSettingsOpen(false)} />
           )}
@@ -442,7 +442,7 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
             <span className="ph-card-kicker">ECHO ARCHIVE</span>
             <span className="ph-card-count">{echoes.length}</span>
           </div>
-          {echoes.length === 0 && <p className="ph-empty">no echoes yet. your recordings gather here.</p>}
+          {echoes.length === 0 && <p className="ph-empty">no recordings yet. they'll land here.</p>}
           <div className="ph-echo-list">
             {echoes.slice(0, echoLimit).map(echo => (
               <div key={echo.id} className="ph-echo">
@@ -539,7 +539,7 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
             <span className="ph-card-kicker">LISTENING HISTORY</span>
             <span className="ph-card-count">7 days</span>
           </div>
-          {history.length === 0 && <p className="ph-empty">nothing replayed this week. the band waits.</p>}
+          {history.length === 0 && <p className="ph-empty">no replays this week. the grid is waiting.</p>}
           <ul className="ph-history ph-history--memories">
             {history.map((entry, i) => {
               const playCount = ecosystemState.listeningHistory.filter(l => (l.label ?? l.id) === (entry.label ?? entry.id)).length
@@ -785,8 +785,8 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
           )}
           <div className="ph-settings-links">
             <button type="button" onClick={() => onNavigate?.('settings')}>◌ lower your signal visibility</button>
-            <button type="button" onClick={() => onNavigate?.('settings')}>⬡ drift invisibly</button>
-            <button type="button" onClick={() => onNavigate?.('settings')}>✕ disappear from the band</button>
+            <button type="button" onClick={() => onNavigate?.('settings')}>⬡ go invisible</button>
+            <button type="button" onClick={() => onNavigate?.('settings')}>✕ go dark</button>
           </div>
         </div>
     ),
@@ -925,7 +925,7 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
               ))}
             </ul>
           ) : (
-            <p className="ph-empty">the ecosystem is still learning how you listen.</p>
+            <p className="ph-empty">the network is still mapping how you listen.</p>
           )}
           <div className="ph-identity-readout">
             <div className="ph-readout-group ph-readout-group--chosen">
@@ -990,7 +990,7 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
               </dl>
             </div>
             <div className="ph-readout-group ph-readout-group--sensed">
-              <span className="ph-readout-label">how you listen · sensed by the band</span>
+              <span className="ph-readout-label">how you listen · from your activity</span>
               <dl>
                 <div><dt>signature frequency</dt><dd>{hzProfile.hz.toFixed(1)} Hz · {hzProfile.displayName}</dd></div>
                 <div><dt>emotional weather</dt><dd>{atmosphere}</dd></div>

@@ -63,7 +63,7 @@ export const driftNotesSeed: DriftNoteData[] = [
     ageDays: 18,
     replayCount: 157,
     reactions: { feltThat: 28, same: 19, here: 31, again: 44 },
-    survivalLine: 'survived the night and started becoming a relic',
+    survivalLine: 'survived the night — artifact status loading',
     x: 39,
     y: 20,
     rotation: 1.8,

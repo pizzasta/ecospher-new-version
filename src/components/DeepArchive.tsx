@@ -104,16 +104,16 @@ export default function DeepArchive() {
         </span>
       </header>
       <p className="darch-sub">
-        one artifact resolves per night. whatever surfaces is audible until dawn, then the sediment closes over it.
+        one artifact unlocks per night. it plays until dawn, then it's sealed again.
       </p>
 
       {phase === 'sealed' && (
         <div className="darch-chamber darch-chamber--sealed">
           <div className="darch-strata" aria-hidden="true"><i /><i /><i /><i /><i /></div>
           <button type="button" className="darch-descend" onClick={beginDescent}>
-            ◉ begin tonight's descent
+            ◉ start tonight's dive
           </button>
-          <span className="darch-hint">the scan chooses. you only listen.</span>
+          <span className="darch-hint">the scanner picks. you just listen.</span>
         </div>
       )}
 
@@ -156,7 +156,7 @@ export default function DeepArchive() {
           what you carry · {carried.length}/{CARRY_LIMIT}
         </span>
         {carried.length === 0 ? (
-          <span className="darch-carried-empty">nothing yet. three pockets, a whole archive below.</span>
+          <span className="darch-carried-empty">empty. three slots, a whole archive below.</span>
         ) : (
           <div className="darch-carried-row">
             {carried.map(a => (

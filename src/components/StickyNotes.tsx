@@ -285,7 +285,7 @@ export default function StickyNotes() {
     <section className="drift-section" aria-label="Your notes">
       <div className="drift-head">
         <span className="drift-kicker">YOUR NOTES</span>
-        <small className="drift-sub">thoughts left behind · drag to place · release one to drift · anchor what matters</small>
+        <small className="drift-sub">notes · drag to place · release one into the stream · pin what matters</small>
       </div>
 
       <div className="drift-compose">

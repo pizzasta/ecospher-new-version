@@ -18,12 +18,12 @@ export const MOMENT_DURATION_MS = 45_000
 
 // the shared invitations — everyone in a given moment sees the same one
 const PROMPTS: Array<{ line: string; glyph: string }> = [
-  { line: 'everyone on the band right now: breathe out, together.', glyph: '◯' },
-  { line: 'for this minute, we are all still. nothing to scroll to.', glyph: '◌' },
-  { line: 'say one word out loud. everyone here is saying one too.', glyph: '∿' },
-  { line: 'the whole band is holding this tone with you.', glyph: '◉' },
-  { line: 'wherever you are in here — so is everyone else, right now.', glyph: '✦' },
-  { line: 'close your eyes for ten seconds. you are not doing it alone.', glyph: '☾' },
+  { line: 'everyone on the grid, right now: same second, same signal.', glyph: '◯' },
+  { line: 'for this minute, the whole network goes still. nothing to scroll to.', glyph: '◌' },
+  { line: 'say one word out loud. everyone online is saying one too.', glyph: '∿' },
+  { line: 'the whole grid is holding this tone with you.', glyph: '◉' },
+  { line: 'wherever you are on the grid, everyone else is live with you right now.', glyph: '✦' },
+  { line: 'eyes closed for ten seconds. the whole network is doing it with you.', glyph: '☾' },
 ]
 
 function hashString(s: string): number {

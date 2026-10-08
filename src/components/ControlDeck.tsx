@@ -237,7 +237,7 @@ export default function ControlDeck({ onNavigate }: ControlDeckProps) {
         <article className="cd-card glass cd-heatmap" aria-label="Signal Analytics: active hours">
           <div className="cd-card-head">
             <h3>📊 Active Hours</h3>
-            <span className="cd-sensed">sensed by the band</span>
+            <span className="cd-sensed">from your activity</span>
           </div>
           <p className="cd-sub">when your frequency runs hottest</p>
           <div className="cd-heat-wrap">
@@ -266,7 +266,7 @@ export default function ControlDeck({ onNavigate }: ControlDeckProps) {
         <article className="cd-card glass cd-patterns" aria-label="Signal Analytics: listening patterns">
           <div className="cd-card-head">
             <h3>📈 Listening Patterns</h3>
-            <span className="cd-sensed">sensed by the band</span>
+            <span className="cd-sensed">from your activity</span>
           </div>
           <p className="cd-sub">where your hours drift</p>
           <div className="cd-pattern-body">

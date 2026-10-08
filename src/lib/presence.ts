@@ -61,9 +61,9 @@ export const MAX_PRESENCES = 9
 const VISITOR_TYPES = new Set(['new_reaction', 'new_listener', 'new_listener_follow', 'phantom_interaction'])
 
 const VERBS: Record<string, string> = {
-  new_reaction: 'resonated',
+  new_reaction: 'reacted',
   new_listener: 'listened',
-  new_listener_follow: 'tuned in',
+  new_listener_follow: 'locked on',
   phantom_interaction: 'drifted through',
 }
 
@@ -181,7 +181,7 @@ export function ambientPresences(seed: number, count = 3): Presence[] {
       size: 18 + (s % 12),
       tier: 'fading',
       ageMs: WINDOW_MS,
-      verb: 'somewhere on the band',
+      verb: 'elsewhere on the grid',
       x: 10 + (s % 80),
       y: 14 + ((s >> 3) % 64),
       driftX: 10 + ((s >> 5) % 20),
@@ -197,17 +197,17 @@ export function ambientPresences(seed: number, count = 3): Presence[] {
 /** A soft, non-numeric read of the room's state for the caption. */
 export function roomMood(presences: Presence[]): string {
   const real = presences.filter(p => !p.ambient)
-  if (real.length === 0) return 'quiet tonight · faint signals drifting far off'
+  if (real.length === 0) return 'quiet tonight · background traffic only'
   const live = real.filter(p => p.tier === 'live')
   if (live.length > 0) {
     return live.length === 1 ? 'someone is here now' : 'a few are here now'
   }
-  return real.length === 1 ? 'someone lingered a while ago' : 'souls have drifted through tonight'
+  return real.length === 1 ? 'a visitor lingered a while ago' : 'visitors drifted through tonight'
 }
 
 /** The line a single presence whispers. Emotional, never a tally. */
 export function presenceLine(p: Presence, relative: string): string {
-  if (p.ambient) return `someone ${p.feeling}, far off on the band`
+  if (p.ambient) return `someone ${p.feeling}, elsewhere on the grid`
   if (p.feeling === 'null') return p.tier === 'live' ? 'carrier_null is here now' : `carrier_null drifted through · ${relative}`
   if (p.tier === 'live') return `someone ${p.feeling} is here now`
   return `someone ${p.feeling} ${p.verb} · ${relative}`

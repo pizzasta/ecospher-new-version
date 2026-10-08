@@ -113,20 +113,20 @@ export default function TheSimultaneous() {
         <span className="simul-glyph" aria-hidden="true">{moment.glyph}</span>
         {phase === 'invited' ? (
           <>
-            <span className="simul-kicker">a shared moment · right now</span>
+            <span className="simul-kicker">network sync · live now</span>
             <p className="simul-line">{moment.line}</p>
             <div className="simul-actions">
-              <button type="button" className="simul-join" onClick={join}>◉ join the moment</button>
-              <button type="button" className="simul-pass" onClick={pass}>let it pass</button>
+              <button type="button" className="simul-join" onClick={join}>◉ sync in</button>
+              <button type="button" className="simul-pass" onClick={pass}>skip it</button>
             </div>
             <span className="simul-count">{others} others are already here · {left}s left</span>
           </>
         ) : (
           <>
-            <span className="simul-kicker">you're in the moment · with {others}</span>
+            <span className="simul-kicker">synced · {others} others live</span>
             <p className="simul-line">{moment.line}</p>
             <div className="simul-breath" aria-hidden="true"><span /></div>
-            <span className="simul-count">together for {left} more second{left === 1 ? '' : 's'}</span>
+            <span className="simul-count">sync ends in {left}s</span>
           </>
         )}
       </div>
