@@ -1,0 +1,146 @@
+/* The Simultaneous — a soft shared moment, never a takeover. */
+
+.simul {
+  position: fixed;
+  left: 50%;
+  bottom: 92px;
+  transform: translateX(-50%);
+  z-index: 180;
+  width: min(92vw, 440px);
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, #7af7ff 24%, transparent);
+  background: rgba(6, 9, 22, 0.9);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  overflow: hidden;
+  animation: simulRise 0.7s ease both;
+}
+
+@keyframes simulRise {
+  from { opacity: 0; transform: translate(-50%, 14px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.simul-aura {
+  position: absolute;
+  inset: -40%;
+  pointer-events: none;
+  background: radial-gradient(ellipse 50% 45% at 50% 100%, rgba(122, 247, 255, 0.16) 0%, transparent 70%);
+  animation: simulPulse 5.5s ease-in-out infinite;
+}
+
+@keyframes simulPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+.simul-body {
+  position: relative;
+  padding: 18px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  text-align: center;
+}
+
+.simul-glyph {
+  font-size: 26px;
+  line-height: 1;
+  color: #7af7ff;
+  text-shadow: 0 0 18px rgba(122, 247, 255, 0.7);
+  animation: simulGlyph 4s ease-in-out infinite;
+}
+
+@keyframes simulGlyph {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.14); opacity: 1; }
+}
+
+.simul-kicker {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, #7af7ff 70%, #fff 10%);
+}
+
+.simul-line {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #eaf3ff;
+  max-width: 34ch;
+}
+
+.simul-actions {
+  display: flex;
+  gap: 9px;
+  margin-top: 4px;
+}
+
+.simul-join {
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #7af7ff 55%, transparent);
+  background: color-mix(in srgb, #7af7ff 14%, rgba(4, 6, 16, 0.8));
+  color: #dffbff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.simul-join:hover {
+  background: color-mix(in srgb, #7af7ff 24%, rgba(4, 6, 16, 0.8));
+  box-shadow: 0 0 22px rgba(122, 247, 255, 0.3);
+}
+
+.simul-pass {
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: rgba(200, 212, 238, 0.6);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+.simul-pass:hover { color: rgba(230, 238, 255, 0.85); }
+
+.simul-count {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: rgba(200, 212, 238, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+
+/* the held breath while inside the moment */
+.simul-breath {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin: 2px 0;
+}
+
+.simul-breath span {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #7af7ff, color-mix(in srgb, #7af7ff 30%, transparent));
+  box-shadow: 0 0 26px rgba(122, 247, 255, 0.55);
+  animation: simulBreath 8s ease-in-out infinite;
+}
+
+@keyframes simulBreath {
+  0%, 100% { transform: scale(0.7); opacity: 0.7; }
+  50% { transform: scale(2.4); opacity: 1; }
+}
+
+.simul--inside { border-color: color-mix(in srgb, #7af7ff 45%, transparent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .simul, .simul-aura, .simul-glyph, .simul-breath span { animation: none; }
+}

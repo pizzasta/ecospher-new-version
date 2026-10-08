@@ -62,13 +62,15 @@ export interface VoiceHandlers {
  * settled transcript via onFinal. Returns null when speech recognition isn't
  * available. The recognizer auto-stops on a natural pause.
  */
-export function startVoiceInput(handlers: VoiceHandlers): VoiceSession | null {
+export function startVoiceInput(handlers: VoiceHandlers, opts: { continuous?: boolean } = {}): VoiceSession | null {
   const Ctor = getRecognitionCtor()
   if (!Ctor) return null
   const rec = new Ctor()
   rec.lang = recognitionLang()
   rec.interimResults = true
-  rec.continuous = false
+  // continuous keeps listening through pauses — right for a timed voice
+  // reaction; the help chat leaves it off so it settles on the first thought
+  rec.continuous = opts.continuous ?? false
   rec.maxAlternatives = 1
 
   let finalText = ''
