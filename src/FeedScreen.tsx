@@ -25,6 +25,7 @@ import { RETURN_TAGS, addReturn, listReturns, removeReturn } from './lib/returnQ
 import { DECAY_LABELS, decayLevel, decayText, heatFor, preserveSignal, presenceLine, whyFoundYou } from './lib/signalLife'
 import FamiliarFrequency from './components/FamiliarFrequency'
 import { recordCrossing } from './lib/familiarFrequency'
+import { noteReplayMood } from './lib/wavelength'
 import { wordReactionsFor } from './lib/wordReactions'
 import { MY_POSTS_KEY } from './lib/postRelics'
 import { AUDIO_BUDGET, createVoiceRecorder, micErrorReason } from './lib/audioBudget'
@@ -595,6 +596,8 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
     const meta = { id: signal.id, label: signal.handle, source: 'signals' as const }
     // a deliberate replay is a real crossing — recurring strangers become familiar
     if (!signal.anonymous) recordCrossing(signal.handle, signal.id, signal.mood, signal.content)
+    // what you replay shapes who you match with on the wavelength
+    noteReplayMood(signal.mood)
     // your own voice posts play their real recording
     if (signal.audioId) {
       void postBlob(signal.audioId).then(blob => {

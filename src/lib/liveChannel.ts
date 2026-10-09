@@ -523,6 +523,9 @@ export function joinLiveChannel(
 
 export interface LiveChannelInfo { id: string; name: string; hz: string; topic: string }
 
+/** sessionStorage key: a channel id the channels screen should open on arrival */
+export const OPEN_LIVE_KEY = 'ecosphere:openLiveChannel'
+
 export const LIVE_CHANNELS: LiveChannelInfo[] = [
   { id: 'after-hours', name: 'after hours', hz: '101.3', topic: 'whatever is keeping you up' },
   { id: 'open-mic', name: 'open mic', hz: '94.7', topic: 'say one thing to the grid' },

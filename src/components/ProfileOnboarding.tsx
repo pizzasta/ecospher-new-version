@@ -17,6 +17,12 @@ import {
 import { readStatus, writeStatus } from '../lib/profileExtras'
 import { moderatePublicSignalText } from '../lib/signalModeration'
 import ProfileScene from './ProfileScene'
+import Node3D from './Node3D'
+import { SCENES_3D, readScene3D, saveScene3D } from '../lib/scene3d'
+import type { Scene3D } from '../lib/scene3d'
+import { VIBE_QUESTIONS, readVibe } from '../lib/vibeRead'
+import type { VibeAnswers, VibeResult } from '../lib/vibeRead'
+import { LIVE_CHANNELS, OPEN_LIVE_KEY } from '../lib/liveChannel'
 import ColorWave from './ColorWave'
 import './ProfileOnboarding.css'
 
@@ -77,17 +83,23 @@ const LINE_PROMPTS = [
   'a line for whoever finds this',
 ]
 
-// step order: mark → name → color → place → feeling → timbre → line → open
-const SIGIL_STEP = 0
-const NAME_STEP = 1
-const PALETTE_STEP = 2
-const STYLE_STEP = 3
-const MOOD_STEP = 4
-const CHIME_STEP = 5
-const LINE_STEP = 6
-const STEPS = 8
+// step order: vibe read → mark → name → color → place → feeling → timbre → line → open
+const VIBE_STEP = 0
+const SIGIL_STEP = 1
+const NAME_STEP = 2
+const PALETTE_STEP = 3
+const STYLE_STEP = 4
+const MOOD_STEP = 5
+const CHIME_STEP = 6
+const LINE_STEP = 7
+const STEPS = 9
 
-export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: { onDone: () => void; accentColor?: string }) {
+export default function ProfileOnboarding({ onDone, onGo, accentColor = '#b9889b' }: { onDone: () => void; onGo?: (screen: string) => void; accentColor?: string }) {
+  const [answers, setAnswers] = useState<VibeAnswers>({})
+  const [vibeLine, setVibeLine] = useState('')
+  const [reading, setReading] = useState(false)
+  const [vibe, setVibe] = useState<VibeResult | null>(null)
+  const [scene3d, setScene3d] = useState<Scene3D>(() => readScene3D())
   const [step, setStep] = useState(0)
   const [sigil, setSigil] = useState(() => readAvatar())
   const [name, setName] = useState(() => getLocalHzProfile('someone awake').displayName ?? '')
@@ -125,6 +137,24 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
     setNameError(null)
   }
 
+  // the AI reads three taps (and an optional line) and tunes the whole node
+  const runVibeRead = async () => {
+    if (reading) return
+    setReading(true)
+    const started = Date.now()
+    const result = await readVibe(answers, vibeLine)
+    // let the scan breathe for a beat even when the answer is instant
+    const wait = Math.max(0, 1400 - (Date.now() - started))
+    window.setTimeout(() => {
+      setVibe(result)
+      setSigil(result.sigil); setPaletteId(result.paletteId); setStyle(result.style); setScene3d(result.scene3d)
+      setMood(m => ({ ...m, mood: result.mood, energy: result.energy, drift: result.drift, aura: result.aura, stability: result.stability }))
+      setOracle(null)
+      setReading(false)
+    }, wait)
+  }
+  const firstStop = vibe ? LIVE_CHANNELS.find(c => c.id === vibe.firstStop) ?? null : null
+
   const auditionChime = (value: ChimeStyle) => {
     setChime(value)
     if (playSignatureChime(previewHz, value, 0, 1.3)) setChimeHeard(true)
@@ -152,6 +182,7 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
     setSaving(true)
     saveAvatar(sigil)
     saveMood(mood)
+    saveScene3D(scene3d)
     saveChime(chime)
     writeStatus(cleanLine)
     const settings: GradientSettings = {
@@ -173,7 +204,18 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
       } catch { /* name stays local-only tonight */ }
     }
     markProfileOnboarded()
+    window.dispatchEvent(new CustomEvent('ecosphere:profile-updated'))
     onDone()
+  }
+
+  const finishAndGo = async () => {
+    const stop = vibe?.firstStop
+    await finish()
+    if (!stop || !onGo) return
+    if (stop === 'feed') { onGo('signals'); return }
+    try { window.sessionStorage.setItem(OPEN_LIVE_KEY, stop) } catch { /* the event below still opens it */ }
+    onGo('rooms')
+    window.dispatchEvent(new CustomEvent('ecosphere:open-live', { detail: { id: stop } }))
   }
 
   const skip = () => { markProfileOnboarded(); onDone() }
@@ -271,6 +313,64 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
         </div>
 
         <div className="po-body">
+          {step === VIBE_STEP && (
+            <>
+              <h2>let the AI read your vibe</h2>
+              <p>three taps. it picks your sigil, colors, 3D world and first stop. you can change anything after.</p>
+              <div className="po-vibe-qs">
+                {VIBE_QUESTIONS.map(q => (
+                  <div key={q.id} className="po-mood-field">
+                    <span className="po-mood-label">{q.prompt}</span>
+                    <div className="po-mood-options" role="radiogroup" aria-label={q.prompt}>
+                      {q.options.map(opt => (
+                        <button
+                          key={opt}
+                          type="button"
+                          role="radio"
+                          aria-checked={answers[q.id] === opt}
+                          className={`po-mood-opt${answers[q.id] === opt ? ' active' : ''}`}
+                          onClick={() => setAnswers(a => ({ ...a, [q.id]: opt }))}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <input
+                type="text"
+                className="po-input po-vibe-line"
+                value={vibeLine}
+                maxLength={140}
+                placeholder="or say how tonight feels, in your own words (optional)"
+                aria-label="How tonight feels, in your own words"
+                onChange={e => setVibeLine(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void runVibeRead() } }}
+              />
+              <button
+                type="button"
+                className={`po-vibe-go${reading ? ' reading' : ''}`}
+                onClick={() => void runVibeRead()}
+                disabled={reading || (!answers.hour && !answers.weather && !answers.need && !vibeLine.trim())}
+              >
+                {reading ? 'reading your frequency…' : vibe ? '✦ read me again' : '✦ read my vibe'}
+              </button>
+              {reading && <div className="po-vibe-scan" aria-hidden="true"><i /></div>}
+              {vibe && !reading && (
+                <div className="po-vibe-result" role="status">
+                  <span className="po-vibe-src">{vibe.source === 'ai' ? 'READ BY AI' : 'READ ON YOUR DEVICE'}</span>
+                  <p>{vibe.reading}</p>
+                  <span className="po-vibe-picks">
+                    {sigilGlyph(vibe.sigil)} · {PROFILE_PALETTES.find(p => p.id === vibe.paletteId)?.label} · {SCENES_3D.find(sc => sc.id === vibe.scene3d)?.label}
+                    {firstStop ? ` · first stop: ${firstStop.name} ${firstStop.hz}` : ' · first stop: the feed'}
+                  </span>
+                  <button type="button" className="po-static-btn" onClick={() => setStep(STEPS - 1)}>lock it in →</button>
+                </div>
+              )}
+            </>
+          )}
+
           {step === SIGIL_STEP && (
             <>
               <h2>your sigil</h2>
@@ -433,6 +533,14 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
           {step === STEPS - 1 && (
             <>
               <h2>you're on the grid</h2>
+              <div className="po-node3d">
+                <Node3D sigil={sigil} scene={scene3d} colors={colors} label="your sigil in 3D" />
+              </div>
+              <div className="po-scene-row" role="radiogroup" aria-label="3D scene">
+                {SCENES_3D.map(sc => (
+                  <button key={sc.id} type="button" role="radio" aria-checked={scene3d === sc.id} onClick={() => setScene3d(sc.id)}>{sc.label}</button>
+                ))}
+              </div>
               <div className="po-signal-card" style={{ '--po-c2': palette.end } as CSSProperties}>
                 <span className="po-card-sigil">{sigilGlyph(sigil) || 'hz'}</span>
                 <span className="po-card-name">{cleanName || 'unclaimed frequency'}</span>
@@ -458,9 +566,16 @@ export default function ProfileOnboarding({ onDone, accentColor = '#b9889b' }: {
           {step < STEPS - 1 ? (
             <button type="button" className="po-next" onClick={goNext}>next</button>
           ) : (
-            <button type="button" className="po-next po-finish" onClick={() => void finish()} disabled={saving}>
-              {saving ? 'tuning you in…' : 'drift in'}
-            </button>
+            <div className="po-finish-row">
+              {vibe && onGo && (
+                <button type="button" className="po-back po-go" onClick={() => void finishAndGo()} disabled={saving}>
+                  {firstStop ? `drift in → ${firstStop.name}` : 'drift in → the feed'}
+                </button>
+              )}
+              <button type="button" className="po-next po-finish" onClick={() => void finish()} disabled={saving}>
+                {saving ? 'tuning you in…' : 'drift in'}
+              </button>
+            </div>
           )}
         </footer>
       </div>

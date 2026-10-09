@@ -5401,7 +5401,7 @@ export default function App() {
       <Particles />
       <EcosphereAmbience />
 
-      <NotificationBell />
+      <NotificationBell onNavigate={page => navigate(page as Screen)} />
       <PresenceWhisper />
       <TheSimultaneous />
       <SignalSearch onNavigate={page => navigate(page as Screen)} />

@@ -13,7 +13,13 @@ import { readStatus, writeStatus, readFeatured, writeFeatured } from '../lib/pro
 import type { FeaturedSignal } from '../lib/profileExtras'
 import { getHzProfile, getLocalHzProfile } from '../lib/hzSignature'
 import { useEcoPref } from '../hooks/useEcoPrefs'
-import { readAvatar, saveAvatar, sigilGlyph } from '../lib/avatar'
+import { AVATAR_SIGILS, readAvatar, saveAvatar, sigilGlyph } from '../lib/avatar'
+import Node3D from './Node3D'
+import { SCENES_3D, readScene3D, saveScene3D } from '../lib/scene3d'
+import type { Scene3D } from '../lib/scene3d'
+import { useWavelength } from '../hooks/useWavelength'
+
+const sigilLabel = (id: string) => AVATAR_SIGILS.find(s => s.id === id)?.label ?? 'the mark'
 import { SIGIL_THEMES, sigilsInTheme } from '../lib/sigilThemes'
 import type { HzProfile } from '../lib/hzSignature'
 import AudioPlayer from './AudioPlayer'
@@ -143,10 +149,13 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
   const [settling, setSettling] = useState<string | null>(null)
   const chooseSigil = (id: string) => {
     saveAvatar(id); setAvatar(id)
+    window.dispatchEvent(new CustomEvent('ecosphere:profile-updated'))
     fireMoment('identitySelect', () => momentIdentitySelect(hzProfile.hz))
     setSettling(id); window.setTimeout(() => setSettling(s => (s === id ? null : s)), 700)
   }
   const [sigilOpen, setSigilOpen] = useState(false)
+  const [scene3d, setScene3d] = useState<Scene3D>(() => readScene3D())
+  const wl = useWavelength()
 
   // ── header data ──
   const username = ecosystemState.userSignalIdentity ?? 'unclaimed frequency'
@@ -825,12 +834,14 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
             fireMoment('onboardDone', momentOnboardStep)
             setGradient(readGradientSettings())
             setAvatar(readAvatar())
+            setScene3d(readScene3D())
             setMoodVars(moodToVars(readMood()))
             // onboarding can also leave a first transmission + a night name
             setStatus(readStatus())
             setHzProfile(getLocalHzProfile(username))
             setOnboarding(false)
           }}
+          onGo={screen => onNavigate?.(screen)}
         />
       )}
       {privateProfile && (
@@ -880,6 +891,41 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
             />
           ))}
         </div>
+      )}
+
+      {/* the node chamber: your sigil in 3D, in the world you pick */}
+      {variant === 'profile' && (
+        <>
+          <div className="ph-node3d" style={{ '--ph-accent': hzProfile.color } as CSSProperties}>
+            <Node3D
+              sigil={avatar}
+              scene={scene3d}
+              colors={[gradientStart, gradientEnd, hzProfile.color]}
+              listen
+              label={`${username}'s sigil, ${sigilLabel(avatar)}, in ${SCENES_3D.find(s => s.id === scene3d)?.label ?? 'the dark'}`}
+            />
+            <div className="ph-node3d-id">
+              <span>NODE · {hzProfile.hz.toFixed(1)} HZ</span>
+              <strong>{hzProfile.displayName || username}</strong>
+            </div>
+          </div>
+          <div className="ph-node3d-scenes" role="radiogroup" aria-label="3D scene">
+            {SCENES_3D.map(sc => (
+              <button key={sc.id} type="button" role="radio" aria-checked={scene3d === sc.id} title={sc.line} onClick={() => { setScene3d(sc.id); saveScene3D(sc.id) }}>
+                {sc.label}
+              </button>
+            ))}
+          </div>
+          {wl.enabled && wl.live && (
+            <button type="button" className="ph-wavelength-strip" onClick={() => window.dispatchEvent(new CustomEvent('ecosphere:open-inbox'))}>
+              <b aria-hidden="true">≋</b>
+              {wl.matches.length > 0
+                ? `${wl.matches.length} ${wl.matches.length === 1 ? 'person' : 'people'} on your wavelength right now`
+                : 'on the wavelength · you’ll be pinged when someone close comes on'}
+              <i aria-hidden="true">→</i>
+            </button>
+          )}
+        </>
       )}
 
       {/* centerpiece: the identity ring — your frequency, breathing (public profile) */}
