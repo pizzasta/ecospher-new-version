@@ -181,6 +181,10 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
   }, [username])
 
   const [gradientStart, gradientEnd] = resolveGradientColors(gradient, hzProfile.hz)
+  const nodeColors = useMemo<[string, string, string]>(
+    () => [gradientStart, gradientEnd, hzProfile.color],
+    [gradientStart, gradientEnd, hzProfile.color],
+  )
 
   // ── echo archive ──
   const [echoes, setEchoes] = useState<StoredRecording[]>([])
@@ -897,13 +901,17 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
       {variant === 'profile' && (
         <>
           <div className="ph-node3d" style={{ '--ph-accent': hzProfile.color } as CSSProperties}>
-            <Node3D
-              sigil={avatar}
-              scene={scene3d}
-              colors={[gradientStart, gradientEnd, hzProfile.color]}
-              listen
-              label={`${username}'s sigil, ${sigilLabel(avatar)}, in ${SCENES_3D.find(s => s.id === scene3d)?.label ?? 'the dark'}`}
-            />
+            {/* one live 3D scene at a time: the guided setup has its own, and two
+                GL contexts on a phone is what makes them flash */}
+            {!onboarding && (
+              <Node3D
+                sigil={avatar}
+                scene={scene3d}
+                colors={nodeColors}
+                listen
+                label={`${username}'s sigil, ${sigilLabel(avatar)}, in ${SCENES_3D.find(s => s.id === scene3d)?.label ?? 'the dark'}`}
+              />
+            )}
             <div className="ph-node3d-id">
               <span>NODE · {hzProfile.hz.toFixed(1)} HZ</span>
               <strong>{hzProfile.displayName || username}</strong>

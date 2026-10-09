@@ -115,7 +115,10 @@ export default function ProfileOnboarding({ onDone, onGo, accentColor = '#b9889b
   const panelRef = useRef<HTMLDivElement>(null)
 
   const palette = PROFILE_PALETTES.find(p => p.id === paletteId) ?? PROFILE_PALETTES[0]
-  const colors: [string, string, string] = [palette.start, palette.end, accentColor]
+  const colors = useMemo<[string, string, string]>(
+    () => [palette.start, palette.end, accentColor],
+    [palette.start, palette.end, accentColor],
+  )
   const moodVars = moodToVars(mood)
   const [oracle, setOracle] = useState<string | null>(null)
 

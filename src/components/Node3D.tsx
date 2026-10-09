@@ -30,6 +30,9 @@ export default function Node3D({ sigil, scene, colors, fallback, listen = false,
   const latest = useRef({ sigil, scene, colors })
   latest.current = { sigil, scene, colors }
   const [failed, setFailed] = useState(() => !webglAvailable())
+  // bumped when the browser takes the GL context back (phones do this when two
+  // are live at once) so the stage is rebuilt instead of freezing or flashing
+  const [epoch, setEpoch] = useState(0)
   const [hearing, setHearing] = useState(false)
   const [micNote, setMicNote] = useState<string | null>(null)
   const micRef = useRef<{ stop: () => void } | null>(null)
@@ -47,12 +50,18 @@ export default function Node3D({ sigil, scene, colors, fallback, listen = false,
         if (levelRef.current) stageRef.current.setLevelSource(levelRef.current)
       } catch { setFailed(true) }
     }).catch(() => { if (!cancelled) setFailed(true) })
+    const onLost = (e: Event) => { e.preventDefault() }
+    const onRestored = () => setEpoch(n => n + 1)
+    canvas.addEventListener('webglcontextlost', onLost)
+    canvas.addEventListener('webglcontextrestored', onRestored)
     return () => {
       cancelled = true
+      canvas.removeEventListener('webglcontextlost', onLost)
+      canvas.removeEventListener('webglcontextrestored', onRestored)
       stageRef.current?.dispose()
       stageRef.current = null
     }
-  }, [failed])
+  }, [failed, epoch])
 
   useEffect(() => {
     stageRef.current?.update({ sigil, scene, colors, reducedMotion: prefersReducedMotion() })
