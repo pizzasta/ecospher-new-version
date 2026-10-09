@@ -1349,7 +1349,7 @@ const DRIFT_EVENTS = [
   'a laugh carried further than it should',
 ] as const
 
-function DriftScreen() {
+function DriftScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
   const { discoverDrift, unlockRelic } = useEcosystemState()
   const driftAudio = useGlobalAudio()
   const [signals, setSignals] = useState<DriftSignal[]>(() => buildDriftSignals())
@@ -1725,7 +1725,7 @@ function DriftScreen() {
           })}
         </div>
       )}
-      <LiveTail page="drift" />
+      <LiveTail page="drift" onNavigate={onNavigate} />
     </div>
   )
 }
@@ -1767,10 +1767,13 @@ const CAPSULE_EVENTS = [
   'a new layer is settling',
 ] as const
 
-function CapsulesScreen() {
+function CapsulesScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
   const typeGlyph: Record<string, string> = { voice: '◎', memory: '◐', echo: '◑' }
   const { openCapsule: recordCapsuleOpen } = useEcosystemState()
   const dropAudio = useGlobalAudio()
+  // tapping the still-forming capsule says why it won't open
+  const [formingNudge, setFormingNudge] = useState(0)
+  const nudgeForming = () => setFormingNudge(Date.now())
 
   // limited-edition frequency drop: 24h window, then gone forever
   const [drop, setDrop] = useState(() => currentDrop())
@@ -1957,8 +1960,8 @@ function CapsulesScreen() {
               tabIndex={0}
               className={`capsule-card glass lp-capsule lp-enter phase-${phase}${shimmerId === c.id ? ' shimmer' : ''}${isForming ? ' forming' : ''}`}
               style={{ '--idx': i } as CSSProperties}
-              onClick={() => { if (!isForming && phase === 'sealed') openCapsule(c.id) }}
-              onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !isForming && phase === 'sealed') { e.preventDefault(); openCapsule(c.id) } }}
+              onClick={() => { if (isForming) nudgeForming(); else if (phase === 'sealed') openCapsule(c.id) }}
+              onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && (isForming || phase === 'sealed')) { e.preventDefault(); if (isForming) nudgeForming(); else openCapsule(c.id) } }}
             >
               <div className="capsule-glyph" aria-hidden="true">{typeGlyph[c.type]}</div>
               <div className="capsule-body">
@@ -1987,6 +1990,7 @@ function CapsulesScreen() {
                   </div>
                 )}
                 {phase === 'sealed' && !isForming && <div className="lp-capsule-hint">tap to crack the lock</div>}
+                {isForming && formingNudge > 0 && <div key={formingNudge} className="lp-capsule-hint lp-capsule-hint--locked" role="status">⌀ locked tight — it opens itself when the timer hits zero</div>}
                 {phase === 'cracking' && <div className="lp-capsule-stage-note">seal cracking…</div>}
                 {phase === 'leaking' && <div className="lp-capsule-stage-note leak">light leaking through…</div>}
                 {phase === 'open' && memory && (
@@ -2008,7 +2012,7 @@ function CapsulesScreen() {
         })}
       </div>
       <PersonalCapsules />
-      <LiveTail page="capsules" />
+      <LiveTail page="capsules" onNavigate={onNavigate} />
     </div>
   )
 }
@@ -3030,7 +3034,7 @@ function RitualModifierPanel({
 }
 
 
-function DeadZonesScreen() {
+function DeadZonesScreen({ onNavigate }: { onNavigate?: (next: Screen) => void }) {
   const { saveToLibrary } = useEcosystemState()
   const zoneAudio = useGlobalAudio()
   const [corruption, setCorruption] = useState<Record<string, number>>(() => Object.fromEntries(deadZones.map(z => [z.id, z.corruption])))
@@ -3231,7 +3235,7 @@ function DeadZonesScreen() {
           <DeadZoneFragmentCard fragment={fragment} key={fragment.id} />
         ))}
       </section>
-      <LiveTail page="zones" />
+      <LiveTail page="zones" onNavigate={onNavigate} />
     </div>
   )
 }
@@ -5354,7 +5358,7 @@ export default function App() {
     ),
     drift: (
       <RitualAtmosphere ritual={activeRitual} surface="drift">
-        <DriftScreen />
+        <DriftScreen onNavigate={navigate} />
         <RitualModifierPanel ritual={activeRitual} surface="drift" onAct={performSignalRitual} />
       </RitualAtmosphere>
     ),
@@ -5370,7 +5374,7 @@ export default function App() {
         <RitualModifierPanel ritual={activeRitual} surface="unsent" onAct={performSignalRitual} />
       </RitualAtmosphere>
     ),
-    capsules: <CapsulesScreen />,
+    capsules: <CapsulesScreen onNavigate={navigate} />,
     chains: <SignalChainsScreen />,
     relics: (
       <RitualAtmosphere ritual={activeRitual} surface="relics">
@@ -5378,7 +5382,7 @@ export default function App() {
         <RitualModifierPanel ritual={activeRitual} surface="relics" onAct={performSignalRitual} />
       </RitualAtmosphere>
     ),
-    zones: <DeadZonesScreen />,
+    zones: <DeadZonesScreen onNavigate={navigate} />,
     frequencies: <FrequenciesScreen />,
     anomalies: <AnomaliesScreen />,
     pod: <SoulPodScreen user={user} onSignOut={handleSignOut} onNavigate={navigate} mode="profile" />,

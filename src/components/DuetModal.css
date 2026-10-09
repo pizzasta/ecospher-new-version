@@ -1,0 +1,73 @@
+.duet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200; /* above the bottom nav (100) */
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(2, 4, 12, 0.78);
+  backdrop-filter: blur(6px);
+  padding: 16px;
+}
+.duet-modal {
+  --duet-color: #ff2d78;
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  background: linear-gradient(180deg, rgba(10, 14, 30, 0.98), rgba(3, 7, 18, 0.98));
+  border: 1px solid color-mix(in srgb, var(--duet-color) 45%, transparent);
+  border-radius: 18px;
+  padding: 22px 18px 18px;
+  box-shadow: 0 0 40px color-mix(in srgb, var(--duet-color) 25%, transparent);
+  color: #dfe6f5;
+}
+@media (min-width: 640px) { .duet-overlay { align-items: center; } }
+.duet-close {
+  position: absolute; top: 10px; right: 10px;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: transparent; border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(223, 230, 245, 0.7); cursor: pointer;
+}
+.duet-kicker { font-size: 10px; letter-spacing: 0.22em; color: #67e8f9; }
+.duet-target { margin-top: 8px; font-size: 20px; font-weight: 800; color: var(--duet-color); text-shadow: 0 0 18px color-mix(in srgb, var(--duet-color) 60%, transparent); overflow-wrap: anywhere; }
+.duet-line { margin: 6px 0 14px; font-size: 13px; font-style: italic; color: rgba(223, 230, 245, 0.72); }
+.duet-stage { display: grid; gap: 8px; margin-bottom: 14px; }
+.duet-track {
+  position: relative; height: 30px; border-radius: 8px; overflow: hidden;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.duet-track span { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; z-index: 1; color: rgba(255, 255, 255, 0.8); }
+.duet-track i { position: absolute; inset: 0 auto 0 0; transition: width 0.15s linear; }
+.duet-track--them i { background: linear-gradient(90deg, rgba(103, 232, 249, 0.15), rgba(103, 232, 249, 0.55)); }
+.duet-track--you i { background: linear-gradient(90deg, color-mix(in srgb, var(--duet-color) 15%, transparent), var(--duet-color)); }
+.duet-hint { font-size: 12px; color: rgba(180, 190, 220, 0.75); margin: 0 0 12px; }
+.duet-live { font-size: 13px; margin: 0 0 12px; color: #f0f4ff; }
+.duet-live b { color: #ff3b5c; letter-spacing: 0.12em; margin-right: 6px; }
+.duet-go, .duet-retake {
+  min-height: 44px; padding: 0 18px; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 700; letter-spacing: 0.06em;
+}
+.duet-go { width: 100%; border: 1px solid var(--duet-color); background: color-mix(in srgb, var(--duet-color) 22%, transparent); color: #fff; }
+.duet-go:disabled, .duet-retake:disabled { opacity: 0.5; cursor: default; }
+.duet-go--stop { background: rgba(255, 59, 92, 0.2); border-color: #ff3b5c; }
+.duet-retake { border: 1px solid rgba(255, 255, 255, 0.18); background: transparent; color: rgba(223, 230, 245, 0.85); }
+.duet-actions { display: flex; gap: 10px; }
+.duet-actions .duet-go { flex: 1; width: auto; }
+.duet-preview { width: 100%; margin-bottom: 10px; }
+.duet-words {
+  width: 100%; box-sizing: border-box; margin-bottom: 12px; min-height: 40px; padding: 0 12px;
+  border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.04);
+  color: #f0f4ff; font: inherit; font-size: 14px;
+}
+.duet-done { font-size: 15px; font-weight: 700; color: var(--duet-color); margin: 4px 0 12px; }
+.duet-error { margin: 10px 0 0; font-size: 12px; color: #ff7a93; }
+
+/* duet badge on feed cards */
+.card-duet-tag {
+  display: inline-block; margin: 2px 0 6px; padding: 2px 8px; border-radius: 999px;
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  border: 1px solid color-mix(in srgb, var(--mood-color, #ff2d78) 50%, transparent);
+  color: var(--mood-color, #ff2d78);
+}

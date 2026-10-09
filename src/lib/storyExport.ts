@@ -32,6 +32,8 @@ export type StoryExportOptions = {
   overlay?: string
   /** real audio for the clip; a synthesized voice is used when omitted */
   audioBlob?: Blob
+  /** where viewers can hear the rest, drawn as the clip's call to action */
+  link?: string
 }
 
 const OVERLAY_POOL = [
@@ -296,6 +298,14 @@ function drawFrame(ctx: CanvasRenderingContext2D, opts: StoryExportOptions, bars
   ctx.fillStyle = 'rgba(140, 155, 195, 0.45)'
   ctx.font = '500 26px "Space Grotesk", system-ui, sans-serif'
   ctx.fillText('transmitted through ecosphere', W / 2, H - 140)
+  if (opts.link) {
+    ctx.fillStyle = accent
+    ctx.font = '700 32px "Space Grotesk", system-ui, sans-serif'
+    ctx.shadowColor = accent
+    ctx.shadowBlur = 16
+    ctx.fillText(`▶ hear it live · ${opts.link}`, W / 2, H - 196)
+    ctx.shadowBlur = 0
+  }
 
   // artifact timestamp — exports should feel like recovered objects
   const stamp = new Date()
@@ -337,23 +347,39 @@ export async function renderStoryImage(opts: StoryExportOptions): Promise<Blob |
  * Resolves null when canvas capture/MediaRecorder is unsupported —
  * callers should fall back to renderStoryImage.
  */
-export function renderStoryVideo(opts: StoryExportOptions, durationMs = 8000): Promise<Blob | null> {
+// H.264 mp4 first (TikTok, Reels and iOS Photos take it as-is), then webm.
+// Plain 'video/mp4' goes last: Chrome would fill it with VP9, but Safari, which
+// can't record webm at all, fills it with H.264.
+const VIDEO_TYPES = [
+  'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1',
+  'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm',
+  'video/mp4',
+]
+
+/**
+ * `audioContext`: create it (and resume it) synchronously inside the tap
+ * handler — iOS Safari keeps a context made after an await suspended, which
+ * would record a silent clip. It is closed when the clip is done.
+ */
+export function renderStoryVideo(opts: StoryExportOptions, durationMs = 8000, audioContext?: AudioContext): Promise<Blob | null> {
   return new Promise((resolve) => {
     const made = makeCanvas()
     const canCapture = made && typeof made.canvas.captureStream === 'function' && typeof MediaRecorder !== 'undefined'
     if (!made || !canCapture) {
+      void audioContext?.close().catch(() => { /* closed */ })
       resolve(null)
       return
     }
 
     let mimeType = ''
-    for (const candidate of ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']) {
+    for (const candidate of VIDEO_TYPES) {
       if (MediaRecorder.isTypeSupported?.(candidate)) {
         mimeType = candidate
         break
       }
     }
     if (!mimeType) {
+      void audioContext?.close().catch(() => { /* closed */ })
       resolve(null)
       return
     }
@@ -366,7 +392,8 @@ export function renderStoryVideo(opts: StoryExportOptions, durationMs = 8000): P
       // clips carry sound: the signal's voice (or real recording) + soft tape hiss
       let actx: AudioContext | null = null
       try {
-        actx = new AudioContext()
+        actx = audioContext ?? new AudioContext()
+        if (actx.state === 'suspended') await actx.resume().catch(() => { /* stays silent */ })
         const dest = actx.createMediaStreamDestination()
         const voiceBlob = opts.audioBlob ?? await renderSampleAudio('voice', opts.waveformSeed ?? 42, durationMs)
         if (voiceBlob) {
@@ -434,7 +461,18 @@ export function downloadBlob(blob: Blob, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 4000)
 }
 
-export function exportFilename(handle: string, kind: 'image' | 'video') {
+export function exportFilename(handle: string, kind: 'image' | 'video', mime = '') {
   const safe = handle.replace(/[^a-z0-9_-]+/gi, '_').slice(0, 30)
-  return `ecosphere-${safe}-${Date.now()}.${kind === 'video' ? 'webm' : 'png'}`
+  const ext = kind === 'image' ? 'png' : mime.includes('mp4') ? 'mp4' : 'webm'
+  return `ecosphere-${safe}-${Date.now()}.${ext}`
+}
+
+/** A File the native share sheet can hand to TikTok, Instagram, Messages… */
+export function shareableFile(blob: Blob, filename: string): File | null {
+  try {
+    const file = new File([blob], filename, { type: blob.type.split(';')[0] || 'application/octet-stream' })
+    return typeof navigator !== 'undefined' && navigator.canShare?.({ files: [file] }) ? file : null
+  } catch {
+    return null
+  }
 }
