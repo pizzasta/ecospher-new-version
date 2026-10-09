@@ -11,6 +11,7 @@ Real people talking in real time, anonymously, one voice at a time.
 - **Everyone:** can mute any voice for themselves, or report it (logged to `activity_events` as `signal_reported` with `live: true`, and the voice is muted for the reporter).
 - **Consent screen:** before the first join it covers the rules: not pre-screened, not recorded, no personal info, 18+, not a crisis service.
 - **Transport:** WebRTC audio goes straight between devices, from the speaker to each listener. Signaling and presence use Supabase Realtime (`live_<channel>`), carrying only random session keys. Nothing is stored.
+- **Signed messages:** every client makes a fresh P-256 key on join and publishes the public half in presence. Every state, action, audio offer and reaction is signed, and receivers drop anything that doesn't verify against the sender's key. Nobody can speak as the keeper or as anyone else, and a session key claimed twice in presence is not trusted.
 
 ## Turning it on
 

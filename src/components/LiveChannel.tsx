@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { joinLiveChannel, supabaseBus, localBus, LIVE_TURN_CAP_MS, LIVE_ROOM_LIMIT } from '../lib/liveChannel'
+import { joinLiveChannel, createLiveIdentity, supabaseBus, localBus, LIVE_TURN_CAP_MS, LIVE_ROOM_LIMIT } from '../lib/liveChannel'
 import type { LiveSession, LiveState, LivePeerMeta, LiveChannelInfo } from '../lib/liveChannel'
 import { readAvatar, sigilGlyph } from '../lib/avatar'
 import { mirrorActivity } from '../lib/backendBridge'
@@ -63,26 +63,34 @@ export default function LiveChannel({ channel, mode, onLeave }: {
 
   useEffect(() => {
     if (!consented) return undefined
-    const bus = mode === 'local' ? localBus(channel.id, me) : supabaseBus(channel.id, me)
-    if (!bus) { flash('live voice needs the backend — not configured here'); return undefined }
-    const session = joinLiveChannel(bus, me, {
-      onState: (s, k) => { setLive(s); setKeeperKey(k) },
-      onPeers: list => setPeers(list),
-      onAudio: (key, stream) => setStreams(prev => {
-        const next = { ...prev }
-        if (stream) next[key] = stream
-        else delete next[key]
-        return next
-      }),
-      onReaction: glyph => float(glyph),
-      onRemoved: () => { flash('the keeper removed you from this channel'); window.setTimeout(() => onLeaveRef.current(), 1800) },
-      onNotice: text => flash(text),
-    })
-    sessionRef.current = session
+    let cancelled = false
+    let session: LiveSession | null = null
     const tick = window.setInterval(() => setNow(Date.now()), 500)
+    // a fresh signing key per visit; its public half rides in presence
+    void createLiveIdentity(me).then(identity => {
+      if (cancelled) return
+      const bus = mode === 'local' ? localBus(channel.id, identity.meta) : supabaseBus(channel.id, identity.meta)
+      if (!bus) { flash('live voice needs the backend — not configured here'); return }
+      session = joinLiveChannel(bus, identity, {
+        onState: (s, k) => { setLive(s); setKeeperKey(k) },
+        onPeers: list => setPeers(list),
+        onAudio: (key, stream) => setStreams(prev => {
+          const next = { ...prev }
+          if (stream) next[key] = stream
+          else delete next[key]
+          return next
+        }),
+        onReaction: glyph => float(glyph),
+        onRemoved: () => { flash('the keeper removed you from this channel'); window.setTimeout(() => onLeaveRef.current(), 1800) },
+        onNotice: text => flash(text),
+        onEnded: () => { window.setTimeout(() => onLeaveRef.current(), 2400) },
+      })
+      sessionRef.current = session
+    }).catch(() => flash('this browser cannot start a secure live session'))
     return () => {
+      cancelled = true
       window.clearInterval(tick)
-      session.leave()
+      session?.leave()
       sessionRef.current = null
     }
   }, [consented, channel.id, me, mode])

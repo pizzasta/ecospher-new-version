@@ -23,7 +23,14 @@ export const LIVE_ROOM_LIMIT = 8
 
 const ICE_SERVERS: RTCIceServer[] = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }]
 
-export interface LivePeerMeta { key: string; sigil: string; color: string; joinedAt: number }
+export interface LivePeerMeta {
+  key: string
+  sigil: string
+  color: string
+  joinedAt: number
+  /** public signing key (P-256, JWK x/y as JSON); every message must verify against it */
+  pub?: string
+}
 
 export interface LiveState {
   room: RoomState
@@ -89,7 +96,7 @@ export function supabaseBus(channelId: string, me: LivePeerMeta): LiveBus | null
   let onMsg: (event: string, payload: Record<string, unknown>) => void = () => {}
   let onPeersCb: (peers: LivePeerMeta[]) => void = () => {}
   const channel = client.channel(`live_${channelId}`, { config: { presence: { key: me.key }, broadcast: { self: false } } })
-  for (const event of ['state', 'action', 'rtc', 'reaction']) {
+  for (const event of ['state', 'action', 'rtc', 'reaction', 'sync']) {
     channel.on('broadcast', { event }, ({ payload }) => onMsg(event, payload as Record<string, unknown>))
   }
   channel.on('presence', { event: 'sync' }, () => {
@@ -99,10 +106,12 @@ export function supabaseBus(channelId: string, me: LivePeerMeta): LiveBus | null
       sigil: metas[0]?.sigil ?? '◌',
       color: metas[0]?.color ?? '#8a93ad',
       joinedAt: typeof metas[0]?.joinedAt === 'number' ? metas[0].joinedAt : Date.now(),
+      // a key claimed twice is a spoof attempt: neither copy is trusted
+      pub: metas.length === 1 ? metas[0]?.pub : undefined,
     })))
   })
   channel.subscribe(status => {
-    if (status === 'SUBSCRIBED') void channel.track({ sigil: me.sigil, color: me.color, joinedAt: me.joinedAt })
+    if (status === 'SUBSCRIBED') void channel.track({ sigil: me.sigil, color: me.color, joinedAt: me.joinedAt, pub: me.pub })
   })
   return {
     send: (event, payload) => { void channel.send({ type: 'broadcast', event, payload }) },
@@ -155,6 +164,62 @@ export function localBus(channelId: string, me: LivePeerMeta): LiveBus {
   }
 }
 
+// ─── signed messages ─────────────────────────────────────────────────────────
+// Every message is signed with a per-session key whose public half travels in
+// presence. Receivers verify against the sender's published key, so nobody can
+// speak as the keeper (or anyone else) — forged state, removals, mic handoffs
+// and audio offers are dropped.
+
+export interface LiveIdentity { meta: LivePeerMeta; privateKey: CryptoKey }
+
+const SIGN_ALG = { name: 'ECDSA', hash: 'SHA-256' } as const
+
+export async function createLiveIdentity(base: Omit<LivePeerMeta, 'pub'>): Promise<LiveIdentity> {
+  const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify'])
+  const jwk = await crypto.subtle.exportKey('jwk', pair.publicKey)
+  return { meta: { ...base, pub: JSON.stringify({ x: jwk.x, y: jwk.y }) }, privateKey: pair.privateKey }
+}
+
+function canonical(event: string, from: string, body: unknown): Uint8Array<ArrayBuffer> {
+  return new Uint8Array(new TextEncoder().encode(JSON.stringify([event, from, body])))
+}
+
+function toB64(buf: ArrayBuffer): string {
+  let s = ''
+  for (const b of new Uint8Array(buf)) s += String.fromCharCode(b)
+  return btoa(s)
+}
+
+function fromB64(s: string): Uint8Array<ArrayBuffer> {
+  const bin = atob(s)
+  const out = new Uint8Array(new ArrayBuffer(bin.length))
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+  return out
+}
+
+export async function signMessage(key: CryptoKey, event: string, from: string, body: unknown): Promise<string> {
+  return toB64(await crypto.subtle.sign(SIGN_ALG, key, canonical(event, from, body)))
+}
+
+const importedKeys = new Map<string, Promise<CryptoKey>>()
+function importPub(pub: string): Promise<CryptoKey> {
+  let k = importedKeys.get(pub)
+  if (!k) {
+    const { x, y } = JSON.parse(pub) as { x: string; y: string }
+    k = crypto.subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', x, y, ext: true }, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify'])
+    importedKeys.set(pub, k)
+  }
+  return k
+}
+
+export async function verifyMessage(pub: string, event: string, from: string, body: unknown, sig: string): Promise<boolean> {
+  try {
+    return await crypto.subtle.verify(SIGN_ALG, await importPub(pub), fromB64(sig), canonical(event, from, body))
+  } catch {
+    return false
+  }
+}
+
 // ─── the live channel session ────────────────────────────────────────────────
 
 export interface LiveHandlers {
@@ -167,6 +232,8 @@ export interface LiveHandlers {
   onRemoved?: () => void
   /** the room is full, or the mic was refused, etc. */
   onNotice?: (text: string) => void
+  /** the session ended on its own (e.g. the channel was full) */
+  onEnded?: (reason: 'full') => void
 }
 
 export interface LiveSession {
@@ -187,13 +254,24 @@ type RtcMsg = { to: string; from: string; kind: 'offer' | 'answer' | 'ice'; sdp?
 
 export function joinLiveChannel(
   bus: LiveBus,
-  me: LivePeerMeta,
+  identity: LiveIdentity,
   handlers: LiveHandlers = {},
   getMic: () => Promise<MediaStream> = () => navigator.mediaDevices.getUserMedia({
     audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
   }),
 ): LiveSession {
+  const me = identity.meta
   let peers: LivePeerMeta[] = [me]
+  // sign in order, so one sender's messages never overtake each other
+  let sendChain: Promise<void> = Promise.resolve()
+  const post = (event: string, body: Record<string, unknown>) => {
+    sendChain = sendChain
+      .then(async () => {
+        const sig = await signMessage(identity.privateKey, event, me.key, body)
+        if (!closed) bus.send(event, { from: me.key, body, sig })
+      })
+      .catch(() => { /* a failed send is the same as a dropped packet */ })
+  }
   let keeperKey: string | null = me.key
   let state = createLiveState()
   let mic: MediaStream | null = null
@@ -209,7 +287,7 @@ export function joinLiveChannel(
 
   const publish = () => {
     handlers.onState?.(state, keeperKey)
-    if (isKeeper()) bus.send('state', { state, keeper: me.key })
+    if (isKeeper()) post('state', { state })
   }
 
   const apply = (action: LiveAction) => {
@@ -217,7 +295,7 @@ export function joinLiveChannel(
       const next = reduceLive(state, action)
       if (next !== state) { state = next; onStateChanged(); publish() }
     } else {
-      bus.send('action', { action, from: me.key })
+      post('action', { action })
     }
   }
 
@@ -238,7 +316,7 @@ export function joinLiveChannel(
     closePc(remote)
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS })
     pc.onicecandidate = e => {
-      if (e.candidate) bus.send('rtc', { to: remote, from: me.key, kind: 'ice', candidate: e.candidate.toJSON() } satisfies RtcMsg)
+      if (e.candidate) post('rtc', { to: remote, from: me.key, kind: 'ice', candidate: e.candidate.toJSON() } satisfies RtcMsg)
     }
     pcs.set(remote, pc)
     return pc
@@ -252,7 +330,7 @@ export function joinLiveChannel(
     for (const track of mic.getAudioTracks()) pc.addTrack(track, mic)
     const offer = await pc.createOffer()
     await pc.setLocalDescription(offer)
-    bus.send('rtc', { to: remote, from: me.key, kind: 'offer', sdp: offer.sdp } satisfies RtcMsg)
+    post('rtc', { to: remote, from: me.key, kind: 'offer', sdp: offer.sdp } satisfies RtcMsg)
   }
 
   const startBroadcasting = async () => {
@@ -303,7 +381,7 @@ export function joinLiveChannel(
       pendingIce.delete(m.from)
       const answer = await pc.createAnswer()
       await pc.setLocalDescription(answer)
-      bus.send('rtc', { to: m.from, from: me.key, kind: 'answer', sdp: answer.sdp } satisfies RtcMsg)
+      post('rtc', { to: m.from, from: me.key, kind: 'answer', sdp: answer.sdp } satisfies RtcMsg)
     } else if (m.kind === 'answer') {
       const pc = pcs.get(m.from)
       if (pc && pc.signalingState === 'have-local-offer') {
@@ -315,6 +393,58 @@ export function joinLiveChannel(
       const pc = pcs.get(m.from)
       if (pc?.remoteDescription) await pc.addIceCandidate(m.candidate)
       else pendingIce.set(m.from, [...(pendingIce.get(m.from) ?? []), m.candidate])
+    }
+  }
+
+  // ── receiving: verify every message against its sender's published key ──
+  type Envelope = { event: string; from: string; body: Record<string, unknown>; sig: string; at: number }
+  let unverified: Envelope[] = []
+  let recvChain: Promise<void> = Promise.resolve()
+
+  const receive = (env: Envelope) => {
+    recvChain = recvChain.then(async () => {
+      if (closed) return
+      const sender = peers.find(p => p.key === env.from)
+      if (!sender?.pub) {
+        // presence may not have caught up yet; hold briefly, then give up
+        if (Date.now() - env.at < 10_000) unverified = [...unverified.slice(-49), env]
+        return
+      }
+      if (!(await verifyMessage(sender.pub, env.event, env.from, env.body, env.sig))) return
+      dispatch(env.event, env.from, env.body)
+    }).catch(() => { /* one bad message never stalls the queue */ })
+  }
+
+  function retryUnverified() {
+    const held = unverified
+    unverified = []
+    for (const env of held) receive(env)
+  }
+
+  const dispatch = (event: string, from: string, body: Record<string, unknown>) => {
+    if (closed || from === me.key) return
+    if (event === 'state') {
+      if (isKeeper() || from !== keeperKey) return
+      const incoming = body.state as LiveState
+      if (incoming.rev < state.rev) return
+      state = incoming
+      onStateChanged()
+      handlers.onState?.(state, keeperKey)
+    } else if (event === 'sync') {
+      if (isKeeper()) publish()
+    } else if (event === 'action') {
+      if (!isKeeper()) return
+      const action = body.action as LiveAction
+      // others may only request, pass or leave — and only for their own key
+      const ownKey = action.type === 'request' || action.type === 'yield' || action.type === 'leave'
+      if (!ownKey || action.key !== from) return
+      apply(action)
+    } else if (event === 'rtc') {
+      const m = body as unknown as RtcMsg
+      if (m.from !== from) return
+      void handleRtc(m).catch(() => { /* a failed path just stays silent */ })
+    } else if (event === 'reaction') {
+      handlers.onReaction?.(String(body.glyph), from)
     }
   }
 
@@ -330,6 +460,7 @@ export function joinLiveChannel(
     if (ordered.findIndex(p => p.key === me.key) >= LIVE_ROOM_LIMIT) {
       handlers.onNotice?.('this channel is full — try another frequency')
       leave()
+      handlers.onEnded?.('full')
       return
     }
     if (isKeeper()) {
@@ -343,33 +474,18 @@ export function joinLiveChannel(
       publish()
     } else if (prevKeeper !== keeperKey) {
       handlers.onState?.(state, keeperKey)
+      // we may have discarded the keeper's snapshot while we thought we were keeper
+      post('sync', {})
     }
+    retryUnverified()
     // a carrier sends audio to anyone who just arrived; closes paths to anyone gone
     if (amCarrier()) void startBroadcasting()
     for (const key of [...pcs.keys()]) if (!withMe.some(p => p.key === key)) closePc(key)
   })
 
   bus.onMessage((event, payload) => {
-    if (closed) return
-    if (event === 'state') {
-      if (isKeeper() || payload.keeper !== keeperKey) return
-      const incoming = payload.state as LiveState
-      if (incoming.rev < state.rev) return
-      state = incoming
-      onStateChanged()
-      handlers.onState?.(state, keeperKey)
-    } else if (event === 'action') {
-      if (!isKeeper()) return
-      const action = payload.action as LiveAction
-      // others may only request, pass or leave — and only for their own key
-      const ownKey = action.type === 'request' || action.type === 'yield' || action.type === 'leave'
-      if (!ownKey || action.key !== payload.from) return
-      apply(action)
-    } else if (event === 'rtc') {
-      void handleRtc(payload as unknown as RtcMsg).catch(() => { /* a failed path just stays silent */ })
-    } else if (event === 'reaction') {
-      handlers.onReaction?.(String(payload.glyph), String(payload.key))
-    }
+    if (closed || typeof payload.from !== 'string' || typeof payload.sig !== 'string') return
+    receive({ event, from: payload.from, body: (payload.body ?? {}) as Record<string, unknown>, sig: payload.sig, at: Date.now() })
   })
 
   // the keeper enforces the turn cap
@@ -398,7 +514,7 @@ export function joinLiveChannel(
     },
     cut: () => { if (isKeeper()) apply({ type: 'clear' }) },
     remove: (key: string) => { if (isKeeper() && key !== me.key) apply({ type: 'remove', key }) },
-    react: (glyph: string) => bus.send('reaction', { glyph, key: me.key }),
+    react: (glyph: string) => post('reaction', { glyph }),
     leave,
   }
 }
