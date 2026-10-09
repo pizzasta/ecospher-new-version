@@ -6,6 +6,9 @@ import { temporalWindow } from '../lib/temporalWindow'
 import { futureSignals } from '../lib/futureSignals'
 import GroupConversations from './GroupConversations'
 import CarrierRoom from './CarrierRoom'
+import LiveChannel from './LiveChannel'
+import { LIVE_CHANNELS, liveVoiceMode } from '../lib/liveChannel'
+import type { LiveChannelInfo } from '../lib/liveChannel'
 import DormantFrequencies from './DormantFrequencies'
 import RoomAtmosphere from './RoomAtmosphere'
 import { quietFor } from '../lib/dormantRooms'
@@ -291,6 +294,9 @@ function roomHash(id: string): number {
 
 export default function RoomsScreen() {
   const [carrierRoom, setCarrierRoom] = useState<{ label: string; hz: string; seed: number } | null>(null)
+  // live voice is opt-in while in beta (?livevoice=1 turns it on for this browser)
+  const [liveMode] = useState(liveVoiceMode)
+  const [liveChannel, setLiveChannel] = useState<LiveChannelInfo | null>(null)
   const [reopened, setReopened] = useState<DormantRoom | null>(null)
   const [pulling, setPulling] = useState(true)
 
@@ -344,6 +350,14 @@ export default function RoomsScreen() {
     )
   }
 
+  if (liveChannel && liveMode !== 'off') {
+    return (
+      <div className="rooms-eco rooms-eco--inroom">
+        <LiveChannel channel={liveChannel} mode={liveMode} onLeave={() => setLiveChannel(null)} />
+      </div>
+    )
+  }
+
   if (carrierRoom) {
     return (
       <div className="rooms-eco rooms-eco--inroom">
@@ -374,6 +388,22 @@ export default function RoomsScreen() {
           </div>
         ) : (
         <>
+        {liveMode !== 'off' && (
+          <>
+            <div className="rooms-section-label">LIVE VOICE · BETA{liveMode === 'local' ? ' · LOCAL TEST' : ''}</div>
+            <div className="lv-entry">
+              {LIVE_CHANNELS.map(c => (
+                <button key={c.id} type="button" className="lv-entry-card" onClick={() => setLiveChannel(c)}>
+                  <div>
+                    <strong>● {c.name}</strong>
+                    <span>{c.topic}</span>
+                  </div>
+                  <span>{c.hz}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
         <div className="rooms-section-label">ACTIVE FREQUENCIES</div>
         <GroupConversations />
 
