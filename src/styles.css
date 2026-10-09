@@ -10371,3 +10371,33 @@ body[data-eco-text='large'] #root { zoom: 1.14; }
   height: auto;
   width: auto;
 }
+
+/* phones have no hover: the card's action row (keep / export / duet / report /
+   fade) must always be reachable there, and for keyboard users on focus */
+.card-export-row { flex-wrap: wrap; }
+.card-export-row:focus-within { opacity: 1; transform: none; pointer-events: auto; }
+@media (hover: none) {
+  .card-export-row,
+  .action-btn--export,
+  .action-btn--later,
+  .action-btn--report,
+  .action-btn--fade { opacity: 1; transform: none; pointer-events: auto; }
+}
+
+/* clip export: share-out row */
+.export-share-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 14px 0 10px; }
+.export-share-btn {
+  min-height: 44px; padding: 0 18px; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 700; letter-spacing: 0.05em;
+  border: 1px solid var(--mood-color, #ff2d78);
+  background: color-mix(in srgb, var(--mood-color, #ff2d78) 22%, transparent); color: #fff;
+}
+.export-share-btn--ghost { background: transparent; border-color: rgba(255, 255, 255, 0.2); color: rgba(223, 230, 245, 0.85); }
+
+.lp-capsule-hint--locked { color: #ffb4c8; animation: capsule-locked-shake 0.38s ease; }
+@keyframes capsule-locked-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+@media (prefers-reduced-motion: reduce) { .lp-capsule-hint--locked { animation: none; } }

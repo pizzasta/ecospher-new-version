@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useEcosystemState } from './hooks/useEcosystemState'
 import { useGlobalAudio } from './hooks/useGlobalAudio'
 import VoiceReactionStack from './components/VoiceReactions'
-import { HOOK_POOL, downloadBlob, exportFilename, renderStoryImage, renderStoryVideo } from './lib/storyExport'
+import { HOOK_POOL, downloadBlob, exportFilename, renderStoryImage, renderStoryVideo, shareableFile } from './lib/storyExport'
 import type { ExportScene } from './lib/storyExport'
-import { playSample } from './lib/sampleAudio'
+import { playSample, renderSampleAudio } from './lib/sampleAudio'
+import DuetModal from './components/DuetModal'
+import { DUET_MAX_MS, duetCaption } from './lib/duet'
+import type { DuetResult } from './lib/duet'
 import { speakSignal, speechSupported, estimateSpeechMs } from './lib/speech'
 import { listenerCount, livedInLines } from './lib/livedIn'
 import { AUTHOR_BLOCKED_EVENT, blockSignalAuthor, fetchPublicSignals, fileContentReport, filterVisibleSignalIds, loadBlockHidden, mirrorActivity, storeBlockHidden, mirrorSignalFade, publishSignalToFeed, publishVoiceSignalToFeed, mirrorReaction } from './lib/backendBridge'
@@ -23,7 +27,7 @@ import FamiliarFrequency from './components/FamiliarFrequency'
 import { recordCrossing } from './lib/familiarFrequency'
 import { wordReactionsFor } from './lib/wordReactions'
 import { MY_POSTS_KEY } from './lib/postRelics'
-import { createVoiceRecorder, micErrorReason } from './lib/audioBudget'
+import { AUDIO_BUDGET, createVoiceRecorder, micErrorReason } from './lib/audioBudget'
 import { saveRecordingLocally, listLocalRecordings } from './lib/localAudioStore'
 import { publicHandle, anonymousMode } from './lib/anonymity'
 
@@ -70,6 +74,8 @@ type FeedSignal = {
   audioUrl?: string
   remote?: boolean
   postedAt?: number
+  /** handle this signal answers as a duet */
+  duetOf?: string
 }
 
 // ─── Local feed posts (what you upload to the feed) ─────────────────────────
@@ -87,6 +93,25 @@ function storeMyPost(sig: FeedSignal) {
 async function postBlob(audioId: string): Promise<Blob | null> {
   try { return (await listLocalRecordings()).find(r => r.id === audioId)?.blob ?? null } catch { return null }
 }
+// the sound a signal carries: your own recording, the network clip, or its
+// synthesized voice — used to duet over it and to give exported clips sound
+async function signalAudioBlob(signal: FeedSignal, maxMs = DUET_MAX_MS): Promise<Blob | null> {
+  if (signal.audioId) {
+    const own = await postBlob(signal.audioId)
+    if (own) return own
+  }
+  if (signal.audioUrl) {
+    try {
+      const res = await fetch(signal.audioUrl)
+      if (res.ok) return await res.blob()
+    } catch { /* fall through to the synthesized voice */ }
+  }
+  const kind = signal.mood === 'static' || signal.status === 'corrupted' ? 'static' : 'voice'
+  return renderSampleAudio(kind, signal.waveformSeed, Math.min(maxMs, durationToMs(signal.duration)))
+}
+
+const DUET_TAG = /^duet ⧉ @(\S+)/
+
 // derive a mood from what was written, so a post lands in the right band
 function moodFromText(text: string): Mood {
   const t = text.toLowerCase()
@@ -274,6 +299,10 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
   const [exporting, setExporting] = useState<ExportType | null>(null)
   const [done, setDone] = useState(false)
   const [exportError, setExportError] = useState(false)
+  const [packaged, setPackaged] = useState<{ blob: Blob; name: string; file: File | null } | null>(null)
+  const [shareNote, setShareNote] = useState<string | null>(null)
+  const siteLink = typeof window !== 'undefined' ? window.location.host : 'ecosphere'
+  const signalLink = typeof window !== 'undefined' ? `${window.location.origin}/signals` : ''
   const [scene, setScene] = useState<ExportScene>('void')
   const [hookIndex, setHookIndex] = useState(() => signal.waveformSeed % (HOOK_POOL.length + 1))
   const colors = MOOD_COLORS[signal.mood]
@@ -292,19 +321,28 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
       waveformSeed: signal.waveformSeed,
       scene,
       hook: hook ?? undefined,
+      link: siteLink,
     }
 
-    // vertical clip when the browser can record canvas; story card otherwise
+    // vertical clip with the signal's real sound when the browser can record
+    // canvas; a story card otherwise
     let kind: 'video' | 'image' = 'image'
     let blob: Blob | null = null
     if (type === 'tiktok' || type === 'story') {
-      blob = await renderStoryVideo(opts, 4500)
+      const clipMs = Math.min(DUET_MAX_MS, Math.max(6000, durationToMs(signal.duration)))
+      const audioBlob = await signalAudioBlob(signal, clipMs).catch(() => null)
+      blob = await renderStoryVideo({ ...opts, audioBlob: audioBlob ?? undefined }, clipMs)
       if (blob) kind = 'video'
     }
     if (!blob) blob = await renderStoryImage(opts)
 
     if (blob) {
-      downloadBlob(blob, exportFilename(signal.handle, kind))
+      const name = exportFilename(signal.handle, kind, blob.type)
+      const file = shareableFile(blob, name)
+      // phones get the native share sheet (TikTok, Reels, Stories, Messages);
+      // everywhere else the clip lands in downloads
+      if (!file) downloadBlob(blob, name)
+      setPackaged({ blob, name, file })
       setDone(true)
     } else {
       setExportError(true)
@@ -320,7 +358,8 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
     { type: 'remix',  label: 'Remix Frequency',   icon: '≋' },
   ]
 
-  return (
+  // portaled to <body>: inside the feed's stacking context the bottom nav sat on top of it
+  return createPortal(
     <div className="export-modal-overlay" onClick={onClose}>
       <div className="export-modal" style={{ '--mood-glow': colors.glow, '--mood-color': colors.primary } as React.CSSProperties} onClick={e => e.stopPropagation()}>
         {!exporting ? (
@@ -383,18 +422,86 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
         ) : (
           <div className="export-success">
             <div className="export-success-icon" style={{ color: colors.primary }}>◈</div>
-            <div className="export-success-text">signal packaged successfully</div>
-            <div className="export-success-sub">saved to your downloads · ready for transmission</div>
+            <div className="export-success-text">clip packaged · ready to go out</div>
+            <div className="export-success-sub">{packaged?.file ? 'send it straight to TikTok, Reels or Stories' : 'saved to your downloads · post it anywhere'}</div>
+            <div className="export-share-row">
+              {packaged?.file && (
+                <button
+                  type="button"
+                  className="export-share-btn"
+                  onClick={() => {
+                    const file = packaged.file
+                    if (!file) return
+                    navigator.share({ files: [file], title: 'ecosphere', text: `heard on ecosphere ∿ ${signalLink}` })
+                      .then(() => setShareNote('sent ∿'))
+                      .catch((err: unknown) => { if ((err as Error)?.name !== 'AbortError') setShareNote('share didn’t open — saved instead'); if ((err as Error)?.name !== 'AbortError') downloadBlob(packaged.blob, packaged.name) })
+                  }}
+                >
+                  ↗ share clip
+                </button>
+              )}
+              {packaged?.file && (
+                <button type="button" className="export-share-btn export-share-btn--ghost" onClick={() => downloadBlob(packaged.blob, packaged.name)}>
+                  ⤓ save
+                </button>
+              )}
+              <button
+                type="button"
+                className="export-share-btn export-share-btn--ghost"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(signalLink).then(() => setShareNote('link copied'), () => setShareNote(signalLink))
+                }}
+              >
+                ⧉ copy link
+              </button>
+            </div>
+            {shareNote && <div className="export-success-sub" role="status">{shareNote}</div>}
             <button className="export-close-btn" onClick={onClose}>close</button>
           </div>
         )}
         <button className="export-modal-close" onClick={onClose}>✕</button>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
+// publish a duet as a voice signal: same upload path, limits and screening
+async function postDuet(original: FeedSignal, res: DuetResult, words: string, onPost: (sig: FeedSignal) => void): Promise<boolean> {
+  const extra = words.trim().replace(/\s+/g, ' ')
+  if (extra && moderatePublicSignalText(extra).status === 'flagged') return false
+  const who = original.anonymous ? 'anonymous' : original.handle
+  const caption = duetCaption(who, extra)
+  const anon = anonymousMode()
+  const secs = Math.max(1, Math.round(res.durationMs / 1000))
+  let id: string = crypto.randomUUID?.() ?? `duet-${Date.now()}`
+  let remote = false
+  const published = await publishVoiceSignalToFeed(res.blob, caption, original.mood, anon, secs)
+  if (published.id) { id = published.id; remote = true }
+  await saveRecordingLocally({ id, label: caption.slice(0, 40), durationMs: res.durationMs, emotionalTag: 'duet', createdAt: Date.now(), blob: res.blob }).catch(() => { /* session only */ })
+  onPost({
+    id,
+    handle: anon ? 'you · anonymous' : publicHandle(),
+    timeAgo: 'just now',
+    content: caption,
+    mood: original.mood,
+    resonance: 72,
+    anonymous: anon,
+    duration: `0:${String(secs).padStart(2, '0')}`,
+    type: 'voice_note',
+    status: 'live',
+    emotionalBand: 'duet',
+    waveformSeed: (original.waveformSeed * 7 + secs) % 9973,
+    mine: true,
+    audioId: id,
+    remote,
+    postedAt: Date.now(),
+    duetOf: who,
+  })
+  return true
+}
+
 // ─── Signal Card Component ────────────────────────────────────────────────────
-function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, livePulse = false }: { signal: FeedSignal; index: number; decayRemaining: number | null; dissolving: boolean; presenceTick: number; livePulse?: boolean }) {
+function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, livePulse = false, onPost }: { signal: FeedSignal; index: number; decayRemaining: number | null; dissolving: boolean; presenceTick: number; livePulse?: boolean; onPost?: (sig: FeedSignal) => void }) {
   const { ecosystemState, saveSignal, unsaveFromLibrary, reactToSignal } = useEcosystemState()
   const globalAudio = useGlobalAudio()
   // your Hz — what the relay folds into the signal's chorus
@@ -404,6 +511,8 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
   const [textVisible, setTextVisible] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [showExport, setShowExport] = useState(false)
+  const [showDuet, setShowDuet] = useState(false)
+  const duetWith = signal.duetOf ?? DUET_TAG.exec(signal.content)?.[1] ?? null
   const [reporting, setReporting] = useState(false)
   const [tagPicker, setTagPicker] = useState(false)
   const [marked, setMarked] = useState<string | null>(() => listReturns().find(m => m.id === signal.id)?.tag ?? null)
@@ -510,7 +619,9 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
   const [decay, setDecay] = useState(() => (signal.status === 'corrupted' || signal.mine ? 0 : decayLevel(signal.id)))
   const heat = useMemo(() => heatFor(signal.id), [signal.id])
   const lifeLine = useMemo(() => (index % 3 === 0 ? whyFoundYou(signal.id) : index % 3 === 1 ? presenceLine(signal.id) : null), [signal.id, index])
-  const decayedContent = useMemo(() => decayText(signal.content, decay, signal.id), [signal.content, decay, signal.id])
+  // duets carry their tag in the caption; the card shows it as a badge instead
+  const bodyText = duetWith ? (signal.content.replace(/^duet ⧉ @\S+(?: — )?/, '').trim() || 'two voices on one line.') : signal.content
+  const decayedContent = useMemo(() => decayText(bodyText, decay, signal.id), [bodyText, decay, signal.id])
 
   const displayText = useTypewriter(decayedContent, !!(signal.typewriterEffect && textVisible))
 
@@ -575,6 +686,7 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
               )}
             </div>
           </div>
+          {duetWith && <span className="card-duet-tag">⧉ duet with @{duetWith}</span>}
           <div className="card-meta-row">
             <span className="card-type-label">{SIGNAL_TYPE_LABELS[signal.type]}</span>
             <span className="card-band" style={{ color: colors.primary }}>{signal.emotionalBand}</span>
@@ -703,6 +815,16 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
           >
             <span>⬡</span> export signal
           </button>
+          {onPost && !isCorrupted && (
+            <button
+              className="action-btn action-btn--duet"
+              style={{ '--btn-color': colors.primary } as React.CSSProperties}
+              onClick={() => setShowDuet(true)}
+              title="record your voice layered over this signal"
+            >
+              <span>⧉</span> duet
+            </button>
+          )}
           <button
             className={`action-btn action-btn--later${marked ? ' action-btn--saved' : ''}`}
             style={{ '--btn-color': colors.primary } as React.CSSProperties}
@@ -779,6 +901,16 @@ function SignalCard({ signal, index, decayRemaining, dissolving, presenceTick, l
         )}
       </div>
       {showExport && <ExportModal signal={signal} onClose={() => setShowExport(false)} />}
+      {showDuet && onPost && (
+        <DuetModal
+          handle={signal.anonymous ? 'anonymous' : signal.handle}
+          line={signal.content}
+          color={colors.primary}
+          loadOriginal={() => signalAudioBlob(signal)}
+          onPost={(res, words) => postDuet(signal, res, words, onPost)}
+          onClose={() => setShowDuet(false)}
+        />
+      )}
     </>
   )
 }
@@ -928,7 +1060,7 @@ function FeedComposer({ onPost }: { onPost: (s: FeedSignal) => void }) {
       timerRef.current = window.setInterval(() => {
         const ms = Date.now() - startedRef.current
         setRecMs(ms)
-        if (ms >= 30000) stopRec()
+        if (ms >= AUDIO_BUDGET.maxNoteSeconds * 1000) stopRec()
       }, 200)
     } catch (err) {
       const reason = micErrorReason(err)
@@ -941,6 +1073,8 @@ function FeedComposer({ onPost }: { onPost: (s: FeedSignal) => void }) {
   const post = async () => {
     const body = text.trim().replace(/\s+/g, ' ')
     if (!body && !draftBlob) { setError('say something, or record a moment'); return }
+    // the network drops clips under 3s, so catch it here instead of silently
+    if (draftBlob && recMs < 3000) { setError('voice needs at least 3 seconds to carry'); return }
     if (body) {
       if (words < 3 || words > 40) { setError('keep it between 3 and 40 words'); return }
       if (moderatePublicSignalText(body).status === 'flagged') { setError('that one stays unsent — it didn’t pass screening'); return }
@@ -970,7 +1104,7 @@ function FeedComposer({ onPost }: { onPost: (s: FeedSignal) => void }) {
       mood,
       resonance: 70,
       anonymous: anon,
-      duration: draftBlob ? `0:${String(Math.min(30, Math.round(durMs / 1000))).padStart(2, '0')}` : `0:${String(10 + (words % 30)).padStart(2, '0')}`,
+      duration: draftBlob ? `0:${String(Math.min(AUDIO_BUDGET.maxNoteSeconds, Math.round(durMs / 1000))).padStart(2, '0')}` : `0:${String(10 + (words % 30)).padStart(2, '0')}`,
       type: draftBlob ? 'voice_note' : 'drifting_thought',
       status: 'live',
       emotionalBand: 'yours',
@@ -1272,6 +1406,7 @@ export default function FeedScreen() {
                 dissolving={dissolving.includes(signal.id)}
                 presenceTick={Math.floor(decayNow / 8000)}
                 livePulse={livePulseId === signal.id}
+                onPost={handlePost}
               />
             )
           })}
