@@ -15,20 +15,21 @@ Real people talking in real time, anonymously, one voice at a time.
 
 ## Turning it on
 
-It's off for everyone by default.
+It's on for everyone when Supabase is configured, and still labelled beta. Per-browser overrides:
 
-- `?livevoice=1` turns it on for that browser (uses Supabase Realtime when configured).
+- `?livevoice=0` turns it off for that browser.
 - `?livevoice=local` uses a same-browser test bus, so two tabs can talk without a backend.
-- `?livevoice=0` turns it off again.
+- `?livevoice=1` clears any override.
 
 ## Testing with two phones
 
-1. Open the site with `?livevoice=1` on both phones.
+1. Open the site on both phones.
 2. On both, go to Channels → after hours.
 3. On phone A, request the mic, then hold to talk. Phone B should hear it.
 
-## Known limits before a public launch
+## Known limits
 
+- **IP addresses are visible to peers.** Peer-to-peer audio exposes each device's IP address to others in the channel. This is disclosed on the consent screen and in the privacy policy. Routing all audio through a TURN relay (`iceTransportPolicy: 'relay'`) would hide it.
 - **No TURN server.** Calls use public STUN only, so some strict networks (some cellular carriers, corporate Wi-Fi) won't connect. Add a TURN service (for example Twilio Network Traversal or Cloudflare Calls TURN) before launch.
 - **Peer-to-peer mesh.** The speaker uploads one stream per listener, which is fine for 8 people. Bigger rooms need an SFU (for example LiveKit).
 - **Removal is per session.** Session keys are random, so a removed person can rejoin by reloading. Tie keys to the signed-in account and keep a server-side ban list before launch.

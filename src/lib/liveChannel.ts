@@ -534,18 +534,20 @@ export const LIVE_CHANNELS: LiveChannelInfo[] = [
 const FLAG_KEY = 'ecosphere:liveVoice'
 
 /**
- * Live voice is opt-in while it's being tested: visit any page with
- * ?livevoice=1 to turn it on for this browser (?livevoice=0 turns it off).
+ * Live voice is on for everyone when the backend is configured (still labelled
+ * beta). Per-browser overrides: ?livevoice=0 turns it off, ?livevoice=local
+ * uses the same-browser test bus, ?livevoice=1 clears any override.
  * Returns 'off', 'on' (Supabase realtime) or 'local' (same-browser test bus).
  */
 export function liveVoiceMode(): 'off' | 'on' | 'local' {
+  let override: string | null = null
   try {
     const param = new URLSearchParams(window.location.search).get('livevoice')
-    if (param === '1' || param === 'local') window.localStorage.setItem(FLAG_KEY, param === 'local' ? 'local' : 'on')
-    if (param === '0') window.localStorage.removeItem(FLAG_KEY)
-    const v = window.localStorage.getItem(FLAG_KEY)
-    if (v === 'local') return 'local'
-    if (v === 'on') return isSupabaseConfigured ? 'on' : 'local'
-  } catch { /* storage unavailable */ }
-  return 'off'
+    if (param === 'local' || param === '0') window.localStorage.setItem(FLAG_KEY, param === 'local' ? 'local' : 'off')
+    if (param === '1') window.localStorage.removeItem(FLAG_KEY)
+    override = window.localStorage.getItem(FLAG_KEY)
+  } catch { /* storage unavailable — fall back to the default */ }
+  if (override === 'local') return 'local'
+  if (override === 'off') return 'off'
+  return isSupabaseConfigured ? 'on' : 'off'
 }

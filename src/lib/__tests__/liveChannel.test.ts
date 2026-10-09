@@ -72,16 +72,18 @@ describe('beta flag', () => {
     window.history.replaceState(null, '', '/')
   })
 
-  it('is off unless turned on', () => {
+  it('is off when there is no backend to carry it', () => {
     expect(liveVoiceMode()).toBe('off')
   })
 
-  it('turns on with ?livevoice=1 (local test bus without a backend) and off with ?livevoice=0', () => {
-    window.history.replaceState(null, '', '/rooms?livevoice=1')
+  it('?livevoice=local switches to the same-browser test bus and ?livevoice=0 turns it off', () => {
+    window.history.replaceState(null, '', '/rooms?livevoice=local')
     expect(liveVoiceMode()).toBe('local')
     window.history.replaceState(null, '', '/rooms')
     expect(liveVoiceMode()).toBe('local')
     window.history.replaceState(null, '', '/rooms?livevoice=0')
     expect(liveVoiceMode()).toBe('off')
+    window.history.replaceState(null, '', '/rooms?livevoice=1')
+    expect(liveVoiceMode()).toBe('off') // override cleared → default (no backend in tests)
   })
 })

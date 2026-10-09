@@ -11,7 +11,7 @@ import './LiveChannel.css'
 // recorded. The keeper (longest in the room) can cut the mic or remove
 // someone; anyone can mute or report a voice for themselves.
 
-const CONSENT_KEY = 'ecosphere:liveVoiceConsent:v1'
+const CONSENT_KEY = 'ecosphere:liveVoiceConsent:v2'
 const COLORS = ['#9ae8ff', '#ff6fae', '#b78bff', '#7dffc4', '#ffd36f', '#ff9a6f']
 const REACTIONS = ['∿', '◉', '✦', '↺']
 const REPORT_REASONS = ['harassment', 'sexual content', 'child safety', 'hate', 'spam', 'other']
@@ -138,7 +138,7 @@ export default function LiveChannel({ channel, mode, onLeave }: {
           <ul className="lv-rules">
             <li>these are <strong>real people, live</strong>. nothing here is pre-screened.</li>
             <li>you join <strong>listen-only</strong>. to talk, request the mic, then hold to talk.</li>
-            <li><strong>nothing is recorded</strong>. voices go straight between devices.</li>
+            <li><strong>nothing is recorded</strong>. voices go straight between devices — which means others in the channel can see your device's network (IP) address, and that can reveal your rough area. skip live voice if that matters to you.</li>
             <li>never share your name, location, socials or anything that identifies you.</li>
             <li>mute or report any voice in one tap. the keeper can cut the mic or remove someone.</li>
             <li>18+ only. not a crisis service — if you're in danger, call your local emergency number (U.S.: 988).</li>
