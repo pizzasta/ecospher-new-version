@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { webglAvailable } from '../lib/scene3d'
 import type { Scene3D } from '../lib/scene3d'
 import type { NodeStage } from '../lib/node3dEngine'
+import type { VoiceGenome } from '../lib/voiceGenome'
 import { micErrorReason } from '../lib/audioBudget'
 import './Node3D.css'
 
@@ -16,8 +17,10 @@ const prefersReducedMotion = () => {
  * `listen` adds the "let it hear you" toggle: the sigil pulses to your voice's
  * loudness, measured on-device. Nothing is recorded or sent.
  */
-export default function Node3D({ sigil, scene, colors, fallback, listen = false, className = '', label }: {
+export default function Node3D({ sigil, scene, colors, fallback, listen = false, className = '', label, genome }: {
   sigil: string
+  /** the voice-born form's genome, used when sigil is 'voice' */
+  genome?: VoiceGenome
   scene: Scene3D
   colors: [string, string, string]
   fallback?: ReactNode
@@ -27,8 +30,8 @@ export default function Node3D({ sigil, scene, colors, fallback, listen = false,
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stageRef = useRef<NodeStage | null>(null)
-  const latest = useRef({ sigil, scene, colors })
-  latest.current = { sigil, scene, colors }
+  const latest = useRef({ sigil, scene, colors, genome })
+  latest.current = { sigil, scene, colors, genome }
   const [failed, setFailed] = useState(() => !webglAvailable())
   // bumped when the browser takes the GL context back (phones do this when two
   // are live at once) so the stage is rebuilt instead of freezing or flashing
@@ -64,8 +67,8 @@ export default function Node3D({ sigil, scene, colors, fallback, listen = false,
   }, [failed, epoch])
 
   useEffect(() => {
-    stageRef.current?.update({ sigil, scene, colors, reducedMotion: prefersReducedMotion() })
-  }, [sigil, scene, colors])
+    stageRef.current?.update({ sigil, scene, colors, genome, reducedMotion: prefersReducedMotion() })
+  }, [sigil, scene, colors, genome])
 
   useEffect(() => () => micRef.current?.stop(), [])
 
