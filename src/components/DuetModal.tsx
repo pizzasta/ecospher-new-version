@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { DUET_MAX_MS, DUET_MIN_MS, duetSupported, startDuet } from '../lib/duet'
+import { DUET_MAX_MS, DUET_MIN_MS, duetSupported, openDuetAudio, startDuet } from '../lib/duet'
 import type { DuetResult, DuetSession } from '../lib/duet'
 import { micErrorReason } from '../lib/audioBudget'
 import './DuetModal.css'
@@ -43,12 +43,18 @@ export default function DuetModal({ handle, line, color, loadOriginal, onPost, o
   const begin = async () => {
     setError(null)
     if (!duetSupported()) { setError('this browser can’t record a duet'); return }
+    // the audio context is born inside this tap, before any await (iOS Safari)
+    let ctx: AudioContext
+    try { ctx = openDuetAudio() } catch { setError('this browser can’t record a duet'); return }
     setPhase('loading')
     const original = await loadOriginal().catch(() => null)
-    if (!mountedRef.current) return
-    if (!original) { setError('couldn’t pull this signal’s audio — try another'); setPhase('ready'); return }
+    if (!mountedRef.current || !original) {
+      void ctx.close().catch(() => { /* closed */ })
+      if (mountedRef.current) { setError('couldn’t pull this signal’s audio — try another'); setPhase('ready') }
+      return
+    }
     try {
-      const session = await startDuet(original, t => { if (mountedRef.current) setMs(t) })
+      const session = await startDuet(ctx, original, t => { if (mountedRef.current) setMs(t) })
       if (!mountedRef.current) { session.stop(); return }
       sessionRef.current = session
       setMs(0)

@@ -329,9 +329,12 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
     let kind: 'video' | 'image' = 'image'
     let blob: Blob | null = null
     if (type === 'tiktok' || type === 'story') {
+      // made inside the tap, before any await, so mobile Safari lets it make sound
+      let actx: AudioContext | undefined
+      try { actx = new AudioContext(); void actx.resume().catch(() => { /* resumed later */ }) } catch { actx = undefined }
       const clipMs = Math.min(DUET_MAX_MS, Math.max(6000, durationToMs(signal.duration)))
       const audioBlob = await signalAudioBlob(signal, clipMs).catch(() => null)
-      blob = await renderStoryVideo({ ...opts, audioBlob: audioBlob ?? undefined }, clipMs)
+      blob = await renderStoryVideo({ ...opts, audioBlob: audioBlob ?? undefined }, clipMs, actx)
       if (blob) kind = 'video'
     }
     if (!blob) blob = await renderStoryImage(opts)
@@ -449,7 +452,9 @@ function ExportModal({ signal, onClose }: { signal: FeedSignal; onClose: () => v
                 type="button"
                 className="export-share-btn export-share-btn--ghost"
                 onClick={() => {
-                  void navigator.clipboard?.writeText(signalLink).then(() => setShareNote('link copied'), () => setShareNote(signalLink))
+                  // no clipboard (older browsers, non-https): show the link to copy by hand
+                  if (!navigator.clipboard?.writeText) { setShareNote(signalLink); return }
+                  void navigator.clipboard.writeText(signalLink).then(() => setShareNote('link copied'), () => setShareNote(signalLink))
                 }}
               >
                 ⧉ copy link

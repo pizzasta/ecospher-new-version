@@ -43,15 +43,29 @@ export function duetSupported(): boolean {
     && !!navigator.mediaDevices?.getUserMedia
 }
 
-/**
- * Start a duet over `original`. Throws if the mic can't open (callers map
- * the error with micErrorReason). Stops itself at DUET_MAX_MS.
- */
-export async function startDuet(original: Blob, onTick?: (ms: number) => void): Promise<DuetSession> {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-  })
+/** Make the duet's AudioContext synchronously inside the tap, before any await:
+ *  iOS Safari keeps a context created later suspended (silent). */
+export function openDuetAudio(): AudioContext {
   const ctx = new AudioContext()
+  void ctx.resume().catch(() => { /* resumed again in startDuet */ })
+  return ctx
+}
+
+/**
+ * Start a duet over `original` in `ctx` (from openDuetAudio). Throws if the
+ * mic can't open (callers map the error with micErrorReason). Stops itself
+ * at DUET_MAX_MS. The context is closed when the duet ends or fails.
+ */
+export async function startDuet(ctx: AudioContext, original: Blob, onTick?: (ms: number) => void): Promise<DuetSession> {
+  let stream: MediaStream
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    })
+  } catch (err) {
+    void ctx.close().catch(() => { /* closed */ })
+    throw err
+  }
   const cleanupMic = () => stream.getTracks().forEach(t => t.stop())
   let buffer: AudioBuffer
   try {

@@ -356,11 +356,17 @@ const VIDEO_TYPES = [
   'video/mp4',
 ]
 
-export function renderStoryVideo(opts: StoryExportOptions, durationMs = 8000): Promise<Blob | null> {
+/**
+ * `audioContext`: create it (and resume it) synchronously inside the tap
+ * handler — iOS Safari keeps a context made after an await suspended, which
+ * would record a silent clip. It is closed when the clip is done.
+ */
+export function renderStoryVideo(opts: StoryExportOptions, durationMs = 8000, audioContext?: AudioContext): Promise<Blob | null> {
   return new Promise((resolve) => {
     const made = makeCanvas()
     const canCapture = made && typeof made.canvas.captureStream === 'function' && typeof MediaRecorder !== 'undefined'
     if (!made || !canCapture) {
+      void audioContext?.close().catch(() => { /* closed */ })
       resolve(null)
       return
     }
@@ -373,6 +379,7 @@ export function renderStoryVideo(opts: StoryExportOptions, durationMs = 8000): P
       }
     }
     if (!mimeType) {
+      void audioContext?.close().catch(() => { /* closed */ })
       resolve(null)
       return
     }
@@ -385,7 +392,8 @@ export function renderStoryVideo(opts: StoryExportOptions, durationMs = 8000): P
       // clips carry sound: the signal's voice (or real recording) + soft tape hiss
       let actx: AudioContext | null = null
       try {
-        actx = new AudioContext()
+        actx = audioContext ?? new AudioContext()
+        if (actx.state === 'suspended') await actx.resume().catch(() => { /* stays silent */ })
         const dest = actx.createMediaStreamDestination()
         const voiceBlob = opts.audioBlob ?? await renderSampleAudio('voice', opts.waveformSeed ?? 42, durationMs)
         if (voiceBlob) {
