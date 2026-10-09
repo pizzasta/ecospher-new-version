@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { AVATAR_SIGILS, saveAvatar, readAvatar, sigilGlyph } from '../lib/avatar'
+import { readGenome, saveGenome } from '../lib/voiceGenome'
+import type { VoiceGenome } from '../lib/voiceGenome'
+import VoiceBirth from './VoiceBirth'
 import {
   GRADIENT_STYLES, PROFILE_PALETTES, DEFAULT_GRADIENT, SCENE_STYLES, saveGradientSettings,
 } from '../lib/frequencyGradient'
@@ -103,6 +106,7 @@ export default function ProfileOnboarding({ onDone, onGo, accentColor = '#b9889b
   const [step, setStep] = useState(0)
   const [sigil, setSigil] = useState(() => readAvatar())
   const [name, setName] = useState(() => getLocalHzProfile('someone awake').displayName ?? '')
+  const [genome, setGenome] = useState<VoiceGenome>(() => readGenome(getLocalHzProfile('someone awake').displayName ?? 'someone awake'))
   const [nameError, setNameError] = useState<string | null>(null)
   const [paletteId, setPaletteId] = useState(PROFILE_PALETTES[0].id)
   const [style, setStyle] = useState<GradientStyle>('aurora')
@@ -115,7 +119,10 @@ export default function ProfileOnboarding({ onDone, onGo, accentColor = '#b9889b
   const panelRef = useRef<HTMLDivElement>(null)
 
   const palette = PROFILE_PALETTES.find(p => p.id === paletteId) ?? PROFILE_PALETTES[0]
-  const colors: [string, string, string] = [palette.start, palette.end, accentColor]
+  const colors = useMemo<[string, string, string]>(
+    () => [palette.start, palette.end, accentColor],
+    [palette.start, palette.end, accentColor],
+  )
   const moodVars = moodToVars(mood)
   const [oracle, setOracle] = useState<string | null>(null)
 
@@ -181,6 +188,7 @@ export default function ProfileOnboarding({ onDone, onGo, accentColor = '#b9889b
     if (!validateStep(NAME_STEP) || !validateStep(LINE_STEP)) return
     setSaving(true)
     saveAvatar(sigil)
+    if (sigil === 'voice') saveGenome(genome)
     saveMood(mood)
     saveScene3D(scene3d)
     saveChime(chime)
@@ -534,8 +542,9 @@ export default function ProfileOnboarding({ onDone, onGo, accentColor = '#b9889b
             <>
               <h2>you're on the grid</h2>
               <div className="po-node3d">
-                <Node3D sigil={sigil} scene={scene3d} colors={colors} label="your sigil in 3D" />
+                <Node3D sigil={sigil} scene={scene3d} colors={colors} genome={genome} label="your sigil in 3D" />
               </div>
+              <VoiceBirth born={sigil === 'voice'} onBorn={g => { setGenome(g); setSigil('voice') }} />
               <div className="po-scene-row" role="radiogroup" aria-label="3D scene">
                 {SCENES_3D.map(sc => (
                   <button key={sc.id} type="button" role="radio" aria-checked={scene3d === sc.id} onClick={() => setScene3d(sc.id)}>{sc.label}</button>

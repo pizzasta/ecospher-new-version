@@ -13,15 +13,18 @@ import { readStatus, writeStatus, readFeatured, writeFeatured } from '../lib/pro
 import type { FeaturedSignal } from '../lib/profileExtras'
 import { getHzProfile, getLocalHzProfile } from '../lib/hzSignature'
 import { useEcoPref } from '../hooks/useEcoPrefs'
-import { AVATAR_SIGILS, readAvatar, saveAvatar, sigilGlyph } from '../lib/avatar'
+import { AVATAR_SIGILS, VOICE_SIGIL, readAvatar, saveAvatar, sigilGlyph } from '../lib/avatar'
 import Node3D from './Node3D'
 import { SCENES_3D, readScene3D, saveScene3D } from '../lib/scene3d'
 import type { Scene3D } from '../lib/scene3d'
 import { useWavelength } from '../hooks/useWavelength'
 
-const sigilLabel = (id: string) => AVATAR_SIGILS.find(s => s.id === id)?.label ?? 'the mark'
+const sigilLabel = (id: string) => (id === VOICE_SIGIL.id ? VOICE_SIGIL : AVATAR_SIGILS.find(s => s.id === id))?.label ?? 'the mark'
 import { SIGIL_THEMES, sigilsInTheme } from '../lib/sigilThemes'
 import type { HzProfile } from '../lib/hzSignature'
+import { readGenome, saveGenome } from '../lib/voiceGenome'
+import type { VoiceGenome } from '../lib/voiceGenome'
+import VoiceBirth from './VoiceBirth'
 import AudioPlayer from './AudioPlayer'
 import AudioRecorder from './AudioRecorder'
 import ColorWave from './ColorWave'
@@ -159,6 +162,7 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
 
   // ── header data ──
   const username = ecosystemState.userSignalIdentity ?? 'unclaimed frequency'
+  const [genome, setGenome] = useState<VoiceGenome>(() => readGenome(username))
   const [joined, setJoined] = useState<string | null>(null)
   // tape intro: a ten-second voice introduction instead of a written bio
   const [tapeIntro, setTapeIntro] = useState<{ id: string; durationMs: number; recordedAt: number } | null>(() => {
@@ -181,6 +185,10 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
   }, [username])
 
   const [gradientStart, gradientEnd] = resolveGradientColors(gradient, hzProfile.hz)
+  const nodeColors = useMemo<[string, string, string]>(
+    () => [gradientStart, gradientEnd, hzProfile.color],
+    [gradientStart, gradientEnd, hzProfile.color],
+  )
 
   // ── echo archive ──
   const [echoes, setEchoes] = useState<StoredRecording[]>([])
@@ -897,18 +905,31 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
       {variant === 'profile' && (
         <>
           <div className="ph-node3d" style={{ '--ph-accent': hzProfile.color } as CSSProperties}>
-            <Node3D
-              sigil={avatar}
-              scene={scene3d}
-              colors={[gradientStart, gradientEnd, hzProfile.color]}
-              listen
-              label={`${username}'s sigil, ${sigilLabel(avatar)}, in ${SCENES_3D.find(s => s.id === scene3d)?.label ?? 'the dark'}`}
-            />
+            {/* one live 3D scene at a time: the guided setup has its own, and two
+                GL contexts on a phone is what makes them flash */}
+            {!onboarding && (
+              <Node3D
+                sigil={avatar}
+                scene={scene3d}
+                colors={nodeColors}
+                genome={genome}
+                listen
+                label={`${username}'s sigil, ${sigilLabel(avatar)}, in ${SCENES_3D.find(s => s.id === scene3d)?.label ?? 'the dark'}`}
+              />
+            )}
             <div className="ph-node3d-id">
               <span>NODE · {hzProfile.hz.toFixed(1)} HZ</span>
               <strong>{hzProfile.displayName || username}</strong>
             </div>
           </div>
+          <VoiceBirth
+            born={avatar === VOICE_SIGIL.id}
+            onBorn={(g: VoiceGenome) => {
+              saveGenome(g); saveAvatar(VOICE_SIGIL.id)
+              setGenome(g); setAvatar(VOICE_SIGIL.id)
+              window.dispatchEvent(new CustomEvent('ecosphere:profile-updated'))
+            }}
+          />
           <div className="ph-node3d-scenes" role="radiogroup" aria-label="3D scene">
             {SCENES_3D.map(sc => (
               <button key={sc.id} type="button" role="radio" aria-checked={scene3d === sc.id} title={sc.line} onClick={() => { setScene3d(sc.id); saveScene3D(sc.id) }}>
