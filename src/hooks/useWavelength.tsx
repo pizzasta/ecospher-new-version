@@ -10,6 +10,7 @@ import { getLocalHzProfile } from '../lib/hzSignature'
 import { readAvatar, sigilGlyph } from '../lib/avatar'
 import { pushLocalNotification } from '../lib/notifications'
 import { isSupabaseConfigured } from '../lib/supabase-env'
+import { ageConfirmed } from '../components/AgeGate'
 
 type WavelengthCtx = {
   enabled: boolean
@@ -42,9 +43,6 @@ function useLocalTransport(): boolean {
   } catch { return false }
 }
 
-function onTheGrid(): boolean {
-  try { return window.localStorage.getItem('introSeen') === 'true' } catch { return false }
-}
 
 export function WavelengthProvider({ children }: { children: ReactNode }) {
   const { ecosystemState } = useEcosystemState()
@@ -85,6 +83,14 @@ export function WavelengthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [identity, keyRef, refreshTick])
 
+  // only adults who've passed the age check go on the band
+  const [adult, setAdult] = useState(() => ageConfirmed())
+  useEffect(() => {
+    const onAge = () => setAdult(ageConfirmed())
+    window.addEventListener('ecosphere:age-confirmed', onAge)
+    return () => window.removeEventListener('ecosphere:age-confirmed', onAge)
+  }, [])
+
   useEffect(() => {
     const onToggle = () => setEnabledState(wavelengthEnabled())
     window.addEventListener('ecosphere:wavelength-toggle', onToggle)
@@ -92,7 +98,7 @@ export function WavelengthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (!enabled || !onTheGrid() || (!isSupabaseConfigured && !localTransport)) { setLive(false); setPeers([]); return }
+    if (!enabled || !adult || (!isSupabaseConfigured && !localTransport)) { setLive(false); setPeers([]); return }
     const session = joinWavelength(me, {
       onPeers: list => setPeers(list.filter(p => p.key !== me.key)),
       onEvent: e => {
@@ -107,7 +113,7 @@ export function WavelengthProvider({ children }: { children: ReactNode }) {
     sessionRef.current = session
     setLive(Boolean(session))
     return () => { session?.leave(); sessionRef.current = null; setLive(false) }
-  }, [enabled, me, localTransport])
+  }, [enabled, adult, me, localTransport])
 
   const matches = useMemo(() => rankMatches(me, peers), [me, peers])
 

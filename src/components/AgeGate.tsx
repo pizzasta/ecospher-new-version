@@ -16,6 +16,7 @@ export default function AgeGate({ onConfirm }: { onConfirm: () => void }) {
 
   const confirm = () => {
     try { window.localStorage.setItem(KEY, 'yes') } catch { /* session only — re-ask next visit */ }
+    try { window.dispatchEvent(new CustomEvent('ecosphere:age-confirmed')) } catch { /* non-browser */ }
     onConfirm()
   }
 

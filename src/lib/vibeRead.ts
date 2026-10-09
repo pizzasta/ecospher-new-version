@@ -157,7 +157,7 @@ export async function readVibe(answers: VibeAnswers, line = '', timeoutMs = 9000
     const client = getOptionalSupabaseClient()
     if (client) {
       try {
-        const call = client.functions.invoke<{ vibe?: unknown }>('vibe-read', { body: { answers: a, line: safeLine, options: vibeOptions() } })
+        const call = client.functions.invoke<{ vibe?: unknown }>('vibe-read', { body: { answers: a, line: safeLine } })
         const timeout = new Promise<null>(resolve => window.setTimeout(() => resolve(null), timeoutMs))
         const res = await Promise.race([call, timeout])
         const valid = res && !res.error ? validateVibe(res.data?.vibe) : null

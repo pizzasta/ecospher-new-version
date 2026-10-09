@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 import { cleanAnswers, localVibeRead, readVibe, validateVibe, vibeOptions } from '../vibeRead'
+import fnSource from '../../../supabase/functions/vibe-read/index.ts?raw'
 
 describe('vibe read', () => {
   it('reads three taps into a full node, on-device', () => {
@@ -34,5 +35,19 @@ describe('vibe read', () => {
 
   it('falls back on-device when there is no backend', async () => {
     expect((await readVibe({ need: 'disappear' })).source).toBe('local')
+  })
+})
+
+describe('vibe-read edge function', () => {
+  it('offers the model exactly the options the app accepts', () => {
+    const src = fnSource
+    const block = src.slice(src.indexOf('const OPTIONS = {'), src.indexOf('} as const'))
+    const o = vibeOptions()
+    for (const [field, values] of Object.entries(o)) {
+      const m = new RegExp(`${field}: \\[([^\\]]*)\\]`).exec(block)
+      expect(m, field).not.toBeNull()
+      const server = [...m![1].matchAll(/'([^']+)'/g)].map(x => x[1])
+      expect(server, field).toEqual([...values])
+    }
   })
 })

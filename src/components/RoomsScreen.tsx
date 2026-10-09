@@ -309,6 +309,8 @@ export default function RoomsScreen() {
     const onOpen = (e: Event) => {
       const id = (e as CustomEvent<{ id?: string }>).detail?.id
       const found = LIVE_CHANNELS.find(c => c.id === id)
+      // handled here, so the queued id must not reopen it on a later visit
+      try { window.sessionStorage.removeItem(OPEN_LIVE_KEY) } catch { /* nothing queued */ }
       if (found) setLiveChannel(found)
     }
     window.addEventListener('ecosphere:open-live', onOpen)
