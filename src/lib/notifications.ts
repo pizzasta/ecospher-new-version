@@ -7,6 +7,10 @@ import { isSupabaseConfigured } from './supabase-env'
 import { ensureBackendSession } from './session'
 
 export type NotificationType = 'new_reaction' | 'new_listener' | 'new_listener_follow' | 'new_capsule' | 'phantom_interaction' | 'return_moment' | 'recap'
+  | 'wavelength_match' | 'wave' | 'tuned_in'
+
+/** anonymous peer attached to wavelength notifications, so the inbox can wave back */
+export type NotificationPeer = { key: string; mood: string; sigil: string; color: string; hz: number }
 
 export type EcoNotification = {
   id: string
@@ -15,6 +19,7 @@ export type EcoNotification = {
   read: boolean
   createdAt: number
   remote: boolean
+  peer?: NotificationPeer
 }
 
 export const NOTIFICATION_GLYPHS: Record<NotificationType, string> = {
@@ -25,6 +30,9 @@ export const NOTIFICATION_GLYPHS: Record<NotificationType, string> = {
   phantom_interaction: '∅',
   return_moment: '◔',
   recap: '∿',
+  wavelength_match: '≋',
+  wave: '◠',
+  tuned_in: '⌖',
 }
 
 const TYPE_TEXT: Record<NotificationType, string> = {
@@ -35,6 +43,9 @@ const TYPE_TEXT: Record<NotificationType, string> = {
   phantom_interaction: 'carrier_null touched your frequency',
   return_moment: 'something happened while you were gone',
   recap: 'your nightly recap is ready',
+  wavelength_match: 'someone on your wavelength just came on the grid',
+  wave: 'someone on your wavelength waved at you',
+  tuned_in: 'someone on your wavelength tuned in to you',
 }
 
 export function formatRelativeTime(timestamp: number, now = Date.now()): string {
@@ -57,7 +68,7 @@ export function formatBadge(count: number): string {
 const LOCAL_KEY = 'ecosphere:localNotifications'
 const LOCAL_LIMIT = 50
 
-type LocalNotification = { id: string; type: NotificationType; text?: string; read: boolean; createdAt: number }
+type LocalNotification = { id: string; type: NotificationType; text?: string; read: boolean; createdAt: number; peer?: NotificationPeer }
 
 function readLocal(): LocalNotification[] {
   try { return JSON.parse(window.localStorage.getItem(LOCAL_KEY) ?? '[]') } catch { return [] }
@@ -68,11 +79,11 @@ function writeLocal(items: LocalNotification[]) {
 }
 
 /** Push a local notification (phantom drift, system events) and announce it. */
-export function pushLocalNotification(type: NotificationType, text?: string) {
-  const item: LocalNotification = { id: `ln-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, type, text, read: false, createdAt: Date.now() }
+export function pushLocalNotification(type: NotificationType, text?: string, peer?: NotificationPeer) {
+  const item: LocalNotification = { id: `ln-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, type, text, read: false, createdAt: Date.now(), peer }
   writeLocal([item, ...readLocal()])
   try {
-    window.dispatchEvent(new CustomEvent('ecosphere:notification', { detail: { id: item.id, type, text } }))
+    window.dispatchEvent(new CustomEvent('ecosphere:notification', { detail: { id: item.id, type, text, peer } }))
   } catch { /* non-browser */ }
 }
 
@@ -81,7 +92,7 @@ export function pushLocalNotification(type: NotificationType, text?: string) {
 export async function listNotifications(limit = 20, unreadOnly = false): Promise<EcoNotification[]> {
   const local: EcoNotification[] = readLocal()
     .filter(n => !unreadOnly || !n.read)
-    .map(n => ({ id: n.id, type: n.type, text: n.text ?? TYPE_TEXT[n.type], read: n.read, createdAt: n.createdAt, remote: false }))
+    .map(n => ({ id: n.id, type: n.type, text: n.text ?? TYPE_TEXT[n.type], read: n.read, createdAt: n.createdAt, remote: false, peer: n.peer }))
 
   let remote: EcoNotification[] = []
   if (isSupabaseConfigured) {
@@ -143,9 +154,9 @@ export async function markAllNotificationsRead() {
  */
 export function subscribeToNotifications(onNew: (notification: EcoNotification) => void): () => void {
   const onLocal = (event: Event) => {
-    const detail = (event as CustomEvent<{ id: string; type: NotificationType; text?: string }>).detail
+    const detail = (event as CustomEvent<{ id: string; type: NotificationType; text?: string; peer?: NotificationPeer }>).detail
     if (!detail) return
-    onNew({ id: detail.id, type: detail.type, text: detail.text ?? TYPE_TEXT[detail.type], read: false, createdAt: Date.now(), remote: false })
+    onNew({ id: detail.id, type: detail.type, text: detail.text ?? TYPE_TEXT[detail.type], read: false, createdAt: Date.now(), remote: false, peer: detail.peer })
   }
   window.addEventListener('ecosphere:notification', onLocal)
 
@@ -174,4 +185,89 @@ export function subscribeToNotifications(onNew: (notification: EcoNotification) 
     window.removeEventListener('ecosphere:notification', onLocal)
     teardownRemote()
   }
+}
+
+// ─── inbox helpers (pure) ─────────────────────────────────────────────────────
+
+export type InboxFilter = 'all' | 'you' | 'wavelength'
+
+const WAVELENGTH_TYPES: NotificationType[] = ['wavelength_match', 'wave', 'tuned_in']
+
+export function matchesFilter(n: EcoNotification, filter: InboxFilter): boolean {
+  if (filter === 'all') return true
+  const wl = WAVELENGTH_TYPES.includes(n.type)
+  return filter === 'wavelength' ? wl : !wl
+}
+
+export type InboxGroup = { key: string; type: NotificationType; items: EcoNotification[]; latest: EcoNotification; unread: number }
+
+const GROUPABLE: NotificationType[] = ['new_reaction', 'new_listener', 'new_listener_follow']
+const GROUP_WINDOW_MS = 60 * 60 * 1000
+
+/**
+ * Collapse runs of the same kind of event that land close together
+ * ("4 people resonated with your signal") so a busy night reads as one line.
+ * Wavelength events stay individual — each one is a person you can answer.
+ */
+export function groupNotifications(items: EcoNotification[]): InboxGroup[] {
+  const sorted = [...items].sort((a, b) => b.createdAt - a.createdAt)
+  const groups: InboxGroup[] = []
+  for (const n of sorted) {
+    const last = groups[groups.length - 1]
+    if (last && GROUPABLE.includes(n.type) && last.type === n.type && last.items[last.items.length - 1].createdAt - n.createdAt <= GROUP_WINDOW_MS) {
+      last.items.push(n)
+      if (!n.read) last.unread += 1
+      continue
+    }
+    groups.push({ key: n.id, type: n.type, items: [n], latest: n, unread: n.read ? 0 : 1 })
+  }
+  return groups
+}
+
+const GROUP_TEXT: Partial<Record<NotificationType, (n: number) => string>> = {
+  new_reaction: n => `${n} people resonated with your signal`,
+  new_listener: n => `${n} people listened to your signal`,
+  new_listener_follow: n => `${n} carriers tuned to you`,
+}
+
+export function groupText(g: InboxGroup): string {
+  if (g.items.length > 1) return GROUP_TEXT[g.type]?.(g.items.length) ?? g.latest.text
+  return g.latest.text
+}
+
+/** Where tapping a notification takes you. */
+export function notificationTarget(type: NotificationType): string | null {
+  switch (type) {
+    case 'new_reaction': case 'new_listener': return 'signals'
+    case 'new_listener_follow': case 'return_moment': return 'pod'
+    case 'new_capsule': return 'capsules'
+    case 'recap': return 'dashboard'
+    case 'phantom_interaction': return 'anomalies'
+    default: return null
+  }
+}
+
+// ─── quiet hours ──────────────────────────────────────────────────────────────
+
+const QUIET_KEY = 'ecosphere:quietHours'
+export type QuietHours = { on: boolean; from: number; to: number }
+export const DEFAULT_QUIET: QuietHours = { on: false, from: 1, to: 8 }
+
+export function readQuietHours(): QuietHours {
+  try {
+    const v = JSON.parse(window.localStorage.getItem(QUIET_KEY) ?? 'null') as Partial<QuietHours> | null
+    if (!v) return { ...DEFAULT_QUIET }
+    const hour = (h: unknown, d: number) => (typeof h === 'number' && h >= 0 && h <= 23 ? Math.round(h) : d)
+    return { on: v.on === true, from: hour(v.from, DEFAULT_QUIET.from), to: hour(v.to, DEFAULT_QUIET.to) }
+  } catch { return { ...DEFAULT_QUIET } }
+}
+
+export function saveQuietHours(q: QuietHours) {
+  try { window.localStorage.setItem(QUIET_KEY, JSON.stringify(q)) } catch { /* session only */ }
+}
+
+/** True when alerts should stay silent (badge still counts). Handles windows that wrap midnight. */
+export function inQuietHours(q: QuietHours, hour: number = new Date().getHours()): boolean {
+  if (!q.on || q.from === q.to) return false
+  return q.from < q.to ? hour >= q.from && hour < q.to : hour >= q.from || hour < q.to
 }

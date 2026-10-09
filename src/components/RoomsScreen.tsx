@@ -7,7 +7,7 @@ import { futureSignals } from '../lib/futureSignals'
 import GroupConversations from './GroupConversations'
 import CarrierRoom from './CarrierRoom'
 import LiveChannel from './LiveChannel'
-import { LIVE_CHANNELS, liveVoiceMode } from '../lib/liveChannel'
+import { LIVE_CHANNELS, OPEN_LIVE_KEY, liveVoiceMode } from '../lib/liveChannel'
 import type { LiveChannelInfo } from '../lib/liveChannel'
 import DormantFrequencies from './DormantFrequencies'
 import RoomAtmosphere from './RoomAtmosphere'
@@ -296,7 +296,26 @@ export default function RoomsScreen() {
   const [carrierRoom, setCarrierRoom] = useState<{ label: string; hz: string; seed: number } | null>(null)
   // live voice is opt-in while in beta (?livevoice=1 turns it on for this browser)
   const [liveMode] = useState(liveVoiceMode)
-  const [liveChannel, setLiveChannel] = useState<LiveChannelInfo | null>(null)
+  // the inbox can hand off straight into a live channel (consent gate still applies)
+  const [liveChannel, setLiveChannel] = useState<LiveChannelInfo | null>(() => {
+    try {
+      const id = window.sessionStorage.getItem(OPEN_LIVE_KEY)
+      if (!id) return null
+      window.sessionStorage.removeItem(OPEN_LIVE_KEY)
+      return LIVE_CHANNELS.find(c => c.id === id) ?? null
+    } catch { return null }
+  })
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const id = (e as CustomEvent<{ id?: string }>).detail?.id
+      const found = LIVE_CHANNELS.find(c => c.id === id)
+      // handled here, so the queued id must not reopen it on a later visit
+      try { window.sessionStorage.removeItem(OPEN_LIVE_KEY) } catch { /* nothing queued */ }
+      if (found) setLiveChannel(found)
+    }
+    window.addEventListener('ecosphere:open-live', onOpen)
+    return () => window.removeEventListener('ecosphere:open-live', onOpen)
+  }, [])
   const [reopened, setReopened] = useState<DormantRoom | null>(null)
   const [pulling, setPulling] = useState(true)
 

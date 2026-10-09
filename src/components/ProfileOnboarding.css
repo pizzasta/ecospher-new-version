@@ -790,3 +790,42 @@
     font-size: clamp(16px, 4.5vw, 20px);
   }
 }
+
+/* ─── AI vibe read ─────────────────────────────────────────── */
+.po-vibe-qs { display: grid; gap: 10px; margin: 10px 0 12px; }
+.po-vibe-line { margin-bottom: 10px; }
+.po-vibe-go {
+  width: 100%; min-height: 48px; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 14px; font-weight: 800; letter-spacing: 0.08em; color: #fff;
+  background: linear-gradient(90deg, rgba(155, 93, 233, 0.55), rgba(255, 45, 120, 0.55), rgba(0, 212, 255, 0.45));
+  background-size: 200% 100%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 24px rgba(255, 45, 120, 0.25);
+  animation: po-vibe-shift 6s linear infinite;
+}
+.po-vibe-go:disabled { opacity: 0.45; cursor: default; animation: none; }
+.po-vibe-go.reading { opacity: 1; animation-duration: 1.2s; }
+@keyframes po-vibe-shift { to { background-position: 200% 0; } }
+.po-vibe-scan { position: relative; height: 3px; margin: 10px 0 0; overflow: hidden; border-radius: 3px; background: rgba(255, 255, 255, 0.06); }
+.po-vibe-scan i { position: absolute; inset: 0 auto 0 0; width: 40%; background: linear-gradient(90deg, transparent, #67e8f9, transparent); animation: po-vibe-scan 1s ease-in-out infinite; }
+@keyframes po-vibe-scan { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+.po-vibe-result {
+  margin-top: 12px; padding: 14px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.10), rgba(255, 45, 120, 0.08));
+  border: 1px solid rgba(103, 232, 249, 0.35);
+  animation: po-vibe-in 0.5s ease-out;
+}
+@keyframes po-vibe-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.po-vibe-src { font-size: 9px; letter-spacing: 0.24em; color: #67e8f9; font-weight: 800; }
+.po-vibe-result p { margin: 6px 0 8px; font-size: 14px; line-height: 1.5; color: #f0f4ff; font-style: italic; }
+.po-vibe-picks { display: block; font-size: 11px; color: rgba(200, 210, 235, 0.75); margin-bottom: 6px; }
+.po-node3d { height: 220px; margin: 6px 0 8px; border-radius: 18px; overflow: hidden; background: radial-gradient(120% 90% at 50% 40%, rgba(20, 24, 48, 0.9), #030712 70%); border: 1px solid rgba(255, 255, 255, 0.08); }
+.po-scene-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px; scrollbar-width: none; }
+.po-scene-row button {
+  flex-shrink: 0; min-height: 34px; padding: 0 12px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 11px; white-space: nowrap;
+  background: transparent; border: 1px solid rgba(255, 255, 255, 0.14); color: rgba(200, 210, 235, 0.8);
+}
+.po-scene-row button[aria-checked='true'] { border-color: #ff2d78; color: #fff; background: rgba(255, 45, 120, 0.14); }
+.po-finish-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.po-go { border-color: rgba(103, 232, 249, 0.5) !important; color: #cffafe !important; }
+@media (prefers-reduced-motion: reduce) { .po-vibe-go, .po-vibe-scan i, .po-vibe-result { animation: none; } }

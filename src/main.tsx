@@ -19,6 +19,7 @@ import App from './App'
 import { AudioProvider } from './audio-system'
 import { GlobalAudioProvider } from './hooks/useGlobalAudio'
 import { EcosystemProvider } from './hooks/useEcosystemState'
+import { WavelengthProvider } from './hooks/useWavelength'
 import SignalErrorBoundary from './components/SignalErrorBoundary'
 import { healLocalStorage } from './lib/storageHeal'
 import { installGlobalErrorMonitoring } from './lib/errorMonitoring'
@@ -35,7 +36,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <EcosystemProvider>
         <AudioProvider>
           <GlobalAudioProvider>
-            <App />
+            <WavelengthProvider>
+              <App />
+            </WavelengthProvider>
           </GlobalAudioProvider>
         </AudioProvider>
       </EcosystemProvider>
