@@ -6,6 +6,9 @@
 
 import * as THREE from 'three'
 import type { Scene3D } from './scene3d'
+import { createEchoForm } from './echoForm'
+import type { EchoForm } from './echoForm'
+import type { VoiceGenome } from './voiceGenome'
 
 export type NodeStageOptions = {
   sigil: string
@@ -13,6 +16,8 @@ export type NodeStageOptions = {
   /** [start, end, accent] */
   colors: [string, string, string]
   reducedMotion: boolean
+  /** the voice-born form, used when sigil === 'voice' */
+  genome?: VoiceGenome
 }
 
 export type NodeStage = {
@@ -240,13 +245,26 @@ export function createNodeStage(canvas: HTMLCanvasElement, initial: NodeStageOpt
   let opts = initial
   let sigilGroup: THREE.Group | null = null
   let sigilDispose: (() => void) | null = null
+  let echo: EchoForm | null = null
   let rig: SceneRig | null = null
   let levelSource: (() => number) | null = null
   let level = 0
 
   const buildSigil = () => {
     if (sigilGroup) { scene.remove(sigilGroup); sigilDispose?.() }
+    echo = null
     const accent = new THREE.Color(opts.colors[2])
+    if (opts.sigil === 'voice' && opts.genome) {
+      echo = createEchoForm(opts.genome, opts.colors)
+      scene.add(echo.group)
+      sigilGroup = echo.group
+      const form = echo
+      sigilDispose = () => form.dispose()
+      ;(glow.material as THREE.SpriteMaterial).color = accent
+      key.color = new THREE.Color(opts.colors[1])
+      rim.color = new THREE.Color(opts.colors[0])
+      return
+    }
     const mat = new THREE.MeshStandardMaterial({ color: accent.clone().lerp(new THREE.Color('#ffffff'), 0.15), emissive: accent, emissiveIntensity: 0.2, metalness: 0.85, roughness: 0.22, flatShading: opts.sigil === 'void' || opts.sigil === 'rift' || opts.sigil === 'gem' || opts.sigil === 'bloom' })
     // halo shell: a slightly larger back-face copy, additive, so the edges burn like neon
     const shellMat = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.22, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false })
@@ -316,8 +334,11 @@ export function createNodeStage(canvas: HTMLCanvasElement, initial: NodeStageOpt
       sigilGroup.rotation.x = Math.sin(t * 0.4) * 0.25
       sigilGroup.position.y = Math.sin(t * 0.9) * 0.08
       sigilGroup.scale.setScalar(1 + level * 0.28 + breathe * 0.03)
-      const m = (sigilGroup.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
-      m.emissiveIntensity = 0.16 + breathe * 0.12 + level * 1.2
+      if (echo) echo.tick(t, level)
+      else {
+        const m = (sigilGroup.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial
+        m.emissiveIntensity = 0.16 + breathe * 0.12 + level * 1.2
+      }
     }
     glow.material.opacity = 0.4 + breathe * 0.12 + level * 0.4
     glow.scale.setScalar(3.4 + level * 1.6)
@@ -336,7 +357,7 @@ export function createNodeStage(canvas: HTMLCanvasElement, initial: NodeStageOpt
 
   return {
     update: next => {
-      const sigilChanged = next.sigil !== opts.sigil || next.colors.join() !== opts.colors.join()
+      const sigilChanged = next.sigil !== opts.sigil || next.colors.join() !== opts.colors.join() || JSON.stringify(next.genome) !== JSON.stringify(opts.genome)
       const sceneChanged = next.scene !== opts.scene || next.colors.join() !== opts.colors.join()
       const motionChanged = next.reducedMotion !== opts.reducedMotion
       opts = next

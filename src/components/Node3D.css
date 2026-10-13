@@ -41,3 +41,20 @@
 }
 .ph-wavelength-strip b { font-size: 18px; color: #67e8f9; font-weight: 400; }
 .ph-wavelength-strip i { margin-left: auto; font-style: normal; color: #67e8f9; }
+
+/* voice-born form: grow it from five seconds of your voice */
+.voice-birth { display: flex; flex-direction: column; gap: 8px; margin: 2px 0 14px; }
+.voice-birth-btn {
+  position: relative; overflow: hidden; width: 100%; min-height: 48px; padding: 0 16px; border-radius: 14px; cursor: pointer;
+  font: inherit; font-size: 13px; letter-spacing: 0.04em; color: #f0f4ff;
+  background: linear-gradient(90deg, rgba(255, 45, 120, 0.2), rgba(0, 212, 255, 0.16));
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+.voice-birth-btn:disabled { opacity: 0.7; cursor: progress; }
+.voice-birth-btn.live { border-color: rgba(255, 59, 92, 0.8); box-shadow: 0 0 22px rgba(255, 59, 92, 0.35); }
+.voice-birth-ring {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, rgba(255, 59, 92, 0.5), rgba(103, 232, 249, 0.4));
+  transform-origin: left center; transform: scaleX(var(--vb-level, 0)); transition: transform 90ms linear; opacity: 0.55;
+}
+.voice-birth-hint { margin: 0; font-size: 12px; line-height: 1.45; color: rgba(200, 210, 235, 0.72); }
