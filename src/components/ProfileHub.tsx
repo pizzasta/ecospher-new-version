@@ -92,7 +92,7 @@ const VOICE_PROMPTS = [
 const PROFILE_TILES = ['identity', 'presence', 'featured', 'wall']
 const DASHBOARD_TILES = ['tonightAction', 'prompts', 'echoes', 'tonight', 'history', 'shelf', 'vault', 'reach', 'tuning']
 
-export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavigate?: (screen: string) => void; variant?: 'profile' | 'dashboard' }) {
+export default function ProfileHub({ onNavigate, variant = 'profile', pod }: { onNavigate?: (screen: string) => void; variant?: 'profile' | 'dashboard'; /** the listening pod, rendered just under the stage */ pod?: ReactNode }) {
   const allowedTiles = variant === 'profile' ? PROFILE_TILES : DASHBOARD_TILES
   const { ecosystemState, setSignalIdentity } = useEcosystemState()
   const globalAudio = useGlobalAudio()
@@ -901,7 +901,7 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
         </div>
       )}
 
-      {/* the node chamber: your sigil in 3D, in the world you pick */}
+      {/* the stage: your voice-born form dead centre of the page, in the 3D world you pick */}
       {variant === 'profile' && (
         <>
           <div className="ph-node3d" style={{ '--ph-accent': hzProfile.color } as CSSProperties}>
@@ -917,11 +917,19 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
                 label={`${username}'s sigil, ${sigilLabel(avatar)}, in ${SCENES_3D.find(s => s.id === scene3d)?.label ?? 'the dark'}`}
               />
             )}
+            <div className="ph-node3d-scenes" role="radiogroup" aria-label="3D background">
+              {SCENES_3D.map(sc => (
+                <button key={sc.id} type="button" role="radio" aria-checked={scene3d === sc.id} title={sc.line} onClick={() => { setScene3d(sc.id); saveScene3D(sc.id) }}>
+                  {sc.label}
+                </button>
+              ))}
+            </div>
             <div className="ph-node3d-id">
               <span>NODE · {hzProfile.hz.toFixed(1)} HZ</span>
               <strong>{hzProfile.displayName || username}</strong>
             </div>
           </div>
+          {pod}
           <VoiceBirth
             born={avatar === VOICE_SIGIL.id}
             onBorn={(g: VoiceGenome) => {
@@ -930,13 +938,6 @@ export default function ProfileHub({ onNavigate, variant = 'profile' }: { onNavi
               window.dispatchEvent(new CustomEvent('ecosphere:profile-updated'))
             }}
           />
-          <div className="ph-node3d-scenes" role="radiogroup" aria-label="3D scene">
-            {SCENES_3D.map(sc => (
-              <button key={sc.id} type="button" role="radio" aria-checked={scene3d === sc.id} title={sc.line} onClick={() => { setScene3d(sc.id); saveScene3D(sc.id) }}>
-                {sc.label}
-              </button>
-            ))}
-          </div>
           {wl.enabled && wl.live && (
             <button type="button" className="ph-wavelength-strip" onClick={() => window.dispatchEvent(new CustomEvent('ecosphere:open-inbox'))}>
               <b aria-hidden="true">≋</b>

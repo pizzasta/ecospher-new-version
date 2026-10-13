@@ -4305,18 +4305,21 @@ function SoulPodScreen({ user, onSignOut, onNavigate, mode = 'profile' }: { user
           <p className="screen-sub">your saved voices, recaps and the signals only you receive</p>
         </div>
       )}
-      {mode === 'profile' && (
-        <PodPresence
-          energy={podEnergy}
-          stage={podStage}
-          rippling={rippling}
-          streak={eco.streak.count}
-          identity={eco.userSignalIdentity}
-          hzColor={podHz?.color}
-          onTouch={touchPod}
-        />
-      )}
-      <ProfileHub variant={mode} onNavigate={screen => onNavigate?.(screen as Screen)} />
+      <ProfileHub
+        variant={mode}
+        onNavigate={screen => onNavigate?.(screen as Screen)}
+        pod={mode === 'profile' ? (
+          <PodPresence
+            energy={podEnergy}
+            stage={podStage}
+            rippling={rippling}
+            streak={eco.streak.count}
+            identity={eco.userSignalIdentity}
+            hzColor={podHz?.color}
+            onTouch={touchPod}
+          />
+        ) : undefined}
+      />
       {mode === 'profile' && <PostRelics view="relics" />}
       {mode === 'dashboard' && <PostRelics view="hub" />}
       {mode === 'dashboard' && <StickyNotes />}
