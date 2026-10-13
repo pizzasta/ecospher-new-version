@@ -13,6 +13,10 @@
 /* hub: the stage — your form centred on the page, edge to edge, fading into the cards below */
 .ph-node3d {
   position: relative; height: clamp(460px, 72vh, 660px); margin: -14px -14px 6px; overflow: hidden;
+}
+/* the fade is applied to the backdrop and the canvas only, so the name and the mic button stay fully readable */
+.ph-node3d::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
   background:
     radial-gradient(70% 50% at 50% 46%, color-mix(in srgb, var(--ph-accent, #ff2d78) 20%, transparent), transparent 70%),
     radial-gradient(120% 90% at 50% 40%, rgba(20, 24, 48, 0.9), #030712 72%);
@@ -20,8 +24,13 @@
   mask-image: linear-gradient(#000 80%, transparent);
 }
 .ph-node3d .node3d { position: absolute; inset: 0; min-height: 0; }
+.ph-node3d .node3d-canvas {
+  -webkit-mask-image: linear-gradient(#000 80%, transparent);
+  mask-image: linear-gradient(#000 80%, transparent);
+}
 .ph-node3d .node3d-listen { right: auto; left: 50%; transform: translateX(-50%); bottom: 64px; }
-.ph-node3d .node3d-note { left: 50%; transform: translateX(-50%); bottom: 112px; }
+/* mic status sits under the button, clear of the name block above it */
+.ph-node3d .node3d-note { left: 50%; transform: translateX(-50%); bottom: 36px; white-space: nowrap; }
 .ph-node3d-id {
   position: absolute; left: 0; right: 0; bottom: 112px; z-index: 2; pointer-events: none;
   display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center;
